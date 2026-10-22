@@ -7,23 +7,46 @@ reverse-shell/[Bb]uilds/
 reverse-shell/[Ll]ogs/
 reverse-shell/[Uu]ser[Ss]ettings/
 reverse-shell/[Mm]emoryCaptures/
+reverse-shell/[Rr]ecordings/
+reverse-shell/Assets/AssetStoreTools*
+reverse-shell/ExportedObj/
+
+# Unity crash reports, debug symbols and build outputs
+sysinfo.txt
+crashlytics-build.properties
+*.pdb
+*.pdb.meta
+*.mdb
+*.mdb.meta
+*.pidb.meta
+*.apk
+*.aab
+*.unitypackage
+*.app
 
 # IDE / OS
 reverse-shell/.vs/
 reverse-shell/.vscode/
 reverse-shell/.idea/
+reverse-shell/.consulo/
 reverse-shell/*.csproj
 reverse-shell/*.sln
 reverse-shell/*.suo
 reverse-shell/*.user
+reverse-shell/*.userprefs
 reverse-shell/*.pidb
 reverse-shell/*.booproj
 reverse-shell/*.unityproj
+reverse-shell/*.svd
+reverse-shell/*.opendb
+reverse-shell/*.VC.db
 *.DS_Store
 Thumbs.db
+desktop.ini
 
-# Tool caches
+# Tool caches and outputs
 __pycache__/
+*.pyc
 reverse-shell/Tools/SpriteForge/.lpc_cache/
 reverse-shell/Tools/DevCheck/**/.build/
 

@@ -20,6 +20,7 @@ namespace Combat.View
         Image bannerBg;
         RectTransform apRow;
         GameObject resultPanel;
+        RectTransform rewardsRect;
         Button goButton, undoButton;
         readonly List<string> logLines = new List<string>();
         Coroutine bannerRoutine;
@@ -30,6 +31,7 @@ namespace Combat.View
         public void Build(BattleView battleView)
         {
             view = battleView;
+            CardSettings.Changed += RebuildQueue;
             var root = (RectTransform)transform;
             root.Fill();
 
@@ -93,8 +95,14 @@ namespace Combat.View
             resultText.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 80f), new Vector2(1000f, 140f));
             var restart = UIFactory.CreateButton(result.transform, "Restart", "FIGHT AGAIN", new Color(0.85f, 0.45f, 0.2f), view.OnRestart, 28);
             resultButtonLabel = restart.GetComponentInChildren<Text>();
-            restart.GetComponent<RectTransform>().Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -60f), new Vector2(300f, 80f));
+            restart.GetComponent<RectTransform>().Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -300f), new Vector2(300f, 80f));
+            rewardsRect = UIFactory.CreateRect("Rewards", result.transform).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f), new Vector2(0f, 0f), new Vector2(620f, 240f));
             resultPanel.SetActive(false);
+        }
+
+        void OnDestroy()
+        {
+            CardSettings.Changed -= RebuildQueue;
         }
 
         public void BringOverlaysToFront()
@@ -156,10 +164,20 @@ namespace Combat.View
                 var outline = chip.gameObject.AddComponent<Outline>();
                 outline.effectColor = Gold;
                 outline.effectDistance = new Vector2(2f, -2f);
-                var label = card.IsRitual ? card.Name : card.Name + "\n" + UIFactory.Roman(card.Rank);
+                bool stars = CardSettings.RankStars;
+                var label = card.IsRitual || stars ? card.Name : card.Name + "\n" + UIFactory.Roman(card.Rank);
                 var textColor = card.IsRitual ? new Color(0.22f, 0.18f, 0.28f) : Color.white;
                 var text = UIFactory.CreateText(chip.transform, "Label", label, 14, textColor, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(9, 14);
                 text.rectTransform.Fill(4f);
+                if (stars)
+                {
+                    int count = CardStars.CountFor(card);
+                    if (count > 0)
+                    {
+                        text.rectTransform.offsetMax = new Vector2(-4f, -16f); // leave the top row for the stars
+                        CardStars.Build((RectTransform)chip.transform, count, 13f, new Vector2(0f, 1f), new Vector2(4f, -3f));
+                    }
+                }
             }
 
             for (int i = 0; i < currentAP; i++)
@@ -196,14 +214,52 @@ namespace Combat.View
             yield return Tween.Fade(bannerGroup, 0f, 0.25f);
         }
 
-        public void ShowResult(bool victory)
+        public void ShowResult(bool victory, BattleResult result)
         {
             resultPanel.SetActive(true);
+            ShowRewards(result);
             resultText.text = victory ? "VICTORY" : "DEFEAT";
             resultButtonLabel.text = view.ResultButtonLabel;
             resultText.color = victory ? Gold : new Color(0.85f, 0.3f, 0.3f);
             resultPanel.transform.localScale = Vector3.one * 0.9f;
             StartCoroutine(Tween.Scale(resultPanel.transform, Vector3.one, 0.3f, Tween.OutBack));
+        }
+
+        /// <summary>"+XP" headline, then one row per member: name, big level number, XP toward the next level.</summary>
+        void ShowRewards(BattleResult result)
+        {
+            UIFactory.ClearChildren(rewardsRect);
+            if (result == null || result.XpGained <= 0) return;
+
+            var xp = UIFactory.CreateText(rewardsRect, "Xp", "+" + result.XpGained + " XP", 44, Gold, TextAnchor.MiddleCenter, FontStyle.Bold);
+            xp.rectTransform.TopStrip(0f, 52f);
+
+            float y = 62f;
+            foreach (var entry in result.Party)
+            {
+                var member = entry.Key;
+                var progress = entry.Value;
+                int levels;
+                bool leveled = result.LevelsGained.TryGetValue(member, out levels);
+
+                var row = UIFactory.CreateImage(rewardsRect, member.DisplayName, PanelDark);
+                row.rectTransform.TopStrip(y, 52f);
+                var swatch = UIFactory.CreateImage(row.transform, "Color", member.color);
+                swatch.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(8f, 0f), new Vector2(6f, 36f));
+
+                var name = UIFactory.CreateText(row.transform, "Name", member.DisplayName, 26, Color.white, TextAnchor.MiddleLeft, FontStyle.Bold);
+                name.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(24f, 0f), new Vector2(170f, 44f));
+
+                var level = UIFactory.CreateText(row.transform, "Level", "Lv " + progress.Level, 32,
+                    leveled ? new Color(0.5f, 1f, 0.55f) : Color.white, TextAnchor.MiddleLeft, FontStyle.Bold);
+                level.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(200f, 0f), new Vector2(130f, 44f));
+
+                string right = leveled ? "LEVEL UP!" : progress.Xp + " / " + Leveling.XpToNext(progress.Level) + " XP";
+                var detail = UIFactory.CreateText(row.transform, "Detail", right, leveled ? 26 : 22,
+                    leveled ? new Color(0.5f, 1f, 0.55f) : new Color(0.75f, 0.75f, 0.8f), TextAnchor.MiddleRight, FontStyle.Bold);
+                detail.rectTransform.Place(new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-14f, 0f), new Vector2(260f, 44f));
+                y += 58f;
+            }
         }
     }
 }

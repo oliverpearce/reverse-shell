@@ -8,11 +8,19 @@ namespace Game.World
     {
         public const int AtlasCell = 64;
 
-        public static readonly Color NeonMagenta = new Color(1f, 0.18f, 0.55f);
-        public static readonly Color NeonCyan = new Color(0.18f, 0.95f, 1f);
-        public static readonly Color NeonGreen = new Color(0.7f, 1f, 0.23f);
-        public static readonly Color NeonOrange = new Color(1f, 0.6f, 0.24f);
-        public static readonly Color[] NeonPalette = { NeonMagenta, NeonCyan, NeonGreen, NeonOrange };
+        public static readonly Color Sunlight = new Color(1f, 0.93f, 0.78f);
+        /// <summary>Machine eye / threat glow.</summary>
+        public static readonly Color MachineRed = new Color(1f, 0.28f, 0.16f);
+
+        // Overworld UI: sepia paper panels with dark ink, like an old field terminal.
+        public static readonly Color UiPanel = new Color(0.85f, 0.82f, 0.71f, 0.94f);
+        public static readonly Color UiInk = new Color(0.27f, 0.25f, 0.2f);
+        public static readonly Color UiEdge = new Color(0.4f, 0.37f, 0.3f);
+
+        /// <summary>Atlas cells for props (see Tools/TileForge/ruins_atlas.py), as (col, row from top).</summary>
+        public static readonly Vector2Int LeafCell = new Vector2Int(0, 0), BarkCell = new Vector2Int(1, 0),
+            GrassCell = new Vector2Int(2, 0), FlowerCell = new Vector2Int(3, 0), VineCell = new Vector2Int(4, 0),
+            ConcreteCell = new Vector2Int(7, 0);
 
         /// <summary>UV rect of atlas cell (col, row) where row 0 is the top row. Inset half a texel to avoid bleeding.</summary>
         public static Rect AtlasUV(Texture atlas, int col, int row)
@@ -47,7 +55,47 @@ namespace Game.World
 
         // ------------------------------------------------------------------ Generated textures
 
-        static Texture2D blob, frame, dot;
+        static Texture2D blob, frame, dot, dapple;
+
+        /// <summary>
+        /// Tileable sun cookie: mostly canopy shade (dim) with scattered soft-edged spots of full sunlight,
+        /// like light filtering through leaves. Built-in pipeline cookies read the alpha channel.
+        /// </summary>
+        public static Texture2D DappleCookie()
+        {
+            if (dapple != null) return dapple;
+            const int size = 256;
+            const float shade = 0.2f;
+            var value = new float[size * size];
+            for (int i = 0; i < value.Length; i++) value[i] = shade;
+
+            var rng = new System.Random(77);
+            for (int s = 0; s < 70; s++)
+            {
+                float cx = rng.Next(size), cy = rng.Next(size);
+                float r = 5f + (float)rng.NextDouble() * (s < 12 ? 20f : 9f); // a few big pools, many small flecks
+                float stretch = 0.7f + (float)rng.NextDouble() * 0.6f;      // slightly oval
+                float peak = 0.7f + (float)rng.NextDouble() * 0.3f;
+                int reach = Mathf.CeilToInt(r * 1.4f);
+                for (int dy = -reach; dy <= reach; dy++)
+                    for (int dx = -reach; dx <= reach; dx++)
+                    {
+                        float d = Mathf.Sqrt(dx * dx * stretch + dy * dy / stretch) / r;
+                        if (d >= 1f) continue;
+                        float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((1f - d) * 3f)); // soft rim, solid core
+                        int x = ((int)cx + dx + size) % size, y = ((int)cy + dy + size) % size; // wraps: tileable
+                        int i = y * size + x;
+                        value[i] = Mathf.Max(value[i], Mathf.Lerp(shade, peak, k));
+                    }
+            }
+
+            dapple = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };
+            var colors = new Color[size * size];
+            for (int i = 0; i < colors.Length; i++) colors[i] = new Color(1f, 1f, 1f, value[i]);
+            dapple.SetPixels(colors);
+            dapple.Apply();
+            return dapple;
+        }
 
         public static Texture2D BlobTexture()
         {
@@ -81,7 +129,7 @@ namespace Game.World
             return frame;
         }
 
-        /// <summary>Tiny plus-shaped sparkle for Glimmer and rain particles.</summary>
+        /// <summary>Tiny plus-shaped mote for dust, pollen and leaf particles.</summary>
         public static Texture2D DotTexture()
         {
             if (dot != null) return dot;
@@ -98,11 +146,13 @@ namespace Game.World
         }
 
         // ------------------------------------------------------------------ Materials
-        // Built at runtime from built-in shaders. For player builds, add "Sprites/Diffuse" and
-        // "Legacy Shaders/Particles/Additive" to Project Settings > Graphics > Always Included Shaders.
+        // Built at runtime from built-in shaders. For player builds, add "Sprites/Diffuse",
+        // "Legacy Shaders/Particles/Additive", "Legacy Shaders/Particles/Alpha Blended" and
+        // "Legacy Shaders/Transparent/Cutout/Diffuse" to Project Settings > Graphics > Always Included Shaders.
 
         static readonly Dictionary<Color, Material> emissive = new Dictionary<Color, Material>();
-        static Material spriteLit, additive, blobMat, darkMetal;
+        static readonly Dictionary<string, Material> cellMaterials = new Dictionary<string, Material>();
+        static Material spriteLit, additive, alphaBlended, blobMat, darkMetal;
 
         public static Shader FindShader(params string[] names)
         {
@@ -122,7 +172,27 @@ namespace Game.World
             return m;
         }
 
-        /// <summary>Sprites that react to the neon point lights.</summary>
+        /// <summary>
+        /// One atlas cell stretched over a whole mesh (0-1 UVs, e.g. a primitive cube or quad). Cutout cells
+        /// (grass, vines) use alpha testing so they cast leafy shadows and sort correctly.
+        /// </summary>
+        public static Material CellMaterial(Texture atlas, Vector2Int cell, bool cutout = false)
+        {
+            string key = atlas.GetInstanceID() + ":" + cell + ":" + cutout;
+            Material m;
+            if (cellMaterials.TryGetValue(key, out m) && m != null) return m;
+            m = cutout
+                ? new Material(FindShader("Legacy Shaders/Transparent/Cutout/Diffuse", "Standard")) { mainTexture = atlas }
+                : WorldMaterial(atlas, 0.05f);
+            if (cutout && m.HasProperty("_Cutoff")) m.SetFloat("_Cutoff", 0.5f);
+            var uv = AtlasUV(atlas, cell.x, cell.y);
+            m.mainTextureOffset = uv.min;
+            m.mainTextureScale = uv.size;
+            cellMaterials[key] = m;
+            return m;
+        }
+
+        /// <summary>Sprites lit by the sun and any point lights.</summary>
         public static Material SpriteLit()
         {
             if (spriteLit == null) spriteLit = new Material(FindShader("Sprites/Diffuse", "Sprites/Default"));
@@ -137,6 +207,17 @@ namespace Game.World
                 additive.mainTexture = DotTexture();
             }
             return additive;
+        }
+
+        /// <summary>Soft (non-glowing) particles such as falling leaves and pollen.</summary>
+        public static Material AlphaBlended()
+        {
+            if (alphaBlended == null)
+            {
+                alphaBlended = new Material(FindShader("Legacy Shaders/Particles/Alpha Blended", "Particles/Standard Unlit"));
+                alphaBlended.mainTexture = DotTexture();
+            }
+            return alphaBlended;
         }
 
         public static Material AdditiveTinted(Texture tex, Color tint)
@@ -163,7 +244,7 @@ namespace Game.World
             return darkMetal;
         }
 
-        /// <summary>HDR-bright unlit-looking material; with bloom this reads as neon tube light.</summary>
+        /// <summary>HDR-bright unlit-looking material; with bloom it reads as a glowing light source.</summary>
         public static Material Emissive(Color color, float intensity = 3.5f)
         {
             Material m;

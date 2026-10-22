@@ -1,158 +1,158 @@
-# GAME BIBLE: *NEON HEX* (working title)
+# GAME BIBLE (working title: *NEON HEX*, renaming pending)
 
-> *Rain on chrome. Static in the air. Somewhere under the neon, someone is singing a spell.*
+> *Sunlight through a broken roof. Wind in the grass that grew over the road. Somewhere in the green, a machine is still keeping watch.*
 
 This is the creative source of truth. When a design question comes up ("should this card do X?", "what does this district look like?"), the answer should fit what's written here. If it doesn't, change the bible on purpose rather than drifting.
 
-Other title ideas: *Static Saints*, *Glitch & Glimmer*, *Hexline*, *Lowlight Requiem*.
+**Direction change (2026-10-22):** the game moved from a rainy neon cyberpunk city to an **overgrown, sunlit city ruin** in the spirit of *NieR:Automata*. **2B** replaced Miku as the lead. The combat system, party structure and HD-2D presentation are unchanged.
+
+The old title *NEON HEX* no longer fits. Title ideas: *Overgrowth*, *Verdant Static*, *After the Last City*, *Moss & Machine*, *Quiet Steel*. The code still uses `NEONHEX_POSTFX` as a define name, which doesn't matter to players.
 
 ---
 
 ## 1. Elevator pitch
-A top-down pixel-art RPG set in a rain-soaked cyberpunk megacity where magic has leaked into the network. You explore the city tile by tile, like a classic monster-collector. You recruit a crew of misfit spellcasters and fight in tactical card battles where merging cards powers up spells and builds toward dazzling, pastel-bright **Rituals**.
+An HD-2D RPG set in a city that humanity left centuries ago and nature quietly took back. Androids explore the sunlit ruins, recruit a small crew and fight the machine lifeforms that still wander the streets. Battles are tactical card fights in which merging cards powers up attacks and builds toward a **Ritual**, a once-a-fight overload program.
 
-**Genre:** top-down exploration RPG with card-merge tactical combat.
-**Influences:** Pokémon (overworld, encounters, crew collecting), Reverse: 1999 (merge-card combat, stylish casts), Slay the Spire (card readability, card craft), Cyberpunk / Blade Runner (mood), Hyper Light Drifter (neon pixel art).
+**Genre:** exploration RPG with card-merge tactical combat.
+**Influences:** *NieR:Automata* (mood, setting, androids vs machines), Octopath Traveler II (HD-2D diorama look), Reverse: 1999 (merge-card combat), Slay the Spire (card readability).
 
 ## 2. Design pillars
-1. **Every card is a little spell.** Cards have personality: a name, a cast animation and a clear effect. Making cards should be fun for the developer too, and the modular card system is the heart of the game.
-2. **Merge to rise.** The core of combat is arranging your hand: setting up merges, spending actions wisely and timing your Ritual. Fights reward planning, not grinding.
-3. **Neon in the dark.** The look is dark grunge lit by neon and spell-sparkle. Light means hope, and light means magic.
-4. **A small city, dense with secrets.** Hand-built districts with alleys, rooftops, hidden shops and side characters, rather than a huge empty map.
-5. **Found family.** The crew are outcasts who choose each other. Recruiting someone should feel like gaining a friend, not a stat stick.
+1. **Every card is a little technique.** Each card has a name, a cast animation and a clear effect. The modular card system is the heart of the game.
+2. **Merge to rise.** Combat is about arranging your hand: setting up merges, spending AP well and timing your Ritual. Planning beats grinding.
+3. **Beauty in the ruins.** The world is quiet, green and sunlit. Danger is the exception, so the calm stays meaningful.
+4. **A small world, dense with secrets.** Hand-built districts with rooftops, collapsed tunnels and side characters, rather than a huge empty map.
+5. **Found family.** The crew choose each other. Recruiting someone should feel like gaining a friend, not a stat stick.
 
 ## 3. Setting
 
-### The city: **Lowmarrow**
-A vertical megacity built in layers. The rich live above the cloud line in the **Spires**. Everyone else lives below in the **Undercity**, where the rain never stops and the only light comes from signs, screens and spells.
+### The city ruins
+A great city, long empty. Towers lean on each other, roads have cracked open into meadows, and trees grow out of office floors. Morning haze hangs over everything. The only sounds are birds, wind and the creak of machines.
 
-### The magic: **Glimmer**
-Years ago, a corporate experiment tried to run code on something older than electricity. What leaked out was **Glimmer**: sparkling, living static that hums in wires, pools in puddles and answers to song, rhythm and will.
-- Glimmer shows up as **sparkles, glitter, prismatic noise and soft pastel light** against the grime. It is the only beautiful thing in the Undercity.
-- People who can shape it are **Hexers**. Corporations hunt them, and gangs want them on their payroll.
-- Raw Glimmer gone wrong becomes **Static**. Static infects machines, animals and people, and creates the corrupted enemies you fight.
+### Who's here
+- **Androids** were built to retake the world. They're sent down from an orbital base, the **Bunker**, and save their progress at **Access Points** (field terminals).
+- **Machine lifeforms** are old war machines that have outlived their makers. Some still fight, some have grown strange, and a few have grown curious.
+- **The Resistance** is a camp of androids on the ground who trade, scout and patch each other up.
 
 ### Factions (draft)
 | Faction | Vibe | Role |
 |---|---|---|
-| **Halcyon Dynamics** | Sterile white chrome, holo-halos | The corp that caused the leak and now sells "containment" |
-| **The Wiremothers** | Punk witches in cable-knit shawls | An underground Hexer network that becomes the crew's allies |
-| **Chrome Saints** | Cyber-church, stained-glass LEDs | A cult that worships Static as divine |
-| **The Drowned Market** | Flooded bazaar, lanterns on boats | Neutral traders, shops and an information hub |
+| **The Bunker** | White, sterile, orbital | Command; sends orders and the protagonist |
+| **The Resistance** | Patched tents, solar lamps, scrap furniture | The crew's home camp: shops, rest, quests |
+| **Machine packs** | Rusted plating, glowing eyes | The common enemies of the city |
+| **The Hollow Choir** | Machines in robes, ringing bells | A machine cult; mid-game antagonists |
 
 ### Districts (one level each)
-1. **Rainline Station**: the starting area. Abandoned transit hub, flickering signs. Tutorial.
-2. **Neon Row**: a strip of bars, arcades and noodle stalls. The first recruit.
-3. **The Drowned Market**: a canal maze of boats and lantern light.
-4. **Rustbelt Yards**: scrap towers, junk golems and Rook's home turf.
-5. **The Chapel of Static**: the Chrome Saints' cathedral, in a glitch-art style.
-6. **Halcyon Spire**: the final ascent from grime to blinding white chrome.
+1. **Mossline Station**: the starting area. A collapsed transit plaza overrun by grass. Tutorial. *(built)*
+2. **The Sunken Arcade**: a flooded shopping mall with fish swimming between the escalators.
+3. **Rustbelt Yards**: a factory district where machines still build machines.
+4. **The Canopy**: high-rises swallowed by a forest growing on their roofs.
+5. **The Hollow Cathedral**: the Hollow Choir's bell tower.
+6. **The Spire**: the final climb toward whatever is still broadcasting from the top.
 
 ## 4. Characters
 
-Each character is a **class (archetype)** with their own two incantations and one Ritual.
+Each character is a **class (archetype)** with two cards and one Ritual.
 
 | Name | Class | Resonance* | Role | Hook |
 |---|---|---|---|---|
-| **Miku** *(Hatsune Miku)* | Cantor | Star | Single-target damage plus team buffs | Her songs bend Glimmer through every speaker in the Undercity. Party leader. |
-| **Teto** *(Kasane Teto)* | Bruiser | Mineral | Area damage and armor breaking | Drill-haired brawler who swings a baguette like a crowbar. |
-| **Rei** *(Adachi Rei)* | Android Medic | Intellect | Healing (repair) and poison (viruses) | An android who patches the crew and corrupts enemy code. |
-| *(future)* | Glitchwitch | Spirit | Debuffs and stuns | Talks to Static and might be partly made of it. |
-| *(future)* | Courier | Beast | Speed, AP gain, Moxie feeding | Rooftop runner with a cyber-hound. |
-| *(future)* | Archivist | Intellect | Card manipulation and rank-ups | A Halcyon defector who brings the stolen files. |
+| **2B** *(NieR:Automata)* | YoRHa Battler | Star | Single-target damage plus team buffs | A combat android from the Bunker. Calm, precise, and party leader. Her Pod fights alongside her. |
+| **V1** | Assault Unit | Mineral | Area damage and armor breaking | A white-plated combat robot. Few words, heavy hits. Cards: *Spin Saw*, *Armor Breaker*, Ritual *Overdrive*. |
+| **V2** | Support Unit | Intellect | Healing (repair) and poison (viruses) | A charcoal-plated support robot that patches the crew and infects enemy code. Cards: *Patch Protocol*, *Virus Spike*, Ritual *System Restore*. |
+| *(future)* | Hacker | Spirit | Debuffs and stuns | Breaks into machines from the inside. |
+| *(future)* | Scout | Beast | Speed, AP gain, Ult feeding | A rooftop runner with a salvaged machine dog. |
+| *(future)* | Archivist | Intellect | Card manipulation and rank-ups | Keeps what is left of the human records. |
 
 \*The Resonance names are placeholders; see §6.
 
-> **Fan-project note.** The main cast are existing virtual singers: Hatsune Miku © Crypton Future Media, INC.;
-> Kasane Teto © TWINDRILL; Adachi Rei © missile39. That's fine for a personal or non-commercial fan game, with
-> credit given (see `Art/Characters/CREDITS.md`). If the game ever goes commercial, either get permission
-> (Piapro for Miku) or swap in original characters. Vesper, Rook and Moss were the originals; their kits are the same.
+**2B's kit:** *Virtuous Contract* (a heavy single-target sword strike), *Pod Support* (raises the team's card damage) and the Ritual *Pod Laser* (two huge hits plus team ATK Up).
 
-**Protagonist:** the player is **Miku**, the party leader. She walks the overworld, and Teto and Rei join her in battle.
+> **Fan-project note.** 2B (NieR:Automata) © SQUARE ENIX. That's fine for a personal, non-commercial fan game with
+> credit given (see `Art/Characters/CREDITS.md`). A public or commercial release would need an original lead or
+> permission. V1 and V2 are original generic robots. Earlier casts (Vesper, then Miku, plus Teto and Rei) used the same kits.
 
-### Enemy families
-- **Static-touched animals**: Ashen Hounds, glitch-pigeons, rat swarms (Beast)
-- **Junk constructs**: Shard Sentinels, scrap golems (Mineral)
-- **Halcyon security**: drones and containment agents (Intellect)
-- **Chrome Saints**: zealots and choir-bots (Spirit)
-- **Overgrowth**: neon fungus and vine-wraiths (Plant)
+**Protagonist:** the player is **2B**. She walks the overworld, and V1 and V2 join her in battle.
+
+### Enemy families (machine lifeforms)
+- **Sentries**: heavy, slow, armored (Rust Sentry). Mineral.
+- **Stalkers**: quick scrap hunters that work in packs (Scrap Stalker). Beast.
+- **Flyers**: drones and missile platforms. Intellect.
+- **Choir machines**: bell-ringing cultists that buff each other. Spirit.
+- **Overgrown machines**: half-plant, half-machine things rooted in place. Plant.
 
 ## 5. Visual identity
 
 ### Mood
-Dark, wet, grimy surfaces under **saturated neon** and **soft magical sparkle**. Think of a puddle reflecting a pink sign with glitter drifting through it.
+**Quiet, hazy and sunlit.** Desaturated greens and warm concrete under a soft blue-white sky, with long shafts of light and drifting leaves. Melancholy, but peaceful. Machines bring the only strong, warm accent: rust and glowing red-orange eyes.
 
 ### Palette (starting point)
 | Use | Color | Hex |
 |---|---|---|
-| Night base | Bruised black-violet | `#0E0B14` |
-| Grime | Wet asphalt | `#2A2733` |
-| Neon A | Hot magenta | `#FF2E88` |
-| Neon B | Electric cyan | `#2EF2FF` |
-| Neon C | Acid green | `#B6FF3B` |
-| Warm light | Sodium orange | `#FF9A3C` |
-| Glimmer | Sparkle white / pale gold | `#FFF6D6` |
-| Ritual pastels | Lavender, mint, peach, baby blue | per character |
+| Sky | Washed blue | `#85A8CC` |
+| Haze / horizon | Pale cream | `#E0E0CC` |
+| Concrete | Sun-bleached gray-beige | `#A59C88` |
+| Foliage (shadow to light) | Moss, leaf, fresh, sunlit | `#24452A` `#356A34` `#55913F` `#8DBF57` |
+| Rust | Machine plating | `#94622F` |
+| Threat | Machine eye red | `#FF4729` |
+| UI | Sepia paper with dark ink | `#D9D1B5` / `#454033` |
 
-**Rule:** grime is low-saturation and dark, and light sources are high-saturation. Pastel is reserved for pure magic: Rituals, Glimmer and healing. That's why Ritual cards are pastel. They should feel like the one clean, bright thing in the room.
+**Rule:** the world is soft and low-contrast. Strong saturated color is reserved for **threats** (machine red) and **power** (Ritual cards, heals). Rituals keep their pastel look. They're the one bright, clean thing on screen.
 
 ### Pixel art spec: HD-2D (Octopath Traveler II style)
-The overworld uses **pixel-art sprites in a 3D diorama**:
-- **World:** 1 Unity unit is 1 tile. Blocks and floors are textured with 16×16 pixel art, stored at 4× as 64 px cells with point filtering. The current source is the CC0 **CyberCity** atlas by warlloyd.
-- **Characters:** Octopath-style **32×48 px** pixel sprites (64 px LPC frames) composed by `Tools/SpriteForge/lpc_compose.py` from the CC-BY-SA Universal LPC generator. Each has idle, walk, slash, spellcast and hurt animations in 4 directions. In the overworld they're billboards with blob shadows. In battle the party faces right and enemies face left, idling, slashing or casting, and collapsing when defeated.
-- **Camera:** a narrow FOV (around 28°), pitched about 38° and following the player from the south.
-- **Lighting:** real point lights from neon lamps light both the world and the sprites (`Sprites/Diffuse`). Signs are emissive, and fog adds depth.
-- **Post-processing:** bloom (neon glow), depth of field focused on the player (the tilt-shift diorama blur), vignette, film grain and a little chromatic aberration.
-- **Battle sprites:** 64×64 px for characters and 64–128 px for bosses, with a 2–4 frame idle loop.
-- **Outlines:** 1 px dark (not black). Use a darker shade of the base color.
-- **Atmosphere:** rain particles, Glimmer sparkle particles (pastel twinkles), flickering signs, and wet glossy ground.
+- **World:** 1 Unity unit is 1 tile. Blocks and floors use 16×16 pixel art stored at 4× (64 px cells) with point filtering. The atlas is **our own**: `Art/Tiles/ruins.png`, painted by `Tools/TileForge/ruins_atlas.py` (mossy concrete, ivy-covered windows, grassy rooftops, overgrown road, leaves, bark, grass and vine sprites).
+- **Props:** chunky diorama trees (bark trunk plus leaf blocks), bushes, rubble, swaying grass and flower billboards, vines spilling down walls, and Access Point terminals.
+- **Characters:** Octopath-style **32×48 px** LPC sprites composed by `Tools/SpriteForge/lpc_compose.py`, with idle, walk, slash, spellcast and hurt in 4 directions. Machines are LPC plate armor recolored as rusted plating.
+- **Camera:** a narrow FOV (around 28°), pitched about 38° and following from the south.
+- **Lighting:** a dim scene lit only by the sun, broken into **dappled spots** as if filtering through leaves (a slowly drifting light cookie). Low green trilight ambient and haze. No lamps or point lights.
+- **Post-processing:** gentle bloom, depth of field focused on the player (tilt-shift), a warm, slightly desaturated color grade, a light vignette and a little grain.
+- **Atmosphere:** drifting leaves and pollen, dust motes, swaying grass.
 
 ### UI
-- Chunky pixel font for headings and a clean, readable pixel font for card text. Readability always wins. (Pick fonts with an open license, such as OFL or CC0, and check before shipping.)
-- Cards look like **tarot cards printed on cheap holo-foil**: a dark card body, a neon-colored frame for the owner, and the effect text spelled out in full.
-- Damage numbers are big, chunky and colored by meaning. Gold means advantage, orange means crit, purple means poison and green means a heal.
+- Readability always wins. Big numbers, few words.
+- The overworld UI uses **sepia paper panels with dark ink**, a nod to NieR's menus. The battle UI keeps its current look for now; a sepia pass is a later option.
+- Cards are a dark card body with an owner-colored frame and the effect spelled out in full.
+- Damage numbers are big and colored by meaning: gold is advantage, orange is a crit, purple is poison and green is a heal.
 
 ## 6. Terminology (originality pass)
-The combat currently borrows Reverse: 1999's terms. Before release, swap them for originals. The code only needs display-name changes, not a logic rewrite.
+The combat borrows Reverse: 1999's terms. Before any release, swap them for originals. Only the display names change.
 
 | Current (in code) | Proposed | Notes |
 |---|---|---|
-| Afflatus | **Resonance** | The kind of Glimmer a being is tuned to |
-| Star / Mineral / Beast / Plant | **Neon / Chrome / Feral / Bloom** | Same cycle: Feral > Bloom > Neon > Chrome > Feral |
-| Spirit / Intellect | **Hex / Code** | Each is strong against the other |
-| Moxie | **Charge** | Builds toward the Ritual |
-| Incantation | **Spell** | |
-| Ritual | **Ritual** *(keep)* or **Overture** | |
-| Reality / Mental damage | **Physical / Special** | ✅ Done in code (`DamageType`, Physical/Special DEF). |
+| Afflatus | **Resonance** | |
+| Star / Mineral / Beast / Plant | **Sun / Steel / Wild / Bloom** | Same cycle |
+| Spirit / Intellect | **Signal / Logic** | Each is strong against the other |
+| Moxie | **Ult** | ✅ Shown as "Ult" in game |
+| Incantation | **Skill** | |
+| Ritual | **Ritual** *(keep)* or **Overload** | |
+| Reality / Mental damage | **Physical / Special** | ✅ Done in code |
 
 ## 7. Core loops
 - **Moment to moment (battle):** read the enemy intents, arrange the hand, set up merges, spend AP, time the Ritual, then resolve.
-- **Session (overworld):** explore a district, talk to people, find items, trigger encounters, heal at safe spots, then push to the district boss.
-- **Long term:** recruit crew, level them up, unlock card upgrades and new cards, open new districts and uncover what Halcyon did.
+- **Session (overworld):** explore a district, talk to people, trigger encounters, heal at **Access Points**, then push to the district boss. HP carries between fights.
+- **Long term:** recruit crew, level up, unlock card upgrades and new cards, open new districts.
 
 ## 8. Encounters and the overworld
-- **Static zones:** glitching floor tiles (the "tall grass") that can trigger random fights as you walk through them.
-- **Visible enemies:** some foes patrol the map and start a fight on touch, with a chance to sneak around them.
-- **Story fights:** scripted battles with special rules, such as a boss that changes intent mid-fight.
-- **Safe spots:** **Glimmer Shrines**, neon-lit altars where you heal the crew and save.
+- **Tall grass zones** (`,` on the map) are the natural place for random encounters later.
+- **Visible machines** patrol, and touching one starts a fight.
+- **Story fights:** scripted battles with special rules.
+- **Access Points:** field terminals that restore the party (✅ built) and will become the save points.
 
 ## 9. Progression (draft)
 - **Levels:** stats grow with level along per-character curves.
-- **Card upgrades:** spend **Shards** (found loot) to add effects to a card's ranks. This is the deep card-craft layer.
-- **Mods:** one equippable item per character, such as "+1 Charge when this character merges".
-- **Crew:** up to 4 recruited, with 3 fighting at a time. The formation swaps between fights.
+- **Card upgrades:** spend salvaged **Parts** to add effects to a card's ranks.
+- **Chips:** one equippable passive per character, such as "+1 Ult when this character merges".
+- **Crew:** up to 4 recruited, with 3 fighting at a time.
 
 ## 10. Audio direction
-Lo-fi synthwave and trip-hop with rain ambience. Spell casts get **chime and sparkle** layers, and Rituals get a short choir swell. Enemies made of Static use bitcrushed, glitchy sounds.
+Soft, melancholy and choral: piano, strings and wordless vocals for exploration, with drums and distorted synths layered in for battle. The ambience is wind, birds and creaking metal. Machines get clanks and servo whines; Rituals get a choir swell.
 
 ## 11. Tone guide
-- **Do:** melancholy but warm, wry humor, small kindnesses in a cruel city, beauty in grime.
+- **Do:** quiet melancholy, small kindnesses, curiosity about the machines, beauty in decay.
 - **Don't:** edgy for its own sake, grimdark despair, or real-world brands.
-- **The writing test:** would this line work whispered under a flickering sign in the rain?
+- **The writing test:** would this line work said quietly in a sunlit, empty street?
 
 ## 12. Open questions
-- [ ] Final title
-- [x] Protagonist: Miku leads the party.
-- [ ] Is crew death permanent in story mode? (Recommendation: no. Fainted members recover at shrines.)
+- [ ] Final title (see the ideas at the top)
+- [x] Protagonist: 2B leads the party.
+- [ ] Should the battle UI get the sepia NieR treatment too?
+- [ ] Is crew death permanent in story mode? (Recommendation: no. Downed members recover at Access Points.)
 - [ ] How many districts for a first playable? (Recommendation: 1–2.)
-- [ ] Monetization or scope: a hobby project, a jam game or a commercial release?

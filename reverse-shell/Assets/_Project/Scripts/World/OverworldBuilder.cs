@@ -7,34 +7,35 @@ using UnityEngine.SceneManagement;
 namespace Game.World
 {
     /// <summary>
-    /// Builds an HD-2D overworld at runtime from a text map: 3D blocks textured with pixel art, lit by
-    /// neon lamps, with billboard pixel characters. Edit the map in the inspector to reshape the level.
+    /// Builds an HD-2D overworld at runtime from a text map: 3D blocks textured with pixel art, a sunlit
+    /// city ruin reclaimed by trees, grass and vines, with billboard pixel characters. Edit the map in the inspector to reshape the level.
     /// Handles interaction and the overworld -> battle -> overworld round trip.
     /// </summary>
     public class OverworldBuilder : MonoBehaviour
     {
         public const string DefaultMap =
             "HHHHHH####HHHHH#BBBBBBBBBBBB\n" +
-            "HHHHHH####HHHHH#BPPPPPPPPPPB\n" +
-            "HHHHHH####HHHHH#BPPPPPEPPPPB\n" +
-            "HHHHHH####HHHHH#BPPPPPXPPPPB\n" +
-            "HHHHHH####HHHHH#BPPPPPPPPPPB\n" +
+            "HHHHHH####HHHHH#BPPP,,PPPPPB\n" +
+            "HHHHHH####HHHHH#BPT,PPEPP,TB\n" +
+            "HHHHHH####HHHHH#B,,PPPXPPP,B\n" +
+            "HHHHHH####HHHHH#BPP*PPPPPbPB\n" +
             "HHHHHH####HHHHH#BLLLLP.PLLLB\n" +
-            "B.m......c..n.m.....g.....mB\n" +
-            "B==========================B\n" +
-            "B==========================B\n" +
-            "B.c....n..m.......c.....m..B\n" +
-            "B.S...................n....B\n" +
+            "B.T,,...b..n.r,,....*..,.,TB\n" +
+            "B=====,,==========,,=======B\n" +
+            "B=======,===========r======B\n" +
+            "B.b..,.n..T,,......b...,T..B\n" +
+            "B.S.A,,......*....n..,,..*.B\n" +
             "LLLLLLLLLLLLLLLLLLLLLLLLLLLL\n";
 
         [Header("Area")]
-        public string areaName = "RAINLINE STATION";
-        public string areaSubtitle = "Lowmarrow Undercity";
+        public string areaName = "MOSSLINE STATION";
+        public string areaSubtitle = "The City Ruins";
         [TextArea(12, 30)] public string map = DefaultMap;
 
-        [Header("Art (CyberCity, CC0)")]
-        [Tooltip("city.png: 8x5 atlas of 64px cells.")]
-        public Texture2D cityAtlas;
+        [Header("Art")]
+        [Tooltip("ruins.png (Tools/TileForge/ruins_atlas.py): 8x5 atlas of 64px cells.")]
+        [UnityEngine.Serialization.FormerlySerializedAs("cityAtlas")]
+        public Texture2D tileAtlas;
         [Tooltip("Player walk sheet (3x4). Defaults to the party leader's sprite sheet from the encounter setup.")]
         public Texture2D playerSheet;
         [Tooltip("Yakuza1.png: 3x4 walk sheet, used for the encounter enemy.")]
@@ -70,15 +71,26 @@ namespace Game.World
         }
         public OverworldMap Map { get; private set; }
 
+        /// <summary>Overworld name of the encounter: the first enemy in its battle setup.</summary>
+        string EncounterName
+        {
+            get
+            {
+                var first = encounterSetup != null && encounterSetup.enemies.Count > 0 ? encounterSetup.enemies[0] : null;
+                return first != null ? first.DisplayName : "Machine";
+            }
+        }
+
         PlayerController player;
         Camera cam;
         readonly List<Interactable> interactables = new List<Interactable>();
         Interactable focused;
         bool transitioning;
-        Transform rain;
+        Transform drift;
 
         void Start()
         {
+            WorldSession.EnsureLoaded(); // first area of the session reads save.json
             Map = new OverworldMap(map);
             cam = Camera.main;
             ApplyAtmosphere();
@@ -91,9 +103,11 @@ namespace Game.World
             SpawnPlayer();
             SpawnNpcs();
             SpawnEncounters();
+            SpawnAccessPoints();
 
-            rain = WorldFx.Rain(transform).transform;
+            drift = WorldFx.Drift(transform).transform;
             UI = OverworldUI.Create(transform);
+            RefreshPartyHud();
             StartCoroutine(Arrive());
         }
 
@@ -101,68 +115,98 @@ namespace Game.World
 
         void ApplyAtmosphere()
         {
-            var night = new Color(0.05f, 0.035f, 0.09f);
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.2f, 0.17f, 0.3f);
+            // A dim ruin under a leafy canopy: the only light is the sun, broken into dappled spots by the
+            // leaves overhead (a cookie on the sun), over a low, cool green ambient and haze. No point lights.
+            var haze = new Color(0.36f, 0.41f, 0.38f);
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(0.34f, 0.4f, 0.44f);
+            RenderSettings.ambientEquatorColor = new Color(0.27f, 0.3f, 0.25f);
+            RenderSettings.ambientGroundColor = new Color(0.13f, 0.14f, 0.11f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogColor = night;
-            RenderSettings.fogDensity = 0.03f;
-            // Every neon lamp is a real point light; let them all light per-pixel.
-            QualitySettings.pixelLightCount = Mathf.Max(QualitySettings.pixelLightCount, 16);
+            RenderSettings.fogColor = haze;
+            RenderSettings.fogDensity = 0.028f;
 
             if (cam != null)
             {
                 cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = night;
+                cam.backgroundColor = haze;
                 cam.allowHDR = true;
             }
 
-            var moon = new GameObject("Moonlight").AddComponent<Light>();
-            moon.transform.SetParent(transform, false);
-            moon.type = LightType.Directional;
-            moon.color = new Color(0.45f, 0.5f, 0.85f);
-            moon.intensity = 0.35f;
-            moon.shadows = LightShadows.Soft;
-            moon.shadowStrength = 0.7f;
-            moon.transform.rotation = Quaternion.Euler(55f, -30f, 0f);
+            var sun = new GameObject("Sun").AddComponent<Light>();
+            sun.transform.SetParent(transform, false);
+            sun.type = LightType.Directional;
+            sun.color = WorldArt.Sunlight;
+            sun.intensity = 1.9f;
+            sun.shadows = LightShadows.Soft;
+            sun.shadowStrength = 0.8f;
+            sun.transform.rotation = Quaternion.Euler(58f, -30f, 0f);
+            sun.cookie = WorldArt.DappleCookie();
+            sun.cookieSize = 9f;
+            sun.gameObject.AddComponent<CanopySway>();
         }
 
         void BuildGeometry()
         {
-            if (cityAtlas == null)
+            if (tileAtlas == null)
             {
-                Debug.LogError("OverworldBuilder: assign the CyberCity atlas (city.png).", this);
+                Debug.LogError("OverworldBuilder: assign the ruins tile atlas (Art/Tiles/ruins.png).", this);
                 return;
             }
-            var signs = new List<SignSpot>();
+            var vines = new List<DecalSpot>();
             var go = new GameObject("WorldMesh");
             go.transform.SetParent(transform, false);
-            go.AddComponent<MeshFilter>().sharedMesh = WorldMeshBuilder.Build(Map, cityAtlas, signs);
+            go.AddComponent<MeshFilter>().sharedMesh = WorldMeshBuilder.Build(Map, tileAtlas, vines);
             var renderer = go.AddComponent<MeshRenderer>();
-            renderer.sharedMaterials = new[] { WorldArt.WorldMaterial(cityAtlas, 0.55f), WorldArt.WorldMaterial(cityAtlas, 0.12f) };
+            renderer.sharedMaterials = new[] { WorldArt.WorldMaterial(tileAtlas, 0.08f), WorldArt.WorldMaterial(tileAtlas, 0.05f) };
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
             renderer.receiveShadows = true;
 
-            foreach (var sign in signs) WorldFx.Sign(transform, sign);
+            foreach (var vine in vines) WorldFx.Vine(transform, tileAtlas, vine);
         }
 
         void BuildProps()
         {
-            AddLamps('m', WorldArt.NeonMagenta);
-            AddLamps('c', WorldArt.NeonCyan);
-            AddLamps('g', WorldArt.NeonGreen);
-            AddLamps('o', WorldArt.NeonOrange);
-        }
-
-        void AddLamps(char c, Color color)
-        {
-            foreach (var cell in Map.FindAll(c))
+            if (tileAtlas == null) return;
+            for (int row = 0; row < Map.Height; row++)
             {
-                var pos = Map.CellCenter(cell.x, cell.y);
-                WorldFx.Lamp(transform, pos, color);
-                if (OverworldMap.Hash(cell.x, cell.y, 11) % 2 == 0)
-                    WorldFx.Glimmer(transform, pos + Vector3.up * 1.6f, 0.9f, 3f);
+                for (int x = 0; x < Map.Width; x++)
+                {
+                    char c = Map.At(x, row);
+                    var pos = Map.CellCenter(x, row);
+                    int hash = OverworldMap.Hash(x, row, 21);
+                    switch (c)
+                    {
+                        case 'T': WorldFx.Tree(transform, tileAtlas, pos, hash); break;
+                        case 'b': WorldFx.Bush(transform, tileAtlas, pos, hash); break;
+                        case 'r': WorldFx.Rubble(transform, tileAtlas, pos, hash); break;
+                        case ',':
+                        case '*':
+                            // A small clump per cell, offset so the rows don't look planted.
+                            for (int i = 0; i < 3; i++)
+                            {
+                                var offset = new Vector3((OverworldMap.Hash(x, row, i) % 100) / 100f - 0.5f, 0f,
+                                    (OverworldMap.Hash(x, row, i + 7) % 100) / 100f - 0.5f) * 0.8f;
+                                WorldFx.Tuft(transform, tileAtlas, pos + offset, c == '*' && i == 0, 0.7f + (hash >> i) % 3 * 0.12f);
+                            }
+                            break;
+                        case '.':
+                        case '=':
+                        case 'P':
+                            // Stray weeds poking through the pavement.
+                            if (hash % 6 == 0) WorldFx.Tuft(transform, tileAtlas, pos + new Vector3(0.25f, 0f, -0.2f), false, 0.5f);
+                            break;
+                    }
+                }
+            }
+
+            // Dust hanging in the air near some of the trees.
+            foreach (var cell in Map.FindAll('T'))
+            {
+                if (OverworldMap.Hash(cell.x, cell.y, 3) % 2 != 0) continue;
+                var pos = Map.CellCenter(cell.x, cell.y) + new Vector3(1f, 0f, -0.5f);
+                WorldFx.Motes(transform, pos + Vector3.up * 1.5f, 1f, 3f);
             }
         }
 
@@ -211,18 +255,18 @@ namespace Game.World
             // (sheet row, col), name, lines. Add more entries for more NPCs; they cycle if the map has extras.
             var cast = new[]
             {
-                new NpcInfo(1, 0, "Noodle Vendor", new[]
+                new NpcInfo(1, 0, "Resistance Trader", new[]
                 {
-                    "Rain's thick tonight. Glimmer's been pooling in the gutters again - see it sparkle?",
-                    "Careful by the plaza up north. A Static-touched thug's been shaking people down.",
-                    "If you're gonna fight him, stand on the glowing square. Hexers always do."
+                    "Quiet morning. Just birds, wind... and the creak of machines somewhere in the green.",
+                    "One of them has planted itself in the old station plaza up north. Rusted thing, but it still swings hard.",
+                    "If you mean to fight it, stand on the marked square. Better you than me."
                 }),
-                new NpcInfo(1, 1, "Courier", new[]
+                new NpcInfo(1, 1, "Resistance Scout", new[]
                 {
-                    "You're " + LeaderName + ", right? The singing Hexer? Your voice crackled through every speaker on Neon Row.",
-                    "Teto and Rei are waiting for you. A drill-haired brawler and an android medic - some crew you've got."
+                    "You're " + LeaderName + "? The android from the orbital Bunker? Heard you came down on the last flight.",
+                    "Your support units are waiting by the road. V1 hits hard, V2 keeps everyone running. Good company down here."
                 }),
-                new NpcInfo(2, 2, "Drifter", new[] { "The Spires never see the rain. Must be nice." }),
+                new NpcInfo(2, 2, "Wanderer", new[] { "The trees took this city slowly. Kind of beautiful, if you stop and look." }),
             };
 
             for (int i = 0; i < cells.Count; i++)
@@ -247,27 +291,44 @@ namespace Game.World
             {
                 var pos = Map.CellCenter(cell.x, cell.y);
                 var enemy = encounterAnimations != null
-                    ? CharacterSprite.Create(transform, "Static Thug", encounterAnimations, animatedCharacterScale, pos)
-                    : CharacterSprite.Create(transform, "Static Thug", frames, characterScale, pos, 0.03f);
+                    ? CharacterSprite.Create(transform, EncounterName, encounterAnimations, animatedCharacterScale, pos)
+                    : CharacterSprite.Create(transform, EncounterName, frames, characterScale, pos, 0.03f);
                 enemy.SetFacing(CharacterSprite.Down);
 
-                var light = new GameObject("ThreatLight").AddComponent<Light>();
-                light.transform.SetParent(enemy.transform, false);
-                light.transform.localPosition = new Vector3(0f, 1.2f, -0.6f);
-                light.type = LightType.Point;
-                light.color = WorldArt.NeonMagenta;
-                light.range = 3.5f;
-                light.intensity = 2f;
-                WorldFx.Glimmer(enemy.transform, pos + Vector3.up * 0.9f, 0.6f, 10f);
+                WorldFx.Motes(enemy.transform, pos + Vector3.up * 0.9f, 0.5f, 6f, new Color(1f, 0.45f, 0.25f));
 
                 var encounter = enemy.gameObject.AddComponent<EncounterInteractable>();
                 encounter.id = EncounterId(cell);
+                encounter.displayName = EncounterName;
                 encounter.setup = encounterSetup;
                 encounter.standPoint = StandPointFor(cell);
                 interactables.Add(encounter);
 
-                WorldFx.FloorMarker(transform, encounter.standPoint, WorldArt.NeonMagenta);
+                WorldFx.FloorMarker(transform, encounter.standPoint, WorldArt.MachineRed);
             }
+        }
+
+        void SpawnAccessPoints()
+        {
+            foreach (var cell in Map.FindAll('A'))
+            {
+                var point = WorldFx.AccessPoint(transform, Map.CellCenter(cell.x, cell.y));
+                interactables.Add(point.AddComponent<AccessPointInteractable>());
+            }
+        }
+
+        /// <summary>Redraws the party HP readout from WorldSession.</summary>
+        public void RefreshPartyHud()
+        {
+            if (UI == null || encounterSetup == null) return;
+            var lines = new List<OverworldUI.PartyLine>();
+            foreach (var member in encounterSetup.party)
+            {
+                if (member == null) continue;
+                lines.Add(new OverworldUI.PartyLine(member.DisplayName, WorldSession.ProgressOf(member).Level,
+                    WorldSession.HPOf(member), WorldSession.MaxHPOf(member), member.color));
+            }
+            UI.SetParty(lines);
         }
 
         /// <summary>The 'X' square next to an encounter, or the square south of it.</summary>
@@ -312,7 +373,7 @@ namespace Game.World
                 return;
             }
             if (player == null || UI == null) return;
-            if (rain != null) rain.position = player.transform.position + new Vector3(0f, 9f, 3f);
+            if (drift != null) drift.position = player.transform.position + new Vector3(0f, 7f, 3f);
 
             focused = null;
             if (!transitioning)
@@ -367,29 +428,46 @@ namespace Game.World
             string id = encounter.id;
             string enemyName = encounter.displayName;
             string leader = LeaderName;
-            BattleLauncher.Request(encounter.setup, outcome =>
+            var party = WorldSession.PartyFor(encounter.setup.party);
+            BattleLauncher.Request(encounter.setup, party, result =>
             {
                 WorldSession.PendingSpeaker = leader;
-                switch (outcome)
+                // Levels, XP and HP carry over; a defeat sends the party back to regroup at full HP.
+                WorldSession.Apply(result.Party);
+                if (result.Outcome == BattleOutcome.Defeat) WorldSession.RestoreParty();
+
+                switch (result.Outcome)
                 {
                     case BattleOutcome.Victory:
                         WorldSession.DefeatedEncounters.Add(id);
-                        WorldSession.PendingMessage = "The " + enemyName + " dissolves into static. The plaza goes quiet - just rain and Glimmer.";
+                        WorldSession.PendingMessage = "The " + enemyName + " grinds to a halt. The plaza goes quiet - just wind in the leaves." +
+                            LevelUpLine(result);
                         break;
                     case BattleOutcome.Fled:
-                        WorldSession.PendingMessage = "We slipped away. He's still out there... let's come back ready.";
+                        WorldSession.PendingMessage = "Withdrawing. It's still out there... we come back ready.";
                         break;
                     default:
-                        WorldSession.PendingMessage = "...We need to regroup. That thing hits harder than it looks.";
+                        WorldSession.PendingMessage = "...We pulled back and patched up. That machine hits harder than it looks.";
                         break;
                 }
+                SaveGame.Save();
                 SceneManager.LoadScene(returnScene);
             });
 
-            // Neon flash, then cut to black.
-            UI.SetFade(new Color(1f, 0.2f, 0.6f, 0.8f));
+            // Red alert flash, then cut to black.
+            UI.SetFade(new Color(1f, 0.3f, 0.2f, 0.7f));
             yield return UI.FadeTo(Color.black, 0.45f);
             SceneManager.LoadScene(battleScene);
+        }
+
+        /// <summary>" 2B and V2 reached a new level." style suffix for the victory message, or "".</summary>
+        static string LevelUpLine(BattleResult result)
+        {
+            var names = new List<string>();
+            foreach (var entry in result.LevelsGained) names.Add(entry.Key.DisplayName);
+            if (names.Count == 0) return "";
+            string who = names.Count == 1 ? names[0] : string.Join(", ", names.GetRange(0, names.Count - 1).ToArray()) + " and " + names[names.Count - 1];
+            return "\n" + who + (names.Count == 1 ? " reached a new level." : " reached new levels.");
         }
 
         IEnumerator Arrive()

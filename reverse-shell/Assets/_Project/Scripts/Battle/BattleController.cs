@@ -38,6 +38,49 @@ namespace Combat
             return new BattleController(setup.party, setup.enemies, setup.config, setup.seed);
         }
 
+        /// <summary>
+        /// Carries level and HP over from earlier fights. Call before StartBattle. Members not listed start at
+        /// level 1 with full HP; knocked-out members come back with 1 HP so every character can still act.
+        /// </summary>
+        public void ApplyParty(IDictionary<CharacterDefinition, MemberProgress> party)
+        {
+            if (party == null) return;
+            foreach (var unit in State.Party)
+            {
+                MemberProgress progress;
+                if (unit.Character == null || !party.TryGetValue(unit.Character, out progress) || progress == null) continue;
+                unit.SetLevel(progress.Level);
+                if (progress.HP >= 0) unit.HP = Mathf.Clamp(progress.HP, 1, unit.MaxHP);
+            }
+        }
+
+        /// <summary>
+        /// Each member's progress as it stands now: level and XP from <paramref name="start"/> (or level 1),
+        /// HP from the battlefield (full HP is stored as -1).
+        /// </summary>
+        public Dictionary<CharacterDefinition, MemberProgress> PartySnapshot(IDictionary<CharacterDefinition, MemberProgress> start)
+        {
+            var snapshot = new Dictionary<CharacterDefinition, MemberProgress>();
+            foreach (var unit in State.Party)
+            {
+                if (unit.Character == null) continue;
+                MemberProgress before;
+                var progress = start != null && start.TryGetValue(unit.Character, out before) && before != null ? before.Clone() : new MemberProgress();
+                progress.HP = unit.HP >= unit.MaxHP ? -1 : Mathf.Max(0, unit.HP);
+                snapshot[unit.Character] = progress;
+            }
+            return snapshot;
+        }
+
+        /// <summary>XP every party member earns for winning this fight.</summary>
+        public int XpReward()
+        {
+            int xp = 0;
+            foreach (var enemy in State.Enemies)
+                if (enemy.Enemy != null) xp += enemy.Enemy.xpReward;
+            return xp;
+        }
+
         public bool IsOver { get { return State.Phase == BattlePhase.Victory || State.Phase == BattlePhase.Defeat; } }
         public bool CanAct { get { return State.Phase == BattlePhase.Planning && State.ActionPoints > 0; } }
 

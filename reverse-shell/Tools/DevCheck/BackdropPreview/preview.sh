@@ -14,7 +14,7 @@ import sys,struct; sys.path.insert(0,sys.argv[1])
 from pngtool import read_png
 w,h,px=read_png(sys.argv[2])
 open(sys.argv[3],'wb').write(struct.pack('<ii',w,h)+bytes(v for row in px for p in row for v in p))
-" "$TOOLS" "$(w "$P/Assets/_Project/Art/ThirdParty/CyberCity/city.png")" "$(w "$D/.build/atlas.raw")"
+" "$TOOLS" "$(w "$P/Assets/_Project/Art/Tiles/ruins.png")" "$(w "$D/.build/atlas.raw")"
 API="$U/MonoBleedingEdge/lib/mono/4.7.1-api"
 "$U/Tools/Roslyn/csc.exe" -nologo -nostdlib -langversion:7.3 -r:"$(w "$API/mscorlib.dll")" -r:"$(w "$API/System.dll")" \
   -out:"$(w "$D/.build/preview.exe")" "$(w "$D/Program.cs")" "$(w "$P/Assets/_Project/Scripts/View/BackdropPainterCore.cs")"

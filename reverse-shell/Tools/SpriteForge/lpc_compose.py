@@ -37,12 +37,13 @@ ANIMATIONS = ['idle', 'walk', 'slash', 'spellcast', 'hurt']
 FRAME = 64
 
 # Source ramps each material is authored in (from palette_definitions/*/meta_*.json "base").
-MATERIAL_BASE = {'body': 'light', 'hair': 'orange', 'cloth': 'white', 'eye': 'blue'}
+MATERIAL_BASE = {'body': 'light', 'hair': 'orange', 'cloth': 'white', 'eye': 'blue', 'metal': 'steel'}
 PALETTE_FILE = {
     'body': 'palette_definitions/body/body_ulpc.json',
     'hair': 'palette_definitions/hair/hair_ulpc.json',
     'cloth': 'palette_definitions/cloth/cloth_ulpc.json',
     'eye': 'palette_definitions/eye/eye_ulpc.json',
+    'metal': 'palette_definitions/metal/metal_ulpc.json',
 }
 
 # Custom ramps (dark -> light), 6 colors like ULPC hair/cloth ramps.
@@ -50,7 +51,14 @@ CUSTOM = {
     'miku_teal': ['#062126', '#0B4A4F', '#11807E', '#1BB5AB', '#3FD9CB', '#A6F5EC'],
     'teto_red': ['#2A0610', '#5E0B1E', '#9A1430', '#C82340', '#E8465E', '#FF8A9A'],
     'rei_white': ['#2A2833', '#5C5A6E', '#9C9BB0', '#C9C8D8', '#E6E6F0', '#FFFFFF'],
-    'neon_orange': ['#2A0D04', '#6B2406', '#B44409', '#E86C10', '#FF9A3C', '#FFC98A'],
+    'yorha_white': ['#3A3C46', '#6E7180', '#A5A8B4', '#CDD0D8', '#E8EAEE', '#FFFFFF'],
+    # Machine lifeform plating: sun-baked rust over brown steel, and a moss-grown variant.
+    # Party robots V1/V2: clean white and charcoal plating.
+    'android_white': ['#2A2C34', '#5A5E6A', '#9599A6', '#C4C7D0', '#E4E6EC', '#FFFFFF'],
+    'android_dark': ['#0E0F13', '#1C1E25', '#2D3039', '#41454F', '#5C616C', '#8A909C'],
+    'machine_rust':['#22140E', '#45281A', '#6E4226', '#94622F', '#BC8A4A', '#E2C27E'],
+    'machine_moss': ['#1A1E14', '#2E3A22', '#4C5A30', '#6E7A3E', '#98A256', '#C8CC88'],
+    'neon_orange':['#2A0D04', '#6B2406', '#B44409', '#E86C10', '#FF9A3C', '#FFC98A'],
 }
 
 # ---------------------------------------------------------------------------------------------
@@ -59,6 +67,17 @@ CUSTOM = {
 # Body/head color follows the recipe's "skin".
 # ---------------------------------------------------------------------------------------------
 RECIPES = {
+    '2B': {
+        'body': 'female', 'skin': 'light', 'eyes': 'blue',
+        'layers': [
+            ('sheet_definitions/legs/leggings/legs_hose.json', {'material': 'black'}),
+            ('sheet_definitions/feet/boots/feet_boots_rim.json', {'material': 'black'}),
+            ('sheet_definitions/torso/dresses/dress_slit.json', {'variant': 'black'}),
+            # The shades layer isn't drawn: it marks the eye rows for a painted blindfold band (apply_masks).
+            ('sheet_definitions/headwear/accessories/glasses/facial_glasses_shades.json', {'variant': 'black', 'mask': 'blindfold'}),
+            ('sheet_definitions/hair/bob/hair_bob.json', {'material': 'yorha_white'}),
+        ],
+    },
     'Miku': {
         'body': 'female', 'skin': 'light', 'eyes': 'blue',
         'layers': [
@@ -91,6 +110,48 @@ RECIPES = {
             ('sheet_definitions/torso/shirts/longsleeve/torso_clothes_longsleeve2_vneck.json', {'material': 'black'}),
             ('sheet_definitions/hair/bob/hair_bob_side_part.json', {'material': 'neon_orange'}),
             ('sheet_definitions/hair/extensions/bangs/hairext_braidl.json', {'material': 'neon_orange'}),
+        ],
+    },
+    # Party robots: fully plated LPC bodies, helmets for heads.
+    'V1': {
+        'body': 'male', 'skin': 'fur_grey', 'eyes': 'blue', 'head': 'sheet_definitions/head/heads/human/heads_human_male.json',
+        'layers': [
+            ('sheet_definitions/feet/feet_armour.json', {'material': 'android_dark'}),
+            ('sheet_definitions/legs/legs_armour.json', {'material': 'android_white'}),
+            ('sheet_definitions/torso/armour/torso_armour_plate.json', {'material': 'android_white'}),
+            ('sheet_definitions/arms/arms_armour.json', {'material': 'android_dark'}),
+            ('sheet_definitions/headwear/helmets/helmets/hat_helmet_xeon.json', {'material': 'android_white'}),
+        ],
+    },
+    'V2': {
+        'body': 'female', 'skin': 'fur_grey', 'eyes': 'blue',
+        'layers': [
+            ('sheet_definitions/feet/feet_armour.json', {'material': 'android_white'}),
+            ('sheet_definitions/legs/legs_armour.json', {'material': 'android_dark'}),
+            ('sheet_definitions/torso/armour/torso_armour_plate.json', {'material': 'android_dark'}),
+            ('sheet_definitions/arms/arms_armour.json', {'material': 'android_white'}),
+            ('sheet_definitions/headwear/helmets/helmets/hat_helmet_armet_simple.json', {'material': 'android_white'}),
+        ],
+    },
+    # Machine lifeforms: armored LPC bodies recolored as rusted plating. Helmets hide the faces.
+    'RustSentry': {
+        'body': 'male', 'skin': 'bronze', 'eyes': 'red', 'head': 'sheet_definitions/head/heads/human/heads_human_male.json',
+        'layers': [
+            ('sheet_definitions/feet/feet_armour.json', {'material': 'machine_rust'}),
+            ('sheet_definitions/legs/legs_armour.json', {'material': 'machine_rust'}),
+            ('sheet_definitions/torso/armour/torso_armour_plate.json', {'material': 'machine_rust'}),
+            ('sheet_definitions/arms/arms_armour.json', {'material': 'machine_rust'}),
+            ('sheet_definitions/headwear/helmets/helmets/hat_helmet_greathelm.json', {'material': 'machine_rust'}),
+        ],
+    },
+    'ScrapStalker': {
+        'body': 'male', 'skin': 'bronze', 'eyes': 'red', 'head': 'sheet_definitions/head/heads/human/heads_human_male.json',
+        'layers': [
+            ('sheet_definitions/feet/feet_armour.json', {'material': 'machine_moss'}),
+            ('sheet_definitions/legs/legs_armour.json', {'material': 'machine_rust'}),
+            ('sheet_definitions/torso/armour/torso_armour_plate.json', {'material': 'machine_moss'}),
+            ('sheet_definitions/arms/arms_armour.json', {'material': 'machine_rust'}),
+            ('sheet_definitions/headwear/helmets/helmets/hat_helmet_xeon.json', {'material': 'machine_rust'}),
         ],
     },
     'StaticThug': {
@@ -286,7 +347,7 @@ def compose(name, recipe):
                 raise KeyError('%s: variant %r not in %s' % (def_path, variant, d['variants']))
             mapping = {}
         for z, path in paths:
-            resolved.append((z, path, mapping, variant))
+            resolved.append((z, path, mapping, variant, choices.get('mask')))
         for c in d.get('credits', []):
             credits.append(c)
 
@@ -295,7 +356,8 @@ def compose(name, recipe):
     os.makedirs(out_dir, exist_ok=True)
     for anim in ANIMATIONS:
         canvas = None
-        for z, path, mapping, variant in resolved:
+        masks = {}
+        for z, path, mapping, variant, mask in resolved:
             px = load_layer(path, anim, variant)
             if px is None and anim == 'idle':
                 px = idle_from_walk(path, variant)  # many clothing layers have no idle sheet
@@ -307,6 +369,9 @@ def compose(name, recipe):
                 canvas = [[(0, 0, 0, 0)] * w for _ in range(h)]
                 cw, ch = w, h
             if (w, h) != (cw, ch):
+                continue
+            if mask:  # not drawn: only marks where an effect goes (see apply_masks)
+                masks[mask] = px
                 continue
             for y in range(h):
                 crow, prow = canvas[y], px[y]
@@ -323,9 +388,41 @@ def compose(name, recipe):
         if canvas is None:
             print('  ! no layers for', anim)
             continue
+        apply_masks(canvas, masks)
         write_png(os.path.join(out_dir, anim + '.png'), cw, ch, canvas)
     write_credits(name, out_dir, credits)
     print('built', name, '->', os.path.relpath(out_dir, ROOT))
+
+
+def apply_masks(canvas, masks):
+    """Post effects driven by mask layers. 'blindfold': a black band over the eyes, using a glasses layer
+    to find the eye rows in every frame. Back-facing frames (row 0, walking away from the camera) get no
+    band: from behind the hair covers it."""
+    mask = masks.get('blindfold')
+    if mask is None:
+        return
+    h, w = len(canvas), len(canvas[0])
+    rows, cols = h // FRAME, w // FRAME
+    band, edge = (18, 18, 22, 255), (62, 62, 72, 255)
+    for r in range(rows):
+        if r == 0 and rows >= 3:
+            continue
+        source_r = r
+        for c in range(cols):
+            spans = {}
+            for fy in range(FRAME):
+                xs = [fx for fx in range(FRAME) if mask[source_r * FRAME + fy][c * FRAME + fx][3] > 0]
+                if xs:
+                    spans[fy] = (min(xs) - 1, max(xs) + 1)
+            if not spans:
+                continue
+            top = min(spans)
+            for fy, (x0, x1) in spans.items():
+                y = r * FRAME + fy
+                for fx in range(max(0, x0), min(FRAME, x1 + 1)):
+                    x = c * FRAME + fx
+                    if canvas[y][x][3] > 0:
+                        canvas[y][x] = edge if fy == top else band
 
 
 def write_credits(name, out_dir, credits):

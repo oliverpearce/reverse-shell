@@ -27,6 +27,20 @@ namespace Combat.View
             Rect = (RectTransform)transform;
             Order = new List<CardInstance>();
             this.previewLayer = previewLayer;
+            CardSettings.Changed += RefreshFaces;
+        }
+
+        void OnDestroy()
+        {
+            CardSettings.Changed -= RefreshFaces;
+        }
+
+        /// <summary>Rebuilds every card in hand, e.g. after switching between rank pips and rank borders.</summary>
+        void RefreshFaces()
+        {
+            HideAnyPreview();
+            foreach (var cv in views.Values)
+                if (cv != null) cv.RebuildFace();
         }
 
         /// <summary>Slay the Spire-style hover: a large, crisp copy of the card rising from its slot.</summary>

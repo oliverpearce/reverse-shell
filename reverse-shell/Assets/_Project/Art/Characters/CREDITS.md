@@ -1,6 +1,6 @@
 # Character sprites
 
-Every folder here (Miku, Teto, Rei, StaticThug, StaticEnforcer, NoodleVendor, Courier, Drifter) is composed by
+Every folder here (2B, V1, V2, RustSentry, ScrapStalker, NoodleVendor, Courier, Drifter) is composed by
 `Tools/SpriteForge/lpc_compose.py` from layers of the **Universal LPC Spritesheet Character Generator**
 (https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator):
 
@@ -16,8 +16,8 @@ To change a look, edit `RECIPES` in `lpc_compose.py`, then run `python Tools/Spr
 ## Character rights: non-commercial fan project
 | Character | Rights holder | Notes |
 |---|---|---|
-| Hatsune Miku | © Crypton Future Media, INC. www.piapro.net | Fan works are allowed under the Piapro Character License for **non-commercial** use with credit. |
-| Kasane Teto | © TWINDRILL | Check TWINDRILL's terms before any public or commercial release. |
-| Adachi Rei | © missile39 (みさいる) | Check the creator's guidelines before any public or commercial release. |
+| 2B (NieR:Automata) | © SQUARE ENIX | Fan work for **non-commercial** use only. Check Square Enix's fan-content guidelines before sharing publicly. |
 
-The pixel art comes from LPC (open license). The **character designs** belong to the rights holders above.
+V1, V2, the machines and the NPCs are original generic designs. The pixel art comes from LPC (open license); 2B's
+**character design** belongs to the rights holder above. Retired recipes (Miku, Teto, Rei, StaticThug, StaticEnforcer)
+are still in `lpc_compose.py` but their sprites are no longer in the project.

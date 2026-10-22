@@ -25,7 +25,8 @@ namespace Combat.View
         BattleBootstrap bootstrap;
         HandView hand;
         HudView hud;
-        UnitInfoPanel info;
+        UnitView focused;
+        bool focusFromKeyboard;
         PauseMenu pause;
         UnitInspectView inspect;
         RectTransform root;
@@ -89,11 +90,10 @@ namespace Combat.View
 
             var previewLayer = UIFactory.CreateRect("CardPreview", root).Fill();
             hand.Init(this, previewLayer);
-            info = UnitInfoPanel.Create(root);
 
             FxLayer = UIFactory.CreateRect("FX", root).Fill();
             hud.BringOverlaysToFront();
-            pause = PauseMenu.Create(root, this, boot.HasReturn);
+            pause = PauseMenu.Create(root, this);
         }
 
         void AddUnit(BattleUnit unit, Vector2 position, int moxieCap)
@@ -125,6 +125,7 @@ namespace Combat.View
                 if (inspect != null) inspect.Close();
                 else TogglePause();
             }
+            HandleTargetKeys();
             if (!playing && Controller.Events.Count > 0) StartCoroutine(PlayEvents());
             hud.SetInteractable(InputEnabled);
         }
@@ -134,11 +135,7 @@ namespace Combat.View
         public void TogglePause()
         {
             if (IsPaused) pause.Close();
-            else
-            {
-                info.Hide(null);
-                pause.Open();
-            }
+            else pause.Open();
         }
 
         public void RestartFight()
@@ -157,7 +154,6 @@ namespace Combat.View
         public void OpenInspect(UnitView unit)
         {
             if (IsPaused || inspect != null || playing || Controller.Events.Count > 0) return;
-            info.Hide(null);
             inspect = UnitInspectView.Open(root, unit, () => inspect = null);
             pause.transform.SetAsLastSibling();
         }
@@ -179,12 +175,71 @@ namespace Combat.View
             if (InputEnabled) Controller.SelectEnemy(unit);
         }
 
-        public void ShowUnitInfo(UnitView unit)
+        // ------------------------------------------------------------------ Focus (white ring) and keyboard targeting
+
+        /// <summary>Mouse over / off a unit: the white ring follows the mouse.</summary>
+        public void OnUnitHover(UnitView unit, bool entered)
         {
-            if (inspect == null && !IsPaused) info.Show(unit);
+            if (entered) SetFocus(unit, false);
+            else if (focused == unit && !focusFromKeyboard) SetFocus(null, false);
         }
 
-        public void HideUnitInfo(UnitView unit) { info.Hide(unit); }
+        void SetFocus(UnitView unit, bool fromKeyboard)
+        {
+            if (focused != null) focused.SetFocused(false);
+            focused = unit != null && unit.Unit.IsAlive ? unit : null;
+            focusFromKeyboard = fromKeyboard && focused != null;
+            if (focused != null) focused.SetFocused(true);
+        }
+
+        /// <summary>
+        /// Left/Right step the white ring through every living unit in screen order; Up/Down jump between the
+        /// party and the enemies. Enter locks the ringed enemy on as the target. Space inspects the ringed
+        /// unit (the same as holding it), or closes the inspect screen.
+        /// </summary>
+        void HandleTargetKeys()
+        {
+            if (IsPaused) return;
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                if (inspect != null) inspect.Close();
+                else if (focused != null) focused.Inspect();
+                return;
+            }
+            if (inspect != null) return;
+
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            {
+                if (focused != null && focused.Unit.Team == Team.Enemy && InputEnabled) Controller.SelectEnemy(focused.Unit);
+                return;
+            }
+
+            int step = 0;
+            bool switchSide = false;
+            if (Input.GetKeyDown(KeyCode.RightArrow)) step = 1;
+            else if (Input.GetKeyDown(KeyCode.LeftArrow)) step = -1;
+            else if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.DownArrow)) switchSide = true;
+            else return;
+
+            var order = new List<UnitView>();
+            foreach (var uv in unitViews.Values)
+                if (uv.Unit.IsAlive) order.Add(uv);
+            if (order.Count == 0) return;
+            order.Sort((a, b) => a.Rect.anchoredPosition.x.CompareTo(b.Rect.anchoredPosition.x));
+
+            var current = focused != null && focused.Unit.IsAlive ? focused : Get(Controller.State.SelectedEnemy);
+            UnitView next;
+            if (current == null) next = order[0];
+            else if (!switchSide) next = order[(order.IndexOf(current) + step + order.Count) % order.Count];
+            else
+            {
+                var mine = order.FindAll(u => u.Unit.Team == current.Unit.Team);
+                var other = order.FindAll(u => u.Unit.Team != current.Unit.Team);
+                next = other.Count == 0 ? current : other[Mathf.Min(mine.IndexOf(current), other.Count - 1)];
+            }
+
+            SetFocus(next, true);
+        }
 
         public void OnGo()
         {
@@ -272,7 +327,7 @@ namespace Combat.View
                     hud.Log(log.Message);
                     return null;
                 case BattleEndedEvent ended:
-                    hud.ShowResult(ended.Victory);
+                    hud.ShowResult(ended.Victory, bootstrap.Result);
                     return null;
             }
             return null;

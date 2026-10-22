@@ -10,11 +10,11 @@ namespace Combat.EditorTools
 {
     /// <summary>
     /// Tools > Combat > Generate Sample Content. Creates (or overwrites in place, keeping GUIDs)
-    /// the main party (Miku the Cantor, Teto the Bruiser, Rei the Android Medic), two enemies,
+    /// the main party (2B the YoRHa Battler, V1 the Assault Unit, V2 the Support Unit), two machine enemies,
     /// their cards/statuses/animations and a Battle scene. Sprites come from Assets/_Project/Art
     /// (see Tools/SpriteForge for how the cast sheets are derived).
-    /// Fan project: Hatsune Miku © Crypton Future Media, INC. (piapro.net) · Kasane Teto © TWINDRILL ·
-    /// Adachi Rei © missile39. Non-commercial use only.
+    /// Fan project: 2B (NieR:Automata) © SQUARE ENIX. V1 and V2 are original generic robots.
+    /// Non-commercial use only.
     /// Everything it makes is plain data you can then edit in the inspector.
     /// </summary>
     public static class SampleContentGenerator
@@ -70,13 +70,13 @@ namespace Combat.EditorTools
                 new ScreenShakeStep { strength = 16f, duration = 0.35f, runInParallel = true },
                 new FlashStep { at = StepTarget.Targets, color = new Color(1f, 0.9f, 0.6f), duration = 0.3f });
 
-            // ---------------------------------------------------------------- Miku, the Cantor (Star, Physical)
-            // Cantors sing spells into the city's static: a single-target nuke plus a team damage buff.
-            var cantor1 = Card("Card_Miku_StaticHymn", "Static Hymn", CardKind.Attack, TargetMode.SingleEnemy, false, seqBolt,
+            // ---------------------------------------------------------------- 2B, the YoRHa Battler (Star, Physical)
+            // Party leader. A heavy single-target sword strike plus a Pod-driven team damage buff.
+            var battler1 = Card("Card_2B_VirtuousContract", "Virtuous Contract", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
                 new CardEffect[] { new DamageEffect { multiplier = 1.8f } },
                 new CardEffect[] { new DamageEffect { multiplier = 2.7f } },
                 new CardEffect[] { new DamageEffect { multiplier = 4.5f } });
-            var cantor2 = Card("Card_Miku_RallyChorus", "Rally Chorus", CardKind.Buff, TargetMode.AllAllies, false, seqSupport,
+            var battler2 = Card("Card_2B_PodSupport", "Pod Support", CardKind.Buff, TargetMode.AllAllies, false, seqSupport,
                 new CardEffect[] { new ApplyStatusEffect { status = mightUp, stacks = 1, duration = 2 } },
                 new CardEffect[] { new ApplyStatusEffect { status = mightUp, stacks = 2, duration = 2 } },
                 new CardEffect[]
@@ -84,31 +84,31 @@ namespace Combat.EditorTools
                     new ApplyStatusEffect { status = mightUp, stacks = 3, duration = 2 },
                     new GainMoxieEffect { target = EffectTarget.RandomAlly, amount = 1 }
                 });
-            var cantorUlt = Card("Card_Miku_Ritual", "Neon Requiem", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
+            var battlerUlt = Card("Card_2B_Ritual", "Pod Laser", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
                 new CardEffect[]
                 {
                     new DamageEffect { multiplier = 6f, hits = 2 },
                     new ApplyStatusEffect { target = EffectTarget.AllAllies, status = atkUp, stacks = 2, duration = 2 }
                 });
-            var miku = Character("Char_Miku", "Miku", "Cantor", new Color(0.25f, 0.8f, 0.78f), Afflatus.Star, DamageType.Physical,
-                2200, 240f, 130f, 130f, new[] { cantor1, cantor2 }, cantorUlt, AnimSet("Miku"));
+            var twoB = Character("Char_2B", "2B", "YoRHa Battler", new Color(0.86f, 0.84f, 0.76f), Afflatus.Star, DamageType.Physical,
+                2200, 240f, 130f, 130f, new[] { battler1, battler2 }, battlerUlt, AnimSet("2B"));
 
-            // ---------------------------------------------------------------- Teto, the Bruiser (Mineral, Special)
-            var van1 = Card("Card_Teto_DrillSpin", "Drill Spin", CardKind.Attack, TargetMode.AllEnemies, false, seqSweep,
+            // ---------------------------------------------------------------- V1, the Assault Unit (Mineral, Special)
+            var van1 = Card("Card_V1_SpinSaw", "Spin Saw", CardKind.Attack, TargetMode.AllEnemies, false, seqSweep,
                 new CardEffect[] { new DamageEffect { multiplier = 0.9f } },
                 new CardEffect[] { new DamageEffect { multiplier = 1.35f } },
                 new CardEffect[] { new DamageEffect { multiplier = 2.2f } });
-            var van2 = Card("Card_Teto_BaguetteBash", "Baguette Bash", CardKind.Debuff, TargetMode.SingleEnemy, false, seqStrike,
+            var van2 = Card("Card_V1_ArmorBreaker", "Armor Breaker", CardKind.Debuff, TargetMode.SingleEnemy, false, seqStrike,
                 new CardEffect[] { new DamageEffect { multiplier = 1.3f }, new ApplyStatusEffect { status = defDown, duration = 2 } },
                 new CardEffect[] { new DamageEffect { multiplier = 1.95f }, new ApplyStatusEffect { status = defDown, duration = 2 } },
                 new CardEffect[] { new DamageEffect { multiplier = 3.2f }, new ApplyStatusEffect { status = defDown, duration = 3 } });
-            var vanUlt = Card("Card_Teto_Ritual", "Kasane Overdrive", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
+            var vanUlt = Card("Card_V1_Ritual", "Overdrive", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
                 new CardEffect[] { new DamageEffect { multiplier = 5f, hits = 3 } });
-            var teto = Character("Char_Teto", "Teto", "Bruiser", new Color(0.9f, 0.25f, 0.35f), Afflatus.Mineral, DamageType.Special,
-                2800, 215f, 170f, 120f, new[] { van1, van2 }, vanUlt, AnimSet("Teto"));
+            var v1 = Character("Char_V1", "V1", "Assault Unit", new Color(0.45f, 0.62f, 0.92f), Afflatus.Mineral, DamageType.Special,
+                2800, 215f, 170f, 120f, new[] { van1, van2 }, vanUlt, AnimSet("V1"));
 
-            // ---------------------------------------------------------------- Rei, the Android Medic (Intellect, Special)
-            var men1 = Card("Card_Rei_PatchProtocol", "Patch Protocol", CardKind.Heal, TargetMode.SingleAlly, false, seqSupport,
+            // ---------------------------------------------------------------- V2, the Support Unit (Intellect, Special)
+            var men1 = Card("Card_V2_PatchProtocol", "Patch Protocol", CardKind.Heal, TargetMode.SingleAlly, false, seqSupport,
                 new CardEffect[] { new HealEffect { target = EffectTarget.CardTargets, multiplier = 1.4f } },
                 new CardEffect[] { new HealEffect { target = EffectTarget.CardTargets, multiplier = 2.1f } },
                 new CardEffect[]
@@ -116,62 +116,66 @@ namespace Combat.EditorTools
                     new HealEffect { target = EffectTarget.CardTargets, multiplier = 3.2f },
                     new ApplyStatusEffect { target = EffectTarget.CardTargets, status = regen, duration = 2 }
                 });
-            var men2 = Card("Card_Rei_VirusSpike", "Virus Spike", CardKind.Attack, TargetMode.SingleEnemy, false, seqBolt,
+            var men2 = Card("Card_V2_VirusSpike", "Virus Spike", CardKind.Attack, TargetMode.SingleEnemy, false, seqBolt,
                 new CardEffect[] { new DamageEffect { multiplier = 1.2f }, new ApplyStatusEffect { status = poison, duration = 2 } },
                 new CardEffect[] { new DamageEffect { multiplier = 1.8f }, new ApplyStatusEffect { status = poison, stacks = 2, duration = 2 } },
                 new CardEffect[] { new DamageEffect { multiplier = 2.8f }, new ApplyStatusEffect { status = poison, stacks = 3, duration = 3 } });
-            var menUlt = Card("Card_Rei_Ritual", "System Restore", CardKind.Heal, TargetMode.AllAllies, true, seqRitual,
+            var menUlt = Card("Card_V2_Ritual", "System Restore", CardKind.Heal, TargetMode.AllAllies, true, seqRitual,
                 new CardEffect[]
                 {
                     new HealEffect { target = EffectTarget.CardTargets, multiplier = 2.5f },
                     new ApplyStatusEffect { target = EffectTarget.CardTargets, status = atkUp, duration = 2 }
                 });
-            var rei = Character("Char_Rei", "Rei", "Android Medic", new Color(1f, 0.55f, 0.2f), Afflatus.Intellect, DamageType.Special,
-                2100, 200f, 120f, 150f, new[] { men1, men2 }, menUlt, AnimSet("Rei"));
+            var v2 = Character("Char_V2", "V2", "Support Unit", new Color(0.4f, 0.86f, 0.72f), Afflatus.Intellect, DamageType.Special,
+                2100, 200f, 120f, 150f, new[] { men1, men2 }, menUlt, AnimSet("V2"));
 
-            // ---------------------------------------------------------------- Enemies
-            var slam = Card("Card_Enemy_ShardSlam", "Shard Slam", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
+            // ---------------------------------------------------------------- Enemies (machine lifeforms)
+            var slam = Card("Card_Enemy_PistonSlam", "Piston Slam", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
                 new CardEffect[] { new DamageEffect { multiplier = 1.6f } });
-            var barrage = Card("Card_Enemy_CrystalBarrage", "Crystal Barrage", CardKind.Attack, TargetMode.AllEnemies, false, seqSweep,
+            var barrage = Card("Card_Enemy_MissileVolley", "Missile Volley", CardKind.Attack, TargetMode.AllEnemies, false, seqSweep,
                 new CardEffect[] { new DamageEffect { multiplier = 0.8f, hits = 2 } });
-            var harden = Card("Card_Enemy_Harden", "Brace", CardKind.Buff, TargetMode.Self, false, seqSupport,
+            var harden = Card("Card_Enemy_ReinforcePlating", "Reinforce", CardKind.Buff, TargetMode.Self, false, seqSupport,
                 new CardEffect[] { new ApplyStatusEffect { status = atkUp, duration = 3 } });
-            var bite = Card("Card_Enemy_Bite", "Toxic Shiv", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
+            var bite = Card("Card_Enemy_CorrodedBlade", "Corroded Blade", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
                 new CardEffect[] { new DamageEffect { multiplier = 1.3f }, new ApplyStatusEffect { status = poison, duration = 2 } });
-            var howl = Card("Card_Enemy_Howl", "Call Backup", CardKind.Buff, TargetMode.AllAllies, false, seqSupport,
+            var howl = Card("Card_Enemy_NetworkLink", "Network Link", CardKind.Buff, TargetMode.AllAllies, false, seqSupport,
                 new CardEffect[] { new ApplyStatusEffect { status = atkUp, duration = 2 } });
 
             // Tuned as an introductory fight: roughly 6-8 rounds, enemies deal ~350 HP/round into ~7000 party HP.
-            var sentinel = Enemy("Enemy_StaticEnforcer", "Static Enforcer", new Color(0.55f, 0.6f, 0.75f), Afflatus.Mineral, DamageType.Physical,
-                4200, 150f, 140f, 110f, AnimSet("StaticEnforcer"),
+            var sentry = Enemy("Enemy_RustSentry", "Rust Sentry", new Color(0.66f, 0.46f, 0.3f), Afflatus.Mineral, DamageType.Physical,
+                4200, 150f, 140f, 110f, AnimSet("RustSentry"),
                 new EnemySkill { card = slam, weight = 2f },
                 new EnemySkill { card = barrage, weight = 1f },
                 new EnemySkill { card = harden, weight = 0.5f });
-            var hound = Enemy("Enemy_StaticThug", "Static Thug", new Color(0.75f, 0.35f, 0.35f), Afflatus.Beast, DamageType.Special,
-                2600, 135f, 90f, 90f, AnimSet("StaticThug"),
+            sentry.xpReward = 120;
+            var stalker = Enemy("Enemy_ScrapStalker", "Scrap Stalker", new Color(0.5f, 0.58f, 0.32f), Afflatus.Beast, DamageType.Special,
+                2600, 135f, 90f, 90f, AnimSet("ScrapStalker"),
                 new EnemySkill { card = bite, weight = 2f },
                 new EnemySkill { card = howl, weight = 0.6f });
+            stalker.xpReward = 80;
+            EditorUtility.SetDirty(sentry);
+            EditorUtility.SetDirty(stalker);
 
             // ---------------------------------------------------------------- Setup + scene
             // ---------------------------------------------------------------- Backdrop (painted from the overworld atlas)
-            const string atlasPath = "Assets/_Project/Art/ThirdParty/CyberCity/city.png";
+            const string atlasPath = "Assets/_Project/Art/Tiles/ruins.png";
             AssetDatabase.ImportAsset(atlasPath, ImportAssetOptions.ForceUpdate); // applies Read/Write from PixelArtImporter
             var backdrop = ScriptableObject.CreateInstance<BattleBackdropDefinition>();
-            backdrop.displayName = "Rainline Station";
+            backdrop.displayName = "Mossline Station";
             backdrop.tileAtlas = AssetDatabase.LoadAssetAtPath<Texture2D>(atlasPath);
-            backdrop = Save(backdrop, Root + "/Backdrop_RainlineStation.asset");
+            backdrop = Save(backdrop, Root + "/Backdrop_MosslineStation.asset");
 
             var setup = ScriptableObject.CreateInstance<BattleSetup>();
             setup.config = config;
             setup.backdrop = backdrop;
-            setup.party = new List<CharacterDefinition> { miku, teto, rei };
-            setup.enemies = new List<EnemyDefinition> { sentinel, hound };
+            setup.party = new List<CharacterDefinition> { twoB, v1, v2 };
+            setup.enemies = new List<EnemyDefinition> { sentry, stalker };
             setup = Save(setup, Root + "/Battle_Sample.asset");
 
             AssetDatabase.SaveAssets();
             CreateScene(setup);
 
-            Selection.activeObject = miku;
+            Selection.activeObject = twoB;
             EditorUtility.DisplayDialog("Combat", "Sample content generated.\n\nScene: " + ScenePath + "\nPress Play to fight!", "OK");
         }
 
@@ -293,7 +297,7 @@ namespace Combat.EditorTools
             set.clips.Add(new SpriteAnimationClip { name = clip, sheet = tex, fps = fps, loop = loop, firstFrame = firstFrame });
         }
 
-        /// <summary>Removes sample assets from earlier versions of this generator (Sonetto -> Vesper -> Miku, etc.).</summary>
+        /// <summary>Removes sample assets from earlier versions of this generator (Sonetto -> Vesper -> Miku -> 2B, etc.).</summary>
         static void DeleteLegacyAssets()
         {
             var legacy = new[]
@@ -304,6 +308,15 @@ namespace Combat.EditorTools
                 "Characters/Char_Mender", "Cards/Card_Mender_Soothe", "Cards/Card_Mender_Thorn", "Cards/Card_Mender_Ritual",
                 "Enemies/Enemy_ShardSentinel", "Enemies/Enemy_AshenHound",
                 "Statuses/Status_RealityDefDown",
+                "Characters/Char_Miku", "Cards/Card_Miku_StaticHymn", "Cards/Card_Miku_RallyChorus", "Cards/Card_Miku_Ritual",
+                "Enemies/Enemy_StaticEnforcer", "Enemies/Enemy_StaticThug",
+                "Cards/Card_Enemy_ShardSlam", "Cards/Card_Enemy_CrystalBarrage", "Cards/Card_Enemy_Harden",
+                "Cards/Card_Enemy_Bite", "Cards/Card_Enemy_Howl",
+                "Animations/Anim_Miku", "Animations/Anim_StaticEnforcer", "Animations/Anim_StaticThug",
+                "Backdrop_RainlineStation",
+                "Characters/Char_Teto", "Cards/Card_Teto_DrillSpin", "Cards/Card_Teto_BaguetteBash", "Cards/Card_Teto_Ritual",
+                "Characters/Char_Rei", "Cards/Card_Rei_PatchProtocol", "Cards/Card_Rei_VirusSpike", "Cards/Card_Rei_Ritual",
+                "Animations/Anim_Teto", "Animations/Anim_Rei",
             };
             foreach (var file in legacy)
             {
@@ -343,11 +356,13 @@ namespace Combat.EditorTools
             if (cam != null)
             {
                 cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0.07f, 0.065f, 0.09f);
+                cam.backgroundColor = new Color(0.7f, 0.76f, 0.72f);
             }
 
             var go = new GameObject("Battle");
-            go.AddComponent<BattleBootstrap>().setup = setup;
+            var boot = go.AddComponent<BattleBootstrap>();
+            boot.setup = setup;
+            boot.leaveScene = "Overworld_Mossline"; // built by Tools > Overworld > Generate Mossline Station
             EditorSceneManager.SaveScene(scene, ScenePath);
 
             var scenes = EditorBuildSettings.scenes.ToList();

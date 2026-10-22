@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84f16ca0de16a4d48be9e44684662a8b, type: 3}
+  m_Name: Card_Enemy_NetworkLink
+  m_EditorClassIdentifier: 
+  displayName: Network Link
+  kind: 1
+  targetMode: 5
+  isRitual: 0
+  icon: {fileID: 0}
+  ranks:
+  - description: 
+    effects:
+    - id: 0
+  castSequence: {fileID: 11400000, guid: 481c490e60e4d7f4ab95032a2a843efe, type: 2}
+  references:
+    version: 1
+    00000000:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        status: {fileID: 11400000, guid: 2d7ae7b4b2e24da49ab8333624f940ff, type: 2}
+        duration: 2
+        stacks: 1
+        chance: 1

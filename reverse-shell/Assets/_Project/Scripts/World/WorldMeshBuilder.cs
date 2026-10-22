@@ -3,20 +3,21 @@ using UnityEngine;
 
 namespace Game.World
 {
-    public struct SignSpot
+    /// <summary>A spot on a wall face for a decal quad (vines), centered at Position, Length tall.</summary>
+    public struct DecalSpot
     {
         public Vector3 Position;
         public Vector3 Normal;
-        public Color Color;
+        public float Length;
     }
 
     /// <summary>
-    /// Turns an OverworldMap into one mesh textured from the CyberCity atlas (city.png, 8x5 cells of 64px):
-    /// submesh 0 = ground (glossy, "wet"), submesh 1 = walls and roofs.
+    /// Turns an OverworldMap into one mesh textured from the ruins atlas (ruins.png, 8x5 cells of 64px, made by
+    /// Tools/TileForge/ruins_atlas.py): submesh 0 = ground, submesh 1 = walls and roofs.
     /// Atlas cells used (col,row from top):
-    ///   (1,1) concrete sidewalk · (0,4) road · (2,4) plaza panel
-    ///   (0-3,2) windows · (0-3,3) broken windows · (4-7,1) bricks
-    ///   (4-7,2) flat metal · (4-7,3) riveted metal · (4-7,4) vented shopfronts
+    ///   (1,1) cracked sidewalk · (0,4) overgrown road · (2,4) grass plaza · (3,1) moss · (5,0) dirt
+    ///   (0-3,2) empty windows · (0-3,3) ivy-covered windows · (4-7,1) mossy bricks
+    ///   (4-7,2) weathered concrete · (4-7,3) grassy rooftops · (4-7,4) ruined storefronts
     /// </summary>
     public static class WorldMeshBuilder
     {
@@ -29,7 +30,7 @@ namespace Game.World
             public readonly List<int> Walls = new List<int>();
         }
 
-        public static Mesh Build(OverworldMap map, Texture atlas, List<SignSpot> signs)
+        public static Mesh Build(OverworldMap map, Texture atlas, List<DecalSpot> vines)
         {
             var b = new Buffers();
             for (int row = 0; row < map.Height; row++)
@@ -53,10 +54,10 @@ namespace Game.World
                         Vector3.up, AtlasUV(atlas, RoofCell(c, ci)));
 
                     // South (-z), North (+z), East (+x), West (-x) faces, only where the neighbor is lower.
-                    SideFaces(b, map, atlas, signs, c, ci, x, row, h, x, row + 1, Vector3.back);
-                    SideFaces(b, map, atlas, signs, c, ci, x, row, h, x, row - 1, Vector3.forward);
-                    SideFaces(b, map, atlas, signs, c, ci, x, row, h, x + 1, row, Vector3.right);
-                    SideFaces(b, map, atlas, signs, c, ci, x, row, h, x - 1, row, Vector3.left);
+                    SideFaces(b, map, atlas, vines, c, ci, x, row, h, x, row + 1, Vector3.back);
+                    SideFaces(b, map, atlas, vines, c, ci, x, row, h, x, row - 1, Vector3.forward);
+                    SideFaces(b, map, atlas, vines, c, ci, x, row, h, x + 1, row, Vector3.right);
+                    SideFaces(b, map, atlas, vines, c, ci, x, row, h, x - 1, row, Vector3.left);
                 }
             }
 
@@ -73,7 +74,7 @@ namespace Game.World
             return mesh;
         }
 
-        static void SideFaces(Buffers b, OverworldMap map, Texture atlas, List<SignSpot> signs, char c, int ci,
+        static void SideFaces(Buffers b, OverworldMap map, Texture atlas, List<DecalSpot> vines, char c, int ci,
             int x, int row, int h, int nx, int nrow, Vector3 normal)
         {
             int neighborHeight = map.HeightAt(nx, nrow);
@@ -92,15 +93,16 @@ namespace Game.World
 
                 Quad(b, b.Walls, bl, tl, tr, br, normal, AtlasUV(atlas, SideCell(c, ci, level, x, row)));
 
-                bool building = c == 'H' || c == '#';
-                if (building && facesStreet && level == 1 && OverworldMap.Hash(x, row, (int)(normal.x * 3 + normal.z * 7)) % 3 == 0)
+                // Vines spill over the top edge of walls that face open ground.
+                if (facesStreet && level == h - 1 && h >= 2 && OverworldMap.Hash(x, row, (int)(normal.x * 3 + normal.z * 7)) % 3 != 0)
                 {
                     var center = (bl + tr) * 0.5f;
-                    signs.Add(new SignSpot
+                    float length = Mathf.Min(h, 1.2f + OverworldMap.Hash(x, row, 9) % 3 * 0.6f);
+                    vines.Add(new DecalSpot
                     {
-                        Position = new Vector3(center.x, 1.55f, center.z) + normal * 0.03f,
+                        Position = new Vector3(center.x, h - length / 2f, center.z) + normal * 0.02f,
                         Normal = normal,
-                        Color = WorldArt.NeonPalette[OverworldMap.Hash(x, row, 5) % WorldArt.NeonPalette.Length]
+                        Length = length
                     });
                 }
             }
@@ -114,6 +116,11 @@ namespace Game.World
                 case 'P':
                 case 'X':
                 case 'E': return new Vector2Int(2, 4);
+                case ',':
+                case '*': return new Vector2Int(3, 1);
+                case 'T':
+                case 'b':
+                case 'r': return new Vector2Int(5, 0);
                 default: return new Vector2Int(1, 1);
             }
         }

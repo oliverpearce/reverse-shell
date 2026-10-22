@@ -15,5 +15,8 @@ namespace Combat
 
         [Tooltip("Ultimate card, spawned into the hand when Moxie reaches the cap.")]
         public CardDefinition ritual;
+
+        [Tooltip("Base HP, ATK and DEF grow by this fraction per level after level 1 (0.08 = +8% per level).")]
+        [Range(0f, 0.25f)] public float growthPerLevel = 0.08f;
     }
 }

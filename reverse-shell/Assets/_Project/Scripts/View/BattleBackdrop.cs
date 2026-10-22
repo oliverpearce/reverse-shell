@@ -5,17 +5,17 @@ using UnityEngine.UI;
 namespace Combat.View
 {
     /// <summary>
-    /// Battle background: a pixel-art street painted from a BattleBackdropDefinition (480x270 art pixels,
-    /// shown at 4x) plus scrolling rain layers. Painted textures are cached per definition.
+    /// Battle background: a pixel-art ruin painted from a BattleBackdropDefinition (480x270 art pixels,
+    /// shown at 4x) plus slowly scrolling layers of drifting leaves. Painted textures are cached per definition.
     /// </summary>
     public class BattleBackdrop : MonoBehaviour
     {
         public const int ArtWidth = 480, ArtHeight = 270;
 
         static readonly Dictionary<BattleBackdropDefinition, Texture2D> painted = new Dictionary<BattleBackdropDefinition, Texture2D>();
-        static Texture2D rainTexture;
+        static Texture2D leafTexture;
 
-        RawImage rainNear, rainFar;
+        RawImage leavesNear, leavesFar;
         float intensity = 1f;
 
         public static BattleBackdrop Create(RectTransform parent, BattleBackdropDefinition def)
@@ -29,22 +29,22 @@ namespace Combat.View
             image.texture = Paint(def);
             image.raycastTarget = false;
 
-            if (def.rain)
+            if (def.driftingLeaves)
             {
-                backdrop.intensity = def.rainIntensity;
-                backdrop.rainFar = backdrop.RainLayer(root, "RainFar", 0.35f * def.rainIntensity, 1.6f);
-                backdrop.rainNear = backdrop.RainLayer(root, "RainNear", 0.55f * def.rainIntensity, 1f);
+                backdrop.intensity = def.driftIntensity;
+                backdrop.leavesFar = backdrop.LeafLayer(root, "LeavesFar", 0.55f * def.driftIntensity, 1.6f);
+                backdrop.leavesNear = backdrop.LeafLayer(root, "LeavesNear", 0.85f * def.driftIntensity, 1f);
             }
             return backdrop;
         }
 
-        RawImage RainLayer(RectTransform root, string name, float alpha, float tiling)
+        RawImage LeafLayer(RectTransform root, string name, float alpha, float tiling)
         {
             var img = new GameObject(name, typeof(RectTransform)).AddComponent<RawImage>();
             img.rectTransform.SetParent(root, false);
             img.rectTransform.Fill();
-            img.texture = RainTexture();
-            img.color = new Color(0.7f, 0.8f, 1f, Mathf.Clamp01(alpha));
+            img.texture = LeafTexture();
+            img.color = new Color(1f, 1f, 1f, Mathf.Clamp01(alpha));
             img.raycastTarget = false;
             img.uvRect = new Rect(0f, 0f, ArtWidth / 128f * tiling, ArtHeight / 128f * tiling);
             return img;
@@ -52,8 +52,8 @@ namespace Combat.View
 
         void Update()
         {
-            Scroll(rainNear, 1.9f * intensity, 0.35f);
-            Scroll(rainFar, 1.2f * intensity, 0.2f);
+            Scroll(leavesNear, 0.16f * intensity, -0.07f);
+            Scroll(leavesFar, 0.09f * intensity, -0.04f);
         }
 
         static void Scroll(RawImage img, float speed, float drift)
@@ -80,10 +80,10 @@ namespace Combat.View
                 StreetLine = def.streetLine,
                 FacadeBrightness = def.facadeBrightness,
             };
-            if (def.neon != null && def.neon.Length > 0)
+            if (def.foliage != null && def.foliage.Length >= 4)
             {
-                p.Neon = new Rgb[def.neon.Length];
-                for (int i = 0; i < def.neon.Length; i++) p.Neon[i] = ToRgb(def.neon[i]);
+                p.Foliage = new Rgb[def.foliage.Length];
+                for (int i = 0; i < def.foliage.Length; i++) p.Foliage[i] = ToRgb(def.foliage[i]);
             }
 
             var pixels = BackdropPainterCore.Paint(ArtWidth, ArtHeight, p, AtlasFor(def));
@@ -150,26 +150,28 @@ namespace Combat.View
             }
         }
 
-        static Texture2D RainTexture()
+        /// <summary>Sparse leaf flecks and pollen specks on a transparent, tiling 128x128 texture.</summary>
+        static Texture2D LeafTexture()
         {
-            if (rainTexture != null) return rainTexture;
+            if (leafTexture != null) return leafTexture;
             const int size = 128;
-            rainTexture = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat };
-            var clear = new Color32[size * size];
-            rainTexture.SetPixels32(clear);
+            leafTexture = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat };
+            leafTexture.SetPixels32(new Color32[size * size]);
+            var greens = new[] { new Color32(70, 110, 48, 230), new Color32(110, 150, 60, 230), new Color32(160, 180, 80, 220) };
             var rng = new System.Random(7);
-            for (int i = 0; i < 70; i++)
+            for (int i = 0; i < 26; i++)
             {
-                int x = rng.Next(size), y = rng.Next(size), len = rng.Next(5, 11);
-                byte a = (byte)rng.Next(110, 230);
-                for (int k = 0; k < len; k++)
-                {
-                    int px = ((x - k / 3) % size + size) % size, py = (y + k) % size; // slight slant
-                    rainTexture.SetPixel(px, py, new Color32(255, 255, 255, a));
-                }
+                int x = rng.Next(size), y = rng.Next(size);
+                var c = greens[rng.Next(greens.Length)];
+                // A tiny 2-3 pixel leaf, tilted one way or the other.
+                leafTexture.SetPixel(x, y, c);
+                leafTexture.SetPixel((x + 1) % size, (y + (rng.Next(2) == 0 ? 1 : 0)) % size, c);
+                if (rng.Next(2) == 0) leafTexture.SetPixel((x + 2) % size, (y + 1) % size, c);
             }
-            rainTexture.Apply();
-            return rainTexture;
+            for (int i = 0; i < 30; i++) // pollen
+                leafTexture.SetPixel(rng.Next(size), rng.Next(size), new Color32(255, 248, 210, (byte)rng.Next(120, 220)));
+            leafTexture.Apply();
+            return leafTexture;
         }
 
         static Rgb ToRgb(Color c) { return new Rgb(c.r, c.g, c.b); }

@@ -9,6 +9,9 @@ namespace Combat
     {
         [Tooltip("Skills the AI picks from each round, weighted.")]
         public List<EnemySkill> skills = new List<EnemySkill>();
+
+        [Tooltip("XP each party member earns when this enemy is beaten.")]
+        [Min(0)] public int xpReward = 50;
     }
 
     [Serializable]

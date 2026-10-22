@@ -103,7 +103,17 @@ namespace Combat.View
             var img = CreateImage(parent, name, color, true);
             var button = img.gameObject.AddComponent<Button>();
             button.targetGraphic = img;
-            button.onClick.AddListener(onClick);
+            if (onClick != null) button.onClick.AddListener(onClick);
+            // Keyboard keys are game controls (arrows move the target ring, Space inspects), so buttons never
+            // keep keyboard focus: otherwise Space would re-press the last clicked button.
+            var nav = button.navigation;
+            nav.mode = Navigation.Mode.None;
+            button.navigation = nav;
+            button.onClick.AddListener(() =>
+            {
+                if (UnityEngine.EventSystems.EventSystem.current != null) UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
+            });
+            img.gameObject.AddComponent<ButtonHover>();
             var text = CreateText(img.transform, "Label", label, fontSize, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
             text.rectTransform.Fill();
             return button;

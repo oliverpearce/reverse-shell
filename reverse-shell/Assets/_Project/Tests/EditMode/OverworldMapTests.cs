@@ -17,6 +17,7 @@ namespace Combat.Tests
             Assert.AreEqual(1, map.FindAll('S').Count);
             Assert.AreEqual(1, map.FindAll('E').Count);
             Assert.AreEqual(1, map.FindAll('X').Count);
+            Assert.AreEqual(1, map.FindAll('A').Count, "one access point near the spawn");
         }
 
         [Test]
@@ -35,7 +36,10 @@ namespace Combat.Tests
             var map = new OverworldMap("#.m\nPXE\n");
             Assert.IsTrue(map.IsSolidCell(0, 0));   // building
             Assert.IsFalse(map.IsSolidCell(1, 0));  // sidewalk
-            Assert.IsTrue(map.IsSolidCell(2, 0));   // lamp
+            Assert.IsTrue(map.IsSolidCell(2, 0));   // tree
+            Assert.IsFalse(map.IsSolidCell(0, 2));  // tall grass
+            Assert.IsFalse(map.IsSolidCell(1, 2));  // flowers
+            Assert.IsTrue(map.IsSolidCell(2, 2));   // bush
             Assert.IsFalse(map.IsSolidCell(1, 1));  // stand square
             Assert.IsTrue(map.IsSolidCell(2, 1));   // enemy
             Assert.IsTrue(map.IsSolidCell(-1, 0));

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 
@@ -37,6 +38,50 @@ namespace Combat.Tests
             Assert.AreEqual(CombatConfig.Default.handSize, battle.State.Hand.IncantationCount);
             Assert.AreEqual(CombatConfig.Default.actionPointsPerRound, battle.State.ActionPoints);
             Assert.IsTrue(battle.Events.OfType<CardsMergedEvent>().Any(), "same-card draws should have merged");
+        }
+
+        [Test]
+        public void ApplyParty_CarriesLevelAndHP_ClampsToRange_AndSkipsUnlisted()
+        {
+            var sidekick = TestFactory.Character("Sidekick", incantations: new[] { strike });
+            var battle = new BattleController(new[] { hero, sidekick }, new[] { dummy }, CombatConfig.Default, Seed);
+
+            battle.ApplyParty(new Dictionary<CharacterDefinition, MemberProgress> { { hero, new MemberProgress { HP = 0 } } });
+            Assert.AreEqual(1, battle.State.Party[0].HP, "knocked-out members come back with 1 HP");
+            Assert.AreEqual(1000, battle.State.Party[1].HP, "unlisted members start full");
+
+            battle.ApplyParty(new Dictionary<CharacterDefinition, MemberProgress>
+            {
+                { hero, new MemberProgress { Level = 3, HP = 640 } },
+                { sidekick, new MemberProgress { HP = 99999 } }
+            });
+            Assert.AreEqual(3, battle.State.Party[0].Level);
+            Assert.AreEqual(Leveling.MaxHP(hero, 3), battle.State.Party[0].MaxHP, "level scales max HP");
+
+            var snapshot = battle.PartySnapshot(null);
+            Assert.AreEqual(640, snapshot[hero].HP);
+            Assert.AreEqual(-1, snapshot[sidekick].HP, "full HP is stored as -1");
+        }
+
+        [Test]
+        public void BattleResult_Victory_GrantsEnemyXp_AndLevelsUp()
+        {
+            var rewarding = TestFactory.Enemy("Rewarding");
+            rewarding.xpReward = 250;
+            var battle = new BattleController(new[] { hero }, new[] { rewarding }, CombatConfig.Default, Seed);
+            var start = new Dictionary<CharacterDefinition, MemberProgress> { { hero, new MemberProgress { Level = 1, Xp = 0 } } };
+            battle.ApplyParty(start);
+
+            var win = BattleResult.Build(BattleOutcome.Victory, battle, start);
+            Assert.AreEqual(250, win.XpGained);
+            Assert.AreEqual(2, win.Party[hero].Level, "100 XP for Lv 2, then 150 of the 200 needed for Lv 3");
+            Assert.AreEqual(150, win.Party[hero].Xp);
+            Assert.AreEqual(1, win.LevelsGained[hero]);
+            Assert.AreEqual(1, start[hero].Level, "the request's progress isn't modified");
+
+            var fled = BattleResult.Build(BattleOutcome.Fled, battle, start);
+            Assert.AreEqual(0, fled.XpGained);
+            Assert.AreEqual(1, fled.Party[hero].Level);
         }
 
         [Test]

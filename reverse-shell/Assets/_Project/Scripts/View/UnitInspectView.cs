@@ -179,6 +179,20 @@ namespace Combat.View
                 Line(box, unitView.Intent.Describe(), 22, Muted, FontStyle.Normal);
             }
 
+            if (unitView.Statuses != null && unitView.Statuses.Count > 0)
+            {
+                Header(content, "EFFECTS");
+                foreach (var s in unitView.Statuses)
+                {
+                    var d = s.Definition;
+                    var box = Box(content, d.isDebuff ? Bad : Good);
+                    string stacks = s.Stacks > 1 ? "  x" + s.Stacks : "";
+                    string turns = s.Remaining == 1 ? "last turn" : s.Remaining + " turns";
+                    Line(box, d.DisplayName + stacks + "  <size=20><color=#B8B8C8>" + turns + "</color></size>", 26, TextColor, FontStyle.Bold);
+                    if (!string.IsNullOrEmpty(d.description)) Line(box, d.description, 20, Muted, FontStyle.Normal);
+                }
+            }
+
             Header(content, "STATS");
             Stats(content, unit);
 
@@ -232,18 +246,30 @@ namespace Combat.View
             badge.rectTransform.TopStrip(10f, 24f, 14f);
         }
 
+        /// <summary>The unit's cards, side by side as real card faces (scroll over one to flip its rank).</summary>
         void Abilities(RectTransform content, BattleUnit unit)
         {
+            var row = UIFactory.CreateRect("Cards", content);
+            var layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            layout.spacing = 28f;
+            layout.padding = new RectOffset(30, 30, 30, 30); // room for the diamond glow
+            layout.childAlignment = TextAnchor.UpperLeft;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+            row.gameObject.AddComponent<LayoutElement>().preferredHeight = AbilityCard.FaceSize.y + 60f;
+
             if (unit.Character != null)
             {
                 foreach (var card in unit.Character.incantations)
-                    if (card != null) AbilityCard.Create(content, unit, card, 0);
-                if (unit.Character.ritual != null) AbilityCard.Create(content, unit, unit.Character.ritual, 0);
+                    if (card != null) AbilityCard.Create(row, unit, card, 0);
+                if (unit.Character.ritual != null) AbilityCard.Create(row, unit, unit.Character.ritual, 0);
             }
             else if (unit.Enemy != null)
             {
                 foreach (var skill in unit.Enemy.skills)
-                    if (skill.card != null) AbilityCard.Create(content, unit, skill.card, skill.rank);
+                    if (skill.card != null) AbilityCard.Create(row, unit, skill.card, skill.rank);
             }
         }
 

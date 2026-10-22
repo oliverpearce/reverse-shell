@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Combat
@@ -9,8 +10,37 @@ namespace Combat
     public class BattleRequest
     {
         public BattleSetup Setup;
+        /// <summary>Level, XP and HP of each party member. Members not listed start fresh (level 1, full HP).</summary>
+        public Dictionary<CharacterDefinition, MemberProgress> Party;
         /// <summary>Called when the player leaves the battle (result screen, or "Leave Fight" from pause).</summary>
-        public Action<BattleOutcome> OnComplete;
+        public Action<BattleResult> OnComplete;
+    }
+
+    /// <summary>What the caller gets back when a requested fight ends.</summary>
+    public class BattleResult
+    {
+        public BattleOutcome Outcome;
+        /// <summary>XP each member earned (only on victory).</summary>
+        public int XpGained;
+        /// <summary>Every party member's progress after the fight, with XP already applied.</summary>
+        public Dictionary<CharacterDefinition, MemberProgress> Party = new Dictionary<CharacterDefinition, MemberProgress>();
+        /// <summary>Levels gained this fight, for members who leveled up.</summary>
+        public Dictionary<CharacterDefinition, int> LevelsGained = new Dictionary<CharacterDefinition, int>();
+
+        /// <summary>Builds the result: current HP from the battle, plus the XP reward on a win (knocked-out members earn it too).</summary>
+        public static BattleResult Build(BattleOutcome outcome, BattleController controller, IDictionary<CharacterDefinition, MemberProgress> start)
+        {
+            var result = new BattleResult { Outcome = outcome, Party = controller.PartySnapshot(start) };
+            if (outcome != BattleOutcome.Victory) return result;
+
+            result.XpGained = controller.XpReward();
+            foreach (var entry in result.Party)
+            {
+                int levels = Leveling.AddXp(entry.Key, entry.Value, result.XpGained);
+                if (levels > 0) result.LevelsGained[entry.Key] = levels;
+            }
+            return result;
+        }
     }
 
     /// <summary>
@@ -23,9 +53,9 @@ namespace Combat
 
         public static bool HasPending { get { return pending != null; } }
 
-        public static void Request(BattleSetup setup, Action<BattleOutcome> onComplete)
+        public static void Request(BattleSetup setup, Dictionary<CharacterDefinition, MemberProgress> party, Action<BattleResult> onComplete)
         {
-            pending = new BattleRequest { Setup = setup, OnComplete = onComplete };
+            pending = new BattleRequest { Setup = setup, Party = party, OnComplete = onComplete };
         }
 
         public static BattleRequest Consume()

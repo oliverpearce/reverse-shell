@@ -8,7 +8,8 @@ namespace Combat.View
 {
     /// <summary>
     /// A battlefield unit: animated pixel sprite (or placeholder), HP, Moxie pips, statuses, enemy intent.
-    /// Hover to see an info menu with every buff and debuff.
+    /// A red lock-on reticle marks the targeted enemy and a white ring marks the unit under the cursor
+    /// (mouse or arrow keys). Full details live in the inspect screen (hold, or Space).
     /// </summary>
     public class UnitView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler,
         IPointerDownHandler, IPointerUpHandler
@@ -25,7 +26,7 @@ namespace Combat.View
         public Vector2 BodyOrigin { get; private set; }
         public Vector3 Center { get { return Body.position; } }
 
-        /// <summary>Latest statuses / intent shown (event-time values, used by the hover menu).</summary>
+        /// <summary>Latest statuses / intent shown (event-time values, used by the inspect screen).</summary>
         public List<StatusSnapshot> Statuses { get; private set; }
         public CardInstance Intent { get; private set; }
         public int MoxieCap { get; private set; }
@@ -35,15 +36,14 @@ namespace Combat.View
 
         BattleView view;
         CanvasGroup group;
-        Image portrait, sprite, flash, selectFrame, hpFill, intentBg;
-        RectTransform selectMarker;
+        Image portrait, sprite, flash, hpFill, intentIcon;
+        Reticle lockOn, focusRing;
         UISpriteAnimator animator;
         RectTransform hpBar;
-        Text hpText, intentText;
         RectTransform statusRow;
         readonly List<Image> moxiePips = new List<Image>();
         Coroutine hpRoutine, pressRoutine;
-        bool hovered, longPressed;
+        bool longPressed;
 
         /// <summary>How long to hold the mouse on a unit to open its full character sheet.</summary>
         public const float LongPressSeconds = 0.45f;
@@ -78,10 +78,11 @@ namespace Combat.View
 
             if (unit.Team == Team.Enemy)
             {
-                intentBg = UIFactory.CreateImage(transform, "Intent", PanelDark);
-                intentBg.rectTransform.Place(top, top, Vector2.zero, new Vector2(Width, 44f));
-                intentText = UIFactory.CreateText(intentBg.transform, "Text", "", 16, Color.white).BestFit(10, 16);
-                intentText.rectTransform.Fill(4f);
+                // Slay the Spire-style intent: just an icon above the head (details are in the hover menu).
+                intentIcon = UIFactory.CreateImage(transform, "Intent", Color.white);
+                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, -14f), new Vector2(48f, 48f));
+                intentIcon.preserveAspect = true;
+                intentIcon.gameObject.SetActive(false);
             }
 
             Body = UIFactory.CreateRect("Body", transform).Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, -144f), new Vector2(180f, 180f));
@@ -90,31 +91,37 @@ namespace Combat.View
             if (def.animations != null && def.animations.Has(UISpriteAnimator.Idle)) BuildAnimatedBody(unit);
             else BuildPanelBody(unit);
 
-            var nameText = UIFactory.CreateText(transform, "Name", def.DisplayName, 24, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
-            nameText.rectTransform.Place(top, top, new Vector2(0f, -240f), new Vector2(Width, 30f));
-            nameText.gameObject.AddComponent<Shadow>();
+            // Reticles sit in front of the body, centered on the torso (or the panel's middle).
+            var reticleAnchor = animator != null ? new Vector2(0.5f, 0f) : new Vector2(0.5f, 0.5f);
+            var reticlePos = animator != null ? new Vector2(0f, 92f) : Vector2.zero;
+            focusRing = TargetReticle.CreateFocus(Body, reticleAnchor, reticlePos, 176f); // radii are 85% of the texture, leaving room for the glow
+            if (unit.Team == Team.Enemy)
+                lockOn = TargetReticle.CreateLock(Body, reticleAnchor, reticlePos, 130f);
+
+            string label = unit.Team == Team.Player ? def.DisplayName + "  <size=18>Lv " + unit.Level + "</size>" : def.DisplayName;
+            var nameText = UIFactory.CreateText(transform, "Name", label, 34, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(18, 34);
+            nameText.supportRichText = true;
+            nameText.rectTransform.Place(top, top, new Vector2(0f, -232f), new Vector2(Width + 40f, 42f));
+            nameText.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.7f);
 
             var character = def as CharacterDefinition;
             string subtitle = def.afflatus + "  ·  " + def.damageType;
             if (character != null && !string.IsNullOrEmpty(character.archetype)) subtitle = character.archetype + "  ·  " + subtitle;
             var sub = UIFactory.CreateText(transform, "Afflatus", subtitle, 16, new Color(0.75f, 0.75f, 0.8f)).BestFit(10, 16);
-            sub.rectTransform.Place(top, top, new Vector2(0f, -270f), new Vector2(Width, 22f));
+            sub.rectTransform.Place(top, top, new Vector2(0f, -276f), new Vector2(Width, 22f));
 
             var hpBg = UIFactory.CreateImage(transform, "HPBar", PanelDark);
-            hpBg.rectTransform.Place(top, top, new Vector2(0f, -296f), new Vector2(200f, 22f));
+            hpBg.rectTransform.Place(top, top, new Vector2(0f, -302f), new Vector2(200f, 22f));
             hpBar = hpBg.rectTransform;
             hpFill = UIFactory.CreateImage(hpBg.transform, "Fill", unit.Team == Team.Player ? new Color(0.35f, 0.8f, 0.45f) : new Color(0.85f, 0.3f, 0.3f));
             var fillRt = hpFill.rectTransform;
             fillRt.anchorMin = Vector2.zero;
             fillRt.anchorMax = Vector2.one;
             fillRt.offsetMin = fillRt.offsetMax = Vector2.zero;
-            hpText = UIFactory.CreateText(hpBg.transform, "Text", "", 20, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(10, 20);
-            hpText.rectTransform.Fill();
-            hpText.gameObject.AddComponent<Shadow>();
 
             if (unit.Team == Team.Player)
             {
-                var row = UIFactory.CreateRect("Moxie", transform).Place(top, top, new Vector2(0f, -324f), new Vector2(200f, 14f));
+                var row = UIFactory.CreateRect("Moxie", transform).Place(top, top, new Vector2(0f, -330f), new Vector2(200f, 14f));
                 float gap = 6f;
                 float w = (200f - gap * (moxieCap - 1)) / moxieCap;
                 for (int i = 0; i < moxieCap; i++)
@@ -125,7 +132,7 @@ namespace Combat.View
                 }
             }
 
-            statusRow = UIFactory.CreateRect("Statuses", transform).Place(top, top, new Vector2(0f, -346f), new Vector2(Width, 26f));
+            statusRow = UIFactory.CreateRect("Statuses", transform).Place(top, top, new Vector2(0f, -352f), new Vector2(Width, 26f));
             var layout = statusRow.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.spacing = 4f;
@@ -158,11 +165,6 @@ namespace Combat.View
             animator = Body.gameObject.AddComponent<UISpriteAnimator>();
             animator.Init(unit.Definition.animations, unit.Team == Team.Player ? Facing.Right : Facing.Left, sprite, flash);
 
-            // Target marker: a gold diamond bobbing above the head.
-            selectMarker = UIFactory.CreateImage(Body, "TargetMarker", Gold).rectTransform;
-            selectMarker.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, 4f), new Vector2(18f, 18f));
-            selectMarker.localRotation = Quaternion.Euler(0f, 0f, 45f);
-            selectMarker.gameObject.SetActive(false);
         }
 
         static readonly Vector2 top = new Vector2(0.5f, 1f);
@@ -171,10 +173,6 @@ namespace Combat.View
         void BuildPanelBody(BattleUnit unit)
         {
             var def = unit.Definition;
-            selectFrame = UIFactory.CreateImage(Body, "SelectFrame", Gold);
-            selectFrame.rectTransform.Fill(-7f);
-            selectFrame.enabled = false;
-
             portrait = UIFactory.CreateImage(Body, "Portrait", def.color);
             portrait.rectTransform.Fill();
             if (def.portrait != null)
@@ -207,8 +205,8 @@ namespace Combat.View
 
         void Update()
         {
-            if (selectMarker != null && selectMarker.gameObject.activeSelf)
-                selectMarker.anchoredPosition = new Vector2(0f, 4f + Mathf.Round(Mathf.Sin(Time.time * 4f) * 2f) * 2f);
+            if (intentIcon != null && intentIcon.gameObject.activeSelf) // gentle bob, in whole pixels
+                intentIcon.rectTransform.anchoredPosition = new Vector2(0f, -14f + Mathf.Round(Mathf.Sin(Time.time * 2.5f) * 1.5f) * 2f);
         }
 
         // ------------------------------------------------------------------ Input
@@ -258,15 +256,20 @@ namespace Combat.View
 
         public void OnPointerEnter(PointerEventData eventData)
         {
-            hovered = true;
-            view.ShowUnitInfo(this);
+            view.OnUnitHover(this, true);
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
             CancelPress();
-            hovered = false;
-            view.HideUnitInfo(this);
+            view.OnUnitHover(this, false);
+        }
+
+        /// <summary>Plays the same "hold" feedback as a long press, then opens the inspect screen (Space key).</summary>
+        public void Inspect()
+        {
+            CancelPress();
+            pressRoutine = StartCoroutine(PressAndHold());
         }
 
         // ------------------------------------------------------------------ Animation
@@ -282,7 +285,6 @@ namespace Combat.View
 
         public void SetHP(int hp, int max, bool instant = false)
         {
-            hpText.text = hp + " / " + max;
             float target = max > 0 ? Mathf.Clamp01((float)hp / max) : 0f;
             var rt = hpFill.rectTransform;
             if (hpRoutine != null) StopCoroutine(hpRoutine);
@@ -293,7 +295,6 @@ namespace Combat.View
             }
             float from = rt.anchorMax.x;
             hpRoutine = StartCoroutine(Tween.Run(0.25f, p => rt.anchorMax = new Vector2(Mathf.Lerp(from, target, p), 1f)));
-            RefreshInfo();
         }
 
         public void SetMoxie(int value, int cap)
@@ -316,18 +317,10 @@ namespace Combat.View
         public void SetIntent(CardInstance intent)
         {
             Intent = intent;
-            if (intentBg == null) return;
-            if (intent == null)
-            {
-                intentText.text = Unit.IsAlive ? "..." : "";
-                intentBg.color = PanelDark;
-            }
-            else
-            {
-                intentText.text = KindLabel(intent.Definition.kind) + ": " + intent.Name + " " + UIFactory.Roman(intent.Rank);
-                intentBg.color = Color.Lerp(PanelDark, KindColor(intent.Definition.kind), 0.45f);
-            }
-            RefreshInfo();
+            if (intentIcon == null) return;
+            bool show = intent != null && Unit.IsAlive;
+            intentIcon.gameObject.SetActive(show);
+            if (show) intentIcon.sprite = IntentIcons.For(intent.Definition.kind);
         }
 
         public void SetStatuses(List<StatusSnapshot> statuses)
@@ -345,24 +338,24 @@ namespace Combat.View
                 var outline = chip.gameObject.AddComponent<Outline>();
                 outline.effectColor = s.Definition.isDebuff ? new Color(0.9f, 0.25f, 0.25f) : new Color(0.4f, 0.85f, 1f);
             }
-            RefreshInfo();
         }
 
-        void RefreshInfo()
-        {
-            if (hovered && view != null) view.ShowUnitInfo(this);
-        }
-
+        /// <summary>Red lock-on: this enemy is the current target.</summary>
         public void SetSelected(bool selected)
         {
-            bool on = selected && Unit.IsAlive;
-            if (selectMarker != null) selectMarker.gameObject.SetActive(on);
-            if (selectFrame != null) selectFrame.enabled = on;
+            if (lockOn != null) lockOn.Show(selected && Unit.IsAlive);
+        }
+
+        /// <summary>White ring: the unit under the mouse or the arrow-key cursor.</summary>
+        public void SetFocused(bool focused)
+        {
+            if (focusRing != null) focusRing.Show(focused && Unit.IsAlive);
         }
 
         public IEnumerator Die()
         {
             SetSelected(false);
+            SetFocused(false);
             SetIntent(null);
             SetStatuses(new List<StatusSnapshot>());
             if (animator != null)

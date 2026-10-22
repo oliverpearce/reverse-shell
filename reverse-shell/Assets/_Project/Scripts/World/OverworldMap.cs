@@ -7,10 +7,12 @@ namespace Game.World
     /// A level drawn as text, one character per 1x1 cell. Row 0 is the north edge (top of the screen).
     ///
     /// Legend
-    ///   H  tall building (5)      #  building (3)       B  brick wall (2)     L  low railing (1)
-    ///   .  sidewalk               =  road               P  plaza tiles
-    ///   m/c/g/o  neon lamp post (magenta / cyan / green / orange)
-    ///   S  player spawn           n  NPC                E  encounter enemy    X  encounter stand square
+    ///   H  tall ruin (5)          #  ruin (3)           B  mossy brick wall (2)   L  low broken wall (1)
+    ///   .  cracked pavement       =  overgrown road     P  grass plaza
+    ///   ,  tall grass             *  wildflowers        (both walkable)
+    ///   T  tree                   b  bush               r  rubble pile            (all solid)
+    ///   S  player spawn           n  NPC                E  encounter enemy        X  encounter stand square
+    ///   A  access point (heals the party, solid)
     /// </summary>
     public class OverworldMap
     {
@@ -58,7 +60,7 @@ namespace Game.World
 
         public static bool IsSolidChar(char c)
         {
-            return BlockHeight(c) > 0 || c == 'm' || c == 'c' || c == 'g' || c == 'o' || c == 'n' || c == 'E';
+            return BlockHeight(c) > 0 || c == 'T' || c == 'b' || c == 'r' || c == 'n' || c == 'E' || c == 'A';
         }
 
         public bool IsSolidCell(int x, int row) { return !InBounds(x, row) || IsSolidChar(cells[x, row]); }

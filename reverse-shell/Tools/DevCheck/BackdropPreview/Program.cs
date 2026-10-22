@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using Combat.View;
 
-// Preview harness: renders BackdropPainterCore with the CyberCity atlas (raw RGBA dump) to a raw RGB file.
+// Preview harness: renders BackdropPainterCore with the ruins atlas (raw RGBA dump) to a raw RGB file.
 class RawAtlas : IBackdropAtlas
 {
     readonly byte[] data; readonly int w, h;

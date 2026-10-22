@@ -42,34 +42,49 @@ namespace Combat.View
         }
 
         /// <summary>
-        /// Builds the card's visuals into <paramref name="root"/> (sized Size * s). Used for both the
-        /// hand card and the hover preview, so the preview is a crisp re-layout rather than a blurry upscale.
+        /// Builds the card's visuals into <paramref name="root"/> (sized Size * s). Used for the hand card, the hover
+        /// preview and the inspect screen, so bigger versions are crisp re-layouts rather than blurry upscales.
+        /// The small hand card (s <= 1) is just the rank in the top-left corner and one huge ATTACK / BUFF / DEBUFF /
+        /// HEAL word along the bottom. Bigger faces add the name header, owner and full text.
+        /// Rank is shown as stacking stars (CardStars) or as pips, per CardSettings.RankStars.
         /// </summary>
         public static void BuildFace(RectTransform root, CardInstance card, float s)
         {
             var owner = card.Owner.Definition.color;
             bool ritual = card.IsRitual;
+            bool detailed = s > 1f;
+            bool stars = CardSettings.RankStars;
             var pastel = RitualPastel(owner);
             int F(float size) { return Mathf.RoundToInt(size * s); }
 
-            var bg = root.gameObject.AddComponent<Image>();
-            bg.color = ritual ? pastel : UIFactory.Darken(owner, 0.62f);
-            var outline = root.gameObject.AddComponent<Outline>();
-            outline.effectColor = ritual ? Color.white : UIFactory.Darken(owner, 0.1f);
-            outline.effectDistance = (ritual ? new Vector2(4f, -4f) : new Vector2(2f, -2f)) * s;
+            // Transparent hit area on the root (click / drag / hover), then the face.
+            var hit = root.GetComponent<Image>();
+            if (hit == null) hit = root.gameObject.AddComponent<Image>();
+            hit.color = new Color(0f, 0f, 0f, 0f);
+            var face = UIFactory.CreateImage(root, "Face", ritual ? pastel : UIFactory.Darken(owner, 0.62f));
+            face.rectTransform.Fill();
+            var edge = face.gameObject.AddComponent<Outline>();
+            edge.effectColor = ritual ? Color.white : UIFactory.Darken(owner, 0.1f);
+            edge.effectDistance = new Vector2(2f, -2f) * s;
 
-            var header = UIFactory.CreateImage(root, "Header", ritual ? Color.Lerp(pastel, owner, 0.25f) : owner);
-            header.rectTransform.TopStrip(0f, 38f * s);
-            var title = UIFactory.CreateText(header.transform, "Title", card.Name, F(17), ritual ? PastelText : Color.white,
-                TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(F(10), F(17));
-            title.rectTransform.Fill(4f * s);
-
-            if (ritual)
+            float top = 0f; // where the content under the header starts
+            if (detailed)
             {
-                var label = UIFactory.CreateText(root, "Ritual", "RITUAL", F(15), PastelText, TextAnchor.MiddleCenter, FontStyle.Bold);
-                label.rectTransform.TopStrip(42f * s, 18f * s);
+                var header = UIFactory.CreateImage(root, "Header", ritual ? Color.Lerp(pastel, owner, 0.25f) : owner);
+                header.rectTransform.TopStrip(0f, 38f * s);
+                var title = UIFactory.CreateText(header.transform, "Title", card.Name, F(17), ritual ? PastelText : Color.white,
+                    TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(F(10), F(17));
+                title.rectTransform.Fill(6f * s);
+                top = 38f * s;
             }
-            else
+
+            // Rank: stars from the top-left corner, or pips across the top.
+            if (stars)
+            {
+                int count = CardStars.CountFor(card);
+                if (count > 0) CardStars.Build(root, count, 22f * s, new Vector2(0f, 1f), new Vector2(7f * s, -top - 6f * s));
+            }
+            else if (!ritual)
             {
                 int max = card.Definition.MaxRank;
                 float pipW = 26f * s, gap = 6f * s;
@@ -77,21 +92,57 @@ namespace Combat.View
                 for (int i = 0; i < max; i++)
                 {
                     var pip = UIFactory.CreateImage(root, "Rank" + i, i < card.Rank ? Gold : new Color(0f, 0f, 0f, 0.5f));
-                    pip.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, 1f), new Vector2(-total / 2f + i * (pipW + gap), -46f * s), new Vector2(pipW, 10f * s));
+                    pip.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, 1f), new Vector2(-total / 2f + i * (pipW + gap), -top - 8f * s), new Vector2(pipW, 10f * s));
                 }
             }
 
-            var kindColor = ritual ? PastelText : Color.Lerp(UnitView.KindColor(card.Definition.kind), Color.white, 0.4f);
-            var kind = UIFactory.CreateText(root, "Kind", card.Owner.Name + " · " + UnitView.KindLabel(card.Definition.kind), F(13), kindColor);
-            kind.rectTransform.TopStrip(62f * s, 18f * s, 4f * s);
+            if (detailed)
+            {
+                string ownerText = ritual ? card.Owner.Name + "  \u00b7  RITUAL" : card.Owner.Name;
+                var ownerName = UIFactory.CreateText(root, "Owner", ownerText, F(13), ritual ? PastelText : new Color(0.85f, 0.85f, 0.9f),
+                    TextAnchor.MiddleRight, FontStyle.Bold);
+                ownerName.rectTransform.TopStrip(top + 6f * s, 22f * s, 9f * s);
+            }
 
-            var descColor = ritual ? PastelText : new Color(0.92f, 0.92f, 0.95f);
-            var desc = UIFactory.CreateText(root, "Description", card.Describe(), F(14), descColor, TextAnchor.UpperLeft).BestFit(F(9), F(14));
-            var drt = desc.rectTransform;
-            drt.anchorMin = Vector2.zero;
-            drt.anchorMax = Vector2.one;
-            drt.offsetMin = new Vector2(9f, 8f) * s;
-            drt.offsetMax = new Vector2(-9f, -86f) * s;
+            // Reverse 1999-style: the bottom of the card is one huge word saying what it does.
+            const float band = 58f;
+            var kindColor = UnitView.KindColor(card.Definition.kind);
+            var bandImg = UIFactory.CreateImage(root, "KindBand", ritual ? Color.Lerp(kindColor, Color.white, 0.35f) : UIFactory.Darken(kindColor, 0.3f));
+            var brt = bandImg.rectTransform;
+            brt.anchorMin = Vector2.zero;
+            brt.anchorMax = new Vector2(1f, 0f);
+            brt.pivot = new Vector2(0.5f, 0f);
+            brt.offsetMin = Vector2.zero;
+            brt.offsetMax = new Vector2(0f, band * s);
+            var word = UIFactory.CreateText(bandImg.transform, "Kind", UnitView.KindLabel(card.Definition.kind).ToUpperInvariant(), F(40),
+                ritual ? PastelText : Color.white, TextAnchor.MiddleCenter, FontStyle.BoldAndItalic).BestFit(F(14), F(40));
+            word.rectTransform.Fill(6f * s);
+            if (!ritual) word.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.6f);
+
+            if (detailed)
+            {
+                var middle = UIFactory.CreateRect("Middle", root);
+                middle.anchorMin = Vector2.zero;
+                middle.anchorMax = Vector2.one;
+                middle.offsetMin = new Vector2(12f, band + 8f) * s;
+                middle.offsetMax = new Vector2(-12f, -top - 36f * s);
+                var descColor = ritual ? PastelText : new Color(0.92f, 0.92f, 0.95f);
+                var desc = UIFactory.CreateText(middle, "Description", card.Describe(), F(14), descColor, TextAnchor.UpperLeft).BestFit(F(9), F(14));
+                desc.rectTransform.Fill();
+            }
+        }
+
+        /// <summary>Rebuilds this card's face (e.g. after the rank display setting changes).</summary>
+        public void RebuildFace()
+        {
+            for (int i = Rect.childCount - 1; i >= 0; i--)
+            {
+                var child = Rect.GetChild(i).gameObject;
+                child.SetActive(false);
+                Destroy(child);
+            }
+            mergeGlow = null;
+            BuildFace(Rect, Card, 1f);
         }
 
         public void AnimateTo(Vector2 anchored, float duration)

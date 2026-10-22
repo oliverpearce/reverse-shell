@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01c7f95fb3fdedb42b6544a2cc432e43, type: 3}
+  m_Name: Enemy_ScrapStalker
+  m_EditorClassIdentifier: 
+  displayName: Scrap Stalker
+  color: {r: 0.5, g: 0.58, b: 0.32, a: 1}
+  portrait: {fileID: 0}
+  animations: {fileID: 11400000, guid: d39c475266827a943b0555ae73d9b898, type: 2}
+  spriteSheet: {fileID: 0}
+  sheetColumns: 3
+  sheetRows: 4
+  afflatus: 2
+  damageType: 1
+  stats:
+    maxHP: 2600
+    attack: 135
+    physicalDefense: 90
+    specialDefense: 90
+    critRate: 0.1
+    critDamage: 1.5
+  skills:
+  - card: {fileID: 11400000, guid: eac45ec8a89d95c4da8d4377ec5c0140, type: 2}
+    rank: 1
+    weight: 2
+  - card: {fileID: 11400000, guid: b3463020f2a91b847aa80c98de6cc824, type: 2}
+    rank: 1
+    weight: 0.6
+  xpReward: 80

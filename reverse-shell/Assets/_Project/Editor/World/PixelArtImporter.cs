@@ -23,7 +23,8 @@ namespace Game.EditorTools
             importer.wrapMode = TextureWrapMode.Clamp;
             importer.alphaIsTransparency = true;
             // Tile atlases are also read on the CPU (battle backdrops are painted from them).
-            importer.isReadable = assetPath.Replace('\\', '/').Contains("/ThirdParty/");
+            var path = assetPath.Replace('\\', '/');
+            importer.isReadable = path.Contains("/ThirdParty/") || path.Contains("/Tiles/");
         }
     }
 }

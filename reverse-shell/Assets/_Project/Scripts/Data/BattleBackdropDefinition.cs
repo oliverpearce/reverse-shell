@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Combat
 {
@@ -9,36 +10,38 @@ namespace Combat
     [CreateAssetMenu(menuName = "Combat/Battle Backdrop", fileName = "Backdrop_New")]
     public class BattleBackdropDefinition : ScriptableObject
     {
-        public string displayName = "Rainline Station";
+        public string displayName = "Mossline Station";
 
-        [Tooltip("Tile atlas to paint building facades and streets from (e.g. CyberCity city.png). Must be Read/Write enabled.")]
+        [Tooltip("Tile atlas to paint building facades and streets from (e.g. Art/Tiles/ruins.png). Must be Read/Write enabled.")]
         public Texture2D tileAtlas;
         [Tooltip("Size of one atlas cell in texture pixels.")]
         public int atlasCell = 64;
-        [Tooltip("How many texture pixels make one art pixel (CyberCity is 16px art drawn at 4x).")]
+        [Tooltip("How many texture pixels make one art pixel (the ruins atlas is 16px art drawn at 4x).")]
         public int atlasPixelScale = 4;
 
         [Tooltip("Same seed = same skyline.")]
         public int seed = 1999;
 
         [Header("Sky")]
-        public Color skyTop = new Color(0.03f, 0.02f, 0.07f);
-        public Color skyHorizon = new Color(0.26f, 0.07f, 0.26f);
+        public Color skyTop = new Color(0.52f, 0.66f, 0.8f);
+        public Color skyHorizon = new Color(0.88f, 0.88f, 0.8f);
 
-        [Header("Neon")]
-        public Color[] neon =
+        [Header("Foliage")]
+        [Tooltip("Leaf colors from shadow to sunlit highlight (trees, vines, grass).")]
+        public Color[] foliage =
         {
-            new Color(1f, 0.18f, 0.55f), new Color(0.18f, 0.95f, 1f), new Color(0.7f, 1f, 0.23f), new Color(1f, 0.6f, 0.24f)
+            new Color(0.14f, 0.27f, 0.16f), new Color(0.21f, 0.42f, 0.2f), new Color(0.33f, 0.57f, 0.25f), new Color(0.55f, 0.75f, 0.34f)
         };
 
         [Header("Layout")]
         [Tooltip("Where the street meets the buildings, as a fraction of screen height from the top.")]
-        [Range(0.2f, 0.7f)] public float streetLine = 0.37f;
-        [Tooltip("How dark the building facades are painted (night).")]
-        [Range(0.2f, 1f)] public float facadeBrightness = 0.55f;
+        [Range(0.2f, 0.7f)] public float streetLine = 0.42f;
+        [Tooltip("How bright the building facades are painted.")]
+        [Range(0.2f, 1f)] public float facadeBrightness = 0.9f;
 
         [Header("Weather")]
-        public bool rain = true;
-        [Range(0f, 2f)] public float rainIntensity = 1f;
+        [Tooltip("Leaves and pollen drifting across the scene.")]
+        [FormerlySerializedAs("rain")] public bool driftingLeaves = true;
+        [FormerlySerializedAs("rainIntensity")] [Range(0f, 2f)] public float driftIntensity = 1f;
     }
 }

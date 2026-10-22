@@ -14,11 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: c4c6583b3d19f43409027f823a0b2581, type: 2}
   party:
-  - {fileID: 11400000, guid: 6817c5304967fd0479e693ce491b0834, type: 2}
-  - {fileID: 11400000, guid: dcf70fbd8c0f9694ebb560855ba3a25e, type: 2}
-  - {fileID: 11400000, guid: bd013dab36c75c44da805116ea8b86ae, type: 2}
+  - {fileID: 11400000, guid: bbd8575ce8244c34fa739ce40186a3d2, type: 2}
+  - {fileID: 11400000, guid: 9e1ee5bc12d478449b17cc10fda08b14, type: 2}
+  - {fileID: 11400000, guid: 3d37533cb3a2aad4fae1807012f9334d, type: 2}
   enemies:
-  - {fileID: 11400000, guid: ba34a7223becfc34e8947c2e43a8b1d6, type: 2}
-  - {fileID: 11400000, guid: 5099a9a691b22354bb8d2a3c67618516, type: 2}
-  backdrop: {fileID: 11400000, guid: 8ad5ed9bb7963ef4a908028772ec30a6, type: 2}
+  - {fileID: 11400000, guid: 8cb18e3bb06a9da4f9b173e3a5683359, type: 2}
+  - {fileID: 11400000, guid: 146a058277a78164ba4de7f8f890506a, type: 2}
+  backdrop: {fileID: 11400000, guid: 38f653c8515ba6948acbcb1ec7198940, type: 2}
   seed: 0

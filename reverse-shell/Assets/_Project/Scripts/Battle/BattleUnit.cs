@@ -14,6 +14,8 @@ namespace Combat
 
         public int HP;
         public int Moxie;
+        /// <summary>Party members scale their base stats with level; enemies stay at their definition's stats.</summary>
+        public int Level { get; private set; }
         /// <summary>Enemy only: the card it will use this round.</summary>
         public CardInstance Intent;
 
@@ -22,6 +24,7 @@ namespace Combat
             Id = ++nextId;
             Definition = definition;
             Team = team;
+            Level = 1;
             HP = MaxHP;
         }
 
@@ -30,6 +33,13 @@ namespace Combat
         public CharacterDefinition Character { get { return Definition as CharacterDefinition; } }
         public EnemyDefinition Enemy { get { return Definition as EnemyDefinition; } }
         public int MaxHP { get { return Mathf.Max(1, Mathf.RoundToInt(GetStat(StatType.MaxHP))); } }
+        /// <summary>Sets the level and refills HP to the new max (set HP afterwards to carry damage over).</summary>
+        public void SetLevel(int level)
+        {
+            Level = Mathf.Clamp(level, 1, Leveling.MaxLevel);
+            HP = MaxHP;
+        }
+
         public float HPPercent { get { return (float)HP / MaxHP; } }
         public bool IsStunned { get { return Statuses.Exists(s => s.Definition.preventsAction); } }
 
@@ -46,7 +56,10 @@ namespace Combat
                     else percent += mod.value * status.Stacks;
                 }
             }
-            return (Definition.stats.Get(stat) + flat) * (1f + percent);
+            float baseValue = Definition.stats.Get(stat);
+            var character = Character;
+            if (character != null && Leveling.Grows(stat)) baseValue *= Leveling.StatScale(Level, character.growthPerLevel);
+            return (baseValue + flat) * (1f + percent);
         }
 
         public StatusInstance FindStatus(StatusDefinition definition)

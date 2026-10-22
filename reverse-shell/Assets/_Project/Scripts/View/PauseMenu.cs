@@ -18,16 +18,16 @@ namespace Combat.View
 
         public bool IsOpen { get { return overlay.activeSelf; } }
 
-        public static PauseMenu Create(RectTransform root, BattleView view, bool canLeave)
+        public static PauseMenu Create(RectTransform root, BattleView view)
         {
             var go = UIFactory.CreateRect("Pause", root).Fill();
             var menu = go.gameObject.AddComponent<PauseMenu>();
             menu.view = view;
-            menu.Build(go, canLeave);
+            menu.Build(go);
             return menu;
         }
 
-        void Build(RectTransform root, bool canLeave)
+        void Build(RectTransform root)
         {
             var topRight = new Vector2(1f, 1f);
 
@@ -47,7 +47,7 @@ namespace Combat.View
             overlay = dim.gameObject;
 
             var panel = UIFactory.CreateImage(dim.transform, "Panel", PanelColor, true);
-            panel.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(500f, canLeave ? 470f : 520f));
+            panel.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(500f, 556f));
             var panelOutline = panel.gameObject.AddComponent<Outline>();
             panelOutline.effectColor = Gold;
             panelOutline.effectDistance = new Vector2(3f, -3f);
@@ -58,15 +58,14 @@ namespace Combat.View
             float y = 112f;
             MenuButton(panel.rectTransform, "RESUME", new Color(0.85f, 0.45f, 0.2f), view.TogglePause, ref y);
             MenuButton(panel.rectTransform, "RESTART FIGHT", new Color(0.3f, 0.32f, 0.48f), view.RestartFight, ref y);
-            var leave = MenuButton(panel.rectTransform, "LEAVE FIGHT", new Color(0.55f, 0.2f, 0.28f), view.LeaveFight, ref y);
-            if (!canLeave)
+            MenuButton(panel.rectTransform, "LEAVE FIGHT", new Color(0.55f, 0.2f, 0.28f), view.LeaveFight, ref y);
+            var rankToggle = MenuButton(panel.rectTransform, RankLabel(), new Color(0.2f, 0.36f, 0.42f), null, ref y);
+            var rankLabel = rankToggle.GetComponentInChildren<Text>();
+            rankToggle.onClick.AddListener(() =>
             {
-                leave.interactable = false;
-                var note = UIFactory.CreateText(panel.transform, "Note", "Leaving returns to the overworld.\nStart this fight from the overworld to use it.", 20,
-                    new Color(0.75f, 0.75f, 0.82f), TextAnchor.UpperCenter);
-                note.fontSize = 18;
-                note.rectTransform.TopStrip(y - 8f, 50f, 30f);
-            }
+                CardSettings.RankStars = !CardSettings.RankStars;
+                rankLabel.text = RankLabel();
+            });
 
             var hint = UIFactory.CreateText(panel.transform, "Hint", "Press Esc to resume", 20, new Color(0.7f, 0.7f, 0.78f), TextAnchor.LowerCenter);
             hint.rectTransform.anchorMin = new Vector2(0f, 0f);
@@ -76,6 +75,12 @@ namespace Combat.View
             hint.rectTransform.sizeDelta = new Vector2(0f, 30f);
 
             overlay.SetActive(false);
+        }
+
+        /// <summary>Card rank display: stacking stars or pips.</summary>
+        static string RankLabel()
+        {
+            return "CARD RANK: " + (CardSettings.RankStars ? "STARS" : "PIPS");
         }
 
         static Button MenuButton(RectTransform panel, string label, Color color, UnityEngine.Events.UnityAction action, ref float y)

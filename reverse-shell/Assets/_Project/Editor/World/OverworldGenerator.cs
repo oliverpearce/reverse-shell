@@ -12,19 +12,21 @@ using UnityEngine.Rendering.PostProcessing;
 namespace Game.EditorTools
 {
     /// <summary>
-    /// Tools > Overworld > Generate Rainline Station: builds the HD-2D overworld scene (camera, post
-    /// processing, OverworldBuilder wired to the CyberCity art and the sample battle) and puts it first
+    /// Tools > Overworld > Generate Mossline Station: builds the HD-2D overworld scene (camera, post
+    /// processing, OverworldBuilder wired to the ruins atlas and the sample battle) and puts it first
     /// in Build Settings so Play starts there.
     /// </summary>
     public static class OverworldGenerator
     {
         const string ArtRoot = "Assets/_Project/Art/ThirdParty/CyberCity/";
-        const string ScenePath = "Assets/_Project/Scenes/Overworld_Rainline.unity";
+        const string TilesPath = "Assets/_Project/Art/Tiles/ruins.png";
+        const string ScenePath = "Assets/_Project/Scenes/Overworld_Mossline.unity";
+        const string LegacyScenePath = "Assets/_Project/Scenes/Overworld_Rainline.unity";
         const string BattleScenePath = "Assets/_Project/Scenes/Battle.unity";
         const string BattleSetupPath = "Assets/_Project/Content/Battle_Sample.asset";
         const string ProfilePath = "Assets/_Project/Content/PostFX_Overworld.asset";
 
-        [MenuItem("Tools/Overworld/Generate Rainline Station")]
+        [MenuItem("Tools/Overworld/Generate Mossline Station")]
         public static void Generate()
         {
             var setup = AssetDatabase.LoadAssetAtPath<BattleSetup>(BattleSetupPath);
@@ -36,15 +38,14 @@ namespace Game.EditorTools
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
             // Make sure the pixel-art import settings are applied even if the textures arrived first.
-            foreach (var file in new[] { "city.png", "lady.png", "Yakuza1.png", "YakuzaBoss.png", "streetPeople.png" })
+            foreach (var file in new[] { "Yakuza1.png", "streetPeople.png" })
                 AssetDatabase.ImportAsset(ArtRoot + file, ImportAssetOptions.ForceUpdate);
-            foreach (var file in new[] { "Miku.png", "Teto.png", "Rei.png" })
-                AssetDatabase.ImportAsset("Assets/_Project/Art/Characters/" + file, ImportAssetOptions.ForceUpdate);
+            AssetDatabase.ImportAsset(TilesPath, ImportAssetOptions.ForceUpdate);
 
-            var atlas = Load("city.png");
+            var atlas = AssetDatabase.LoadAssetAtPath<Texture2D>(TilesPath);
             if (atlas == null)
             {
-                EditorUtility.DisplayDialog("Overworld", "Missing art in " + ArtRoot + ". See CREDITS.md there for the source.", "OK");
+                EditorUtility.DisplayDialog("Overworld", "Missing " + TilesPath + ". Run: python Tools/TileForge/ruins_atlas.py", "OK");
                 return;
             }
 
@@ -64,8 +65,8 @@ namespace Game.EditorTools
             var focus = camGo.AddComponent<PostFxFocus>();
 
             var world = new GameObject("Overworld").AddComponent<OverworldBuilder>();
-            world.cityAtlas = atlas;
-            world.playerSheet = null; // uses the party leader's sheet (Miku) from the battle setup
+            world.tileAtlas = atlas;
+            world.playerSheet = null; // uses the party leader's sprite (2B) from the battle setup
             world.enemySheet = Load("Yakuza1.png");
             world.npcSheet = Load("streetPeople.png");
             // LPC animated look (falls back to the CyberCity sheets above if SpriteForge output is missing).
@@ -76,7 +77,7 @@ namespace Game.EditorTools
                 SampleContentGenerator.AnimSet("Drifter"),
             };
             world.npcAnimations.RemoveAll(a => a == null);
-            world.encounterAnimations = SampleContentGenerator.AnimSet("StaticThug");
+            world.encounterAnimations = SampleContentGenerator.AnimSet("RustSentry");
             world.encounterSetup = setup;
             world.battleScene = "Battle";
 
@@ -87,10 +88,20 @@ namespace Game.EditorTools
             EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath);
 
             EditorUtility.DisplayDialog("Overworld",
-                "Rainline Station generated:\n" + ScenePath +
-                (postFx ? "\n\nPost processing (bloom, depth of field, grain) is on." :
+                "Mossline Station generated:\n" + ScenePath +
+                (postFx ? "\n\nPost processing (bloom, depth of field, color grading) is on." :
                     "\n\nPost Processing package not found yet - let Unity finish importing it, then run this again for bloom + depth of field.") +
-                "\n\nPress Play, walk to the glowing square in the plaza, and press F.", "OK");
+                "\n\nPress Play, walk to the red square in the plaza, and press F.", "OK");
+        }
+
+        /// <summary>Wipes save.json (party levels, XP, HP and beaten encounters) so the next Play starts fresh.</summary>
+        [MenuItem("Tools/Overworld/Delete Save Data")]
+        static void DeleteSaveData()
+        {
+            if (!EditorUtility.DisplayDialog("Overworld", "Delete the save file?\n" + SaveGame.FilePath +
+                    "\n\nParty levels, XP, HP and beaten encounters will reset.", "Delete", "Cancel"))
+                return;
+            SaveGame.Delete();
         }
 
         const string PlayFromOverworldMenu = "Tools/Overworld/Always Play From Overworld";
@@ -105,7 +116,7 @@ namespace Game.EditorTools
             var overworld = AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath);
             if (overworld == null)
             {
-                EditorUtility.DisplayDialog("Overworld", "Generate the overworld first (Tools > Overworld > Generate Rainline Station).", "OK");
+                EditorUtility.DisplayDialog("Overworld", "Generate the overworld first (Tools > Overworld > Generate Mossline Station).", "OK");
                 return;
             }
             EditorSceneManager.playModeStartScene = EditorSceneManager.playModeStartScene == overworld ? null : overworld;
@@ -126,7 +137,7 @@ namespace Game.EditorTools
 
         static void AddToBuildSettings()
         {
-            var scenes = EditorBuildSettings.scenes.Where(s => s.path != ScenePath && s.path != BattleScenePath).ToList();
+            var scenes = EditorBuildSettings.scenes.Where(s => s.path != ScenePath && s.path != BattleScenePath && s.path != LegacyScenePath).ToList();
             scenes.Insert(0, new EditorBuildSettingsScene(ScenePath, true));
             scenes.Insert(1, new EditorBuildSettingsScene(BattleScenePath, true));
             EditorBuildSettings.scenes = scenes.ToArray();
@@ -154,10 +165,10 @@ namespace Game.EditorTools
                 Object.DestroyImmediate(sub, true);
 
             var bloom = Add<Bloom>(profile);
-            bloom.intensity.Override(3.5f);
-            bloom.threshold.Override(0.95f);
-            bloom.softKnee.Override(0.6f);
-            bloom.diffusion.Override(7.5f);
+            bloom.intensity.Override(1.2f);
+            bloom.threshold.Override(1.05f);
+            bloom.softKnee.Override(0.5f);
+            bloom.diffusion.Override(7f);
 
             var dof = Add<DepthOfField>(profile);
             dof.focusDistance.Override(15f);
@@ -165,17 +176,23 @@ namespace Game.EditorTools
             dof.focalLength.Override(65f);
             dof.kernelSize.Override(KernelSize.Medium);
 
+            // Washed-out, slightly warm and desaturated: a quiet ruin in hazy sunlight.
+            var grading = Add<ColorGrading>(profile);
+            grading.gradingMode.Override(GradingMode.HighDefinitionRange);
+            grading.tonemapper.Override(Tonemapper.Neutral);
+            grading.temperature.Override(8f);
+            grading.saturation.Override(-12f);
+            grading.contrast.Override(6f);
+            grading.postExposure.Override(0f);
+
             var vignette = Add<Vignette>(profile);
-            vignette.intensity.Override(0.42f);
-            vignette.smoothness.Override(0.45f);
-            vignette.color.Override(new Color(0.06f, 0f, 0.1f));
+            vignette.intensity.Override(0.34f);
+            vignette.smoothness.Override(0.5f);
+            vignette.color.Override(new Color(0.12f, 0.13f, 0.08f));
 
             var grain = Add<Grain>(profile);
-            grain.intensity.Override(0.22f);
+            grain.intensity.Override(0.12f);
             grain.size.Override(0.9f);
-
-            var aberration = Add<ChromaticAberration>(profile);
-            aberration.intensity.Override(0.12f);
 
             EditorUtility.SetDirty(profile);
             AssetDatabase.SaveAssets();

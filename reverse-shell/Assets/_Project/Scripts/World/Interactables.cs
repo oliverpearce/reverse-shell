@@ -31,7 +31,7 @@ namespace Game.World
     public class EncounterInteractable : Interactable
     {
         public string id;
-        public string displayName = "Static Thug";
+        public string displayName = "Machine";
         public BattleSetup setup;
         [Tooltip("Center of the square the player must stand on.")]
         public Vector3 standPoint;
@@ -48,6 +48,28 @@ namespace Game.World
         public override void Interact(OverworldBuilder world)
         {
             world.StartEncounter(this);
+        }
+    }
+
+    /// <summary>A field terminal: restores the whole party to full HP.</summary>
+    public class AccessPointInteractable : Interactable
+    {
+        public float range = 1.35f;
+
+        public override string Prompt { get { return "Use Access Point"; } }
+
+        public override float Score(Vector3 playerPosition)
+        {
+            float d = FlatDistance(playerPosition, transform.position);
+            return d <= range ? d : -1f;
+        }
+
+        public override void Interact(OverworldBuilder world)
+        {
+            WorldSession.RestoreParty();
+            SaveGame.Save();
+            world.RefreshPartyHud();
+            world.UI.ShowMessage("Access Point", "Systems restored. Party HP is full. Progress saved.");
         }
     }
 
