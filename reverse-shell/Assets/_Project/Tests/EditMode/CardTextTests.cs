@@ -28,9 +28,9 @@ namespace Combat.Tests
             StatusDefinition poison;
             var text = CardText.AllRanks(VirusSpike(out poison));
 
-            StringAssert.Contains("Deal (120% I / 180% II / 280% III) ATK damage", text);
-            StringAssert.Contains("Poison (x1 I / x2 II / x3 III)", text);
-            StringAssert.Contains("for (2 I / 2 II / 3 III) turns", text);
+            StringAssert.Contains("Deal (120% I / 180% II / 280% III) ATK damage and give 1 enemy Poison", text);
+            StringAssert.Contains("(x1 I / x2 II / x3 III)", text);
+            StringAssert.Contains("(2 I / 2 II / 3 III) turns", text);
         }
 
         [Test]
@@ -55,7 +55,33 @@ namespace Combat.Tests
         {
             StatusDefinition poison;
             var card = VirusSpike(out poison);
-            Assert.AreEqual("Deal 180% ATK damage to 1 enemy. Give 1 enemy Poison x2 for 2 turns.", CardText.ForRank(card, 2));
+            Assert.AreEqual("Deal 180% ATK damage and give 1 enemy Poison (x2, 2 turns).", CardText.ForRank(card, 2));
+        }
+
+        [Test]
+        public void SameTargetEffects_ShareOneSentence_UsingTheStatusVerb()
+        {
+            StatusDefinition poison;
+            var card = VirusSpike(out poison);
+            poison.verb = "poison";
+            Assert.AreEqual("Deal 120% ATK damage and poison 1 enemy (x1, 2 turns).", CardText.ForRank(card, 1));
+        }
+
+        [Test]
+        public void DifferentTargets_StaySeparateSentences()
+        {
+            var buff = ScriptableObject.CreateInstance<StatusDefinition>();
+            buff.displayName = "ATK Up";
+            var card = ScriptableObject.CreateInstance<CardDefinition>();
+            card.ranks = new List<CardRank>
+            {
+                new CardRank { effects = new List<CardEffect>
+                {
+                    new DamageEffect { multiplier = 6f, hits = 2 },
+                    new ApplyStatusEffect { target = EffectTarget.AllAllies, status = buff, duration = 2 }
+                } },
+            };
+            Assert.AreEqual("Deal 600% ATK damage to 1 enemy over 2 hits. Give all allies ATK Up (2 turns).", CardText.ForRank(card, 1));
         }
     }
 }

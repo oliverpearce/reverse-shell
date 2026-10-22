@@ -9,9 +9,6 @@ namespace Combat.View
     /// </summary>
     public class PauseMenu : MonoBehaviour
     {
-        static readonly Color Dim = new Color(0.01f, 0.01f, 0.03f, 0.82f);
-        static readonly Color PanelColor = new Color(0.07f, 0.06f, 0.1f, 0.99f);
-        static readonly Color Gold = new Color(1f, 0.82f, 0.36f);
 
         BattleView view;
         GameObject overlay;
@@ -31,35 +28,36 @@ namespace Combat.View
         {
             var topRight = new Vector2(1f, 1f);
 
-            // Pause button
-            var button = UIFactory.CreateButton(root, "PauseButton", "II", new Color(0.16f, 0.14f, 0.22f, 0.95f), view.TogglePause, 34);
+            // Pause button: a small black slant with lilac "II".
+            var button = PersonaStyle.Button(root, "PauseButton", "II", view.TogglePause, false, 44);
             var brt = button.GetComponent<RectTransform>();
-            brt.Place(topRight, topRight, new Vector2(-24f, -24f), new Vector2(88f, 88f));
-            var outline = button.gameObject.AddComponent<Outline>();
-            outline.effectColor = Gold;
-            outline.effectDistance = new Vector2(2f, -2f);
-            var esc = UIFactory.CreateText(brt, "Esc", "ESC", 14, new Color(0.8f, 0.8f, 0.88f), TextAnchor.LowerCenter, FontStyle.Bold);
+            brt.Place(topRight, topRight, new Vector2(-24f, -24f), new Vector2(110f, 80f));
+            brt.localRotation = Quaternion.Euler(0f, 0f, -3f);
+            var esc = UIFactory.CreateText(brt, "Esc", "ESC", 14, PersonaStyle.Lilac, TextAnchor.LowerCenter, FontStyle.Bold);
             esc.rectTransform.Fill(4f);
 
-            // Overlay
-            var dim = UIFactory.CreateImage(root, "Overlay", Dim, true);
+            // Overlay: a lilac Persona page (halftone, turning burst, black slab) like the party menu.
+            var dim = UIFactory.CreateImage(root, "Overlay", new Color(0.69f, 0.55f, 0.95f, 0.97f), true);
             dim.rectTransform.Fill();
             overlay = dim.gameObject;
+            var burst = PersonaStyle.Burst(dim.rectTransform, new Vector2(300f, -60f), 3200f, new Color(0f, 0f, 0f, 0.16f));
+            burst.gameObject.AddComponent<Spin>().degreesPerSecond = 6f;
+            PersonaStyle.Halftone(dim.rectTransform, new Color(0f, 0f, 0f, 0.2f));
+            var slab = PersonaStyle.Slant(dim.transform, "Slab", PersonaStyle.Black);
+            slab.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-80f, -40f), new Vector2(1500f, 560f));
+            slab.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 8f);
 
-            var panel = UIFactory.CreateImage(dim.transform, "Panel", PanelColor, true);
-            panel.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(500f, 556f));
-            var panelOutline = panel.gameObject.AddComponent<Outline>();
-            panelOutline.effectColor = Gold;
-            panelOutline.effectDistance = new Vector2(3f, -3f);
+            var title = PersonaStyle.Title(dim.transform, "Title", "PAUSED", 190, PersonaStyle.White, PersonaStyle.Black, TextAnchor.UpperLeft, 14f);
+            title.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(90f, -30f), new Vector2(1000f, 230f));
+            title.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 6f);
 
-            var title = UIFactory.CreateText(panel.transform, "Title", "PAUSED", 48, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
-            title.rectTransform.TopStrip(28f, 60f);
-
-            float y = 112f;
-            MenuButton(panel.rectTransform, "RESUME", new Color(0.85f, 0.45f, 0.2f), view.TogglePause, ref y);
-            MenuButton(panel.rectTransform, "RESTART FIGHT", new Color(0.3f, 0.32f, 0.48f), view.RestartFight, ref y);
-            MenuButton(panel.rectTransform, "LEAVE FIGHT", new Color(0.55f, 0.2f, 0.28f), view.LeaveFight, ref y);
-            var rankToggle = MenuButton(panel.rectTransform, RankLabel(), new Color(0.2f, 0.36f, 0.42f), null, ref y);
+            // Buttons: plates stacked down the slab; RESUME is the lilac one.
+            var column = UIFactory.CreateRect("Buttons", dim.transform).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f), new Vector2(-40f, 240f), new Vector2(620f, 520f));
+            float y = 0f;
+            MenuButton(column, "RESUME", true, view.TogglePause, ref y, 0);
+            MenuButton(column, "RESTART FIGHT", false, view.RestartFight, ref y, 1);
+            MenuButton(column, "LEAVE FIGHT", false, view.LeaveFight, ref y, 2);
+            var rankToggle = MenuButton(column, RankLabel(), false, null, ref y, 3);
             var rankLabel = rankToggle.GetComponentInChildren<Text>();
             rankToggle.onClick.AddListener(() =>
             {
@@ -67,12 +65,12 @@ namespace Combat.View
                 rankLabel.text = RankLabel();
             });
 
-            var hint = UIFactory.CreateText(panel.transform, "Hint", "Press Esc to resume", 20, new Color(0.7f, 0.7f, 0.78f), TextAnchor.LowerCenter);
-            hint.rectTransform.anchorMin = new Vector2(0f, 0f);
-            hint.rectTransform.anchorMax = new Vector2(1f, 0f);
-            hint.rectTransform.pivot = new Vector2(0.5f, 0f);
-            hint.rectTransform.anchoredPosition = new Vector2(0f, 22f);
-            hint.rectTransform.sizeDelta = new Vector2(0f, 30f);
+            var hintBar = PersonaStyle.Slant(dim.transform, "HintBar", PersonaStyle.Black);
+            hintBar.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(40f, 40f), new Vector2(700f, 66f));
+            hintBar.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -2f);
+            var hint = UIFactory.CreateText(hintBar.transform, "Hint", "ESC  RESUME", 30, PersonaStyle.White, TextAnchor.MiddleCenter);
+            hint.font = UIFactory.DisplayFont;
+            hint.rectTransform.Fill(10f);
 
             overlay.SetActive(false);
         }
@@ -83,11 +81,13 @@ namespace Combat.View
             return "CARD RANK: " + (CardSettings.RankStars ? "STARS" : "PIPS");
         }
 
-        static Button MenuButton(RectTransform panel, string label, Color color, UnityEngine.Events.UnityAction action, ref float y)
+        static Button MenuButton(RectTransform column, string label, bool primary, UnityEngine.Events.UnityAction action, ref float y, int i)
         {
-            var b = UIFactory.CreateButton(panel, label, label, color, action, 26);
-            b.GetComponent<RectTransform>().TopStrip(y, 70f, 60f);
-            y += 86f;
+            var b = PersonaStyle.Button(column, label, label, action, primary, 46);
+            var rt = b.GetComponent<RectTransform>();
+            rt.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, -y), new Vector2(580f, 92f));
+
+            y += 118f;
             return b;
         }
 

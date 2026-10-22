@@ -13,10 +13,10 @@ namespace Combat.View
     {
         static readonly Color Background = new Color(0.07f, 0.065f, 0.09f);
         static readonly Color Gold = new Color(1f, 0.8f, 0.3f);
-        const float UnitSpacing = 250f;
+        const float UnitSpacing = 280f; // room for the 4x battle sprites
         const float StageY = 120f;
-        const float PartyCenterX = -470f;
-        const float EnemyCenterX = 430f;
+        const float PartyCenterX = -530f;
+        const float EnemyCenterX = 470f;
 
         public BattleController Controller { get; private set; }
         public RectTransform Stage { get; private set; }
@@ -173,6 +173,26 @@ namespace Combat.View
         public void OnUnitClicked(BattleUnit unit)
         {
             if (InputEnabled) Controller.SelectEnemy(unit);
+        }
+
+        // ------------------------------------------------------------------ Card target preview (orange rings)
+
+        /// <summary>Hovering a card: ring everyone it would hit or buff (the targeted enemy, all foes, the team...).</summary>
+        public void ShowTargetPreview(CardInstance card)
+        {
+            ClearTargetPreview();
+            if (card == null || Controller == null) return;
+            foreach (var unit in Controller.PreviewTargets(card))
+            {
+                var uv = Get(unit);
+                if (uv != null) uv.SetTargetPreview(true);
+            }
+        }
+
+        public void ClearTargetPreview()
+        {
+            foreach (var uv in unitViews.Values)
+                if (uv != null) uv.SetTargetPreview(false);
         }
 
         // ------------------------------------------------------------------ Focus (white ring) and keyboard targeting

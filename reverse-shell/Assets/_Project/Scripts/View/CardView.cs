@@ -12,6 +12,7 @@ namespace Combat.View
         public static readonly Vector2 Size = new Vector2(150f, 214f);
         static readonly Color Gold = new Color(1f, 0.8f, 0.3f);
         static readonly Color PastelText = new Color(0.22f, 0.18f, 0.28f);
+        static readonly Color NumberGold = new Color(1f, 0.84f, 0.38f);
 
         public CardInstance Card { get; private set; }
         public RectTransform Rect { get; private set; }
@@ -116,6 +117,8 @@ namespace Combat.View
             brt.offsetMax = new Vector2(0f, band * s);
             var word = UIFactory.CreateText(bandImg.transform, "Kind", UnitView.KindLabel(card.Definition.kind).ToUpperInvariant(), F(40),
                 ritual ? PastelText : Color.white, TextAnchor.MiddleCenter, FontStyle.BoldAndItalic).BestFit(F(14), F(40));
+            word.font = UIFactory.DisplayFont; // Anton: punchy, Persona-style
+            word.fontStyle = FontStyle.Normal;
             word.rectTransform.Fill(6f * s);
             if (!ritual) word.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.6f);
 
@@ -127,8 +130,14 @@ namespace Combat.View
                 middle.offsetMin = new Vector2(12f, band + 8f) * s;
                 middle.offsetMax = new Vector2(-12f, -top - 36f * s);
                 var descColor = ritual ? PastelText : new Color(0.92f, 0.92f, 0.95f);
-                var desc = UIFactory.CreateText(middle, "Description", card.Describe(), F(14), descColor, TextAnchor.UpperLeft).BestFit(F(9), F(14));
+                // Every number / percentage is bigger, bold and gold so the values pop.
+                var desc = UIFactory.CreateText(middle, "Description", "", F(15), descColor, TextAnchor.UpperLeft);
+                desc.font = UIFactory.BodyFont;
+                desc.lineSpacing = 1.05f;
                 desc.rectTransform.Fill();
+                string text = card.Describe();
+                var numberColor = ritual ? new Color(0.55f, 0.25f, 0.6f) : NumberGold;
+                UIFactory.FitRich(desc, size => UIFactory.EmphasizeNumbers(text, Mathf.RoundToInt(size * 1.45f), numberColor), F(9), F(15));
             }
         }
 
@@ -158,9 +167,8 @@ namespace Combat.View
         }
 
         GameObject mergeGlow;
-        Text mergeLabel;
 
-        /// <summary>Gold frame plus a "MERGE -> II" tag, shown while a dragged card would merge here.</summary>
+        /// <summary>Gold frame (no text) shown while a dragged card would merge here.</summary>
         public void SetMergeHighlight(bool on, int resultRank)
         {
             if (on && mergeGlow == null)
@@ -183,17 +191,12 @@ namespace Combat.View
                     rt.offsetMin = new Vector2(e[4], e[5]);
                     rt.offsetMax = new Vector2(e[6], e[7]);
                 }
-                var tag = UIFactory.CreateImage(glowRoot, "Tag", Gold);
-                tag.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 4f), new Vector2(110f, 26f));
-                mergeLabel = UIFactory.CreateText(tag.transform, "Label", "", 15, new Color(0.15f, 0.1f, 0.05f), TextAnchor.MiddleCenter, FontStyle.Bold);
-                mergeLabel.rectTransform.Fill();
             }
             if (mergeGlow == null) return;
 
             bool wasOn = mergeGlow.activeSelf;
             mergeGlow.SetActive(on);
             if (!on) return;
-            mergeLabel.text = "MERGE -> " + UIFactory.Roman(resultRank);
             mergeGlow.transform.SetAsLastSibling();
             if (!wasOn) StartCoroutine(Tween.Punch(mergeGlow.transform, 0.08f, 0.18f));
         }

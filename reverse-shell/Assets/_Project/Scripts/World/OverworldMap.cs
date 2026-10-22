@@ -12,7 +12,7 @@ namespace Game.World
     ///   ,  tall grass             *  wildflowers        (both walkable)
     ///   T  tree                   b  bush               r  rubble pile            (all solid)
     ///   S  player spawn           n  NPC                E  encounter enemy        X  encounter stand square
-    ///   A  access point (heals the party, solid)
+    ///   A  access point (heals the party, solid)      R  summon beacon (respawns beaten machines, solid)
     /// </summary>
     public class OverworldMap
     {
@@ -60,7 +60,7 @@ namespace Game.World
 
         public static bool IsSolidChar(char c)
         {
-            return BlockHeight(c) > 0 || c == 'T' || c == 'b' || c == 'r' || c == 'n' || c == 'E' || c == 'A';
+            return BlockHeight(c) > 0 || c == 'T' || c == 'b' || c == 'r' || c == 'n' || c == 'E' || c == 'A' || c == 'R';
         }
 
         public bool IsSolidCell(int x, int row) { return !InBounds(x, row) || IsSolidChar(cells[x, row]); }

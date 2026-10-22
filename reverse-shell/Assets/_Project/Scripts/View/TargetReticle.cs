@@ -24,6 +24,12 @@ namespace Combat.View
         /// <summary>White focus ring: three long arcs (outer, spinning) plus a faint dashed inner ring (counter-spinning).</summary>
         public static Reticle CreateFocus(RectTransform parent, Vector2 anchor, Vector2 position, float size)
         {
+            return CreateFocus(parent, anchor, position, size, Color.white, FocusGlow, "FocusRing");
+        }
+
+        /// <summary>The same ring in another color (e.g. the orange card-target preview).</summary>
+        public static Reticle CreateFocus(RectTransform parent, Vector2 anchor, Vector2 position, float size, Color tint, Color glow, string name)
+        {
             if (focusOuter == null)
             {
                 focusOuter = Arcs(0.4f, 0.019f, 3, 96f, 0f, 0f);
@@ -31,10 +37,12 @@ namespace Combat.View
                 focusInner = Arcs(0.345f, 0.008f, 24, 7f, 0f, 0f);
                 focusShadow = Arcs(0.4f, 0.03f, 1, 360f, 0f, 12f);
             }
-            var r = Reticle.Create(parent, "FocusRing", anchor, position, size);
+            var r = Reticle.Create(parent, name, anchor, position, size);
             r.AddLayer(focusShadow, Shadow, 0f, null, Color.clear);
-            r.AddLayer(focusOuter, Color.white, 70f, focusOuterGlow, FocusGlow);
-            r.AddLayer(focusInner, new Color(1f, 1f, 1f, 0.6f), -30f, null, Color.clear);
+            r.AddLayer(focusOuter, tint, 70f, focusOuterGlow, glow);
+            var inner = tint;
+            inner.a *= 0.6f;
+            r.AddLayer(focusInner, inner, -30f, null, Color.clear);
             return r;
         }
 

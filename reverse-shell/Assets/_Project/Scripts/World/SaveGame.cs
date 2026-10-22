@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Game.World
 {
     /// <summary>
-    /// Saves WorldSession (party level, XP and HP, and defeated encounters) as JSON in
+    /// Saves WorldSession (party level, XP and HP, party order / leader, and defeated encounters) as JSON in
     /// Application.persistentDataPath/save.json. The overworld saves after every battle and at Access Points,
     /// and loads once when the game starts. In the editor, Tools > Overworld > Delete Save Data starts fresh.
     /// </summary>
@@ -23,6 +23,8 @@ namespace Game.World
             public int version = Version;
             public List<Member> party = new List<Member>();
             public List<string> defeatedEncounters = new List<string>();
+            /// <summary>Party order by asset name; the first is the leader.</summary>
+            public List<string> partyOrder = new List<string>();
         }
 
         [Serializable]
@@ -38,6 +40,7 @@ namespace Game.World
             foreach (var entry in WorldSession.Party)
                 data.party.Add(new Member { id = entry.Key, progress = entry.Value.Clone() });
             data.defeatedEncounters.AddRange(WorldSession.DefeatedEncounters);
+            data.partyOrder.AddRange(WorldSession.PartyOrder);
             return data;
         }
 
@@ -45,7 +48,9 @@ namespace Game.World
         {
             WorldSession.Party.Clear();
             WorldSession.DefeatedEncounters.Clear();
+            WorldSession.PartyOrder.Clear();
             if (data == null) return;
+            if (data.partyOrder != null) WorldSession.PartyOrder.AddRange(data.partyOrder);
             foreach (var member in data.party)
                 if (!string.IsNullOrEmpty(member.id) && member.progress != null) WorldSession.Party[member.id] = member.progress.Clone();
             foreach (var id in data.defeatedEncounters) WorldSession.DefeatedEncounters.Add(id);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Combat
@@ -29,6 +30,18 @@ namespace Combat
                 ? new EffectText("Deal {0} ATK damage to {1} over {2} hits.", pct, TargetPhrase(), hits.ToString())
                 : new EffectText("Deal {0} ATK damage to {1}.", pct, TargetPhrase());
         }
+
+        public override bool Joinable { get { return true; } }
+
+        public override EffectText Clause(bool withTarget)
+        {
+            string pct = Mathf.RoundToInt(multiplier * 100f) + "%";
+            if (hits > 1)
+                return withTarget
+                    ? new EffectText("deal {0} ATK damage to {1} over {2} hits", pct, TargetPhrase(), hits.ToString())
+                    : new EffectText("deal {0} ATK damage over {1} hits", pct, hits.ToString());
+            return withTarget ? new EffectText("deal {0} ATK damage to {1}", pct, TargetPhrase()) : new EffectText("deal {0} ATK damage", pct);
+        }
     }
 
     [Serializable]
@@ -49,6 +62,14 @@ namespace Combat
         public override EffectText Text()
         {
             return new EffectText("Heal {0} for {1} of ATK.", TargetPhrase(), Mathf.RoundToInt(multiplier * 100f) + "%");
+        }
+
+        public override bool Joinable { get { return true; } }
+
+        public override EffectText Clause(bool withTarget)
+        {
+            string pct = Mathf.RoundToInt(multiplier * 100f) + "%";
+            return withTarget ? new EffectText("heal {0} for {1} of ATK", TargetPhrase(), pct) : new EffectText("restore {0} of ATK as HP", pct);
         }
     }
 
@@ -83,6 +104,45 @@ namespace Combat
             return chance < 1f
                 ? new EffectText("{3} chance to give {0} {1} for {2} turns.", TargetPhrase(), status.DisplayName, duration.ToString(), chance100)
                 : new EffectText("Give {0} {1} for {2} turns.", TargetPhrase(), status.DisplayName, duration.ToString());
+        }
+
+        public override bool Joinable { get { return status != null; } }
+
+        /// <summary>"poison 1 enemy (x1, 2 turns)" with a status verb, else "give 1 enemy ATK Up (2 turns)".</summary>
+        public override EffectText Clause(bool withTarget)
+        {
+            if (status == null) return Text();
+            bool stacking = status.maxStacks > 1;
+            string prefix = chance < 1f ? "{c} chance to " : "";
+            var args = new List<string>();
+            string template;
+            if (!withTarget)
+            {
+                template = "apply " + status.DisplayName;
+            }
+            else if (!string.IsNullOrEmpty(status.verb))
+            {
+                template = status.verb + " {t}";
+            }
+            else
+            {
+                template = "give {t} " + status.DisplayName;
+            }
+            template = prefix + template + (stacking ? " ({s}, {d} turns)" : " ({d} turns)");
+            // Number the placeholders in reading order so ranks can be merged value by value.
+            foreach (var token in new[] { "{c}", "{t}", "{s}", "{d}" })
+            {
+                if (!template.Contains(token)) continue;
+                template = template.Replace(token, "{" + args.Count + "}");
+                switch (token)
+                {
+                    case "{c}": args.Add(Mathf.RoundToInt(this.chance * 100f) + "%"); break;
+                    case "{t}": args.Add(TargetPhrase()); break;
+                    case "{s}": args.Add("x" + stacks); break;
+                    default: args.Add(duration.ToString()); break;
+                }
+            }
+            return new EffectText(template, args.ToArray());
         }
     }
 

@@ -15,6 +15,12 @@ namespace Game.World
         /// <summary>Level, XP and HP per party member, keyed by the CharacterDefinition asset name.</summary>
         public static readonly Dictionary<string, MemberProgress> Party = new Dictionary<string, MemberProgress>();
 
+        /// <summary>
+        /// Party order by asset name; the first is the leader (the character you walk around as, and first in
+        /// battle). Empty = the BattleSetup's own order.
+        /// </summary>
+        public static readonly List<string> PartyOrder = new List<string>();
+
         public static bool HasReturnPoint;
         public static Vector3 ReturnPosition;
         public static int ReturnFacing;
@@ -70,6 +76,32 @@ namespace Game.World
             foreach (var entry in party) Party[entry.Key.name] = entry.Value.Clone();
         }
 
+        /// <summary>The members sorted by <see cref="PartyOrder"/> (members it doesn't list keep their relative order, after).</summary>
+        public static List<CharacterDefinition> Ordered(IList<CharacterDefinition> members)
+        {
+            var list = new List<CharacterDefinition>();
+            foreach (var m in members) if (m != null) list.Add(m);
+            var original = new List<CharacterDefinition>(list);
+            list.Sort((a, b) =>
+            {
+                int ia = PartyOrder.IndexOf(a.name), ib = PartyOrder.IndexOf(b.name);
+                if (ia < 0) ia = PartyOrder.Count + original.IndexOf(a);
+                if (ib < 0) ib = PartyOrder.Count + original.IndexOf(b);
+                return ia.CompareTo(ib);
+            });
+            return list;
+        }
+
+        /// <summary>Makes <paramref name="leader"/> the party leader; everyone else keeps their order.</summary>
+        public static void SetLeader(CharacterDefinition leader, IList<CharacterDefinition> members)
+        {
+            var ordered = Ordered(members);
+            ordered.Remove(leader);
+            ordered.Insert(0, leader);
+            PartyOrder.Clear();
+            foreach (var m in ordered) PartyOrder.Add(m.name);
+        }
+
         /// <summary>Access points (and defeat) bring everyone back to full HP. Levels and XP are kept.</summary>
         public static void RestoreParty()
         {
@@ -81,6 +113,7 @@ namespace Game.World
         {
             DefeatedEncounters.Clear();
             Party.Clear();
+            PartyOrder.Clear();
             HasReturnPoint = false;
             PendingSpeaker = null;
             PendingMessage = null;

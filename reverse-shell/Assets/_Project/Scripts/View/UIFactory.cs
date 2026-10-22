@@ -11,14 +11,70 @@ namespace Combat.View
         public const float UIScale = 0.8f;
 
         public static Vector2 ReferenceResolution { get { return new Vector2(1920f, 1080f) / UIScale; } }
-        static Font font;
+        // UI typography: M PLUS 1p (OFL), a clean Japanese gothic in the spirit of NieR:Automata's menus.
+        // Light is the default; "bold" text uses the real Medium weight rather than a synthesized bold.
+        static Font font, mediumFont, boldFont, displayFont, fallback;
 
-        public static Font Font
+        static Font Load(ref Font cache, string path)
+        {
+            if (cache == null) cache = Resources.Load<Font>(path);
+            if (cache != null) return cache;
+            if (fallback == null) fallback = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            return fallback;
+        }
+
+        /// <summary>M PLUS 1p Light: the default UI font.</summary>
+        public static Font Font { get { return Load(ref font, "Fonts/MPLUS1p-Light"); } }
+
+        /// <summary>M PLUS 1p Medium: names, headings, buttons (anything created with FontStyle.Bold).</summary>
+        public static Font MediumFont { get { return Load(ref mediumFont, "Fonts/MPLUS1p-Medium"); } }
+
+        /// <summary>M PLUS 1p Bold: the heaviest weight, for big statement words.</summary>
+        public static Font BoldFont { get { return Load(ref boldFont, "Fonts/MPLUS1p-Bold"); } }
+
+        /// <summary>Body copy that has to stay readable at small sizes (card text, descriptions).</summary>
+        public static Font BodyFont { get { return MediumFont; } }
+
+        /// <summary>Anton (OFL): heavy condensed display face for labels such as dialogue speaker tags.</summary>
+        public static Font DisplayFont
         {
             get
             {
-                if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-                return font;
+                if (displayFont == null) displayFont = Resources.Load<Font>("Fonts/Anton-Regular");
+                return displayFont != null ? displayFont : Font;
+            }
+        }
+
+        static readonly System.Text.RegularExpressions.Regex Number =
+            new System.Text.RegularExpressions.Regex(@"[+-]?\d+(?:\.\d+)?%?");
+
+        /// <summary>Wraps every number / percentage in bold, a bigger size and an accent color (rich text).</summary>
+        public static string EmphasizeNumbers(string text, int numberSize, Color color)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            string hex = ColorUtility.ToHtmlStringRGB(color);
+            return Number.Replace(text, m => "<b><size=" + numberSize + "><color=#" + hex + ">" + m.Value + "</color></size></b>");
+        }
+
+        /// <summary>
+        /// Like BestFit, but for rich text whose &lt;size&gt; tags must scale too: tries font sizes from max down to
+        /// min and keeps the first whose text fits the rect's height. <paramref name="build"/> makes the text for a size.
+        /// </summary>
+        public static void FitRich(Text t, System.Func<int, string> build, int min, int max)
+        {
+            t.resizeTextForBestFit = false;
+            t.supportRichText = true;
+            t.horizontalOverflow = HorizontalWrapMode.Wrap;
+            t.verticalOverflow = VerticalWrapMode.Overflow;
+            float height = t.rectTransform.rect.height, width = t.rectTransform.rect.width;
+            for (int size = max; size >= min; size--)
+            {
+                t.fontSize = size;
+                t.text = build(size);
+                if (width <= 0f || height <= 0f) return;
+                var settings = t.GetGenerationSettings(new Vector2(width, 0f));
+                float needed = t.cachedTextGeneratorForLayout.GetPreferredHeight(t.text, settings) / t.pixelsPerUnit;
+                if (needed <= height) return;
             }
         }
 
@@ -77,12 +133,26 @@ namespace Combat.View
         {
             var rt = CreateRect(name, parent);
             var t = rt.gameObject.AddComponent<Text>();
-            t.font = Font;
+            // Map styles onto real weights: Bold -> Medium, BoldAndItalic -> Bold (italic is synthesized).
+            switch (style)
+            {
+                case FontStyle.Bold:
+                    t.font = MediumFont;
+                    t.fontStyle = FontStyle.Normal;
+                    break;
+                case FontStyle.BoldAndItalic:
+                    t.font = BoldFont;
+                    t.fontStyle = FontStyle.Italic;
+                    break;
+                default:
+                    t.font = Font;
+                    t.fontStyle = style;
+                    break;
+            }
             t.text = text;
             t.fontSize = size;
             t.color = color;
             t.alignment = anchor;
-            t.fontStyle = style;
             t.raycastTarget = false;
             t.horizontalOverflow = HorizontalWrapMode.Wrap;
             t.verticalOverflow = VerticalWrapMode.Overflow;

@@ -45,6 +45,8 @@ namespace Combat.EditorTools
                 StackRule.RefreshDuration, 1, "-25% Physical DEF.", 0f, 0f, new StatModifier(StatType.PhysicalDefense, ModifierKind.Percent, -0.25f));
             var poison = Status("Status_Poison", "Poison", "PSN", new Color(0.5f, 0.85f, 0.3f), true,
                 StackRule.AddStacks, 3, "Lose 3% max HP per stack at round end.", 0.03f, 0f);
+            poison.verb = "poison"; // card text: "deal 120% ATK damage and poison 1 enemy (x1, 2 turns)"
+            EditorUtility.SetDirty(poison);
             var regen = Status("Status_Regen", "Regeneration", "RGN", new Color(0.4f, 0.95f, 0.6f), false,
                 StackRule.RefreshDuration, 1, "Recover 5% max HP at round end.", 0f, 0.05f);
 

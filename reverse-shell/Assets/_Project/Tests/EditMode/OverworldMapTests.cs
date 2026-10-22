@@ -18,6 +18,7 @@ namespace Combat.Tests
             Assert.AreEqual(1, map.FindAll('E').Count);
             Assert.AreEqual(1, map.FindAll('X').Count);
             Assert.AreEqual(1, map.FindAll('A').Count, "one access point near the spawn");
+            Assert.AreEqual(1, map.FindAll('R').Count, "one summon beacon in the plaza");
         }
 
         [Test]

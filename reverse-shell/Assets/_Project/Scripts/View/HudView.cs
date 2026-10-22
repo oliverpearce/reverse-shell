@@ -8,7 +8,8 @@ namespace Combat.View
     /// <summary>Round counter, AP pips, cast queue, Go/Undo buttons, combat log, banner and result screen.</summary>
     public class HudView : MonoBehaviour
     {
-        static readonly Color PanelDark = new Color(0.1f, 0.09f, 0.13f, 0.85f);
+        // Black / white panels with a gold accent; lilac (PersonaStyle) is saved for the key pieces: TURN, GO!, the result title.
+        static readonly Color PanelDark = new Color(0.04f, 0.03f, 0.05f, 0.85f);
         static readonly Color Gold = new Color(1f, 0.8f, 0.3f);
         const int MaxLogLines = 7;
 
@@ -39,28 +40,36 @@ namespace Combat.View
             var bottomLeft = Vector2.zero;
             var bottomRight = new Vector2(1f, 0f);
 
-            roundText = UIFactory.CreateText(root, "Round", "", 34, Color.white, TextAnchor.MiddleLeft, FontStyle.Bold);
-            roundText.rectTransform.Place(topLeft, topLeft, new Vector2(30f, -20f), new Vector2(400f, 44f));
+            // Turn counter: big tilted white Anton on a black slanted plate (lilac shadow).
+            PersonaStyle.Plate(root, "RoundPlate", PersonaStyle.Black, PersonaStyle.LilacDeep, topLeft, topLeft, new Vector2(18f, -14f), new Vector2(330f, 76f), 3f, 9f);
+            roundText = PersonaStyle.Title(root, "Round", "", 54, PersonaStyle.White, PersonaStyle.LilacDeep, TextAnchor.MiddleLeft, 3f);
+            roundText.rectTransform.Place(topLeft, topLeft, new Vector2(46f, -16f), new Vector2(300f, 72f));
+            roundText.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 3f);
 
             var logBg = UIFactory.CreateImage(root, "Log", PanelDark);
-            logBg.rectTransform.Place(topLeft, topLeft, new Vector2(24f, -72f), new Vector2(430f, 150f));
-            logText = UIFactory.CreateText(logBg.transform, "Text", "", 15, new Color(0.85f, 0.85f, 0.9f), TextAnchor.LowerLeft);
+            logBg.rectTransform.Place(topLeft, topLeft, new Vector2(24f, -108f), new Vector2(440f, 150f));
+            logText = UIFactory.CreateText(logBg.transform, "Text", "", 15, new Color(0.88f, 0.88f, 0.92f), TextAnchor.LowerLeft);
             logText.verticalOverflow = VerticalWrapMode.Truncate;
-            logText.rectTransform.Fill(8f);
+            logText.rectTransform.Fill(10f);
 
             // AP pips (bottom-left)
-            var apLabel = UIFactory.CreateText(root, "APLabel", "AP", 26, Gold, TextAnchor.MiddleLeft, FontStyle.Bold);
-            apLabel.rectTransform.Place(bottomLeft, bottomLeft, new Vector2(30f, 250f), new Vector2(60f, 36f));
-            apRow = UIFactory.CreateRect("APRow", root).Place(bottomLeft, bottomLeft, new Vector2(80f, 252f), new Vector2(300f, 32f));
+            var apLabel = UIFactory.CreateText(root, "APLabel", "AP", 40, Gold, TextAnchor.MiddleLeft);
+            apLabel.font = UIFactory.DisplayFont;
+            apLabel.gameObject.AddComponent<Shadow>().effectColor = PersonaStyle.Black;
+            apLabel.rectTransform.Place(bottomLeft, bottomLeft, new Vector2(30f, 246f), new Vector2(70f, 50f));
+            apRow = UIFactory.CreateRect("APRow", root).Place(bottomLeft, bottomLeft, new Vector2(96f, 254f), new Vector2(300f, 32f));
 
             var hint = UIFactory.CreateText(root, "Hint",
                 "Click card: queue (1 AP)\nDrag card: move & merge (1 AP)\nClick enemy: target\nHold a unit: full details", 15,
-                new Color(0.7f, 0.7f, 0.75f), TextAnchor.UpperLeft);
+                new Color(0.85f, 0.85f, 0.9f, 0.9f), TextAnchor.UpperLeft);
             hint.rectTransform.Place(bottomLeft, bottomLeft, new Vector2(30f, 160f), new Vector2(280f, 80f));
+            hint.gameObject.AddComponent<Shadow>().effectColor = PersonaStyle.Black;
 
             // Queue (bottom-right, above buttons)
-            queueLabel = UIFactory.CreateText(root, "QueueLabel", "QUEUE", 18, Gold, TextAnchor.MiddleLeft, FontStyle.Bold);
-            queueLabel.rectTransform.Place(bottomRight, bottomRight, new Vector2(-24f, 382f), new Vector2(440f, 24f));
+            queueLabel = UIFactory.CreateText(root, "QueueLabel", "QUEUE", 28, PersonaStyle.White, TextAnchor.MiddleLeft);
+            queueLabel.font = UIFactory.DisplayFont;
+            queueLabel.gameObject.AddComponent<Shadow>().effectColor = PersonaStyle.Black;
+            queueLabel.rectTransform.Place(bottomRight, bottomRight, new Vector2(-24f, 384f), new Vector2(440f, 36f));
             var queueBg = UIFactory.CreateImage(root, "Queue", PanelDark);
             queueBg.rectTransform.Place(bottomRight, bottomRight, new Vector2(-24f, 290f), new Vector2(440f, 88f));
             QueueRow = queueBg.rectTransform;
@@ -73,30 +82,40 @@ namespace Combat.View
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
 
-            undoButton = UIFactory.CreateButton(root, "Undo", "UNDO", new Color(0.35f, 0.35f, 0.42f), view.OnUndo, 22);
-            undoButton.GetComponent<RectTransform>().Place(bottomRight, bottomRight, new Vector2(-24f, 200f), new Vector2(200f, 64f));
-            goButton = UIFactory.CreateButton(root, "Go", "GO", new Color(0.85f, 0.45f, 0.2f), view.OnGo, 34);
-            goButton.GetComponent<RectTransform>().Place(bottomRight, bottomRight, new Vector2(-24f, 100f), new Vector2(200f, 84f));
+            // Buttons: slanted Persona plates. GO is the big lilac one.
+            undoButton = PersonaStyle.Button(root, "Undo", "UNDO", view.OnUndo, false, 34);
+            undoButton.GetComponent<RectTransform>().Place(bottomRight, bottomRight, new Vector2(-30f, 196f), new Vector2(220f, 66f));
+            undoButton.transform.localRotation = Quaternion.Euler(0f, 0f, -2f);
+            goButton = PersonaStyle.Button(root, "Go", "GO!", view.OnGo, true, 62);
+            goButton.GetComponent<RectTransform>().Place(bottomRight, bottomRight, new Vector2(-24f, 92f), new Vector2(260f, 92f));
+            goButton.transform.localRotation = Quaternion.Euler(0f, 0f, 3f);
 
-            // Banner (top-center)
+            // Banner (top-center): black slant, Anton.
             bannerBg = UIFactory.CreateImage(root, "Banner", PanelDark);
-            bannerBg.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(720f, 72f));
+            bannerBg.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(720f, 76f));
             bannerGroup = bannerBg.gameObject.AddComponent<CanvasGroup>();
             bannerGroup.alpha = 0f;
             bannerGroup.blocksRaycasts = false;
-            bannerText = UIFactory.CreateText(bannerBg.transform, "Text", "", 34, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(16, 34);
-            bannerText.rectTransform.Fill(8f);
+            bannerText = UIFactory.CreateText(bannerBg.transform, "Text", "", 46, Color.white, TextAnchor.MiddleCenter).BestFit(20, 46);
+            bannerText.font = UIFactory.DisplayFont;
+            bannerText.rectTransform.Fill(10f);
 
-            // Result overlay
-            var result = UIFactory.CreateImage(root, "Result", new Color(0f, 0f, 0f, 0.75f), true);
+            // Result overlay: dark lilac wash with halftone, a huge tilted title, a lilac CONTINUE plate.
+            var result = UIFactory.CreateImage(root, "Result", new Color(0.08f, 0.04f, 0.14f, 0.82f), true);
             result.rectTransform.Fill();
             resultPanel = result.gameObject;
-            resultText = UIFactory.CreateText(result.transform, "Text", "", 96, Gold, TextAnchor.MiddleCenter, FontStyle.Bold);
-            resultText.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 80f), new Vector2(1000f, 140f));
-            var restart = UIFactory.CreateButton(result.transform, "Restart", "FIGHT AGAIN", new Color(0.85f, 0.45f, 0.2f), view.OnRestart, 28);
+            PersonaStyle.Halftone(result.rectTransform, new Color(0.69f, 0.55f, 0.95f, 0.12f));
+            var slab = PersonaStyle.Slant(result.transform, "Slab", PersonaStyle.Black);
+            slab.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 90f), new Vector2(1400f, 190f));
+            slab.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -4f);
+            resultText = PersonaStyle.Title(result.transform, "Text", "", 150, PersonaStyle.Lilac, PersonaStyle.LilacDeep, TextAnchor.MiddleCenter, 8f);
+            resultText.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 90f), new Vector2(1200f, 190f));
+            resultText.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -4f);
+            var restart = PersonaStyle.Button(result.transform, "Restart", "FIGHT AGAIN", view.OnRestart, true, 40);
             resultButtonLabel = restart.GetComponentInChildren<Text>();
-            restart.GetComponent<RectTransform>().Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -300f), new Vector2(300f, 80f));
-            rewardsRect = UIFactory.CreateRect("Rewards", result.transform).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f), new Vector2(0f, 0f), new Vector2(620f, 240f));
+            restart.GetComponent<RectTransform>().Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -300f), new Vector2(360f, 86f));
+            restart.transform.localRotation = Quaternion.Euler(0f, 0f, 2f);
+            rewardsRect = UIFactory.CreateRect("Rewards", result.transform).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(660f, 240f));
             resultPanel.SetActive(false);
         }
 
@@ -220,7 +239,7 @@ namespace Combat.View
             ShowRewards(result);
             resultText.text = victory ? "VICTORY" : "DEFEAT";
             resultButtonLabel.text = view.ResultButtonLabel;
-            resultText.color = victory ? Gold : new Color(0.85f, 0.3f, 0.3f);
+            resultText.color = victory ? PersonaStyle.Lilac : new Color(1f, 0.45f, 0.6f);
             resultPanel.transform.localScale = Vector3.one * 0.9f;
             StartCoroutine(Tween.Scale(resultPanel.transform, Vector3.one, 0.3f, Tween.OutBack));
         }
@@ -231,7 +250,8 @@ namespace Combat.View
             UIFactory.ClearChildren(rewardsRect);
             if (result == null || result.XpGained <= 0) return;
 
-            var xp = UIFactory.CreateText(rewardsRect, "Xp", "+" + result.XpGained + " XP", 44, Gold, TextAnchor.MiddleCenter, FontStyle.Bold);
+            var xp = UIFactory.CreateText(rewardsRect, "Xp", "+" + result.XpGained + " XP", 56, Gold, TextAnchor.MiddleCenter);
+            xp.font = UIFactory.DisplayFont;
             xp.rectTransform.TopStrip(0f, 52f);
 
             float y = 62f;

@@ -18,7 +18,7 @@ namespace Game.World
             "HHHHHH####HHHHH#BPPP,,PPPPPB\n" +
             "HHHHHH####HHHHH#BPT,PPEPP,TB\n" +
             "HHHHHH####HHHHH#B,,PPPXPPP,B\n" +
-            "HHHHHH####HHHHH#BPP*PPPPPbPB\n" +
+            "HHHHHH####HHHHH#BPR*PPPPPbPB\n" +
             "HHHHHH####HHHHH#BLLLLP.PLLLB\n" +
             "B.T,,...b..n.r,,....*..,.,TB\n" +
             "B=====,,==========,,=======B\n" +
@@ -30,6 +30,9 @@ namespace Game.World
         [Header("Area")]
         public string areaName = "MOSSLINE STATION";
         public string areaSubtitle = "The City Ruins";
+        [Tooltip("On: always use the built-in DefaultMap from code, so map updates show up without regenerating the scene. " +
+                 "Turn off to use the custom map below.")]
+        public bool useDefaultMap = true;
         [TextArea(12, 30)] public string map = DefaultMap;
 
         [Header("Art")]
@@ -65,11 +68,28 @@ namespace Game.World
         {
             get
             {
-                var lead = encounterSetup != null && encounterSetup.party.Count > 0 ? encounterSetup.party[0] : null;
+                var lead = Lead;
                 return lead != null ? lead.DisplayName : "You";
             }
         }
         public OverworldMap Map { get; private set; }
+
+        /// <summary>The party in the player's chosen order (WorldSession.PartyOrder). The first is the leader you play as.</summary>
+        public List<CharacterDefinition> Party
+        {
+            get { return encounterSetup != null ? WorldSession.Ordered(encounterSetup.party) : new List<CharacterDefinition>(); }
+        }
+
+        CharacterDefinition Lead
+        {
+            get
+            {
+                var party = Party;
+                return party.Count > 0 ? party[0] : null;
+            }
+        }
+
+        PartyMenu menu;
 
         /// <summary>Overworld name of the encounter: the first enemy in its battle setup.</summary>
         string EncounterName
@@ -86,12 +106,14 @@ namespace Game.World
         readonly List<Interactable> interactables = new List<Interactable>();
         Interactable focused;
         bool transitioning;
+        /// <summary>Set by fades and transitions; the player is also frozen while a conversation is open.</summary>
+        bool cutscene;
         Transform drift;
 
         void Start()
         {
             WorldSession.EnsureLoaded(); // first area of the session reads save.json
-            Map = new OverworldMap(map);
+            Map = new OverworldMap(useDefaultMap || string.IsNullOrEmpty(map) ? DefaultMap : map);
             cam = Camera.main;
             ApplyAtmosphere();
 
@@ -104,9 +126,11 @@ namespace Game.World
             SpawnNpcs();
             SpawnEncounters();
             SpawnAccessPoints();
+            SpawnSummonBeacons();
 
             drift = WorldFx.Drift(transform).transform;
             UI = OverworldUI.Create(transform);
+            menu = PartyMenu.Create((RectTransform)UI.transform, this);
             RefreshPartyHud();
             StartCoroutine(Arrive());
         }
@@ -215,8 +239,12 @@ namespace Game.World
             var spawns = Map.FindAll('S');
             var start = spawns.Count > 0 ? Map.CellCenter(spawns[0].x, spawns[0].y) : Map.CellCenter(1, Map.Height - 2);
             if (WorldSession.HasReturnPoint) start = WorldSession.ReturnPosition;
+            SpawnPlayerAt(start, WorldSession.HasReturnPoint ? WorldSession.ReturnFacing : CharacterSprite.Down);
+        }
 
-            var lead = encounterSetup != null && encounterSetup.party.Count > 0 ? encounterSetup.party[0] : null;
+        void SpawnPlayerAt(Vector3 start, int facing)
+        {
+            var lead = Lead;
             CharacterSprite sprite;
             if (playerSheet == null && lead != null && lead.animations != null)
             {
@@ -228,7 +256,10 @@ namespace Game.World
                 var frames = sheet != null ? WorldArt.SliceSheet(sheet, 3, 4) : null;
                 sprite = CharacterSprite.Create(transform, LeaderName, frames ?? PlaceholderFrames(), characterScale, start);
             }
-            sprite.SetFacing(WorldSession.HasReturnPoint ? WorldSession.ReturnFacing : CharacterSprite.Down);
+            sprite.SetFacing(facing);
+            var glow = Color.Lerp(lead != null ? lead.color : Color.white, Color.white, 0.4f);
+            glow.a = 0.28f;
+            sprite.SetGlow(glow);
 
             player = sprite.gameObject.AddComponent<PlayerController>();
             player.interactKey = interactKey;
@@ -252,21 +283,31 @@ namespace Game.World
             if ((npcSheet == null && !animated) || cells.Count == 0) return;
             var sheet = npcSheet != null ? WorldArt.SliceSheet(npcSheet, 3, 4) : null;
 
-            // (sheet row, col), name, lines. Add more entries for more NPCs; they cycle if the map has extras.
+            // (sheet row, col), name, voice, lines. Lines use DialogueMarkup ({wave}, {shake}, {red}, {p}, {slow}...).
+            // Add more entries for more NPCs; they cycle if the map has extras.
             var cast = new[]
             {
-                new NpcInfo(1, 0, "Resistance Trader", new[]
+                // Gruff, low and unhurried.
+                new NpcInfo(1, 0, "Resistance Trader", new DialogueVoice(0.72f, 0.85f, new Color(0.72f, 0.45f, 0.24f)), new[]
                 {
-                    "Quiet morning. Just birds, wind... and the creak of machines somewhere in the green.",
-                    "One of them has planted itself in the old station plaza up north. Rusted thing, but it still swings hard.",
-                    "If you mean to fight it, stand on the marked square. Better you than me."
+                    "Quiet morning.{p} Just birds, wind{p=0.4}... and the {shake}creak{/shake} of machines somewhere in the green.",
+                    "One of 'em planted itself in the old station plaza up north. {gray}Rusted{/c} thing, but it {shake}still swings hard{/shake}.",
+                    "Want to fight it? Stand on the {red}red square{/c}.{p} Better you than me."
                 }),
-                new NpcInfo(1, 1, "Resistance Scout", new[]
+                // Young, quick and a little starstruck.
+                new NpcInfo(1, 1, "Resistance Scout", new DialogueVoice(1.35f, 1.5f, new Color(0.3f, 0.65f, 1f)), new[]
                 {
-                    "You're " + LeaderName + "? The android from the orbital Bunker? Heard you came down on the last flight.",
-                    "Your support units are waiting by the road. V1 hits hard, V2 keeps everyone running. Good company down here."
+                    "{wave}Whoa{/wave}{p} you're " + LeaderName + "?! {fast}The android from the orbital Bunker? The one who came down on the last flight?!{/fast}",
+                    "Sorry, sorry.{p} I've just never met one of you up close.",
+                    "Your support units are waiting by the road. {blue}V1{/c} hits hard, {green}V2{/c} keeps everyone running.{p} {wave}Good company down here!{/wave}"
                 }),
-                new NpcInfo(2, 2, "Wanderer", new[] { "The trees took this city slowly. Kind of beautiful, if you stop and look." }),
+                // Dreamy and slow, with long pauses.
+                new NpcInfo(2, 2, "Wanderer", new DialogueVoice(1.05f, 0.6f, new Color(0.5f, 0.75f, 0.45f)), new[]
+                {
+                    "{slow}The trees took this city slowly...{/slow}",
+                    "{wave}Kind of beautiful{/wave}, if you stop and look.",
+                    "{gray}{slow}...Do machines dream, do you think?{/slow}{/c}"
+                }),
             };
 
             for (int i = 0; i < cells.Count; i++)
@@ -277,9 +318,12 @@ namespace Game.World
                 var npc = look != null
                     ? CharacterSprite.Create(transform, info.Name, look, animatedCharacterScale, pos)
                     : CharacterSprite.Create(transform, info.Name, WorldArt.SingleFrame(sheet, info.Row, info.Col), characterScale, pos, 0.04f);
+                npc.SetGlow(new Color(1f, 0.95f, 0.85f, 0.18f));
                 var talk = npc.gameObject.AddComponent<TalkInteractable>();
                 talk.speaker = info.Name;
                 talk.lines = info.Lines;
+                talk.voice = info.Voice;
+                talk.portrait = Portrait(look);
                 interactables.Add(talk);
             }
         }
@@ -294,6 +338,7 @@ namespace Game.World
                     ? CharacterSprite.Create(transform, EncounterName, encounterAnimations, animatedCharacterScale, pos)
                     : CharacterSprite.Create(transform, EncounterName, frames, characterScale, pos, 0.03f);
                 enemy.SetFacing(CharacterSprite.Down);
+                enemy.SetGlow(new Color(1f, 0.35f, 0.25f, 0.3f));
 
                 WorldFx.Motes(enemy.transform, pos + Vector3.up * 0.9f, 0.5f, 6f, new Color(1f, 0.45f, 0.25f));
 
@@ -306,6 +351,60 @@ namespace Game.World
 
                 WorldFx.FloorMarker(transform, encounter.standPoint, WorldArt.MachineRed);
             }
+        }
+
+        void SpawnSummonBeacons()
+        {
+            foreach (var cell in Map.FindAll('R'))
+            {
+                var beacon = WorldFx.SummonBeacon(transform, Map.CellCenter(cell.x, cell.y));
+                interactables.Add(beacon.AddComponent<SummonInteractable>());
+            }
+        }
+
+        string EncounterPrefix { get { return SceneManager.GetActiveScene().name + "/encounter_"; } }
+
+        /// <summary>How many encounters in this area are currently beaten.</summary>
+        public int BeatenEncountersHere()
+        {
+            int n = 0;
+            foreach (var id in WorldSession.DefeatedEncounters)
+                if (id.StartsWith(EncounterPrefix)) n++;
+            return n;
+        }
+
+        /// <summary>Summon beacon: un-beat every encounter in this area, save, and reload the area where you stand.</summary>
+        public void ResummonEncounters()
+        {
+            WorldSession.DefeatedEncounters.RemoveWhere(id => id.StartsWith(EncounterPrefix));
+            SaveGame.Save();
+            WorldSession.HasReturnPoint = true;
+            WorldSession.ReturnPosition = player.transform.position;
+            WorldSession.ReturnFacing = player.Sprite.Facing;
+            WorldSession.PendingSpeaker = LeaderName;
+            WorldSession.PendingMessage = "{red}Signal sent.{/c}{p} Something is {shake}stirring{/shake} in the plaza again.";
+            StartCoroutine(ReloadArea());
+        }
+
+        IEnumerator ReloadArea()
+        {
+            cutscene = true;
+            UI.SetFade(new Color(1f, 0.3f, 0.2f, 0.5f));
+            yield return UI.FadeTo(Color.black, 0.4f);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+
+        /// <summary>Party menu: make <paramref name="member"/> the leader and switch to playing as them.</summary>
+        public void SetLeader(CharacterDefinition member)
+        {
+            if (encounterSetup == null || member == null) return;
+            WorldSession.SetLeader(member, encounterSetup.party);
+            SaveGame.Save();
+            var position = player.transform.position;
+            int facing = player.Sprite.Facing;
+            Destroy(player.gameObject);
+            SpawnPlayerAt(position, facing);
+            RefreshPartyHud();
         }
 
         void SpawnAccessPoints()
@@ -322,7 +421,7 @@ namespace Game.World
         {
             if (UI == null || encounterSetup == null) return;
             var lines = new List<OverworldUI.PartyLine>();
-            foreach (var member in encounterSetup.party)
+            foreach (var member in Party)
             {
                 if (member == null) continue;
                 lines.Add(new OverworldUI.PartyLine(member.DisplayName, WorldSession.ProgressOf(member).Level,
@@ -375,6 +474,29 @@ namespace Game.World
             if (player == null || UI == null) return;
             if (drift != null) drift.position = player.transform.position + new Vector3(0f, 7f, 3f);
 
+            bool menuOpen = menu != null && menu.IsOpen;
+            player.Frozen = cutscene || UI.DialogueOpen || menuOpen;
+            if (menuOpen)
+            {
+                focused = null;
+                UI.HidePrompt();
+                return;
+            }
+            if (Input.GetKeyDown(KeyCode.Escape) && menu != null && menu.LastToggleFrame != Time.frameCount
+                && !UI.Dialogue.gameObject.activeSelf && !cutscene && !transitioning)
+            {
+                UI.HidePrompt();
+                menu.Open();
+                return;
+            }
+            if (UI.DialogueOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return)) UI.Dialogue.Advance(); // F also advances
+                focused = null;
+                UI.HidePrompt();
+                return;
+            }
+
             focused = null;
             if (!transitioning)
             {
@@ -397,9 +519,41 @@ namespace Game.World
 
         public void OnInteractPressed()
         {
-            if (transitioning) return;
+            if (menu != null && menu.IsOpen) return; // the menu reads F itself
+            if (UI.DialogueOpen)
+            {
+                UI.Dialogue.Advance();
+                return;
+            }
+            if (transitioning || cutscene) return;
             if (focused != null) focused.Interact(this);
-            else if (UI.MessageVisible) UI.HideMessage();
+        }
+
+        /// <summary>How the party leader sounds in dialogue: calm and even.</summary>
+        public DialogueVoice LeaderVoice
+        {
+            get
+            {
+                var lead = Lead;
+                return new DialogueVoice(0.9f, 0.95f, lead != null ? lead.color : DialogueVoice.Default.Accent);
+            }
+        }
+
+        public Sprite LeaderPortrait
+        {
+            get
+            {
+                var lead = Lead;
+                return Portrait(lead != null ? lead.animations : null);
+            }
+        }
+
+        /// <summary>The front-facing idle frame of an animation set, used as a dialogue portrait.</summary>
+        static Sprite Portrait(SpriteAnimationSet set)
+        {
+            if (set == null) return null;
+            var frames = set.Frames("idle", Combat.Facing.Down, true) ?? set.Frames("walk", Combat.Facing.Down, true);
+            return frames != null && frames.Length > 0 ? frames[0] : null;
         }
 
         public void StartEncounter(EncounterInteractable encounter)
@@ -407,7 +561,7 @@ namespace Game.World
             if (transitioning) return;
             if (encounter.setup == null)
             {
-                UI.ShowMessage("System", "No BattleSetup assigned to this encounter.");
+                UI.Say("System", "No BattleSetup assigned to this encounter.", DialogueVoice.System);
                 return;
             }
             StartCoroutine(BattleTransition(encounter));
@@ -416,9 +570,8 @@ namespace Game.World
         IEnumerator BattleTransition(EncounterInteractable encounter)
         {
             transitioning = true;
-            player.Frozen = true;
+            cutscene = true;
             UI.HidePrompt();
-            UI.HideMessage();
 
             WorldSession.HasReturnPoint = true;
             WorldSession.ReturnPosition = player.transform.position;
@@ -428,8 +581,11 @@ namespace Game.World
             string id = encounter.id;
             string enemyName = encounter.displayName;
             string leader = LeaderName;
-            var party = WorldSession.PartyFor(encounter.setup.party);
-            BattleLauncher.Request(encounter.setup, party, result =>
+            var setup = Instantiate(encounter.setup);
+            setup.name = encounter.setup.name;
+            setup.party = WorldSession.Ordered(encounter.setup.party);
+            var party = WorldSession.PartyFor(setup.party);
+            BattleLauncher.Request(setup, party, result =>
             {
                 WorldSession.PendingSpeaker = leader;
                 // Levels, XP and HP carry over; a defeat sends the party back to regroup at full HP.
@@ -440,14 +596,14 @@ namespace Game.World
                 {
                     case BattleOutcome.Victory:
                         WorldSession.DefeatedEncounters.Add(id);
-                        WorldSession.PendingMessage = "The " + enemyName + " grinds to a halt. The plaza goes quiet - just wind in the leaves." +
+                        WorldSession.PendingMessage = "The " + enemyName + " grinds to a halt.{p} The plaza goes quiet{p=0.4}... just wind in the leaves." +
                             LevelUpLine(result);
                         break;
                     case BattleOutcome.Fled:
-                        WorldSession.PendingMessage = "Withdrawing. It's still out there... we come back ready.";
+                        WorldSession.PendingMessage = "Withdrawing.{p} It's still out there... {gray}we come back ready.{/c}";
                         break;
                     default:
-                        WorldSession.PendingMessage = "...We pulled back and patched up. That machine hits harder than it looks.";
+                        WorldSession.PendingMessage = "{shake}...{/shake}We pulled back and patched up.{p} That machine hits {shake}harder{/shake} than it looks.";
                         break;
                 }
                 SaveGame.Save();
@@ -467,20 +623,20 @@ namespace Game.World
             foreach (var entry in result.LevelsGained) names.Add(entry.Key.DisplayName);
             if (names.Count == 0) return "";
             string who = names.Count == 1 ? names[0] : string.Join(", ", names.GetRange(0, names.Count - 1).ToArray()) + " and " + names[names.Count - 1];
-            return "\n" + who + (names.Count == 1 ? " reached a new level." : " reached new levels.");
+            return "{p} {gold}" + who + (names.Count == 1 ? " reached a new level!" : " reached new levels!") + "{/c}";
         }
 
         IEnumerator Arrive()
         {
             bool returning = WorldSession.HasReturnPoint;
             UI.SetFade(Color.black);
-            player.Frozen = true;
+            cutscene = true;
             yield return UI.FadeTo(new Color(0f, 0f, 0f, 0f), 0.6f);
-            player.Frozen = false;
+            cutscene = false;
 
             if (!string.IsNullOrEmpty(WorldSession.PendingMessage))
             {
-                UI.ShowMessage(WorldSession.PendingSpeaker ?? "", WorldSession.PendingMessage);
+                UI.Say(WorldSession.PendingSpeaker ?? "", WorldSession.PendingMessage, LeaderVoice, LeaderPortrait);
                 WorldSession.PendingMessage = null;
             }
             if (!returning) yield return UI.ShowTitle(areaName, areaSubtitle);
@@ -490,10 +646,12 @@ namespace Game.World
         {
             public readonly int Row, Col;
             public readonly string Name;
+            public readonly DialogueVoice Voice;
             public readonly string[] Lines;
 
-            public NpcInfo(int row, int col, string name, string[] lines)
+            public NpcInfo(int row, int col, string name, DialogueVoice voice, string[] lines)
             {
+                Voice = voice;
                 Row = row;
                 Col = col;
                 Name = name;

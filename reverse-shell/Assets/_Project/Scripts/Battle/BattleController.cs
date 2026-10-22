@@ -190,6 +190,81 @@ namespace Combat
 
         // ------------------------------------------------------------------ Effect API
 
+        /// <summary>
+        /// Everyone a card would affect if played now, for the hover highlight. Covers the card's own target and
+        /// every effect that picks its own (e.g. a self or team buff on an attack). Random picks show every
+        /// candidate. Never touches the RNG, so previews can't change the battle.
+        /// </summary>
+        public List<BattleUnit> PreviewTargets(CardInstance card)
+        {
+            var result = new List<BattleUnit>();
+            if (card == null || card.Owner == null) return result;
+            AddPreview(result, card.Owner, card.Definition.targetMode);
+            var rank = card.RankData;
+            if (rank != null && rank.effects != null)
+                foreach (var effect in rank.effects)
+                    if (effect != null && effect.target != EffectTarget.CardTargets) AddPreview(result, card.Owner, ToMode(effect.target));
+            return result;
+        }
+
+        void AddPreview(List<BattleUnit> into, BattleUnit caster, TargetMode mode)
+        {
+            var allies = State.AlliesOf(caster).FindAll(u => u.IsAlive);
+            var foes = State.OpponentsOf(caster).FindAll(u => u.IsAlive);
+            var picked = new List<BattleUnit>();
+            switch (mode)
+            {
+                case TargetMode.RandomEnemy: picked.AddRange(foes); break;
+                case TargetMode.RandomAlly: picked.AddRange(allies); break;
+                default: picked = SelectTargetsNoRandom(caster, mode, allies, foes); break;
+            }
+            foreach (var u in picked)
+                if (!into.Contains(u)) into.Add(u);
+        }
+
+        List<BattleUnit> SelectTargetsNoRandom(BattleUnit caster, TargetMode mode, List<BattleUnit> allies, List<BattleUnit> foes)
+        {
+            var result = new List<BattleUnit>();
+            switch (mode)
+            {
+                case TargetMode.Self:
+                    if (caster.IsAlive) result.Add(caster);
+                    break;
+                case TargetMode.SingleEnemy:
+                    if (foes.Count == 0) break;
+                    if (caster.Team == Team.Player) result.Add(State.SelectedEnemy != null && State.SelectedEnemy.IsAlive ? State.SelectedEnemy : foes[0]);
+                    else result.AddRange(foes); // enemies pick at random: any of them
+                    break;
+                case TargetMode.AllEnemies:
+                    result.AddRange(foes);
+                    break;
+                case TargetMode.SingleAlly:
+                    if (allies.Count == 0) break;
+                    var weakest = allies[0];
+                    foreach (var a in allies) if (a.HPPercent < weakest.HPPercent) weakest = a;
+                    result.Add(weakest);
+                    break;
+                case TargetMode.AllAllies:
+                    result.AddRange(allies);
+                    break;
+            }
+            return result;
+        }
+
+        static TargetMode ToMode(EffectTarget target)
+        {
+            switch (target)
+            {
+                case EffectTarget.Self: return TargetMode.Self;
+                case EffectTarget.SingleEnemy: return TargetMode.SingleEnemy;
+                case EffectTarget.AllEnemies: return TargetMode.AllEnemies;
+                case EffectTarget.RandomEnemy: return TargetMode.RandomEnemy;
+                case EffectTarget.SingleAlly: return TargetMode.SingleAlly;
+                case EffectTarget.AllAllies: return TargetMode.AllAllies;
+                default: return TargetMode.RandomAlly;
+            }
+        }
+
         public List<BattleUnit> SelectTargets(BattleUnit caster, TargetMode mode)
         {
             var allies = State.AlliesOf(caster).FindAll(u => u.IsAlive);

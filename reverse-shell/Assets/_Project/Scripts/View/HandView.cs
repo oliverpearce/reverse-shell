@@ -68,6 +68,7 @@ namespace Combat.View
 
             previewOwner = cv;
             cv.Group.alpha = 0f;
+            View.ShowTargetPreview(cv.Card);
         }
 
         public void HidePreview(CardView cv)
@@ -79,6 +80,7 @@ namespace Combat.View
         {
             if (preview != null) Destroy(preview.gameObject);
             preview = null;
+            if (View != null) View.ClearTargetPreview();
             if (previewOwner != null && previewOwner.Group != null) previewOwner.Group.alpha = 1f;
             previewOwner = null;
         }

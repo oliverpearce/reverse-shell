@@ -94,23 +94,29 @@ namespace Combat.View
             left.offsetMin = new Vector2(Pad, Pad);
             left.offsetMax = new Vector2(Pad + LeftW, -Pad);
 
-            var stage = UIFactory.CreateImage(left, "Stage", CardColor);
-            stage.rectTransform.TopStrip(0f, 340f);
-            UIFactory.CreateImage(stage.transform, "Glow", UIFactory.WithAlpha(def.color, 0.16f)).rectTransform.Fill(14f);
+            // Psycho-Pass-style holographic profile: name, ID, stamp and threat index live on the poster.
+            var stage = UIFactory.CreateRect("Profile", left);
+            stage.TopStrip(0f, 400f);
+            var poster = ProfilePoster.Build(stage, new PosterInfo
+            {
+                Name = def.DisplayName,
+                Hostile = unit.Team == Team.Enemy,
+                Index = ThreatIndex(unit),
+                Accent = def.color,
+            }, false);
             if (def.animations != null && def.animations.Has(UISpriteAnimator.Idle))
             {
-                var sprite = UIFactory.CreateImage(stage.transform, "Sprite", Color.white);
-                sprite.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, -14f), new Vector2(320f, 320f)); // 64px at 5x
-                sprite.gameObject.AddComponent<UISpriteAnimator>().Init(def.animations, Facing.Down, sprite);
+                poster.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, -100f), new Vector2(320f, 320f)); // 64px at 5x: head and torso
+                poster.gameObject.AddComponent<UISpriteAnimator>().Init(def.animations, Facing.Down, poster);
             }
             else
             {
+                poster.enabled = false;
                 string letter = def.DisplayName.Length > 0 ? def.DisplayName.Substring(0, 1) : "?";
-                UIFactory.CreateText(stage.transform, "Initial", letter, 180, UIFactory.WithAlpha(def.color, 0.8f), TextAnchor.MiddleCenter, FontStyle.Bold).rectTransform.Fill();
+                UIFactory.CreateText(poster.transform.parent, "Initial", letter, 160, UIFactory.WithAlpha(ProfilePoster.Holo, 0.7f), TextAnchor.MiddleCenter, FontStyle.Bold).rectTransform.Fill();
             }
 
-            float y = 356f;
-            Fit(left, def.DisplayName, TextColor, FontStyle.Bold, ref y, 60f, 24, 56);
+            float y = 416f;
             string cls = character != null && !string.IsNullOrEmpty(character.archetype) ? character.archetype : (unit.Team == Team.Enemy ? "Enemy" : "Ally");
             Fit(left, cls + "  ·  " + def.afflatus + "  ·  " + def.damageType, Muted, FontStyle.Bold, ref y, 30f, 14, 22);
 
@@ -137,6 +143,12 @@ namespace Combat.View
                 var pip = UIFactory.CreateImage(row, "Pip", i < unit.Moxie ? Gold : new Color(0.2f, 0.19f, 0.27f));
                 pip.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(i * (pipW + 8f), 0f), new Vector2(pipW, 28f));
             }
+        }
+
+        /// <summary>The poster's big number: a rough read of how dangerous the unit is (ATK and toughness).</summary>
+        static int ThreatIndex(BattleUnit unit)
+        {
+            return Mathf.RoundToInt(unit.GetStat(StatType.Attack) * 0.5f + unit.MaxHP * 0.02f);
         }
 
         void BuildRight(UnitView unitView)
@@ -176,7 +188,7 @@ namespace Combat.View
                 Header(content, "NEXT MOVE");
                 var box = Box(content, UnitView.KindColor(unitView.Intent.Definition.kind));
                 Line(box, unitView.Intent.Name + " " + CardText.Roman(unitView.Intent.Rank), 28, TextColor, FontStyle.Bold);
-                Line(box, unitView.Intent.Describe(), 22, Muted, FontStyle.Normal);
+                Line(box, UIFactory.EmphasizeNumbers(unitView.Intent.Describe(), 30, Gold), 22, Muted, FontStyle.Normal).font = UIFactory.BodyFont;
             }
 
             if (unitView.Statuses != null && unitView.Statuses.Count > 0)
@@ -189,7 +201,7 @@ namespace Combat.View
                     string stacks = s.Stacks > 1 ? "  x" + s.Stacks : "";
                     string turns = s.Remaining == 1 ? "last turn" : s.Remaining + " turns";
                     Line(box, d.DisplayName + stacks + "  <size=20><color=#B8B8C8>" + turns + "</color></size>", 26, TextColor, FontStyle.Bold);
-                    if (!string.IsNullOrEmpty(d.description)) Line(box, d.description, 20, Muted, FontStyle.Normal);
+                    if (!string.IsNullOrEmpty(d.description)) Line(box, UIFactory.EmphasizeNumbers(d.description, 27, Gold), 20, Muted, FontStyle.Normal).font = UIFactory.BodyFont;
                 }
             }
 
@@ -277,8 +289,10 @@ namespace Combat.View
 
         static void Header(RectTransform content, string text)
         {
-            var t = UIFactory.CreateText(content, "Header", text, 24, Gold, TextAnchor.LowerLeft, FontStyle.Bold);
-            t.gameObject.AddComponent<LayoutElement>().minHeight = 38f;
+            var t = UIFactory.CreateText(content, "Header", text, 40, Gold, TextAnchor.LowerLeft);
+            t.font = UIFactory.DisplayFont;
+            t.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.6f);
+            t.gameObject.AddComponent<LayoutElement>().minHeight = 50f;
         }
 
         public static RectTransform Box(RectTransform content, Color accent)

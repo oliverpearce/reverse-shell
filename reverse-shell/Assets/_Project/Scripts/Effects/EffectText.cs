@@ -69,14 +69,56 @@ namespace Combat
             var data = card.GetRank(rank);
             if (data == null) return "";
             if (!string.IsNullOrEmpty(data.description)) return data.description;
-            var sb = new StringBuilder();
-            foreach (var e in data.effects)
+            var sentences = Sentences(data).Select(t => t.Format()).ToArray();
+            return WithTargets(card, string.Join(" ", sentences));
+        }
+
+        /// <summary>
+        /// A rank's effects as sentences. Neighbouring effects that hit the same target share one sentence and name
+        /// the target once at the end: "Deal 120% ATK damage and poison 1 enemy (x1, 2 turns)."
+        /// </summary>
+        public static List<EffectText> Sentences(CardRank data)
+        {
+            var result = new List<EffectText>();
+            var effects = data.effects.Where(e => e != null).ToList();
+            int i = 0;
+            while (i < effects.Count)
             {
-                if (e == null) continue;
-                if (sb.Length > 0) sb.Append(' ');
-                sb.Append(e.Describe());
+                var e = effects[i];
+                if (!e.Joinable)
+                {
+                    result.Add(e.Text());
+                    i++;
+                    continue;
+                }
+                int j = i + 1;
+                while (j < effects.Count && effects[j].Joinable && effects[j].TargetKey == e.TargetKey) j++;
+                var clauses = new List<EffectText>();
+                for (int k = i; k < j; k++) clauses.Add(effects[k].Clause(k == j - 1));
+                result.Add(Compose(clauses));
+                i = j;
             }
-            return WithTargets(card, sb.ToString());
+            return result;
+        }
+
+        static readonly System.Text.RegularExpressions.Regex Slot = new System.Text.RegularExpressions.Regex(@"\{(\d+)\}");
+
+        /// <summary>Joins clauses ("a", "a and b", "a, b and c"), renumbering their placeholders, as one capitalized sentence.</summary>
+        static EffectText Compose(List<EffectText> clauses)
+        {
+            var template = new StringBuilder();
+            var args = new List<string>();
+            for (int c = 0; c < clauses.Count; c++)
+            {
+                if (c > 0) template.Append(c == clauses.Count - 1 ? " and " : ", ");
+                int offset = args.Count;
+                template.Append(Slot.Replace(clauses[c].Template, m => "{" + (int.Parse(m.Groups[1].Value) + offset) + "}"));
+                args.AddRange(clauses[c].Args);
+            }
+            string t = template.ToString();
+            if (t.Length > 0) t = char.ToUpperInvariant(t[0]) + t.Substring(1);
+            if (!t.EndsWith(".")) t += ".";
+            return new EffectText(t, args.ToArray());
         }
 
         /// <summary>
@@ -99,11 +141,8 @@ namespace Combat
             int longest = 0;
             for (int r = 1; r <= ranks; r++)
             {
-                var texts = new List<EffectText>();
                 var data = card.GetRank(r);
-                if (data != null)
-                    foreach (var e in data.effects)
-                        if (e != null) texts.Add(e.Text());
+                var texts = data != null ? Sentences(data) : new List<EffectText>();
                 perRank.Add(texts);
                 longest = System.Math.Max(longest, texts.Count);
             }

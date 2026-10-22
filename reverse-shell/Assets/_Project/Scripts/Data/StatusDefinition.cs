@@ -29,6 +29,10 @@ namespace Combat
 
         [TextArea] public string description;
 
+        [Tooltip("Optional verb for card text: 'poison' reads 'poison 1 enemy (x1, 2 turns)'. " +
+                 "Empty reads 'give 1 enemy <name> (2 turns)'.")]
+        public string verb;
+
         public string DisplayName
         {
             get { return string.IsNullOrEmpty(displayName) ? name : displayName; }

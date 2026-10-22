@@ -103,7 +103,7 @@ Each character is a **class (archetype)** with two cards and one Ritual.
 - **Characters:** Octopath-style **32×48 px** LPC sprites composed by `Tools/SpriteForge/lpc_compose.py`, with idle, walk, slash, spellcast and hurt in 4 directions. Machines are LPC plate armor recolored as rusted plating.
 - **Camera:** a narrow FOV (around 28°), pitched about 38° and following from the south.
 - **Lighting:** a dim scene lit only by the sun, broken into **dappled spots** as if filtering through leaves (a slowly drifting light cookie). Low green trilight ambient and haze. No lamps or point lights.
-- **Post-processing:** gentle bloom, depth of field focused on the player (tilt-shift), a warm, slightly desaturated color grade, a light vignette and a little grain.
+- **Post-processing:** gentle bloom, a warm, slightly desaturated color grade, a light vignette and a little grain. No depth-of-field blur (the user wants crisp sprites).
 - **Atmosphere:** drifting leaves and pollen, dust motes, swaying grass.
 
 ### UI

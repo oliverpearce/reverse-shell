@@ -69,18 +69,51 @@ namespace Game.World
             WorldSession.RestoreParty();
             SaveGame.Save();
             world.RefreshPartyHud();
-            world.UI.ShowMessage("Access Point", "Systems restored. Party HP is full. Progress saved.");
+            world.UI.Say("Access Point", "{cyan}SYSTEM RESTORED.{/c}{p} Party HP: {wave}full{/wave}. Progress {green}saved{/c}.", DialogueVoice.System);
         }
     }
 
-    /// <summary>NPC with a few lines of dialogue; each press shows the next line.</summary>
+    /// <summary>Summon beacon: after a yes/no confirmation, brings every beaten machine in this area back (for grinding).</summary>
+    public class SummonInteractable : Interactable
+    {
+        public float range = 1.35f;
+
+        public override string Prompt { get { return "Use Summon Beacon"; } }
+
+        public override float Score(Vector3 playerPosition)
+        {
+            float d = FlatDistance(playerPosition, transform.position);
+            return d <= range ? d : -1f;
+        }
+
+        public override void Interact(OverworldBuilder world)
+        {
+            int beaten = world.BeatenEncountersHere();
+            if (beaten == 0)
+            {
+                world.UI.Say("Summon Beacon", "{gray}No signal to send.{/c}{p} Every machine in the area is still active.", DialogueVoice.Machine);
+                return;
+            }
+            string count = beaten == 1 ? "1 machine" : beaten + " machines";
+            world.UI.Dialogue.Ask(new DialogueLine("Summon Beacon",
+                    "{red}WARNING:{/c} broadcasting will reactivate {shake}" + count + "{/shake} in this area.{p} Send the signal?", DialogueVoice.Machine),
+                new[] { "Resummon", "Cancel" },
+                choice =>
+                {
+                    if (choice == 0) world.ResummonEncounters();
+                });
+        }
+    }
+
+    /// <summary>NPC conversation: interact to play all their lines (F / Space / Enter to advance).</summary>
     public class TalkInteractable : Interactable
     {
         public string speaker = "Stranger";
+        [Tooltip("Lines with DialogueMarkup, e.g. {wave}hi{/wave}, {shake}, {red}...{/c}, {p}, {slow}...{/slow}.")]
         [TextArea] public string[] lines = { "..." };
         public float range = 1.35f;
-
-        int next;
+        public DialogueVoice voice = DialogueVoice.Default;
+        public Sprite portrait;
 
         public override string Prompt { get { return "Talk to " + speaker; } }
 
@@ -93,8 +126,9 @@ namespace Game.World
         public override void Interact(OverworldBuilder world)
         {
             if (lines == null || lines.Length == 0) return;
-            world.UI.ShowMessage(speaker, lines[next % lines.Length]);
-            next++;
+            var conversation = new System.Collections.Generic.List<DialogueLine>();
+            foreach (var line in lines) conversation.Add(new DialogueLine(speaker, line, voice, portrait));
+            world.UI.Talk(conversation);
         }
     }
 }

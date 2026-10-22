@@ -18,6 +18,10 @@ namespace Combat.View
         static readonly Color Gold = new Color(1f, 0.8f, 0.3f);
 
         public const float Width = 220f;
+        /// <summary>Battle sprite size: 64 px LPC frames at 4x.</summary>
+        const float SpriteSize = 256f;
+        /// <summary>The intent icon floats just above the (taller) sprite's head.</summary>
+        const float IntentY = 48f;
         public const float Height = 380f;
 
         public BattleUnit Unit { get; private set; }
@@ -37,7 +41,7 @@ namespace Combat.View
         BattleView view;
         CanvasGroup group;
         Image portrait, sprite, flash, hpFill, intentIcon;
-        Reticle lockOn, focusRing;
+        Reticle lockOn, focusRing, targetPreview;
         UISpriteAnimator animator;
         RectTransform hpBar;
         RectTransform statusRow;
@@ -80,7 +84,7 @@ namespace Combat.View
             {
                 // Slay the Spire-style intent: just an icon above the head (details are in the hover menu).
                 intentIcon = UIFactory.CreateImage(transform, "Intent", Color.white);
-                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, -14f), new Vector2(48f, 48f));
+                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, IntentY), new Vector2(52f, 52f));
                 intentIcon.preserveAspect = true;
                 intentIcon.gameObject.SetActive(false);
             }
@@ -93,16 +97,22 @@ namespace Combat.View
 
             // Reticles sit in front of the body, centered on the torso (or the panel's middle).
             var reticleAnchor = animator != null ? new Vector2(0.5f, 0f) : new Vector2(0.5f, 0.5f);
-            var reticlePos = animator != null ? new Vector2(0f, 92f) : Vector2.zero;
-            focusRing = TargetReticle.CreateFocus(Body, reticleAnchor, reticlePos, 176f); // radii are 85% of the texture, leaving room for the glow
+            var reticlePos = animator != null ? new Vector2(0f, 122f) : Vector2.zero;
+            var orange = PersonaStyle.TargetOrange;
+            var orangeGlow = orange;
+            orangeGlow.a = 0.85f;
+            targetPreview = TargetReticle.CreateFocus(Body, reticleAnchor, reticlePos, 236f, orange, orangeGlow, "TargetPreview");
+            focusRing = TargetReticle.CreateFocus(Body, reticleAnchor, reticlePos, 210f); // radii are 85% of the texture, leaving room for the glow
             if (unit.Team == Team.Enemy)
-                lockOn = TargetReticle.CreateLock(Body, reticleAnchor, reticlePos, 130f);
+                lockOn = TargetReticle.CreateLock(Body, reticleAnchor, reticlePos, 156f);
 
             string label = unit.Team == Team.Player ? def.DisplayName + "  <size=18>Lv " + unit.Level + "</size>" : def.DisplayName;
-            var nameText = UIFactory.CreateText(transform, "Name", label, 34, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(18, 34);
+            var nameText = UIFactory.CreateText(transform, "Name", label, 32, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(16, 32);
             nameText.supportRichText = true;
             nameText.rectTransform.Place(top, top, new Vector2(0f, -232f), new Vector2(Width + 40f, 42f));
-            nameText.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.7f);
+            var nameShadow = nameText.gameObject.AddComponent<Shadow>();
+            nameShadow.effectColor = new Color(0f, 0f, 0f, 0.75f);
+            nameShadow.effectDistance = new Vector2(2f, -2f);
 
             var character = def as CharacterDefinition;
             string subtitle = def.afflatus + "  ·  " + def.damageType;
@@ -155,15 +165,27 @@ namespace Combat.View
             shadow.sprite = ShadowSprite();
             shadow.rectTransform.Place(bottom, new Vector2(0.5f, 0.5f), new Vector2(0f, -6f), new Vector2(120f, 30f));
 
-            // 64 px frames at exactly 3x keep pixels crisp; the LPC feet sit ~3px above the frame bottom.
+            // 64 px frames at exactly 4x keep pixels crisp; the LPC feet sit ~3px (12 at 4x) above the frame bottom.
+            var images = new List<Image>();
+            var glowColor = Color.Lerp(unit.Definition.color, Color.white, 0.45f);
+            glowColor.a = 0.16f;
+            foreach (var o in new[] { new Vector2(-4f, 0f), new Vector2(4f, 0f), new Vector2(0f, 4f), new Vector2(0f, -4f),
+                                      new Vector2(-3f, 3f), new Vector2(3f, 3f), new Vector2(-3f, -3f), new Vector2(3f, -3f) })
+            {
+                var glow = UIFactory.CreateImage(Body, "Glow", glowColor);
+                glow.rectTransform.Place(bottom, bottom, new Vector2(0f, -20f) + o, new Vector2(SpriteSize, SpriteSize));
+                images.Add(glow);
+            }
             sprite = UIFactory.CreateImage(Body, "Sprite", Color.white);
-            sprite.rectTransform.Place(bottom, bottom, new Vector2(0f, -15f), new Vector2(192f, 192f));
+            sprite.rectTransform.Place(bottom, bottom, new Vector2(0f, -20f), new Vector2(SpriteSize, SpriteSize));
             flash = UIFactory.CreateImage(Body, "Flash", Color.clear);
             flash.material = AdditiveUI();
-            flash.rectTransform.Place(bottom, bottom, new Vector2(0f, -15f), new Vector2(192f, 192f));
+            flash.rectTransform.Place(bottom, bottom, new Vector2(0f, -20f), new Vector2(SpriteSize, SpriteSize));
+            images.Add(sprite);
+            images.Add(flash);
 
             animator = Body.gameObject.AddComponent<UISpriteAnimator>();
-            animator.Init(unit.Definition.animations, unit.Team == Team.Player ? Facing.Right : Facing.Left, sprite, flash);
+            animator.Init(unit.Definition.animations, unit.Team == Team.Player ? Facing.Right : Facing.Left, images.ToArray());
 
         }
 
@@ -206,7 +228,7 @@ namespace Combat.View
         void Update()
         {
             if (intentIcon != null && intentIcon.gameObject.activeSelf) // gentle bob, in whole pixels
-                intentIcon.rectTransform.anchoredPosition = new Vector2(0f, -14f + Mathf.Round(Mathf.Sin(Time.time * 2.5f) * 1.5f) * 2f);
+                intentIcon.rectTransform.anchoredPosition = new Vector2(0f, IntentY + Mathf.Round(Mathf.Sin(Time.time * 2.5f) * 1.5f) * 2f);
         }
 
         // ------------------------------------------------------------------ Input
@@ -346,6 +368,12 @@ namespace Combat.View
             if (lockOn != null) lockOn.Show(selected && Unit.IsAlive);
         }
 
+        /// <summary>Orange ring: this unit would be hit / buffed by the card being hovered in the hand.</summary>
+        public void SetTargetPreview(bool on)
+        {
+            if (targetPreview != null) targetPreview.Show(on && Unit.IsAlive);
+        }
+
         /// <summary>White ring: the unit under the mouse or the arrow-key cursor.</summary>
         public void SetFocused(bool focused)
         {
@@ -356,6 +384,7 @@ namespace Combat.View
         {
             SetSelected(false);
             SetFocused(false);
+            SetTargetPreview(false);
             SetIntent(null);
             SetStatuses(new List<StatusSnapshot>());
             if (animator != null)

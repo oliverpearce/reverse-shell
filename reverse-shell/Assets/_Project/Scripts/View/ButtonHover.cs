@@ -10,7 +10,7 @@ namespace Combat.View
     /// </summary>
     public class ButtonHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        static readonly Color Gold = new Color(1f, 0.82f, 0.36f);
+        static readonly Color Gold = new Color(0.88f, 0.8f, 1f); // lilac-white hover rim (PersonaStyle.LilacLight)
         const float HoverScale = 1.06f;
         const float Speed = 18f;
 

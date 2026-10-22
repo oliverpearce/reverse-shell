@@ -195,6 +195,38 @@ namespace Game.World
             return root;
         }
 
+        /// <summary>A dark pylon with a glowing red band and a slowly turning crown: calls machines back to the area.</summary>
+        public static GameObject SummonBeacon(Transform parent, Vector3 basePosition)
+        {
+            var root = new GameObject("SummonBeacon");
+            root.transform.SetParent(parent, false);
+            root.transform.position = basePosition;
+
+            var pylon = Block(root.transform, "Pylon", WorldArt.DarkMetal());
+            pylon.localPosition = new Vector3(0f, 0.75f, 0f);
+            pylon.localScale = new Vector3(0.36f, 1.5f, 0.36f);
+
+            var band = WorldArt.Primitive(PrimitiveType.Cube, "Band", root.transform, WorldArt.Emissive(WorldArt.MachineRed, 2.5f));
+            band.transform.localPosition = new Vector3(0f, 1.05f, 0f);
+            band.transform.localScale = new Vector3(0.4f, 0.08f, 0.4f);
+
+            var crown = new GameObject("Crown").transform;
+            crown.SetParent(root.transform, false);
+            crown.localPosition = new Vector3(0f, 1.72f, 0f);
+            for (int i = 0; i < 4; i++)
+            {
+                var fin = WorldArt.Primitive(PrimitiveType.Cube, "Fin", crown, WorldArt.Emissive(WorldArt.MachineRed, 3f));
+                float a = i * Mathf.PI / 2f;
+                fin.transform.localPosition = new Vector3(Mathf.Cos(a) * 0.26f, 0f, Mathf.Sin(a) * 0.26f);
+                fin.transform.localRotation = Quaternion.Euler(0f, -i * 90f, 0f);
+                fin.transform.localScale = new Vector3(0.06f, 0.22f, 0.16f);
+            }
+            crown.gameObject.AddComponent<SpinY>();
+
+            Motes(root.transform, basePosition + Vector3.up * 1.6f, 0.4f, 5f, new Color(1f, 0.4f, 0.3f));
+            return root;
+        }
+
         public static GameObject FloorMarker(Transform parent, Vector3 center, Color color)
         {
             var marker = WorldArt.Primitive(PrimitiveType.Quad, "StandMarker", parent, WorldArt.AdditiveTinted(WorldArt.FrameTexture(), color));
@@ -261,6 +293,17 @@ namespace Game.World
             float t = Time.time;
             transform.position = origin + new Vector3(Mathf.Sin(t * 0.31f) + 0.4f * Mathf.Sin(t * 1.3f), 0f,
                 Mathf.Cos(t * 0.23f) + 0.3f * Mathf.Sin(t * 0.9f + 1f)) * amount;
+        }
+    }
+
+    /// <summary>Constant spin around the vertical axis.</summary>
+    public class SpinY : MonoBehaviour
+    {
+        public float degreesPerSecond = 45f;
+
+        void Update()
+        {
+            transform.Rotate(0f, degreesPerSecond * Time.deltaTime, 0f, Space.Self);
         }
     }
 

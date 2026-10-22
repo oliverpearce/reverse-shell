@@ -64,6 +64,32 @@ namespace Combat.Tests
         }
 
         [Test]
+        public void PreviewTargets_CoversCardTarget_AndEffectTargets_WithoutRng()
+        {
+            var sidekick = TestFactory.Character("Sidekick", incantations: new[] { strike });
+            var dummy2 = TestFactory.Enemy("Dummy2");
+            var battle = new BattleController(new[] { hero, sidekick }, new[] { dummy, dummy2 }, CombatConfig.Default, Seed);
+            battle.StartBattle();
+            var heroUnit = battle.State.Party[0];
+            var second = battle.State.Enemies[1];
+            battle.SelectEnemy(second);
+
+            // Single-target attack: just the selected enemy.
+            var single = battle.PreviewTargets(new CardInstance(strike, heroUnit, 1));
+            CollectionAssert.AreEquivalent(new[] { second }, single);
+
+            // An attack that also buffs the whole team: the enemy plus every ally.
+            var rally = TestFactory.Card("Rally");
+            rally.ranks[0].effects.Add(new ApplyStatusEffect { target = EffectTarget.AllAllies });
+            var both = battle.PreviewTargets(new CardInstance(rally, heroUnit, 1));
+            CollectionAssert.AreEquivalent(new[] { second, battle.State.Party[0], battle.State.Party[1] }, both);
+
+            // Self buff: only the caster.
+            var focus = TestFactory.Card("Focus", target: TargetMode.Self);
+            CollectionAssert.AreEquivalent(new[] { heroUnit }, battle.PreviewTargets(new CardInstance(focus, heroUnit, 1)));
+        }
+
+        [Test]
         public void BattleResult_Victory_GrantsEnemyXp_AndLevelsUp()
         {
             var rewarding = TestFactory.Enemy("Rewarding");

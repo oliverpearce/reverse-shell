@@ -27,6 +27,21 @@ namespace Combat
         /// <summary>Plain description of this effect (used for card text when a rank has no description).</summary>
         public virtual string Describe() { return Text().Format(); }
 
+        /// <summary>
+        /// True if this effect can share a sentence with neighbours that hit the same target, via <see cref="Clause"/>:
+        /// "Deal 120% ATK damage and poison 1 enemy (x1, 2 turns)."
+        /// </summary>
+        public virtual bool Joinable { get { return false; } }
+
+        /// <summary>
+        /// This effect as a lower-case clause for a combined sentence. <paramref name="withTarget"/> is true for the
+        /// last clause of the sentence, which names the target; earlier clauses leave it out.
+        /// </summary>
+        public virtual EffectText Clause(bool withTarget) { return Text(); }
+
+        /// <summary>Who this effect hits, as words (the card's own target is a placeholder token until CardText fills it in).</summary>
+        public string TargetKey { get { return TargetPhrase(); } }
+
         protected string TargetPhrase()
         {
             switch (target)

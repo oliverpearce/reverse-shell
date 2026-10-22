@@ -5,19 +5,16 @@ using UnityEngine.UI;
 
 namespace Game.World
 {
-    /// <summary>Overlay UI for the overworld: interact prompt, message box, area title, controls hint, fades.</summary>
+    /// <summary>Overlay UI for the overworld: interact prompt, dialogue box, area title, party HUD, controls hint, fades.</summary>
     public class OverworldUI : MonoBehaviour
     {
         static readonly Color Panel = WorldArt.UiPanel;
 
         RectTransform promptRect;
         Text promptText;
-        GameObject messageBox;
-        Text speakerText, messageText;
         CanvasGroup titleGroup;
         Text titleText, subtitleText;
         Image fade;
-        Coroutine messageRoutine;
         RectTransform partyPanel;
 
         public struct PartyLine
@@ -36,7 +33,8 @@ namespace Game.World
             }
         }
 
-        public bool MessageVisible { get { return messageBox.activeSelf; } }
+        public DialogueBox Dialogue { get; private set; }
+        public bool DialogueOpen { get { return Dialogue != null && Dialogue.IsOpen; } }
 
         public static OverworldUI Create(Transform parent)
         {
@@ -49,6 +47,9 @@ namespace Game.World
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = UIFactory.ReferenceResolution;
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Shrink;
+            go.AddComponent<GraphicRaycaster>(); // the party menu takes mouse clicks
+            if (Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>() == null)
+                new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.EventSystems.StandaloneInputModule));
             var ui = go.AddComponent<OverworldUI>();
             ui.Build();
             return ui;
@@ -62,49 +63,34 @@ namespace Game.World
             var center = new Vector2(0.5f, 0.5f);
 
             // Interact prompt (follows a world point)
-            var promptBg = UIFactory.CreateImage(root, "Prompt", Panel);
+            // A black box with a lilac key: simple and readable.
+            var promptBg = UIFactory.CreateImage(root, "Prompt", new Color(0.04f, 0.03f, 0.05f, 0.88f));
             promptRect = promptBg.rectTransform;
-            promptRect.sizeDelta = new Vector2(360f, 52f);
+            promptRect.sizeDelta = new Vector2(380f, 52f);
             promptRect.pivot = new Vector2(0.5f, 0f);
-            var outline = promptBg.gameObject.AddComponent<Outline>();
-            outline.effectColor = WorldArt.UiEdge;
-            outline.effectDistance = new Vector2(2f, -2f);
-            promptText = UIFactory.CreateText(promptRect, "Text", "", 24, WorldArt.UiInk, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(12, 24);
+            promptText = UIFactory.CreateText(promptRect, "Text", "", 26, PersonaStyle.White, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(12, 26);
             promptText.supportRichText = true;
-            promptText.rectTransform.Fill(6f);
+            promptText.rectTransform.Fill(10f);
             promptBg.gameObject.SetActive(false);
 
-            // Message box
-            var box = UIFactory.CreateImage(root, "MessageBox", Panel);
-            box.rectTransform.Place(bottomCenter, bottomCenter, new Vector2(0f, 40f), new Vector2(1100f, 170f));
-            var boxOutline = box.gameObject.AddComponent<Outline>();
-            boxOutline.effectColor = WorldArt.UiEdge;
-            boxOutline.effectDistance = new Vector2(2f, -2f);
-            speakerText = UIFactory.CreateText(box.transform, "Speaker", "", 26, WorldArt.UiInk, TextAnchor.UpperLeft, FontStyle.Bold);
-            speakerText.rectTransform.TopStrip(14f, 32f, 24f);
-            messageText = UIFactory.CreateText(box.transform, "Text", "", 26, WorldArt.UiInk, TextAnchor.UpperLeft);
-            var mrt = messageText.rectTransform;
-            mrt.anchorMin = Vector2.zero;
-            mrt.anchorMax = Vector2.one;
-            mrt.offsetMin = new Vector2(24f, 16f);
-            mrt.offsetMax = new Vector2(-24f, -52f);
-            messageBox = box.gameObject;
-            messageBox.SetActive(false);
 
             // Area title
             var title = UIFactory.CreateRect("Title", root).Place(center, center, new Vector2(0f, 260f), new Vector2(1200f, 160f));
             titleGroup = title.gameObject.AddComponent<CanvasGroup>();
             titleGroup.alpha = 0f;
-            titleText = UIFactory.CreateText(title, "Text", "", 72, new Color(0.95f, 0.93f, 0.85f), TextAnchor.MiddleCenter, FontStyle.Bold);
-            titleText.rectTransform.TopStrip(0f, 96f);
-            var titleOutline = titleText.gameObject.AddComponent<Outline>();
-            titleOutline.effectColor = new Color(0.2f, 0.19f, 0.15f, 0.85f);
-            titleOutline.effectDistance = new Vector2(3f, -3f);
-            subtitleText = UIFactory.CreateText(title, "Subtitle", "", 28, WorldArt.UiPanel, TextAnchor.MiddleCenter);
-            subtitleText.rectTransform.TopStrip(100f, 40f);
-            subtitleText.gameObject.AddComponent<Outline>().effectColor = new Color(0.2f, 0.19f, 0.15f, 0.85f);
+            // Area title: huge tilted Anton on a black slab, lilac shadow; subtitle in lilac.
+            var titleSlab = PersonaStyle.Slant(title, "Slab", PersonaStyle.Black);
+            titleSlab.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 6f), new Vector2(1100f, 120f));
+            titleSlab.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -3f);
+            titleText = PersonaStyle.Title(title, "Text", "", 104, PersonaStyle.White, PersonaStyle.LilacDeep, TextAnchor.MiddleCenter, 6f);
+            titleText.rectTransform.TopStrip(0f, 116f);
+            titleText.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -3f);
+            subtitleText = UIFactory.CreateText(title, "Subtitle", "", 34, PersonaStyle.Lilac, TextAnchor.MiddleCenter);
+            subtitleText.font = UIFactory.DisplayFont;
+            subtitleText.rectTransform.TopStrip(126f, 44f);
+            subtitleText.gameObject.AddComponent<Shadow>().effectColor = PersonaStyle.Black;
 
-            var hint = UIFactory.CreateText(root, "Hint", "WASD / Arrows: move    Shift: run    F: interact", 20,
+            var hint = UIFactory.CreateText(root, "Hint", "WASD / Arrows: move    Shift: run    F: interact    Esc: party", 20,
                 new Color(0.95f, 0.93f, 0.85f, 0.85f), TextAnchor.LowerLeft);
             hint.rectTransform.Place(bottomLeft, bottomLeft, new Vector2(24f, 16f), new Vector2(800f, 30f));
             hint.gameObject.AddComponent<Outline>().effectColor = new Color(0.15f, 0.14f, 0.11f, 0.8f); // readable over bright ground
@@ -112,12 +98,14 @@ namespace Game.World
             // Party HP (top left): name, big HP number, thin bar.
             partyPanel = UIFactory.CreateRect("Party", root).Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(20f, -20f), new Vector2(420f, 0f));
 
+            Dialogue = DialogueBox.Create(root);
+
             fade = UIFactory.CreateImage(root, "Fade", Color.black);
             fade.rectTransform.Fill();
             fade.color = new Color(0f, 0f, 0f, 0f);
         }
 
-        static readonly Color HudText = new Color(0.96f, 0.94f, 0.86f);
+        static readonly Color HudText = PersonaStyle.White;
         static readonly Color HudShadow = new Color(0.08f, 0.07f, 0.05f, 0.85f);
         static Sprite fadeRight;
 
@@ -147,7 +135,7 @@ namespace Game.World
 
                 if (leader)
                 {
-                    var glow = UIFactory.CreateImage(row, "LeaderGradient", new Color(1f, 0.93f, 0.72f, 0.32f));
+                    var glow = UIFactory.CreateImage(row, "LeaderGradient", new Color(0.69f, 0.55f, 0.95f, 0.4f));
                     glow.sprite = FadeRightSprite();
                     glow.rectTransform.anchorMin = Vector2.zero;
                     glow.rectTransform.anchorMax = Vector2.one;
@@ -158,7 +146,8 @@ namespace Game.World
                 var line = UIFactory.CreateImage(row, "Color", m.Color);
                 line.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(lineX, 0f), new Vector2(leader ? 6f : 5f, height - 4f));
 
-                var name = UIFactory.CreateText(row, "Name", m.Name, (int)nameSize, HudText, TextAnchor.LowerLeft, FontStyle.Bold);
+                var name = UIFactory.CreateText(row, "Name", m.Name.ToUpperInvariant(), (int)(nameSize * 1.25f), HudText, TextAnchor.LowerLeft);
+                name.font = UIFactory.DisplayFont;
                 name.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(contentX, 0f), new Vector2(width, nameSize + 4f));
                 name.gameObject.AddComponent<Outline>().effectColor = HudShadow;
 
@@ -166,7 +155,7 @@ namespace Game.World
                 var track = UIFactory.CreateImage(row, "Bar", new Color(0f, 0f, 0f, 0.5f));
                 track.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(contentX, -(nameSize + 6f)), new Vector2(width, barHeight));
                 track.gameObject.AddComponent<Outline>().effectColor = HudShadow;
-                var fill = UIFactory.CreateImage(track.transform, "Fill", low ? new Color(0.92f, 0.36f, 0.24f) : new Color(0.93f, 0.91f, 0.8f));
+                var fill = UIFactory.CreateImage(track.transform, "Fill", low ? new Color(0.92f, 0.32f, 0.3f) : new Color(0.4f, 0.85f, 0.5f));
                 fill.rectTransform.anchorMin = Vector2.zero;
                 fill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(m.HP / (float)Mathf.Max(1, m.MaxHP)), 1f);
                 fill.rectTransform.offsetMin = Vector2.zero;
@@ -205,7 +194,7 @@ namespace Game.World
                 HidePrompt();
                 return;
             }
-            promptText.text = "<color=#A5432C>[" + key + "]</color>  " + text;
+            promptText.text = "<color=#B08CF2>[" + key + "]</color>  " + text;
             promptRect.position = screen;
             if (!promptRect.gameObject.activeSelf) promptRect.gameObject.SetActive(true);
         }
@@ -215,25 +204,17 @@ namespace Game.World
             if (promptRect.gameObject.activeSelf) promptRect.gameObject.SetActive(false);
         }
 
-        public void ShowMessage(string speaker, string text, float duration = 6f)
+        /// <summary>Plays a conversation; <paramref name="done"/> runs after the last line closes.</summary>
+        public void Talk(System.Collections.Generic.IList<DialogueLine> lines, System.Action done = null)
         {
-            speakerText.text = speaker;
-            messageText.text = text;
-            messageBox.SetActive(true);
-            if (messageRoutine != null) StopCoroutine(messageRoutine);
-            messageRoutine = StartCoroutine(HideMessageAfter(duration));
+            HidePrompt();
+            Dialogue.Play(lines, done);
         }
 
-        public void HideMessage()
+        /// <summary>A single line from one speaker.</summary>
+        public void Say(string speaker, string text, DialogueVoice voice, Sprite portrait = null, System.Action done = null)
         {
-            if (messageRoutine != null) StopCoroutine(messageRoutine);
-            messageBox.SetActive(false);
-        }
-
-        IEnumerator HideMessageAfter(float seconds)
-        {
-            yield return new WaitForSeconds(seconds);
-            messageBox.SetActive(false);
+            Talk(new[] { new DialogueLine(speaker, text, voice, portrait) }, done);
         }
 
         public IEnumerator ShowTitle(string title, string subtitle)

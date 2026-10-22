@@ -57,6 +57,26 @@ namespace Combat.Tests
         }
 
         [Test]
+        public void SetLeader_MovesMemberToFront_AndOrderSurvivesSave()
+        {
+            var a = TestFactory.Character("A");
+            var b = TestFactory.Character("B");
+            var c = TestFactory.Character("C");
+            var party = new[] { a, b, c };
+            WorldSession.PartyOrder.Clear();
+            CollectionAssert.AreEqual(party, WorldSession.Ordered(party), "no order saved: setup order");
+
+            WorldSession.SetLeader(c, party);
+            CollectionAssert.AreEqual(new[] { c, a, b }, WorldSession.Ordered(party));
+
+            string json = UnityEngine.JsonUtility.ToJson(SaveGame.Capture());
+            WorldSession.PartyOrder.Clear();
+            SaveGame.Restore(UnityEngine.JsonUtility.FromJson<SaveGame.Data>(json));
+            CollectionAssert.AreEqual(new[] { c, a, b }, WorldSession.Ordered(party));
+            WorldSession.PartyOrder.Clear();
+        }
+
+        [Test]
         public void SaveData_RoundTripsThroughJson()
         {
             WorldSession.Party.Clear();

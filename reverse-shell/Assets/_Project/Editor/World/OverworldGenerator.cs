@@ -170,11 +170,6 @@ namespace Game.EditorTools
             bloom.softKnee.Override(0.5f);
             bloom.diffusion.Override(7f);
 
-            var dof = Add<DepthOfField>(profile);
-            dof.focusDistance.Override(15f);
-            dof.aperture.Override(2.4f);
-            dof.focalLength.Override(65f);
-            dof.kernelSize.Override(KernelSize.Medium);
 
             // Washed-out, slightly warm and desaturated: a quiet ruin in hazy sunlight.
             var grading = Add<ColorGrading>(profile);
