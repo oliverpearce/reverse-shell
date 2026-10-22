@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Combat
 {
-    /// <summary>A party member's persistent progress: level, XP toward the next level, and current HP.</summary>
+    /// <summary>
+    /// A party member's persistent progress: level, XP toward the next level, current HP, and their loadout
+    /// (deck cards and fitted Parts, stored by asset name so the save file can hold them).
+    /// </summary>
     [Serializable]
     public class MemberProgress
     {
@@ -12,17 +16,32 @@ namespace Combat
         public int Xp;
         /// <summary>Current HP; negative means full.</summary>
         public int HP = -1;
+        /// <summary>Incantation cards in the deck, by asset name. Empty = the character's defaults.</summary>
+        public List<string> Cards = new List<string>();
+        /// <summary>Fitted Parts by slot (index = <see cref="PartSlot"/>), by asset name; "" = empty slot.</summary>
+        public List<string> Parts = new List<string>();
 
         public MemberProgress Clone()
         {
-            return new MemberProgress { Level = Level, Xp = Xp, HP = HP };
+            return new MemberProgress
+            {
+                Level = Level, Xp = Xp, HP = HP,
+                Cards = Cards != null ? new List<string>(Cards) : new List<string>(),
+                Parts = Parts != null ? new List<string>(Parts) : new List<string>()
+            };
         }
     }
 
     /// <summary>XP curve and per-level stat growth. Pure rules, no scene or UI knowledge.</summary>
     public static class Leveling
     {
-        public const int MaxLevel = 50;
+        public const int MaxLevel = 30;
+
+        /// <summary>
+        /// How full a stat bar is for the reference character (MC) at the level cap: the bars keep 10% headroom,
+        /// so even a maxed character doesn't fill them (Parts and later growth can push past).
+        /// </summary>
+        public const float BarFillAtCap = 0.9f;
 
         /// <summary>XP needed to go from this level to the next: 100, 200, 300...</summary>
         public static int XpToNext(int level)
@@ -42,9 +61,40 @@ namespace Combat
             return stat == StatType.MaxHP || stat == StatType.Attack || stat == StatType.PhysicalDefense || stat == StatType.SpecialDefense;
         }
 
+        /// <summary>
+        /// The value that fills a stat bar completely: the reference character's stat at the level cap, divided by
+        /// <see cref="BarFillAtCap"/>. Using one reference keeps every member's bars comparable.
+        /// </summary>
+        public static float BarMax(CharacterDefinition reference, StatType stat)
+        {
+            if (reference == null) return 1f;
+            float value = reference.stats.Get(stat);
+            if (Grows(stat)) value *= StatScale(MaxLevel, reference.growthPerLevel);
+            return Mathf.Max(0.0001f, value / BarFillAtCap);
+        }
+
         public static int MaxHP(CharacterDefinition member, int level)
         {
             return Mathf.Max(1, Mathf.RoundToInt(member.stats.maxHP * StatScale(level, member.growthPerLevel)));
+        }
+
+        /// <summary>Max HP with fitted Parts' HP modifiers on top (the same formula as <see cref="BattleUnit.GetStat"/>).</summary>
+        public static int MaxHP(CharacterDefinition member, int level, IEnumerable<PartDefinition> parts)
+        {
+            float flat = 0f, percent = 0f;
+            if (parts != null)
+                foreach (var part in parts)
+                {
+                    if (part == null) continue;
+                    foreach (var mod in part.modifiers)
+                    {
+                        if (mod.stat != StatType.MaxHP) continue;
+                        if (mod.kind == ModifierKind.Flat) flat += mod.value;
+                        else percent += mod.value;
+                    }
+                }
+            float baseHP = member.stats.maxHP * StatScale(level, member.growthPerLevel);
+            return Mathf.Max(1, Mathf.RoundToInt((baseHP + flat) * (1f + percent)));
         }
 
         /// <summary>

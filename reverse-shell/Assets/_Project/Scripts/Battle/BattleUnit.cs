@@ -18,6 +18,10 @@ namespace Combat
         public int Level { get; private set; }
         /// <summary>Enemy only: the card it will use this round.</summary>
         public CardInstance Intent;
+        /// <summary>Party only: the Parts fitted for this fight (their modifiers always apply).</summary>
+        public readonly List<PartDefinition> Parts = new List<PartDefinition>();
+
+        List<CardDefinition> incantations;
 
         public BattleUnit(UnitDefinition definition, Team team)
         {
@@ -40,10 +44,33 @@ namespace Combat
             HP = MaxHP;
         }
 
+        /// <summary>
+        /// The incantations this unit deals into the hand: its loadout's cards, or the character's defaults.
+        /// </summary>
+        public List<CardDefinition> Incantations
+        {
+            get
+            {
+                if (incantations != null && incantations.Count > 0) return incantations;
+                return Character != null ? Character.incantations : new List<CardDefinition>();
+            }
+        }
+
+        /// <summary>Fits a loadout's cards and Parts. HP is refilled to the (possibly new) max; set HP afterwards to carry damage.</summary>
+        public void ApplyLoadout(Loadout loadout)
+        {
+            Parts.Clear();
+            incantations = null;
+            if (loadout == null) return;
+            foreach (var part in loadout.Parts) if (part != null) Parts.Add(part);
+            if (loadout.Cards != null && loadout.Cards.Exists(c => c != null)) incantations = loadout.Cards.FindAll(c => c != null);
+            HP = MaxHP;
+        }
+
         public float HPPercent { get { return (float)HP / MaxHP; } }
         public bool IsStunned { get { return Statuses.Exists(s => s.Definition.preventsAction); } }
 
-        /// <summary>(base + flat) * (1 + percent), summed over all active statuses and stacks.</summary>
+        /// <summary>(base + flat) * (1 + percent), summed over all active statuses (times stacks) and fitted Parts.</summary>
         public float GetStat(StatType stat)
         {
             float flat = 0f, percent = 0f;
@@ -54,6 +81,15 @@ namespace Combat
                     if (mod.stat != stat) continue;
                     if (mod.kind == ModifierKind.Flat) flat += mod.value * status.Stacks;
                     else percent += mod.value * status.Stacks;
+                }
+            }
+            foreach (var part in Parts)
+            {
+                foreach (var mod in part.modifiers)
+                {
+                    if (mod.stat != stat) continue;
+                    if (mod.kind == ModifierKind.Flat) flat += mod.value;
+                    else percent += mod.value;
                 }
             }
             float baseValue = Definition.stats.Get(stat);

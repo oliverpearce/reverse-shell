@@ -10,11 +10,10 @@ namespace Combat.EditorTools
 {
     /// <summary>
     /// Tools > Combat > Generate Sample Content. Creates (or overwrites in place, keeping GUIDs)
-    /// the main party (2B the YoRHa Battler, V1 the Assault Unit, V2 the Support Unit), two machine enemies,
-    /// their cards/statuses/animations and a Battle scene. Sprites come from Assets/_Project/Art
-    /// (see Tools/SpriteForge for how the cast sheets are derived).
-    /// Fan project: 2B (NieR:Automata) © SQUARE ENIX. V1 and V2 are original generic robots.
-    /// Non-commercial use only.
+    /// the main party (MC the Prototype, Heal Bot and Lucy), two machine enemies, the Parts and their catalog,
+    /// cards/statuses/animations and a Battle scene. Sprites come from Assets/_Project/Art
+    /// (Tools/SpriteForge builds the cast sheets, Tools/PortraitForge the character-card portraits).
+    /// All three party members are original robots. Non-commercial fan project.
     /// Everything it makes is plain data you can then edit in the inspector.
     /// </summary>
     public static class SampleContentGenerator
@@ -22,6 +21,8 @@ namespace Combat.EditorTools
         const string Root = "Assets/_Project/Content";
         const string ScenePath = "Assets/_Project/Scenes/Battle.unity";
         const string CharacterArt = "Assets/_Project/Art/Characters/";
+        const string PortraitArt = "Assets/_Project/Art/Portraits/";
+        public const string PartCatalogPath = Root + "/Parts/PartCatalog.asset";
 
         [MenuItem("Tools/Combat/Generate Sample Content")]
         public static void Generate()
@@ -29,7 +30,7 @@ namespace Combat.EditorTools
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
             AssetDatabase.Refresh(); // pick up sprite sheets written by Tools/SpriteForge
-            foreach (var folder in new[] { "Cards", "Characters", "Enemies", "Statuses", "Sequences", "Animations" })
+            foreach (var folder in new[] { "Cards", "Characters", "Enemies", "Statuses", "Sequences", "Animations", "Parts" })
                 EnsureFolder(Root + "/" + folder);
             DeleteLegacyAssets();
             EnsureFolder(Path.GetDirectoryName(ScenePath).Replace('\\', '/'));
@@ -72,13 +73,17 @@ namespace Combat.EditorTools
                 new ScreenShakeStep { strength = 16f, duration = 0.35f, runInParallel = true },
                 new FlashStep { at = StepTarget.Targets, color = new Color(1f, 0.9f, 0.6f), duration = 0.3f });
 
-            // ---------------------------------------------------------------- 2B, the YoRHa Battler (Star, Physical)
-            // Party leader. A heavy single-target sword strike plus a Pod-driven team damage buff.
-            var battler1 = Card("Card_2B_VirtuousContract", "Virtuous Contract", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
+            var atkDown = Status("Status_AtkDown", "ATK Down", "ATK", new Color(0.72f, 0.42f, 0.95f), true,
+                StackRule.RefreshDuration, 1, "-20% ATK.", 0f, 0f, new StatModifier(StatType.Attack, ModifierKind.Percent, -0.2f));
+
+            // ---------------------------------------------------------------- MC, the main character (Star, Physical)
+            // Party leader and the standout model. Glows white for now; it will channel several elements later
+            // (channels + AfflatusInfo.GlowFor). A heavy single-target strike plus a team damage buff.
+            var mc1 = Card("Card_MC_EdgeStrike", "Edge Strike", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
                 new CardEffect[] { new DamageEffect { multiplier = 1.8f } },
                 new CardEffect[] { new DamageEffect { multiplier = 2.7f } },
                 new CardEffect[] { new DamageEffect { multiplier = 4.5f } });
-            var battler2 = Card("Card_2B_PodSupport", "Pod Support", CardKind.Buff, TargetMode.AllAllies, false, seqSupport,
+            var mc2 = Card("Card_MC_SyncField", "Sync Field", CardKind.Buff, TargetMode.AllAllies, false, seqSupport,
                 new CardEffect[] { new ApplyStatusEffect { status = mightUp, stacks = 1, duration = 2 } },
                 new CardEffect[] { new ApplyStatusEffect { status = mightUp, stacks = 2, duration = 2 } },
                 new CardEffect[]
@@ -86,31 +91,29 @@ namespace Combat.EditorTools
                     new ApplyStatusEffect { status = mightUp, stacks = 3, duration = 2 },
                     new GainMoxieEffect { target = EffectTarget.RandomAlly, amount = 1 }
                 });
-            var battlerUlt = Card("Card_2B_Ritual", "Pod Laser", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
+            var mc3 = Card("Card_MC_CrossSlash", "Cross Slash", CardKind.Attack, TargetMode.AllEnemies, false, seqSweep,
+                new CardEffect[] { new DamageEffect { multiplier = 1f } },
+                new CardEffect[] { new DamageEffect { multiplier = 1.5f } },
+                new CardEffect[] { new DamageEffect { multiplier = 2.4f } });
+            var mcUlt = Card("Card_MC_Ritual", "Prism Burst", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
                 new CardEffect[]
                 {
                     new DamageEffect { multiplier = 6f, hits = 2 },
                     new ApplyStatusEffect { target = EffectTarget.AllAllies, status = atkUp, stacks = 2, duration = 2 }
                 });
-            var twoB = Character("Char_2B", "2B", "YoRHa Battler", new Color(0.86f, 0.84f, 0.76f), Afflatus.Star, DamageType.Physical,
-                2200, 240f, 130f, 130f, new[] { battler1, battler2 }, battlerUlt, AnimSet("2B"));
+            var mc = Character("Char_MC", "MC", "Prototype", new Color(0.92f, 0.92f, 0.95f), Afflatus.Star, DamageType.Physical,
+                2200, 240f, 130f, 130f, new[] { mc1, mc2 }, mcUlt, AnimSet("MC"));
+            mc.cardPool = new List<CardDefinition> { mc3 };
+            mc.neutralGlow = true;
+            mc.glowColor = Color.white;
+            mc.statBarReference = true; // crew-menu stat bars: MC at level 30 fills 90%
+            mc.partSockets = new List<Vector2>(); // all crew cards share the reference knight's layout (CharacterMenu.SocketSpots)
+            mc.channels = new List<Afflatus> { Afflatus.Star, Afflatus.Mineral, Afflatus.Beast, Afflatus.Plant, Afflatus.Spirit, Afflatus.Intellect };
+            Portraits(mc, "MC");
 
-            // ---------------------------------------------------------------- V1, the Assault Unit (Mineral, Special)
-            var van1 = Card("Card_V1_SpinSaw", "Spin Saw", CardKind.Attack, TargetMode.AllEnemies, false, seqSweep,
-                new CardEffect[] { new DamageEffect { multiplier = 0.9f } },
-                new CardEffect[] { new DamageEffect { multiplier = 1.35f } },
-                new CardEffect[] { new DamageEffect { multiplier = 2.2f } });
-            var van2 = Card("Card_V1_ArmorBreaker", "Armor Breaker", CardKind.Debuff, TargetMode.SingleEnemy, false, seqStrike,
-                new CardEffect[] { new DamageEffect { multiplier = 1.3f }, new ApplyStatusEffect { status = defDown, duration = 2 } },
-                new CardEffect[] { new DamageEffect { multiplier = 1.95f }, new ApplyStatusEffect { status = defDown, duration = 2 } },
-                new CardEffect[] { new DamageEffect { multiplier = 3.2f }, new ApplyStatusEffect { status = defDown, duration = 3 } });
-            var vanUlt = Card("Card_V1_Ritual", "Overdrive", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
-                new CardEffect[] { new DamageEffect { multiplier = 5f, hits = 3 } });
-            var v1 = Character("Char_V1", "V1", "Assault Unit", new Color(0.45f, 0.62f, 0.92f), Afflatus.Mineral, DamageType.Special,
-                2800, 215f, 170f, 120f, new[] { van1, van2 }, vanUlt, AnimSet("V1"));
-
-            // ---------------------------------------------------------------- V2, the Support Unit (Intellect, Special)
-            var men1 = Card("Card_V2_PatchProtocol", "Patch Protocol", CardKind.Heal, TargetMode.SingleAlly, false, seqSupport,
+            // ---------------------------------------------------------------- Heal Bot (Plant = "Earth", Special)
+            // The shared robot model, overgrown like a dryad. A tanky healer.
+            var heal1 = Card("Card_HealBot_SapMend", "Sap Mend", CardKind.Heal, TargetMode.SingleAlly, false, seqSupport,
                 new CardEffect[] { new HealEffect { target = EffectTarget.CardTargets, multiplier = 1.4f } },
                 new CardEffect[] { new HealEffect { target = EffectTarget.CardTargets, multiplier = 2.1f } },
                 new CardEffect[]
@@ -118,18 +121,73 @@ namespace Combat.EditorTools
                     new HealEffect { target = EffectTarget.CardTargets, multiplier = 3.2f },
                     new ApplyStatusEffect { target = EffectTarget.CardTargets, status = regen, duration = 2 }
                 });
-            var men2 = Card("Card_V2_VirusSpike", "Virus Spike", CardKind.Attack, TargetMode.SingleEnemy, false, seqBolt,
-                new CardEffect[] { new DamageEffect { multiplier = 1.2f }, new ApplyStatusEffect { status = poison, duration = 2 } },
-                new CardEffect[] { new DamageEffect { multiplier = 1.8f }, new ApplyStatusEffect { status = poison, stacks = 2, duration = 2 } },
-                new CardEffect[] { new DamageEffect { multiplier = 2.8f }, new ApplyStatusEffect { status = poison, stacks = 3, duration = 3 } });
-            var menUlt = Card("Card_V2_Ritual", "System Restore", CardKind.Heal, TargetMode.AllAllies, true, seqRitual,
+            var heal2 = Card("Card_HealBot_BrambleLash", "Bramble Lash", CardKind.Debuff, TargetMode.SingleEnemy, false, seqStrike,
+                new CardEffect[] { new DamageEffect { multiplier = 1.2f }, new ApplyStatusEffect { status = defDown, duration = 2 } },
+                new CardEffect[] { new DamageEffect { multiplier = 1.8f }, new ApplyStatusEffect { status = defDown, duration = 2 } },
+                new CardEffect[] { new DamageEffect { multiplier = 2.9f }, new ApplyStatusEffect { status = defDown, duration = 3 } });
+            var heal3 = Card("Card_HealBot_Overgrowth", "Overgrowth", CardKind.Buff, TargetMode.AllAllies, false, seqSupport,
+                new CardEffect[] { new ApplyStatusEffect { status = regen, duration = 2 } },
+                new CardEffect[] { new ApplyStatusEffect { status = regen, duration = 3 } },
+                new CardEffect[] { new ApplyStatusEffect { status = regen, duration = 4 } });
+            var healUlt = Card("Card_HealBot_Ritual", "Verdant Bloom", CardKind.Heal, TargetMode.AllAllies, true, seqRitual,
                 new CardEffect[]
                 {
                     new HealEffect { target = EffectTarget.CardTargets, multiplier = 2.5f },
-                    new ApplyStatusEffect { target = EffectTarget.CardTargets, status = atkUp, duration = 2 }
+                    new ApplyStatusEffect { target = EffectTarget.CardTargets, status = regen, duration = 3 }
                 });
-            var v2 = Character("Char_V2", "V2", "Support Unit", new Color(0.4f, 0.86f, 0.72f), Afflatus.Intellect, DamageType.Special,
-                2100, 200f, 120f, 150f, new[] { men1, men2 }, menUlt, AnimSet("V2"));
+            var healBot = Character("Char_HealBot", "Heal Bot", "Medic", new Color(0.5f, 0.86f, 0.45f), Afflatus.Plant, DamageType.Special,
+                2800, 190f, 160f, 150f, new[] { heal1, heal2 }, healUlt, AnimSet("HealBot"));
+            healBot.cardPool = new List<CardDefinition> { heal3 };
+            Portraits(healBot, "HealBot");
+
+            // ---------------------------------------------------------------- Lucy (Intellect = "Virus", Special)
+            // The same robot model with purple accents. Viruses: damage over time and debuffs.
+            var lucy1 = Card("Card_Lucy_VirusSpike", "Virus Spike", CardKind.Attack, TargetMode.SingleEnemy, false, seqBolt,
+                new CardEffect[] { new DamageEffect { multiplier = 1.2f }, new ApplyStatusEffect { status = poison, duration = 2 } },
+                new CardEffect[] { new DamageEffect { multiplier = 1.8f }, new ApplyStatusEffect { status = poison, stacks = 2, duration = 2 } },
+                new CardEffect[] { new DamageEffect { multiplier = 2.8f }, new ApplyStatusEffect { status = poison, stacks = 3, duration = 3 } });
+            var lucy2 = Card("Card_Lucy_Corrupt", "Corrupt", CardKind.Debuff, TargetMode.SingleEnemy, false, seqBolt,
+                new CardEffect[] { new DamageEffect { multiplier = 1f }, new ApplyStatusEffect { status = atkDown, duration = 2 } },
+                new CardEffect[] { new DamageEffect { multiplier = 1.5f }, new ApplyStatusEffect { status = atkDown, duration = 2 } },
+                new CardEffect[] { new DamageEffect { multiplier = 2.4f }, new ApplyStatusEffect { status = atkDown, duration = 3 } });
+            var lucy3 = Card("Card_Lucy_Worm", "Worm", CardKind.Attack, TargetMode.RandomEnemy, false, seqBolt,
+                new CardEffect[] { new DamageEffect { multiplier = 0.5f, hits = 3 }, new ApplyStatusEffect { status = poison, duration = 2 } },
+                new CardEffect[] { new DamageEffect { multiplier = 0.75f, hits = 3 }, new ApplyStatusEffect { status = poison, duration = 2 } },
+                new CardEffect[] { new DamageEffect { multiplier = 1.2f, hits = 3 }, new ApplyStatusEffect { status = poison, stacks = 2, duration = 3 } });
+            var lucyUlt = Card("Card_Lucy_Ritual", "Zero Day", CardKind.Attack, TargetMode.AllEnemies, true, seqRitual,
+                new CardEffect[]
+                {
+                    new DamageEffect { multiplier = 3f },
+                    new ApplyStatusEffect { status = poison, stacks = 2, duration = 3 },
+                    new ApplyStatusEffect { status = defDown, duration = 2 }
+                });
+            var lucy = Character("Char_Lucy", "Lucy", "Hacker", new Color(0.72f, 0.45f, 0.95f), Afflatus.Intellect, DamageType.Special,
+                2100, 215f, 120f, 150f, new[] { lucy1, lucy2 }, lucyUlt, AnimSet("Lucy"));
+            lucy.cardPool = new List<CardDefinition> { lucy3 };
+            Portraits(lucy, "Lucy");
+            foreach (var c in new[] { mc, healBot, lucy }) EditorUtility.SetDirty(c);
+
+            // ---------------------------------------------------------------- Parts (internal slots on the character card)
+            var parts = new List<PartDefinition>
+            {
+                Part("Part_IonChip", "Ion Chip", PartSlot.Chip, new Color(0.6f, 0.75f, 1f), "+15% Ult damage.",
+                    new StatModifier(StatType.RitualMight, ModifierKind.Flat, 0.15f)),
+                Part("Part_ReinforcedCore", "Reinforced Core", PartSlot.Core, new Color(0.8f, 0.8f, 0.85f), "+12% max HP.",
+                    new StatModifier(StatType.MaxHP, ModifierKind.Percent, 0.12f)),
+                Part("Part_TargetingChip", "Targeting Chip", PartSlot.Chip, new Color(1f, 0.85f, 0.4f), "+8% crit rate.",
+                    new StatModifier(StatType.CritRate, ModifierKind.Flat, 0.08f)),
+                Part("Part_PatchCache", "Patch Cache", PartSlot.Chip, new Color(0.45f, 0.95f, 0.65f), "+12% healing.",
+                    new StatModifier(StatType.HealingBonus, ModifierKind.Flat, 0.12f)),
+                Part("Part_OverclockCore", "Overclock Core", PartSlot.Core, new Color(1f, 0.5f, 0.3f), "+8% card damage.",
+                    new StatModifier(StatType.IncantationMight, ModifierKind.Flat, 0.08f)),
+                Part("Part_StableCore", "Stable Core", PartSlot.Core, new Color(0.55f, 0.9f, 0.95f), "+8% P.DEF and S.DEF.",
+                    new StatModifier(StatType.PhysicalDefense, ModifierKind.Percent, 0.08f),
+                    new StatModifier(StatType.SpecialDefense, ModifierKind.Percent, 0.08f)),
+            };
+            var catalog = ScriptableObject.CreateInstance<PartCatalog>();
+            catalog.parts = parts;
+            catalog.starterParts = new List<PartDefinition>(parts); // one of each to start
+            Save(catalog, PartCatalogPath);
 
             // ---------------------------------------------------------------- Enemies (machine lifeforms)
             var slam = Card("Card_Enemy_PistonSlam", "Piston Slam", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
@@ -170,14 +228,14 @@ namespace Combat.EditorTools
             var setup = ScriptableObject.CreateInstance<BattleSetup>();
             setup.config = config;
             setup.backdrop = backdrop;
-            setup.party = new List<CharacterDefinition> { twoB, v1, v2 };
+            setup.party = new List<CharacterDefinition> { mc, healBot, lucy };
             setup.enemies = new List<EnemyDefinition> { sentry, stalker };
             setup = Save(setup, Root + "/Battle_Sample.asset");
 
             AssetDatabase.SaveAssets();
             CreateScene(setup);
 
-            Selection.activeObject = twoB;
+            Selection.activeObject = mc;
             EditorUtility.DisplayDialog("Combat", "Sample content generated.\n\nScene: " + ScenePath + "\nPress Play to fight!", "OK");
         }
 
@@ -246,6 +304,34 @@ namespace Combat.EditorTools
             return Save(c, Root + "/Characters/" + file + ".asset");
         }
 
+        static PartDefinition Part(string file, string displayName, PartSlot slot, Color color, string description, params StatModifier[] modifiers)
+        {
+            var p = ScriptableObject.CreateInstance<PartDefinition>();
+            p.displayName = displayName;
+            p.slot = slot;
+            p.color = color;
+            p.description = description;
+            p.modifiers = modifiers.ToList();
+            return Save(p, Root + "/Parts/" + file + ".asset");
+        }
+
+        /// <summary>Hooks up Art/Portraits/{name}_*.png (Tools/PortraitForge) as the character-card art.</summary>
+        static void Portraits(CharacterDefinition c, string name)
+        {
+            c.portraitFront = PortraitSprite(name + "_front");
+            c.portraitInternals = PortraitSprite(name + "_internals");
+            c.portraitGlow = PortraitSprite(name + "_front_glow");
+            c.portraitInternalsGlow = PortraitSprite(name + "_internals_glow");
+            if (c.portraitFront == null) Debug.LogWarning("No portraits for " + name + " - run Tools/PortraitForge/portrait_forge.py.");
+        }
+
+        static Sprite PortraitSprite(string file)
+        {
+            string path = PortraitArt + file + ".png";
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate); // applies the Sprite import settings
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
         static EnemyDefinition Enemy(string file, string displayName, Color color, Afflatus afflatus, DamageType damageType,
             int hp, float atk, float rdef, float mdef, SpriteAnimationSet animations, params EnemySkill[] skills)
         {
@@ -267,8 +353,8 @@ namespace Combat.EditorTools
         }
 
         /// <summary>
-        /// Creates/updates Content/Animations/Anim_{folder}.asset from the LPC sheets in Art/Characters/{folder}/
-        /// (built by Tools/SpriteForge/lpc_compose.py). Returns null if the folder has no sheets.
+        /// Creates/updates Content/Animations/Anim_{folder}.asset from the sheets in Art/Characters/{folder}/
+        /// (built by Tools/ChibiForge). Returns null if the folder has no sheets.
         /// </summary>
         public static SpriteAnimationSet AnimSet(string folder)
         {
@@ -283,10 +369,14 @@ namespace Combat.EditorTools
             AddClip(set, folder, "hurt", 10f, false, 0);
             if (set.clips.Count == 0)
             {
-                Debug.LogWarning("No sprite sheets in " + CharacterArt + folder + " - run Tools/SpriteForge/lpc_compose.py. Using placeholder.");
+                Debug.LogWarning("No sprite sheets in " + CharacterArt + folder + " - run Tools/ChibiForge/chibi_forge.py. Using placeholder.");
                 Object.DestroyImmediate(set);
                 return null;
             }
+            // Frame size comes from the sheets: 4 direction rows (64 px for the rig characters, 128 px for the crew's
+            // base model). Frames are one world unit / one UI sprite box either way, so both show at the same size.
+            var idle = set.Find("idle");
+            if (idle != null && idle.sheet.height >= 4 && idle.sheet.height % 4 == 0) set.frameSize = idle.sheet.height / 4;
             return Save(set, Root + "/Animations/Anim_" + folder + ".asset");
         }
 
@@ -319,12 +409,20 @@ namespace Combat.EditorTools
                 "Characters/Char_Teto", "Cards/Card_Teto_DrillSpin", "Cards/Card_Teto_BaguetteBash", "Cards/Card_Teto_Ritual",
                 "Characters/Char_Rei", "Cards/Card_Rei_PatchProtocol", "Cards/Card_Rei_VirusSpike", "Cards/Card_Rei_Ritual",
                 "Animations/Anim_Teto", "Animations/Anim_Rei",
+                "Characters/Char_2B", "Cards/Card_2B_VirtuousContract", "Cards/Card_2B_PodSupport", "Cards/Card_2B_Ritual",
+                "Characters/Char_V1", "Cards/Card_V1_SpinSaw", "Cards/Card_V1_ArmorBreaker", "Cards/Card_V1_Ritual",
+                "Characters/Char_V2", "Cards/Card_V2_PatchProtocol", "Cards/Card_V2_VirusSpike", "Cards/Card_V2_Ritual",
+                "Animations/Anim_2B", "Animations/Anim_V1", "Animations/Anim_V2",
+                "Parts/Part_ServoBlade", "Parts/Part_IonEmitter", "Parts/Part_ReinforcedPlating", "Parts/Part_MossFilter",
             };
             foreach (var file in legacy)
             {
                 string path = Root + "/" + file + ".asset";
                 if (AssetDatabase.LoadAssetAtPath<Object>(path) != null) AssetDatabase.DeleteAsset(path);
             }
+            // Retired character art (2B, V1 and V2 became MC, Heal Bot and Lucy).
+            foreach (var folder in new[] { "2B", "V1", "V2" })
+                if (AssetDatabase.IsValidFolder(CharacterArt + folder)) AssetDatabase.DeleteAsset(CharacterArt + folder);
         }
 
         /// <summary>Creates the asset, or copies into the existing one so references and GUIDs survive.</summary>

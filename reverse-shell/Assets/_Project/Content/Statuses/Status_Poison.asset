@@ -24,3 +24,4 @@ MonoBehaviour:
   healPerRoundPercentMaxHP: 0
   preventsAction: 0
   description: Lose 3% max HP per stack at round end.
+  verb: poison

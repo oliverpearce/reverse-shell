@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf22662e2936bd543a3f13e4bc9cb4b9, type: 3}
+  m_Name: Char_MC
+  m_EditorClassIdentifier: 
+  displayName: MC
+  color: {r: 0.92, g: 0.92, b: 0.95, a: 1}
+  portrait: {fileID: 0}
+  animations: {fileID: 11400000, guid: df40602cce302604787afe32bf2767df, type: 2}
+  spriteSheet: {fileID: 0}
+  sheetColumns: 3
+  sheetRows: 4
+  afflatus: 0
+  damageType: 0
+  stats:
+    maxHP: 2200
+    attack: 240
+    physicalDefense: 130
+    specialDefense: 130
+    critRate: 0.1
+    critDamage: 1.5
+  archetype: Prototype
+  incantations:
+  - {fileID: 11400000, guid: 8d2593e3280362746b61a936dfcbe482, type: 2}
+  - {fileID: 11400000, guid: bc3bb12f95760db4eaa7e9a14060a401, type: 2}
+  cardPool:
+  - {fileID: 11400000, guid: a643f77a8a22f22488901442c7ac5974, type: 2}
+  ritual: {fileID: 11400000, guid: 34edb817f953b444c9bf24763d8463b1, type: 2}
+  growthPerLevel: 0.08
+  portraitFront: {fileID: 21300000, guid: 77cb898fbba3d0944a12b8301b33d9c0, type: 3}
+  portraitInternals: {fileID: 21300000, guid: 10be175dfe0e2b3458bd963d703ac55d, type: 3}
+  portraitGlow: {fileID: 21300000, guid: 6914129caa742794a90fa08babf3b57e, type: 3}
+  portraitInternalsGlow: {fileID: 21300000, guid: 658e6df7f9cb46e4185740947a88c882,
+    type: 3}
+  partSockets: []
+  statBarReference: 1
+  channels: 000000000100000002000000030000000400000005000000
+  neutralGlow: 1
+  glowColor: {r: 1, g: 1, b: 1, a: 1}

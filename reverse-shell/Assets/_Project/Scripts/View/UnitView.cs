@@ -7,7 +7,8 @@ using UnityEngine.UI;
 namespace Combat.View
 {
     /// <summary>
-    /// A battlefield unit: animated pixel sprite (or placeholder), HP, Moxie pips, statuses, enemy intent.
+    /// A battlefield unit: animated pixel sprite (or placeholder), HP, Ult pips beside the unit-type diamond, statuses,
+    /// and the enemy intent card.
     /// A red lock-on reticle marks the targeted enemy and a white ring marks the unit under the cursor
     /// (mouse or arrow keys). Full details live in the inspect screen (hold, or Space).
     /// </summary>
@@ -82,9 +83,10 @@ namespace Combat.View
 
             if (unit.Team == Team.Enemy)
             {
-                // Slay the Spire-style intent: just an icon above the head (details are in the hover menu).
+                // Intent: a small card above the head showing what the enemy will play: its type icon on a cream,
+                // silver or gold card for rank I / II / III (details are in the inspect screen).
                 intentIcon = UIFactory.CreateImage(transform, "Intent", Color.white);
-                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, IntentY), new Vector2(52f, 52f));
+                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, IntentY), new Vector2(68f, 68f));
                 intentIcon.preserveAspect = true;
                 intentIcon.gameObject.SetActive(false);
             }
@@ -98,7 +100,7 @@ namespace Combat.View
             // Reticles sit in front of the body, centered on the torso (or the panel's middle).
             var reticleAnchor = animator != null ? new Vector2(0.5f, 0f) : new Vector2(0.5f, 0.5f);
             var reticlePos = animator != null ? new Vector2(0f, 122f) : Vector2.zero;
-            var orange = PersonaStyle.TargetOrange;
+            var orange = InkStyle.TargetOrange;
             var orangeGlow = orange;
             orangeGlow.a = 0.85f;
             targetPreview = TargetReticle.CreateFocus(Body, reticleAnchor, reticlePos, 236f, orange, orangeGlow, "TargetPreview");
@@ -106,7 +108,7 @@ namespace Combat.View
             if (unit.Team == Team.Enemy)
                 lockOn = TargetReticle.CreateLock(Body, reticleAnchor, reticlePos, 156f);
 
-            string label = unit.Team == Team.Player ? def.DisplayName + "  <size=18>Lv " + unit.Level + "</size>" : def.DisplayName;
+            string label = def.DisplayName; // levels live in the crew menu, not on the battlefield
             var nameText = UIFactory.CreateText(transform, "Name", label, 32, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(16, 32);
             nameText.supportRichText = true;
             nameText.rectTransform.Place(top, top, new Vector2(0f, -232f), new Vector2(Width + 40f, 42f));
@@ -115,7 +117,7 @@ namespace Combat.View
             nameShadow.effectDistance = new Vector2(2f, -2f);
 
             var character = def as CharacterDefinition;
-            string subtitle = def.afflatus + "  ·  " + def.damageType;
+            string subtitle = AfflatusInfo.Display(def.afflatus) + "  ·  " + def.damageType;
             if (character != null && !string.IsNullOrEmpty(character.archetype)) subtitle = character.archetype + "  ·  " + subtitle;
             var sub = UIFactory.CreateText(transform, "Afflatus", subtitle, 16, new Color(0.75f, 0.75f, 0.8f)).BestFit(10, 16);
             sub.rectTransform.Place(top, top, new Vector2(0f, -276f), new Vector2(Width, 22f));
@@ -129,20 +131,28 @@ namespace Combat.View
             fillRt.anchorMax = Vector2.one;
             fillRt.offsetMin = fillRt.offsetMax = Vector2.zero;
 
+            // An empty diamond to the left of the bars: reserved for unit-type icons (enemy and ally types).
+            var typeSlot = UIFactory.CreateImage(transform, "TypeDiamond", new Color(1f, 1f, 1f, 0.55f));
+            typeSlot.sprite = CardIcons.EmptyDiamond;
+            typeSlot.preserveAspect = true;
+            typeSlot.rectTransform.Place(top, new Vector2(1f, 0.5f), new Vector2(-108f, -325f), new Vector2(44f, 44f)); // centred on the HP + Ult rows
+            if (typeSlot.sprite == null) typeSlot.enabled = false;
+
+            // Ult points right under the HP bar: a row of small diamonds that fill gold.
             if (unit.Team == Team.Player)
             {
-                var row = UIFactory.CreateRect("Moxie", transform).Place(top, top, new Vector2(0f, -330f), new Vector2(200f, 14f));
-                float gap = 6f;
-                float w = (200f - gap * (moxieCap - 1)) / moxieCap;
+                var row = UIFactory.CreateRect("Ult", transform).Place(top, top, new Vector2(0f, -330f), new Vector2(200f, 18f));
+                const float pipSize = 18f, gap = 4f;
                 for (int i = 0; i < moxieCap; i++)
                 {
-                    var pip = UIFactory.CreateImage(row, "Pip" + i, PanelDark);
-                    pip.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(i * (w + gap), 0f), new Vector2(w, 14f));
+                    var pip = UIFactory.CreateImage(row, "Pip" + i, Color.white);
+                    pip.sprite = CardIcons.PipEmpty;
+                    pip.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(i * (pipSize + gap), 0f), new Vector2(pipSize, pipSize));
                     moxiePips.Add(pip);
                 }
             }
 
-            statusRow = UIFactory.CreateRect("Statuses", transform).Place(top, top, new Vector2(0f, -352f), new Vector2(Width, 26f));
+            statusRow = UIFactory.CreateRect("Statuses", transform).Place(top, top, new Vector2(0f, -358f), new Vector2(Width, 26f));
             var layout = statusRow.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.spacing = 4f;
@@ -167,7 +177,7 @@ namespace Combat.View
 
             // 64 px frames at exactly 4x keep pixels crisp; the LPC feet sit ~3px (12 at 4x) above the frame bottom.
             var images = new List<Image>();
-            var glowColor = Color.Lerp(unit.Definition.color, Color.white, 0.45f);
+            var glowColor = Color.Lerp(unit.Character != null ? AfflatusInfo.GlowFor(unit.Character) : unit.Definition.color, Color.white, 0.45f);
             glowColor.a = 0.16f;
             foreach (var o in new[] { new Vector2(-4f, 0f), new Vector2(4f, 0f), new Vector2(0f, 4f), new Vector2(0f, -4f),
                                       new Vector2(-3f, 3f), new Vector2(3f, 3f), new Vector2(-3f, -3f), new Vector2(3f, -3f) })
@@ -324,8 +334,9 @@ namespace Combat.View
             bool full = value >= cap;
             for (int i = 0; i < moxiePips.Count; i++)
             {
-                Color c = i < value ? (full ? new Color(1f, 0.55f, 0.2f) : Gold) : PanelDark;
-                moxiePips[i].color = c;
+                bool on = i < value;
+                if (CardIcons.PipFull != null) moxiePips[i].sprite = on ? CardIcons.PipFull : CardIcons.PipEmpty;
+                moxiePips[i].color = on ? (full ? new Color(1f, 0.55f, 0.2f) : Gold) : new Color(1f, 1f, 1f, 0.45f);
             }
         }
 
@@ -342,7 +353,7 @@ namespace Combat.View
             if (intentIcon == null) return;
             bool show = intent != null && Unit.IsAlive;
             intentIcon.gameObject.SetActive(show);
-            if (show) intentIcon.sprite = IntentIcons.For(intent.Definition.kind);
+            if (show) intentIcon.sprite = CardIcons.IntentCard(intent);
         }
 
         public void SetStatuses(List<StatusSnapshot> statuses)
@@ -453,18 +464,21 @@ namespace Combat.View
                 case CardKind.Attack: return "Attack";
                 case CardKind.Buff: return "Buff";
                 case CardKind.Debuff: return "Debuff";
+                case CardKind.Counter: return "Counter";
                 default: return "Heal";
             }
         }
 
+        /// <summary>The kind's color, matching its icon in the CardIcons atlas (red, blue, purple, green, ochre).</summary>
         public static Color KindColor(CardKind kind)
         {
             switch (kind)
             {
-                case CardKind.Attack: return new Color(0.9f, 0.35f, 0.3f);
-                case CardKind.Buff: return new Color(0.95f, 0.75f, 0.3f);
-                case CardKind.Debuff: return new Color(0.65f, 0.4f, 0.9f);
-                default: return new Color(0.35f, 0.85f, 0.5f);
+                case CardKind.Attack: return new Color(0.84f, 0.3f, 0.27f);
+                case CardKind.Buff: return new Color(0.3f, 0.5f, 0.82f);
+                case CardKind.Debuff: return new Color(0.5f, 0.36f, 0.75f);
+                case CardKind.Counter: return new Color(0.76f, 0.58f, 0.2f);
+                default: return new Color(0.35f, 0.72f, 0.48f);
             }
         }
     }

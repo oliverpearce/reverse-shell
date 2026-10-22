@@ -55,6 +55,20 @@ namespace Combat
         }
 
         /// <summary>
+        /// Fits each member's deck and Parts. Call before <see cref="ApplyParty"/> (Parts can change max HP)
+        /// and before StartBattle. Members not listed use their default cards and no Parts.
+        /// </summary>
+        public void ApplyLoadouts(IDictionary<CharacterDefinition, Loadout> loadouts)
+        {
+            if (loadouts == null) return;
+            foreach (var unit in State.Party)
+            {
+                Loadout loadout;
+                if (unit.Character != null && loadouts.TryGetValue(unit.Character, out loadout)) unit.ApplyLoadout(loadout);
+            }
+        }
+
+        /// <summary>
         /// Each member's progress as it stands now: level and XP from <paramref name="start"/> (or level 1),
         /// HP from the battlefield (full HP is stored as -1).
         /// </summary>

@@ -53,9 +53,14 @@ CUSTOM = {
     'rei_white': ['#2A2833', '#5C5A6E', '#9C9BB0', '#C9C8D8', '#E6E6F0', '#FFFFFF'],
     'yorha_white': ['#3A3C46', '#6E7180', '#A5A8B4', '#CDD0D8', '#E8EAEE', '#FFFFFF'],
     # Machine lifeform plating: sun-baked rust over brown steel, and a moss-grown variant.
-    # Party robots V1/V2: clean white and charcoal plating.
+    # Party robots (MC, Heal Bot, Lucy): clean white and charcoal plating, plus element accents.
     'android_white': ['#2A2C34', '#5A5E6A', '#9599A6', '#C4C7D0', '#E4E6EC', '#FFFFFF'],
     'android_dark': ['#0E0F13', '#1C1E25', '#2D3039', '#41454F', '#5C616C', '#8A909C'],
+    'eye_moss': ['#1E4A1A', '#6ED04E', '#D8FFB8'],
+    'eye_virus': ['#3A1458', '#B26CF2', '#F2DCFF'],
+    'eye_white': ['#5A5E6A', '#E8EAF0', '#FFFFFF'],
+    'accent_moss': ['#13240F', '#22401A', '#356428', '#4E8A36', '#72B04A', '#A6D872'],
+    'accent_virus': ['#1A0B26', '#341650', '#522680', '#7438AE', '#9A5AD8', '#C99AF4'],
     'machine_rust':['#22140E', '#45281A', '#6E4226', '#94622F', '#BC8A4A', '#E2C27E'],
     'machine_moss': ['#1A1E14', '#2E3A22', '#4C5A30', '#6E7A3E', '#98A256', '#C8CC88'],
     'neon_orange':['#2A0D04', '#6B2406', '#B44409', '#E86C10', '#FF9A3C', '#FFC98A'],
@@ -113,25 +118,44 @@ RECIPES = {
         ],
     },
     # Party robots: fully plated LPC bodies, helmets for heads.
-    'V1': {
-        'body': 'male', 'skin': 'fur_grey', 'eyes': 'blue', 'head': 'sheet_definitions/head/heads/human/heads_human_male.json',
+    # The shared party robot (Heal Bot and Lucy are the same model): white plates, element-colored arms,
+    # two glowing eyes in the element color (the 'eyes' mask) and scale trims along the armour ('trim' overlay).
+    'HealBot': {
+        'body': 'male', 'skin': 'fur_grey', 'eyes': 'eye_moss', 'head': 'sheet_definitions/head/heads/human/heads_human_male.json',
+        'overlay': ['trim:#8EE070', 'overgrowth'],
         'layers': [
             ('sheet_definitions/feet/feet_armour.json', {'material': 'android_dark'}),
             ('sheet_definitions/legs/legs_armour.json', {'material': 'android_white'}),
             ('sheet_definitions/torso/armour/torso_armour_plate.json', {'material': 'android_white'}),
-            ('sheet_definitions/arms/arms_armour.json', {'material': 'android_dark'}),
-            ('sheet_definitions/headwear/helmets/helmets/hat_helmet_xeon.json', {'material': 'android_white'}),
+            ('sheet_definitions/arms/arms_armour.json', {'material': 'accent_moss'}),
+            ('sheet_definitions/hair/bald/hair_buzzcut.json', {'material': 'android_white'}),  # smooth head plating
+            ('sheet_definitions/headwear/accessories/glasses/facial_glasses_shades.json', {'variant': 'black', 'mask': 'eyes:#8EE070'}),
         ],
     },
-    'V2': {
-        'body': 'female', 'skin': 'fur_grey', 'eyes': 'blue',
+    'Lucy': {
+        'body': 'male', 'skin': 'fur_grey', 'eyes': 'eye_virus', 'head': 'sheet_definitions/head/heads/human/heads_human_male.json',
+        'overlay': ['trim:#C98AFF', 'glitch'],
         'layers': [
-            ('sheet_definitions/feet/feet_armour.json', {'material': 'android_white'}),
-            ('sheet_definitions/legs/legs_armour.json', {'material': 'android_dark'}),
-            ('sheet_definitions/torso/armour/torso_armour_plate.json', {'material': 'android_dark'}),
-            ('sheet_definitions/arms/arms_armour.json', {'material': 'android_white'}),
-            ('sheet_definitions/headwear/helmets/helmets/hat_helmet_armet_simple.json', {'material': 'android_white'}),
+            ('sheet_definitions/feet/feet_armour.json', {'material': 'android_dark'}),
+            ('sheet_definitions/legs/legs_armour.json', {'material': 'android_white'}),
+            ('sheet_definitions/torso/armour/torso_armour_plate.json', {'material': 'android_white'}),
+            ('sheet_definitions/arms/arms_armour.json', {'material': 'accent_virus'}),
+            ('sheet_definitions/hair/bald/hair_buzzcut.json', {'material': 'android_white'}),  # smooth head plating
+            ('sheet_definitions/headwear/accessories/glasses/facial_glasses_shades.json', {'variant': 'black', 'mask': 'eyes:#C98AFF'}),
         ],
+    },
+    # MC: the standout model. A long dark trench coat over white plating, a smooth helm, white eyes and trims.
+    'MC': {
+        'body': 'male', 'skin': 'fur_grey', 'eyes': 'eye_white', 'head': 'sheet_definitions/head/heads/human/heads_human_male.json',
+        'layers': [
+            ('sheet_definitions/feet/feet_armour.json', {'material': 'android_dark'}),
+            ('sheet_definitions/legs/legs_armour.json', {'material': 'android_white'}),
+            # No chest plate or arm armour: they sit above the coat (higher zPos) and would hide it.
+            ('sheet_definitions/torso/jacket/torso_jacket_trench.json', {'variant': 'dark gray'}),
+            ('sheet_definitions/hair/bald/hair_buzzcut.json', {'material': 'android_white'}),  # smooth head plating
+            ('sheet_definitions/headwear/accessories/glasses/facial_glasses_shades.json', {'variant': 'black', 'mask': 'eyes:#FFFFFF'}),
+        ],
+        'overlay': ['trim:#FFFFFF'],
     },
     # Machine lifeforms: armored LPC bodies recolored as rusted plating. Helmets hide the faces.
     'RustSentry': {
@@ -389,21 +413,33 @@ def compose(name, recipe):
             print('  ! no layers for', anim)
             continue
         apply_masks(canvas, masks)
+        overlays = recipe.get('overlay') or []
+        for overlay in ([overlays] if isinstance(overlays, str) else overlays):
+            apply_overlay(canvas, overlay, anim)
         write_png(os.path.join(out_dir, anim + '.png'), cw, ch, canvas)
     write_credits(name, out_dir, credits)
     print('built', name, '->', os.path.relpath(out_dir, ROOT))
 
 
 def apply_masks(canvas, masks):
-    """Post effects driven by mask layers. 'blindfold': a black band over the eyes, using a glasses layer
-    to find the eye rows in every frame. Back-facing frames (row 0, walking away from the camera) get no
-    band: from behind the hair covers it."""
-    mask = masks.get('blindfold')
-    if mask is None:
-        return
+    """Post effects driven by mask layers, using a glasses layer to find the eye rows in every frame.
+    'blindfold': a black band over the eyes. 'visor:#RRGGBB': a glowing visor band in that color.
+    'eyes:#RRGGBB': two glowing eye pixels in that color (one in side views), no band.
+    Back-facing frames (row 0, walking away from the camera) get no band."""
+    for name, mask in masks.items():
+        if name == 'blindfold':
+            paint_band(canvas, mask, (18, 18, 22, 255), (62, 62, 72, 255))
+        elif name.startswith('visor:'):
+            glow = hex_rgb(name[6:]) + (255,)
+            dark = tuple(int(v * 0.45) for v in glow[:3]) + (255,)
+            paint_band(canvas, mask, glow, dark)
+        elif name.startswith('eyes:'):
+            paint_eyes(canvas, mask, hex_rgb(name[5:]) + (255,))
+
+
+def paint_band(canvas, mask, band, edge):
     h, w = len(canvas), len(canvas[0])
     rows, cols = h // FRAME, w // FRAME
-    band, edge = (18, 18, 22, 255), (62, 62, 72, 255)
     for r in range(rows):
         if r == 0 and rows >= 3:
             continue
@@ -423,6 +459,118 @@ def apply_masks(canvas, masks):
                     x = c * FRAME + fx
                     if canvas[y][x][3] > 0:
                         canvas[y][x] = edge if fy == top else band
+
+
+def paint_eyes(canvas, mask, color):
+    """Two glowing eyes where the glasses layer marks the eye rows: a lit pixel near each end of the span (front),
+    or one near the facing side (side views), with a dark pixel beside it for contrast. Row order is up, left,
+    down, right; back-facing frames get none."""
+    h, w = len(canvas), len(canvas[0])
+    rows, cols = h // FRAME, w // FRAME
+    dark = (14, 13, 18, 255)
+    for r in range(rows):
+        if r == 0 and rows >= 3:
+            continue
+        facing = 'front' if rows < 3 or r == 2 else 'left' if r == 1 else 'right'
+        for c in range(cols):
+            spans = {}
+            for fy in range(FRAME):
+                xs = [fx for fx in range(FRAME) if mask[r * FRAME + fy][c * FRAME + fx][3] > 0]
+                if xs:
+                    spans[fy] = (min(xs), max(xs))
+            if not spans:
+                continue
+            ys = sorted(spans)
+            fy = ys[len(ys) // 2]  # the middle eye row
+            x0, x1 = spans[fy]
+            if facing == 'front':
+                spots = [(x0 + 1, 1), (x1 - 1, -1)]
+            elif facing == 'left':
+                spots = [(x0 + 1, 1)]
+            else:
+                spots = [(x1 - 1, -1)]
+            y = r * FRAME + fy
+            for fx, inward in spots:
+                x = c * FRAME + fx
+                if canvas[y][x][3] > 0:
+                    canvas[y][x] = color
+                    xi = x + inward
+                    if canvas[y][xi][3] > 0 and canvas[y][xi] != color:
+                        canvas[y][xi] = dark
+
+
+def frame_box(canvas, r, c):
+    """Opaque bounds of one frame: (top, bottom, center x), or None for an empty frame."""
+    top, bottom, xs = None, None, []
+    for fy in range(FRAME):
+        row = canvas[r * FRAME + fy]
+        hits = [fx for fx in range(FRAME) if row[c * FRAME + fx][3] > 0]
+        if hits:
+            top = fy if top is None else top
+            bottom = fy
+            xs.extend(hits)
+    if top is None:
+        return None
+    return top, bottom, (min(xs) + max(xs)) // 2
+
+
+def apply_overlay(canvas, overlay, anim):
+    """Per-frame decorations anchored to the body (positions are relative to the frame's head top and center,
+    so they move with the character instead of flickering).
+    'overgrowth': leaves and moss along the upper outline plus a flower on the head (Heal Bot).
+    'glitch': a few purple corrupted pixels along the outline (Lucy).
+    'trim:#RRGGBB': scale trims, a staggered pattern of glowing pixels just inside the armour's outline on the
+    body below the head, alternating bright and dim like overlapping scales."""
+    if not overlay:
+        return
+    h, w = len(canvas), len(canvas[0])
+    rows, cols = h // FRAME, w // FRAME
+    leaves = [(34, 64, 26, 255), (53, 101, 40, 255), (78, 138, 54, 255), (114, 176, 74, 255)]
+    trim = trim_dim = None
+    if overlay.startswith('trim:'):
+        trim = hex_rgb(overlay[5:]) + (255,)
+        trim_dim = tuple(int(v * 0.6) for v in trim[:3]) + (255,)
+    virus = [(116, 56, 174, 255), (201, 138, 255, 255)]
+    for r in range(rows):
+        for c in range(cols):
+            box = frame_box(canvas, r, c)
+            if box is None:
+                continue
+            top, bottom, cx = box
+            height = max(1, bottom - top)
+            edits = []
+            for fy in range(top, bottom + 1):
+                for fx in range(FRAME):
+                    y, x = r * FRAME + fy, c * FRAME + fx
+                    if canvas[y][x][3] == 0:
+                        continue
+                    edge = any(not (0 <= fx + dx < FRAME and 0 <= fy + dy < FRAME) or canvas[y + dy][x + dx][3] == 0
+                               for dx, dy in ((1, 0), (-1, 0), (0, -1), (0, 1)))
+                    rel = (fy - top) / height
+                    key = ((fx - cx) * 73856093) ^ ((fy - top) * 19349663)
+                    if overlay == 'overgrowth':
+                        if edge and rel < 0.62 and key % 3 == 0:
+                            edits.append((y, x, leaves[(key >> 3) % 4]))
+                        elif edge and rel >= 0.62 and key % 7 == 0:
+                            edits.append((y, x, leaves[1 + (key >> 3) % 2]))
+                    elif trim is not None:
+                        # One pixel inside the outline (an edge neighbour, not the edge itself), staggered rows.
+                        inner = not edge and any(canvas[y + dy][x + dx][3] == 0
+                                                 for dx, dy in ((2, 0), (-2, 0), (0, 2))
+                                                 if 0 <= fx + dx < FRAME and 0 <= fy + dy < FRAME)
+                        if inner and 0.3 < rel < 0.95 and (fx + (fy // 2) * 2) % 3 == 0:
+                            edits.append((y, x, trim if fy % 2 == 0 else trim_dim))
+                    elif overlay == 'glitch':
+                        if edge and key % 11 == 0:
+                            edits.append((y, x, virus[(key >> 4) % 2]))
+            for y, x, col in edits:
+                canvas[y][x] = col
+            if overlay == 'overgrowth' and r != 0:  # a little flower on the head (not from behind)
+                y, x = r * FRAME + top, c * FRAME + cx + (2 if r == 3 else -2 if r == 1 else 1)
+                for dx, dy, col in ((0, 0, (242, 212, 90, 255)), (-1, 0, (232, 137, 168, 255)), (1, 0, (232, 137, 168, 255)),
+                                    (0, -1, (247, 198, 214, 255))):
+                    if 0 <= y + dy < h and 0 <= x + dx < w:
+                        canvas[y + dy][x + dx] = col
 
 
 def write_credits(name, out_dir, credits):

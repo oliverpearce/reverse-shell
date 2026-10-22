@@ -16,22 +16,30 @@ namespace Combat.View
 
         BattleUnit unit;
         CardDefinition card;
+        float scale = Scale;
         RectTransform face;
         int rank = 1, maxRank = 1;
         float hover, hoverTarget;
 
         public static AbilityCard Create(RectTransform row, BattleUnit unit, CardDefinition card, int fixedRank)
         {
+            return Create(row, unit, card, fixedRank, Scale);
+        }
+
+        /// <summary>The same, at another size (the crew menu shows a whole row of smaller cards).</summary>
+        public static AbilityCard Create(RectTransform row, BattleUnit unit, CardDefinition card, int fixedRank, float scale)
+        {
             var holder = UIFactory.CreateRect(card.DisplayName, row);
             var element = holder.gameObject.AddComponent<LayoutElement>();
-            element.preferredWidth = FaceSize.x;
-            element.preferredHeight = FaceSize.y;
+            element.preferredWidth = CardView.Size.x * scale;
+            element.preferredHeight = CardView.Size.y * scale;
             var hit = holder.gameObject.AddComponent<Image>(); // catches hover + wheel over the whole card
             hit.color = new Color(0f, 0f, 0f, 0f);
 
             var ability = holder.gameObject.AddComponent<AbilityCard>();
             ability.unit = unit;
             ability.card = card;
+            ability.scale = scale;
             ability.maxRank = card.isRitual ? 1 : Mathf.Max(1, card.MaxRank);
             ability.Select(fixedRank > 0 ? fixedRank : 1);
             return ability;
@@ -42,8 +50,8 @@ namespace Combat.View
             rank = Mathf.Clamp(newRank, 1, maxRank);
             if (face != null) Destroy(face.gameObject);
             face = UIFactory.CreateRect("Face", transform);
-            face.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, FaceSize);
-            CardView.BuildFace(face, new CardInstance(card, unit, rank), Scale);
+            face.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, CardView.Size * scale);
+            CardView.BuildFace(face, new CardInstance(card, unit, rank), scale);
             foreach (var g in face.GetComponentsInChildren<Graphic>()) g.raycastTarget = false; // the holder handles input
         }
 

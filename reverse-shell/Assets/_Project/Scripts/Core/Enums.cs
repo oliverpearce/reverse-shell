@@ -29,7 +29,8 @@ namespace Combat
 
     public enum EffectTarget { CardTargets, Self, SingleEnemy, AllEnemies, RandomEnemy, SingleAlly, AllAllies, RandomAlly }
 
-    public enum CardKind { Attack, Buff, Debuff, Heal }
+    /// <summary>What a card does, shown by its type icon and kind word. Counter: triggers under certain conditions.</summary>
+    public enum CardKind { Attack, Buff, Debuff, Heal, Counter }
 
     public enum Team { Player, Enemy }
 

@@ -63,12 +63,13 @@ namespace Game.World
             var center = new Vector2(0.5f, 0.5f);
 
             // Interact prompt (follows a world point)
-            // A black box with a lilac key: simple and readable.
-            var promptBg = UIFactory.CreateImage(root, "Prompt", new Color(0.04f, 0.03f, 0.05f, 0.88f));
+            // An ink box with a gold hairline and a gold key: simple and readable.
+            var promptBg = InkStyle.Panel(root, "Prompt", InkStyle.InkPanel);
             promptRect = promptBg.rectTransform;
             promptRect.sizeDelta = new Vector2(380f, 52f);
             promptRect.pivot = new Vector2(0.5f, 0f);
-            promptText = UIFactory.CreateText(promptRect, "Text", "", 26, PersonaStyle.White, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(12, 26);
+            InkStyle.Frame(promptRect, InkStyle.Rule, 2f);
+            promptText = UIFactory.CreateText(promptRect, "Text", "", 26, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(12, 26);
             promptText.supportRichText = true;
             promptText.rectTransform.Fill(10f);
             promptBg.gameObject.SetActive(false);
@@ -78,19 +79,19 @@ namespace Game.World
             var title = UIFactory.CreateRect("Title", root).Place(center, center, new Vector2(0f, 260f), new Vector2(1200f, 160f));
             titleGroup = title.gameObject.AddComponent<CanvasGroup>();
             titleGroup.alpha = 0f;
-            // Area title: huge tilted Anton on a black slab, lilac shadow; subtitle in lilac.
-            var titleSlab = PersonaStyle.Slant(title, "Slab", PersonaStyle.Black);
-            titleSlab.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 6f), new Vector2(1100f, 120f));
-            titleSlab.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -3f);
-            titleText = PersonaStyle.Title(title, "Text", "", 104, PersonaStyle.White, PersonaStyle.LilacDeep, TextAnchor.MiddleCenter, 6f);
-            titleText.rectTransform.TopStrip(0f, 116f);
-            titleText.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -3f);
-            subtitleText = UIFactory.CreateText(title, "Subtitle", "", 34, PersonaStyle.Lilac, TextAnchor.MiddleCenter);
-            subtitleText.font = UIFactory.DisplayFont;
-            subtitleText.rectTransform.TopStrip(126f, 44f);
-            subtitleText.gameObject.AddComponent<Shadow>().effectColor = PersonaStyle.Black;
+            // Area title: a big serif name between two gold rules, a spaced-caps subtitle beneath.
+            var band = InkStyle.Panel(title, "Band", InkStyle.Smoke);
+            band.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 4f), new Vector2(1100f, 172f));
+            var ruleTop = InkStyle.Line(title, "RuleTop", InkStyle.Gold);
+            ruleTop.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 0f), new Vector2(760f, 2f));
+            titleText = InkStyle.Title(title, "Text", "", 96, InkStyle.Paper, TextAnchor.MiddleCenter);
+            titleText.rectTransform.TopStrip(6f, 112f);
+            var ruleBottom = InkStyle.Line(title, "RuleBottom", InkStyle.Gold);
+            ruleBottom.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -122f), new Vector2(760f, 2f));
+            subtitleText = UIFactory.CreateText(title, "Subtitle", "", 22, InkStyle.Gold, TextAnchor.MiddleCenter, FontStyle.Bold);
+            subtitleText.rectTransform.TopStrip(128f, 40f);
 
-            var hint = UIFactory.CreateText(root, "Hint", "WASD / Arrows: move    Shift: run    F: interact    Esc: party", 20,
+            var hint = UIFactory.CreateText(root, "Hint", "WASD / Arrows: move    Shift: run    F: interact    Esc: crew", 20,
                 new Color(0.95f, 0.93f, 0.85f, 0.85f), TextAnchor.LowerLeft);
             hint.rectTransform.Place(bottomLeft, bottomLeft, new Vector2(24f, 16f), new Vector2(800f, 30f));
             hint.gameObject.AddComponent<Outline>().effectColor = new Color(0.15f, 0.14f, 0.11f, 0.8f); // readable over bright ground
@@ -105,7 +106,7 @@ namespace Game.World
             fade.color = new Color(0f, 0f, 0f, 0f);
         }
 
-        static readonly Color HudText = PersonaStyle.White;
+        static readonly Color HudText = InkStyle.Paper;
         static readonly Color HudShadow = new Color(0.08f, 0.07f, 0.05f, 0.85f);
         static Sprite fadeRight;
 
@@ -135,7 +136,7 @@ namespace Game.World
 
                 if (leader)
                 {
-                    var glow = UIFactory.CreateImage(row, "LeaderGradient", new Color(0.69f, 0.55f, 0.95f, 0.4f));
+                    var glow = UIFactory.CreateImage(row, "LeaderGradient", UIFactory.WithAlpha(InkStyle.Ink, 0.7f));
                     glow.sprite = FadeRightSprite();
                     glow.rectTransform.anchorMin = Vector2.zero;
                     glow.rectTransform.anchorMax = Vector2.one;
@@ -146,8 +147,7 @@ namespace Game.World
                 var line = UIFactory.CreateImage(row, "Color", m.Color);
                 line.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(lineX, 0f), new Vector2(leader ? 6f : 5f, height - 4f));
 
-                var name = UIFactory.CreateText(row, "Name", m.Name.ToUpperInvariant(), (int)(nameSize * 1.25f), HudText, TextAnchor.LowerLeft);
-                name.font = UIFactory.DisplayFont;
+                var name = InkStyle.Title(row, "Name", m.Name, (int)(nameSize * 1.35f), HudText, TextAnchor.LowerLeft);
                 name.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(contentX, 0f), new Vector2(width, nameSize + 4f));
                 name.gameObject.AddComponent<Outline>().effectColor = HudShadow;
 
@@ -194,7 +194,7 @@ namespace Game.World
                 HidePrompt();
                 return;
             }
-            promptText.text = "<color=#B08CF2>[" + key + "]</color>  " + text;
+            promptText.text = "<color=#C2A061>[" + key + "]</color>  " + text;
             promptRect.position = screen;
             if (!promptRect.gameObject.activeSelf) promptRect.gameObject.SetActive(true);
         }
@@ -220,7 +220,7 @@ namespace Game.World
         public IEnumerator ShowTitle(string title, string subtitle)
         {
             titleText.text = title;
-            subtitleText.text = subtitle;
+            subtitleText.text = InkStyle.Spaced(subtitle);
             yield return Tween.Fade(titleGroup, 1f, 0.6f);
             yield return new WaitForSeconds(1.8f);
             yield return Tween.Fade(titleGroup, 0f, 0.8f);

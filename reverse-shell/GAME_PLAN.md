@@ -15,7 +15,7 @@ This is the technical roadmap. For the creative vision, see [GAME_BIBLE.md](GAME
 - Logic (`BattleController`) is separate from the view (`BattleView`), which replays `BattleEvent`s.
 - Slay the Spire-style hover preview, play-slot frames, pastel Ritual cards and big damage numbers.
 - An EditMode test suite covers merges, Moxie, AP, damage and statuses.
-- The main party is 2B (YoRHa Battler), Teto (Bruiser) and Rei (Android Medic). The enemies are machine lifeforms (Rust Sentry, Scrap Stalker). Enemies and NPCs are animated 32×48 LPC sprites (`SpriteAnimationSet`: idle, walk, slash, spellcast, hurt) built by `Tools/SpriteForge/lpc_compose.py`. Hovering a unit in battle opens a menu of its buffs, debuffs and intent. Holding a unit opens a full character sheet with stats, effects and abilities. The battle has a painted Mossline Station ruin backdrop with drifting leaves (`BattleBackdropDefinition`) and a pause menu (Esc or the top-right button) with Resume, Restart and Leave. The intro fight is tuned to last about 6–8 rounds.
+- The main party is MC (Prototype, the leader; a standout robot that will channel several elements), Heal Bot (Earth medic) and Lucy (Virus hacker). Heal Bot and Lucy are one robot model with different accents. The enemies are machine lifeforms (Rust Sentry, Scrap Stalker). Enemies and NPCs are animated 32×48 LPC sprites (`SpriteAnimationSet`: idle, walk, slash, spellcast, hurt) built by `Tools/SpriteForge/lpc_compose.py`. Hovering a unit in battle opens a menu of its buffs, debuffs and intent. Holding a unit opens a full character sheet with stats, effects and abilities. The battle has a painted Mossline Station ruin backdrop with drifting leaves (`BattleBackdropDefinition`) and a pause menu (Esc or the top-right button) with Resume, Restart and Leave. The intro fight is tuned to last about 6–8 rounds.
 
 ---
 
@@ -96,12 +96,13 @@ District scene (Tilemaps) ──step──► EncounterZone ──► BattleRequ
 | Formation | 3 active members out of up to 4, swapped in the pause menu. |
 | XP and level-ups | XP curve, stat growth, and a level-up popup on the results screen. |
 | Card upgrades | Spend Parts to raise a card's base numbers or unlock rank bonuses. |
-| Chips | One equippable passive per member, made as a new `PassiveEffect` hooked into battle events. |
+| Parts | ✅ Four internal slots per member (WPN / ARM / CHIP / CORE) with stat modifiers, a saved inventory and starter Parts. Next: Parts as loot, and passive effects (a new `PassiveEffect` hooked into battle events). |
+| Deck swap | ✅ Each member has a card pool; the crew menu swaps cards into the 2 deck slots. |
 
 ### Phase 5: Menus and save
 | Task | Notes |
 |---|---|
-| Pause menu | Crew (stats and cards), Items, Save, Options. |
+| Pause menu | ✅ Crew: the flip-card `CharacterMenu` (stats, deck, Parts, leader). Still to do: Save and Options. |
 | Save/Load | JSON in `Application.persistentDataPath`. Assets are referenced by stable IDs through a `ContentDatabase` ScriptableObject that lists every character, card and item. |
 | Title screen | New game, continue, options. |
 

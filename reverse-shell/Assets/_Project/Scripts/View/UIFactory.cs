@@ -13,7 +13,7 @@ namespace Combat.View
         public static Vector2 ReferenceResolution { get { return new Vector2(1920f, 1080f) / UIScale; } }
         // UI typography: M PLUS 1p (OFL), a clean Japanese gothic in the spirit of NieR:Automata's menus.
         // Light is the default; "bold" text uses the real Medium weight rather than a synthesized bold.
-        static Font font, mediumFont, boldFont, displayFont, fallback;
+        static Font font, mediumFont, boldFont, displayFont, serifFont, fallback;
 
         static Font Load(ref Font cache, string path)
         {
@@ -34,6 +34,16 @@ namespace Combat.View
 
         /// <summary>Body copy that has to stay readable at small sizes (card text, descriptions).</summary>
         public static Font BodyFont { get { return MediumFont; } }
+
+        /// <summary>Cormorant Garamond SemiBold (OFL): the serif for headings in the Reverse: 1999-style UI (<see cref="InkStyle"/>).</summary>
+        public static Font SerifFont
+        {
+            get
+            {
+                if (serifFont == null) serifFont = Resources.Load<Font>("Fonts/CormorantGaramond-SemiBold");
+                return serifFont != null ? serifFont : MediumFont;
+            }
+        }
 
         /// <summary>Anton (OFL): heavy condensed display face for labels such as dialogue speaker tags.</summary>
         public static Font DisplayFont

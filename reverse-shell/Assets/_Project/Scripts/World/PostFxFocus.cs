@@ -6,8 +6,8 @@ using UnityEngine.Rendering.PostProcessing;
 namespace Game.World
 {
     /// <summary>
-    /// Depth-of-field control for the overworld camera. The tilt-shift blur was removed at the user's request, so
-    /// this now just makes sure depth of field is off, even in post-processing profiles made before that change.
+    /// Keeps the overworld sharp, even with post-processing profiles made before these changes: depth of field and
+    /// film grain are switched off, and bloom only catches real light sources (not sunlit sprites).
     /// <see cref="target"/> is kept for scenes that already reference it. Does nothing without the Post Processing package.
     /// </summary>
     public class PostFxFocus : MonoBehaviour
@@ -21,8 +21,17 @@ namespace Game.World
         void LateUpdate()
         {
             if (done || volume == null) return;
+            // volume.profile is a runtime copy: the asset on disk is untouched.
             DepthOfField depthOfField;
-            if (volume.profile.TryGetSettings(out depthOfField)) depthOfField.active = false; // runtime copy of the profile
+            if (volume.profile.TryGetSettings(out depthOfField)) depthOfField.active = false;
+            Grain grain;
+            if (volume.profile.TryGetSettings(out grain)) grain.active = false;
+            Bloom bloom;
+            if (volume.profile.TryGetSettings(out bloom))
+            {
+                bloom.threshold.Override(Mathf.Max(bloom.threshold.value, 1.6f));
+                bloom.diffusion.Override(Mathf.Min(bloom.diffusion.value, 5f));
+            }
             done = true;
         }
 #endif

@@ -66,7 +66,7 @@ namespace Game.EditorTools
 
             var world = new GameObject("Overworld").AddComponent<OverworldBuilder>();
             world.tileAtlas = atlas;
-            world.playerSheet = null; // uses the party leader's sprite (2B) from the battle setup
+            world.playerSheet = null; // uses the party leader's sprite (MC) from the battle setup
             world.enemySheet = Load("Yakuza1.png");
             world.npcSheet = Load("streetPeople.png");
             // LPC animated look (falls back to the CyberCity sheets above if SpriteForge output is missing).
@@ -80,6 +80,7 @@ namespace Game.EditorTools
             world.encounterAnimations = SampleContentGenerator.AnimSet("RustSentry");
             world.encounterSetup = setup;
             world.battleScene = "Battle";
+            world.partCatalog = AssetDatabase.LoadAssetAtPath<PartCatalog>(Combat.EditorTools.SampleContentGenerator.PartCatalogPath);
 
             bool postFx = SetUpPostProcessing(camGo, focus);
 
@@ -165,10 +166,11 @@ namespace Game.EditorTools
                 Object.DestroyImmediate(sub, true);
 
             var bloom = Add<Bloom>(profile);
-            bloom.intensity.Override(1.2f);
-            bloom.threshold.Override(1.05f);
-            bloom.softKnee.Override(0.5f);
-            bloom.diffusion.Override(7f);
+            // Only true light sources bloom (threshold well above sunlit sprites), so characters stay sharp.
+            bloom.intensity.Override(1f);
+            bloom.threshold.Override(1.6f);
+            bloom.softKnee.Override(0.3f);
+            bloom.diffusion.Override(5f);
 
 
             // Washed-out, slightly warm and desaturated: a quiet ruin in hazy sunlight.
@@ -184,10 +186,6 @@ namespace Game.EditorTools
             vignette.intensity.Override(0.34f);
             vignette.smoothness.Override(0.5f);
             vignette.color.Override(new Color(0.12f, 0.13f, 0.08f));
-
-            var grain = Add<Grain>(profile);
-            grain.intensity.Override(0.12f);
-            grain.size.Override(0.9f);
 
             EditorUtility.SetDirty(profile);
             AssetDatabase.SaveAssets();

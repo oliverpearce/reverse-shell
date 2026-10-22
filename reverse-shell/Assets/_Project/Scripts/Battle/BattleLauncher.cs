@@ -12,6 +12,8 @@ namespace Combat
         public BattleSetup Setup;
         /// <summary>Level, XP and HP of each party member. Members not listed start fresh (level 1, full HP).</summary>
         public Dictionary<CharacterDefinition, MemberProgress> Party;
+        /// <summary>Each member's deck and fitted Parts. Members not listed use their default cards and no Parts.</summary>
+        public Dictionary<CharacterDefinition, Loadout> Loadouts;
         /// <summary>Called when the player leaves the battle (result screen, or "Leave Fight" from pause).</summary>
         public Action<BattleResult> OnComplete;
     }
@@ -55,7 +57,13 @@ namespace Combat
 
         public static void Request(BattleSetup setup, Dictionary<CharacterDefinition, MemberProgress> party, Action<BattleResult> onComplete)
         {
-            pending = new BattleRequest { Setup = setup, Party = party, OnComplete = onComplete };
+            Request(setup, party, null, onComplete);
+        }
+
+        public static void Request(BattleSetup setup, Dictionary<CharacterDefinition, MemberProgress> party,
+            Dictionary<CharacterDefinition, Loadout> loadouts, Action<BattleResult> onComplete)
+        {
+            pending = new BattleRequest { Setup = setup, Party = party, Loadouts = loadouts, OnComplete = onComplete };
         }
 
         public static BattleRequest Consume()

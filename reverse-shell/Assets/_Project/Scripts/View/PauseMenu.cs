@@ -28,35 +28,33 @@ namespace Combat.View
         {
             var topRight = new Vector2(1f, 1f);
 
-            // Pause button: a small black slant with lilac "II".
-            var button = PersonaStyle.Button(root, "PauseButton", "II", view.TogglePause, false, 44);
+            // Pause button: a small ink plate with a gold hairline.
+            var button = InkStyle.Button(root, "PauseButton", "II", view.TogglePause, false, 40);
             var brt = button.GetComponent<RectTransform>();
-            brt.Place(topRight, topRight, new Vector2(-24f, -24f), new Vector2(110f, 80f));
-            brt.localRotation = Quaternion.Euler(0f, 0f, -3f);
-            var esc = UIFactory.CreateText(brt, "Esc", "ESC", 14, PersonaStyle.Lilac, TextAnchor.LowerCenter, FontStyle.Bold);
+            brt.Place(topRight, topRight, new Vector2(-24f, -24f), new Vector2(100f, 80f));
+            var esc = UIFactory.CreateText(brt, "Esc", "ESC", 13, InkStyle.Gold, TextAnchor.LowerCenter, FontStyle.Bold);
             esc.rectTransform.Fill(4f);
 
-            // Overlay: a lilac Persona page (halftone, turning burst, black slab) like the party menu.
-            var dim = UIFactory.CreateImage(root, "Overlay", new Color(0.69f, 0.55f, 0.95f, 0.97f), true);
+            // Overlay: an ink page with paper grain and a centered card with the hero frame.
+            var dim = UIFactory.CreateImage(root, "Overlay", new Color(0.07f, 0.065f, 0.06f, 0.94f), true);
             dim.rectTransform.Fill();
             overlay = dim.gameObject;
-            var burst = PersonaStyle.Burst(dim.rectTransform, new Vector2(300f, -60f), 3200f, new Color(0f, 0f, 0f, 0.16f));
-            burst.gameObject.AddComponent<Spin>().degreesPerSecond = 6f;
-            PersonaStyle.Halftone(dim.rectTransform, new Color(0f, 0f, 0f, 0.2f));
-            var slab = PersonaStyle.Slant(dim.transform, "Slab", PersonaStyle.Black);
-            slab.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-80f, -40f), new Vector2(1500f, 560f));
-            slab.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 8f);
+            InkStyle.Grain(dim.rectTransform, new Color(1f, 0.95f, 0.85f, 0.035f));
+            var card = InkStyle.Panel(dim.transform, "Card", InkStyle.InkPanel);
+            card.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 820f));
+            InkStyle.HeroFrame(card.rectTransform, InkStyle.Gold, 10f);
 
-            var title = PersonaStyle.Title(dim.transform, "Title", "PAUSED", 190, PersonaStyle.White, PersonaStyle.Black, TextAnchor.UpperLeft, 14f);
-            title.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(90f, -30f), new Vector2(1000f, 230f));
-            title.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 6f);
+            var title = InkStyle.Title(card.transform, "Title", "Paused", 110, InkStyle.Paper, TextAnchor.MiddleCenter);
+            title.rectTransform.TopStrip(40f, 130f);
+            var rule = InkStyle.Line(card.transform, "Rule", InkStyle.Gold);
+            rule.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -178f), new Vector2(420f, 2f));
 
-            // Buttons: plates stacked down the slab; RESUME is the lilac one.
-            var column = UIFactory.CreateRect("Buttons", dim.transform).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f), new Vector2(-40f, 240f), new Vector2(620f, 520f));
+            // Buttons stacked down the card; Resume is the gold one.
+            var column = UIFactory.CreateRect("Buttons", card.transform).Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(580f, 520f));
             float y = 0f;
-            MenuButton(column, "RESUME", true, view.TogglePause, ref y, 0);
-            MenuButton(column, "RESTART FIGHT", false, view.RestartFight, ref y, 1);
-            MenuButton(column, "LEAVE FIGHT", false, view.LeaveFight, ref y, 2);
+            MenuButton(column, "Resume", true, view.TogglePause, ref y, 0);
+            MenuButton(column, "Restart Fight", false, view.RestartFight, ref y, 1);
+            MenuButton(column, "Leave Fight", false, view.LeaveFight, ref y, 2);
             var rankToggle = MenuButton(column, RankLabel(), false, null, ref y, 3);
             var rankLabel = rankToggle.GetComponentInChildren<Text>();
             rankToggle.onClick.AddListener(() =>
@@ -65,12 +63,8 @@ namespace Combat.View
                 rankLabel.text = RankLabel();
             });
 
-            var hintBar = PersonaStyle.Slant(dim.transform, "HintBar", PersonaStyle.Black);
-            hintBar.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(40f, 40f), new Vector2(700f, 66f));
-            hintBar.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -2f);
-            var hint = UIFactory.CreateText(hintBar.transform, "Hint", "ESC  RESUME", 30, PersonaStyle.White, TextAnchor.MiddleCenter);
-            hint.font = UIFactory.DisplayFont;
-            hint.rectTransform.Fill(10f);
+            var hint = InkStyle.Label(dim.transform, "Hint", "Esc  resume", 18, InkStyle.PaperDim, TextAnchor.LowerCenter);
+            hint.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 36f), new Vector2(700f, 40f));
 
             overlay.SetActive(false);
         }
@@ -78,16 +72,16 @@ namespace Combat.View
         /// <summary>Card rank display: stacking stars or pips.</summary>
         static string RankLabel()
         {
-            return "CARD RANK: " + (CardSettings.RankStars ? "STARS" : "PIPS");
+            return "Card Rank: " + (CardSettings.RankStars ? "Stars" : "Pips");
         }
 
         static Button MenuButton(RectTransform column, string label, bool primary, UnityEngine.Events.UnityAction action, ref float y, int i)
         {
-            var b = PersonaStyle.Button(column, label, label, action, primary, 46);
+            var b = InkStyle.Button(column, label, label, action, primary, 44);
             var rt = b.GetComponent<RectTransform>();
-            rt.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, -y), new Vector2(580f, 92f));
+            rt.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, -y), new Vector2(580f, 88f));
 
-            y += 118f;
+            y += 112f;
             return b;
         }
 

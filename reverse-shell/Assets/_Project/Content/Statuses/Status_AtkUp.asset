@@ -27,3 +27,4 @@ MonoBehaviour:
   healPerRoundPercentMaxHP: 0
   preventsAction: 0
   description: +15% ATK per stack.
+  verb: 

@@ -1,23 +1,16 @@
 # Character sprites
 
-Every folder here (2B, V1, V2, RustSentry, ScrapStalker, NoodleVendor, Courier, Drifter) is composed by
-`Tools/SpriteForge/lpc_compose.py` from layers of the **Universal LPC Spritesheet Character Generator**
-(https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator):
+Every folder here (MC, HealBot, Lucy, RustSentry, ScrapStalker, NoodleVendor, Courier, Drifter) is **original pixel
+art**, drawn in code by `Tools/ChibiForge/chibi_forge.py` (no third-party assets, no license strings):
 
-- 64×64 frames, with a body of roughly **32×48 px** (Octopath-style proportions).
-- Animations: `idle`, `walk`, `slash`, `spellcast`, `hurt`. Each sheet has 4 rows (up, left, down, right); `hurt` has 1 row.
-- The license is **CC-BY-SA 3.0 / GPL 3.0**, with some layers also OGA-BY. **Credit is required.** Each folder has its own
-  `CREDITS.md` listing every author, license and source for the layers used. Ship those credits with the game.
-  Because CC-BY-SA is share-alike, edited versions of these sprites must stay under the same license.
+- Chibi proportions in 64×64 frames, a bold plum outline, 4-tone ramps and a limited warm palette.
+- The party are androids: faces and hair, armour plates and glowing lines in their element colour. The enemies are
+  round machine lifeforms, and the NPCs are ruin survivors.
+- Animations: `idle` (2), `walk` (9; frame 0 is the standing pose), `slash` (6), `spellcast` (7) and `hurt` (6).
+  Each has 4 rows (up, left, down, right); `hurt` has one row, ending lying on the ground.
 
-To change a look, edit `RECIPES` in `lpc_compose.py`, then run `python Tools/SpriteForge/lpc_compose.py`. Then run
+To change a look, edit `SPECS` in `chibi_forge.py`, run `python Tools/ChibiForge/chibi_forge.py`, then run
 **Tools → Combat → Generate Sample Content** again in Unity.
 
-## Character rights: non-commercial fan project
-| Character | Rights holder | Notes |
-|---|---|---|
-| 2B (NieR:Automata) | © SQUARE ENIX | Fan work for **non-commercial** use only. Check Square Enix's fan-content guidelines before sharing publicly. |
-
-V1, V2, the machines and the NPCs are original generic designs. The pixel art comes from LPC (open license); 2B's
-**character design** belongs to the rights holder above. Retired recipes (Miku, Teto, Rei, StaticThug, StaticEnforcer)
-are still in `lpc_compose.py` but their sprites are no longer in the project.
+The old LPC composer (`Tools/SpriteForge/lpc_compose.py`) is no longer used for these characters. If it is run
+again, its output must keep the LPC credits it writes (CC-BY-SA / GPL).

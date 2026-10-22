@@ -118,7 +118,7 @@ namespace Combat.View
 
             float y = 416f;
             string cls = character != null && !string.IsNullOrEmpty(character.archetype) ? character.archetype : (unit.Team == Team.Enemy ? "Enemy" : "Ally");
-            Fit(left, cls + "  ·  " + def.afflatus + "  ·  " + def.damageType, Muted, FontStyle.Bold, ref y, 30f, 14, 22);
+            Fit(left, cls + "  ·  " + AfflatusInfo.Display(def.afflatus) + "  ·  " + def.damageType, Muted, FontStyle.Bold, ref y, 30f, 14, 22);
 
             y += 12f;
             Fit(left, "HP", Muted, FontStyle.Bold, ref y, 24f, 14, 20);
@@ -274,7 +274,7 @@ namespace Combat.View
 
             if (unit.Character != null)
             {
-                foreach (var card in unit.Character.incantations)
+                foreach (var card in unit.Incantations)
                     if (card != null) AbilityCard.Create(row, unit, card, 0);
                 if (unit.Character.ritual != null) AbilityCard.Create(row, unit, unit.Character.ritual, 0);
             }
@@ -290,7 +290,7 @@ namespace Combat.View
         static void Header(RectTransform content, string text)
         {
             var t = UIFactory.CreateText(content, "Header", text, 40, Gold, TextAnchor.LowerLeft);
-            t.font = UIFactory.DisplayFont;
+            t.font = UIFactory.SerifFont;
             t.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.6f);
             t.gameObject.AddComponent<LayoutElement>().minHeight = 50f;
         }

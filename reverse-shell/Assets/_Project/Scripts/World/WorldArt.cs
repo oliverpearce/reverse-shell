@@ -192,12 +192,18 @@ namespace Game.World
             return m;
         }
 
-        /// <summary>Sprites lit by the sun and any point lights.</summary>
+        /// <summary>
+        /// Character sprites: a steady light (unlit sprite shader) so detailed, dark-palette characters stay readable
+        /// in the dim, dappled scene, tinted with <see cref="SpriteTint"/> so they still sit in its warm haze.
+        /// </summary>
         public static Material SpriteLit()
         {
-            if (spriteLit == null) spriteLit = new Material(FindShader("Sprites/Diffuse", "Sprites/Default"));
+            if (spriteLit == null) spriteLit = new Material(FindShader("Sprites/Default"));
             return spriteLit;
         }
+
+        /// <summary>The scene tint for character sprites: a touch of the warm, hazy sunlight.</summary>
+        public static readonly Color SpriteTint = new Color(0.94f, 0.93f, 0.86f);
 
         public static Material Additive()
         {

@@ -27,3 +27,4 @@ MonoBehaviour:
   healPerRoundPercentMaxHP: 0
   preventsAction: 0
   description: +12% incantation damage per stack.
+  verb: 

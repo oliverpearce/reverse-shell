@@ -58,6 +58,8 @@ namespace Game.World
         [Header("Battle")]
         public BattleSetup encounterSetup;
         public string battleScene = "Battle";
+        [Tooltip("Every Part in the game (Content/Parts/PartCatalog.asset), for the crew menu and the save file.")]
+        public PartCatalog partCatalog;
 
         [Header("Input")]
         public KeyCode interactKey = KeyCode.F;
@@ -89,7 +91,7 @@ namespace Game.World
             }
         }
 
-        PartyMenu menu;
+        CharacterMenu menu;
 
         /// <summary>Overworld name of the encounter: the first enemy in its battle setup.</summary>
         string EncounterName
@@ -112,7 +114,13 @@ namespace Game.World
 
         void Start()
         {
+            WorldSession.Catalog = partCatalog;
+#if UNITY_EDITOR
+            if (WorldSession.Catalog == null) // scenes generated before Parts existed
+                WorldSession.Catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<PartCatalog>("Assets/_Project/Content/Parts/PartCatalog.asset");
+#endif
             WorldSession.EnsureLoaded(); // first area of the session reads save.json
+            WorldSession.GiveStarterParts(); // a new game (or an older save) gets the starter Parts once
             Map = new OverworldMap(useDefaultMap || string.IsNullOrEmpty(map) ? DefaultMap : map);
             cam = Camera.main;
             ApplyAtmosphere();
@@ -130,7 +138,7 @@ namespace Game.World
 
             drift = WorldFx.Drift(transform).transform;
             UI = OverworldUI.Create(transform);
-            menu = PartyMenu.Create((RectTransform)UI.transform, this);
+            menu = CharacterMenu.Create((RectTransform)UI.transform, this);
             RefreshPartyHud();
             StartCoroutine(Arrive());
         }
@@ -257,9 +265,6 @@ namespace Game.World
                 sprite = CharacterSprite.Create(transform, LeaderName, frames ?? PlaceholderFrames(), characterScale, start);
             }
             sprite.SetFacing(facing);
-            var glow = Color.Lerp(lead != null ? lead.color : Color.white, Color.white, 0.4f);
-            glow.a = 0.28f;
-            sprite.SetGlow(glow);
 
             player = sprite.gameObject.AddComponent<PlayerController>();
             player.interactKey = interactKey;
@@ -299,7 +304,7 @@ namespace Game.World
                 {
                     "{wave}Whoa{/wave}{p} you're " + LeaderName + "?! {fast}The android from the orbital Bunker? The one who came down on the last flight?!{/fast}",
                     "Sorry, sorry.{p} I've just never met one of you up close.",
-                    "Your support units are waiting by the road. {blue}V1{/c} hits hard, {green}V2{/c} keeps everyone running.{p} {wave}Good company down here!{/wave}"
+                    "Your crew's waiting by the road. {green}Heal Bot{/c} keeps everyone running, and {c=#C98AFF}Lucy{/c}... {shake}infects{/shake} things.{p} {wave}Good company down here!{/wave}"
                 }),
                 // Dreamy and slow, with long pauses.
                 new NpcInfo(2, 2, "Wanderer", new DialogueVoice(1.05f, 0.6f, new Color(0.5f, 0.75f, 0.45f)), new[]
@@ -318,7 +323,6 @@ namespace Game.World
                 var npc = look != null
                     ? CharacterSprite.Create(transform, info.Name, look, animatedCharacterScale, pos)
                     : CharacterSprite.Create(transform, info.Name, WorldArt.SingleFrame(sheet, info.Row, info.Col), characterScale, pos, 0.04f);
-                npc.SetGlow(new Color(1f, 0.95f, 0.85f, 0.18f));
                 var talk = npc.gameObject.AddComponent<TalkInteractable>();
                 talk.speaker = info.Name;
                 talk.lines = info.Lines;
@@ -338,7 +342,6 @@ namespace Game.World
                     ? CharacterSprite.Create(transform, EncounterName, encounterAnimations, animatedCharacterScale, pos)
                     : CharacterSprite.Create(transform, EncounterName, frames, characterScale, pos, 0.03f);
                 enemy.SetFacing(CharacterSprite.Down);
-                enemy.SetGlow(new Color(1f, 0.35f, 0.25f, 0.3f));
 
                 WorldFx.Motes(enemy.transform, pos + Vector3.up * 0.9f, 0.5f, 6f, new Color(1f, 0.45f, 0.25f));
 
@@ -394,7 +397,7 @@ namespace Game.World
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
-        /// <summary>Party menu: make <paramref name="member"/> the leader and switch to playing as them.</summary>
+        /// <summary>Crew menu: make <paramref name="member"/> the leader and switch to playing as them.</summary>
         public void SetLeader(CharacterDefinition member)
         {
             if (encounterSetup == null || member == null) return;
@@ -585,7 +588,7 @@ namespace Game.World
             setup.name = encounter.setup.name;
             setup.party = WorldSession.Ordered(encounter.setup.party);
             var party = WorldSession.PartyFor(setup.party);
-            BattleLauncher.Request(setup, party, result =>
+            BattleLauncher.Request(setup, party, WorldSession.LoadoutsFor(setup.party), result =>
             {
                 WorldSession.PendingSpeaker = leader;
                 // Levels, XP and HP carry over; a defeat sends the party back to regroup at full HP.
@@ -616,7 +619,7 @@ namespace Game.World
             SceneManager.LoadScene(battleScene);
         }
 
-        /// <summary>" 2B and V2 reached a new level." style suffix for the victory message, or "".</summary>
+        /// <summary>" MC and Lucy reached a new level." style suffix for the victory message, or "".</summary>
         static string LevelUpLine(BattleResult result)
         {
             var names = new List<string>();

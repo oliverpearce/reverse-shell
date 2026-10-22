@@ -39,6 +39,7 @@ namespace Game.World
             spriteGo.transform.localScale = Vector3.one * scale;
             cs.Renderer = spriteGo.AddComponent<SpriteRenderer>();
             cs.Renderer.sharedMaterial = WorldArt.SpriteLit();
+            cs.Renderer.color = WorldArt.SpriteTint;
             cs.Renderer.sprite = frames[0, Mathf.Min(1, frames.GetLength(1) - 1)];
             cs.spriteBase = spriteGo.transform.localPosition;
             cs.spriteScale = scale;
@@ -97,7 +98,6 @@ namespace Game.World
             if (animations != null)
             {
                 AnimateFromSet();
-                SyncGlow();
                 return;
             }
             int rows = frames.GetLength(0), cols = frames.GetLength(1);
@@ -106,48 +106,6 @@ namespace Game.World
 
             float bob = bobAmount > 0f && !moving ? Mathf.Abs(Mathf.Sin(Time.time * 2.2f + transform.position.x)) * bobAmount : 0f;
             Renderer.transform.localPosition = spriteBase + new Vector3(0f, bob, 0f);
-            SyncGlow();
-        }
-
-        // ------------------------------------------------------------------ Glow
-
-        SpriteRenderer[] glow;
-        static Material glowMaterial;
-
-        /// <summary>
-        /// A soft rim of light around the character: faint unlit copies of the sprite, nudged a pixel or two in
-        /// eight directions and drawn just behind it, so it also shows in the dim, dappled scene.
-        /// </summary>
-        public void SetGlow(Color color)
-        {
-            if (glow == null)
-            {
-                if (glowMaterial == null) glowMaterial = new Material(WorldArt.FindShader("Sprites/Default"));
-                glow = new SpriteRenderer[8];
-                const float px = 1.6f / 64f; // ~1.6 art pixels (frames are 64 px per unit)
-                var offsets = new[] { new Vector2(-px, 0f), new Vector2(px, 0f), new Vector2(0f, px), new Vector2(0f, -px),
-                                      new Vector2(-px, px) * 0.75f, new Vector2(px, px) * 0.75f, new Vector2(-px, -px) * 0.75f, new Vector2(px, -px) * 0.75f };
-                for (int i = 0; i < glow.Length; i++)
-                {
-                    var go = new GameObject("Glow");
-                    go.transform.SetParent(Renderer.transform, false);
-                    go.transform.localPosition = new Vector3(offsets[i].x, offsets[i].y, 0.004f); // a hair behind, away from the camera
-                    glow[i] = go.AddComponent<SpriteRenderer>();
-                    glow[i].sharedMaterial = glowMaterial;
-                }
-            }
-            foreach (var g in glow) g.color = color;
-            SyncGlow();
-        }
-
-        void SyncGlow()
-        {
-            if (glow == null) return;
-            foreach (var g in glow)
-            {
-                g.sprite = Renderer.sprite;
-                g.flipX = Renderer.flipX;
-            }
         }
 
         static readonly Combat.Facing[] FacingByIndex = { Combat.Facing.Down, Combat.Facing.Left, Combat.Facing.Right, Combat.Facing.Up };

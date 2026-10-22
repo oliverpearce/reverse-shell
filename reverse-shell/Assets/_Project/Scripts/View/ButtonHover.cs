@@ -10,8 +10,8 @@ namespace Combat.View
     /// </summary>
     public class ButtonHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        static readonly Color Gold = new Color(0.88f, 0.8f, 1f); // lilac-white hover rim (PersonaStyle.LilacLight)
-        const float HoverScale = 1.06f;
+        static readonly Color Gold = new Color(0.9f, 0.78f, 0.52f); // InkStyle.GoldBright
+        const float HoverScale = 1.03f;
         const float Speed = 18f;
 
         Button button;
@@ -33,7 +33,7 @@ namespace Combat.View
             }
             border = gameObject.AddComponent<Outline>();
             border.effectColor = Gold;
-            border.effectDistance = new Vector2(3f, -3f);
+            border.effectDistance = new Vector2(2f, -2f);
             border.enabled = false;
         }
 

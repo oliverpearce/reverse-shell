@@ -81,7 +81,7 @@ namespace Combat.Tests
         {
             WorldSession.Party.Clear();
             WorldSession.DefeatedEncounters.Clear();
-            WorldSession.Party["Char_2B"] = new MemberProgress { Level = 4, Xp = 35, HP = 1234 };
+            WorldSession.Party["Char_MC"] = new MemberProgress { Level = 4, Xp = 35, HP = 1234 };
             WorldSession.DefeatedEncounters.Add("Overworld/encounter_22_2");
 
             string json = UnityEngine.JsonUtility.ToJson(SaveGame.Capture());
@@ -89,7 +89,7 @@ namespace Combat.Tests
             WorldSession.DefeatedEncounters.Clear();
             SaveGame.Restore(UnityEngine.JsonUtility.FromJson<SaveGame.Data>(json));
 
-            var p = WorldSession.Party["Char_2B"];
+            var p = WorldSession.Party["Char_MC"];
             Assert.AreEqual(4, p.Level);
             Assert.AreEqual(35, p.Xp);
             Assert.AreEqual(1234, p.HP);

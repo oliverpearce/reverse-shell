@@ -24,3 +24,4 @@ MonoBehaviour:
   healPerRoundPercentMaxHP: 0.05
   preventsAction: 0
   description: Recover 5% max HP at round end.
+  verb: 

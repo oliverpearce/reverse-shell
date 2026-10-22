@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: c4c6583b3d19f43409027f823a0b2581, type: 2}
   party:
-  - {fileID: 11400000, guid: bbd8575ce8244c34fa739ce40186a3d2, type: 2}
-  - {fileID: 11400000, guid: 9e1ee5bc12d478449b17cc10fda08b14, type: 2}
-  - {fileID: 11400000, guid: 3d37533cb3a2aad4fae1807012f9334d, type: 2}
+  - {fileID: 11400000, guid: bafede59cb9b6224bb94438da32117bb, type: 2}
+  - {fileID: 11400000, guid: b36d6ba7d8f3f2c4c9f4c574bb68f675, type: 2}
+  - {fileID: 11400000, guid: 931e4faa858967d43b44ae082f21ce87, type: 2}
   enemies:
   - {fileID: 11400000, guid: 8cb18e3bb06a9da4f9b173e3a5683359, type: 2}
   - {fileID: 11400000, guid: 146a058277a78164ba4de7f8f890506a, type: 2}

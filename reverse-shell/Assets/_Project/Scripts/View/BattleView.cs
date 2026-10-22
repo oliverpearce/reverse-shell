@@ -15,7 +15,9 @@ namespace Combat.View
         static readonly Color Gold = new Color(1f, 0.8f, 0.3f);
         const float UnitSpacing = 280f; // room for the 4x battle sprites
         const float StageY = 120f;
-        const float PartyCenterX = -530f;
+        // A 4:3 view shows only ~1740 of the 2400-wide layout (Shrink matching crops the width), so the party sits
+        // close enough in that the leftmost member's bars and type diamond stay on screen.
+        const float PartyCenterX = -420f;
         const float EnemyCenterX = 470f;
 
         public BattleController Controller { get; private set; }
@@ -271,7 +273,7 @@ namespace Combat.View
             if (InputEnabled) Controller.Undo();
         }
 
-        public string ResultButtonLabel { get { return bootstrap.HasReturn ? "CONTINUE" : "FIGHT AGAIN"; } }
+        public string ResultButtonLabel { get { return bootstrap.HasReturn ? "Continue" : "Fight Again"; } }
 
         public void OnRestart()
         {

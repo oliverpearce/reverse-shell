@@ -60,6 +60,7 @@ namespace Combat.View
             if (view != null) Destroy(view.gameObject);
 
             Controller = BattleController.FromSetup(ActiveSetup);
+            if (request != null) Controller.ApplyLoadouts(request.Loadouts);
             Controller.ApplyParty(StartParty); // restarts begin from the same levels and HP
             Result = null;
             Controller.BattleEnded += victory =>

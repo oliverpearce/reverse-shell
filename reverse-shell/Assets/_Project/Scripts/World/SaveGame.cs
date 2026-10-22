@@ -7,13 +7,13 @@ using UnityEngine;
 namespace Game.World
 {
     /// <summary>
-    /// Saves WorldSession (party level, XP and HP, party order / leader, and defeated encounters) as JSON in
+    /// Saves WorldSession (party level, XP, HP and loadout, party order / leader, spare Parts and defeated encounters) as JSON in
     /// Application.persistentDataPath/save.json. The overworld saves after every battle and at Access Points,
     /// and loads once when the game starts. In the editor, Tools > Overworld > Delete Save Data starts fresh.
     /// </summary>
     public static class SaveGame
     {
-        public const int Version = 1;
+        public const int Version = 2;
 
         public static string FilePath { get { return Path.Combine(Application.persistentDataPath, "save.json"); } }
 
@@ -25,6 +25,30 @@ namespace Game.World
             public List<string> defeatedEncounters = new List<string>();
             /// <summary>Party order by asset name; the first is the leader.</summary>
             public List<string> partyOrder = new List<string>();
+            /// <summary>Spare Parts (version 2).</summary>
+            public List<PartStack> inventory = new List<PartStack>();
+            public bool starterPartsGiven;
+        }
+
+        [Serializable]
+        public class PartStack
+        {
+            public string id;
+            public int count;
+        }
+
+        /// <summary>Characters that were renamed: old save keys (asset names) to the new ones.</summary>
+        static readonly Dictionary<string, string> Renamed = new Dictionary<string, string>
+        {
+            { "Char_2B", "Char_MC" },
+            { "Char_V1", "Char_HealBot" },
+            { "Char_V2", "Char_Lucy" },
+        };
+
+        public static string Migrate(string id)
+        {
+            string renamed;
+            return id != null && Renamed.TryGetValue(id, out renamed) ? renamed : id;
         }
 
         [Serializable]
@@ -41,6 +65,9 @@ namespace Game.World
                 data.party.Add(new Member { id = entry.Key, progress = entry.Value.Clone() });
             data.defeatedEncounters.AddRange(WorldSession.DefeatedEncounters);
             data.partyOrder.AddRange(WorldSession.PartyOrder);
+            foreach (var entry in WorldSession.Inventory)
+                if (entry.Value > 0) data.inventory.Add(new PartStack { id = entry.Key, count = entry.Value });
+            data.starterPartsGiven = WorldSession.StarterPartsGiven;
             return data;
         }
 
@@ -49,11 +76,18 @@ namespace Game.World
             WorldSession.Party.Clear();
             WorldSession.DefeatedEncounters.Clear();
             WorldSession.PartyOrder.Clear();
+            WorldSession.Inventory.Clear();
+            WorldSession.StarterPartsGiven = false;
             if (data == null) return;
-            if (data.partyOrder != null) WorldSession.PartyOrder.AddRange(data.partyOrder);
+            if (data.partyOrder != null)
+                foreach (var id in data.partyOrder) WorldSession.PartyOrder.Add(Migrate(id));
             foreach (var member in data.party)
-                if (!string.IsNullOrEmpty(member.id) && member.progress != null) WorldSession.Party[member.id] = member.progress.Clone();
+                if (!string.IsNullOrEmpty(member.id) && member.progress != null) WorldSession.Party[Migrate(member.id)] = member.progress.Clone();
             foreach (var id in data.defeatedEncounters) WorldSession.DefeatedEncounters.Add(id);
+            if (data.inventory != null)
+                foreach (var stack in data.inventory)
+                    if (!string.IsNullOrEmpty(stack.id) && stack.count > 0) WorldSession.Inventory[stack.id] = stack.count;
+            WorldSession.StarterPartsGiven = data.starterPartsGiven; // older saves get the starter Parts on load
         }
 
         public static void Save()

@@ -55,22 +55,20 @@ Each character is a **class (archetype)** with two cards and one Ritual.
 
 | Name | Class | Resonance* | Role | Hook |
 |---|---|---|---|---|
-| **2B** *(NieR:Automata)* | YoRHa Battler | Star | Single-target damage plus team buffs | A combat android from the Bunker. Calm, precise, and party leader. Her Pod fights alongside her. |
-| **V1** | Assault Unit | Mineral | Area damage and armor breaking | A white-plated combat robot. Few words, heavy hits. Cards: *Spin Saw*, *Armor Breaker*, Ritual *Overdrive*. |
-| **V2** | Support Unit | Intellect | Healing (repair) and poison (viruses) | A charcoal-plated support robot that patches the crew and infects enemy code. Cards: *Patch Protocol*, *Virus Spike*, Ritual *System Restore*. |
+| **MC** | Prototype | Star (will channel every element) | Single-target damage plus team buffs | The lead. A sleeker, one-of-a-kind robot: dark coat, white visor, a halo crest. Its glow is white for now and will shift hue with the element it channels. Cards: *Edge Strike*, *Sync Field*, pool *Cross Slash*, Ritual *Prism Burst*. |
+| **Heal Bot** | Medic | Earth (Plant) | Healing, regeneration and armor breaking | A dryad-like robot with plants growing out of its joints: vines, moss, flowers and a sapling on one shoulder. Green glow. Cards: *Sap Mend*, *Bramble Lash*, pool *Overgrowth*, Ritual *Verdant Bloom*. |
+| **Lucy** | Hacker | Virus (Intellect) | Viruses: poison, ATK Down, DEF Down | The same robot model as Heal Bot, with purple accents, cable twin-tails and a glitching visor. Cards: *Virus Spike*, *Corrupt*, pool *Worm*, Ritual *Zero Day*. |
 | *(future)* | Hacker | Spirit | Debuffs and stuns | Breaks into machines from the inside. |
 | *(future)* | Scout | Beast | Speed, AP gain, Ult feeding | A rooftop runner with a salvaged machine dog. |
 | *(future)* | Archivist | Intellect | Card manipulation and rank-ups | Keeps what is left of the human records. |
 
 \*The Resonance names are placeholders; see §6.
 
-**2B's kit:** *Virtuous Contract* (a heavy single-target sword strike), *Pod Support* (raises the team's card damage) and the Ritual *Pod Laser* (two huge hits plus team ATK Up).
+**Elements:** the six resonances keep their rules; two now have in-world names: Plant is **Earth** and Intellect is **Virus**.
 
-> **Fan-project note.** 2B (NieR:Automata) © SQUARE ENIX. That's fine for a personal, non-commercial fan game with
-> credit given (see `Art/Characters/CREDITS.md`). A public or commercial release would need an original lead or
-> permission. V1 and V2 are original generic robots. Earlier casts (Vesper, then Miku, plus Teto and Rei) used the same kits.
+> **Cast note.** The party is now fully original (MC, Heal Bot, Lucy). Earlier casts (Vesper, Miku, Teto, Rei, then 2B, V1 and V2) used the same kits.
 
-**Protagonist:** the player is **2B**. She walks the overworld, and V1 and V2 join her in battle.
+**Protagonist:** the player is **MC**. It walks the overworld, and Heal Bot and Lucy join it in battle.
 
 ### Enemy families (machine lifeforms)
 - **Sentries**: heavy, slow, armored (Rust Sentry). Mineral.
@@ -139,7 +137,7 @@ The combat borrows Reverse: 1999's terms. Before any release, swap them for orig
 ## 9. Progression (draft)
 - **Levels:** stats grow with level along per-character curves.
 - **Card upgrades:** spend salvaged **Parts** to add effects to a card's ranks.
-- **Chips:** one equippable passive per character, such as "+1 Ult when this character merges".
+- **Parts (built):** four internal slots per robot (weapon, armor, chip, core), fitted on the opened character card. Later Parts can carry passives, such as "+1 Ult when this character merges".
 - **Crew:** up to 4 recruited, with 3 fighting at a time.
 
 ## 10. Audio direction
@@ -152,7 +150,7 @@ Soft, melancholy and choral: piano, strings and wordless vocals for exploration,
 
 ## 12. Open questions
 - [ ] Final title (see the ideas at the top)
-- [x] Protagonist: 2B leads the party.
+- [x] Protagonist: MC leads the party.
 - [ ] Should the battle UI get the sepia NieR treatment too?
 - [ ] Is crew death permanent in story mode? (Recommendation: no. Downed members recover at Access Points.)
 - [ ] How many districts for a first playable? (Recommendation: 1–2.)

@@ -36,6 +36,13 @@ namespace Combat.View
             return cv;
         }
 
+        /// <summary>Dark ink on light colors, white on dark ones: text that stays readable on any card color.</summary>
+        static Color InkOn(Color background)
+        {
+            float luminance = 0.299f * background.r + 0.587f * background.g + 0.114f * background.b;
+            return luminance > 0.6f ? new Color(0.11f, 0.1f, 0.09f) : Color.white;
+        }
+
         /// <summary>Soft pastel version of the owner's color, used for Ritual cards.</summary>
         public static Color RitualPastel(Color owner)
         {
@@ -45,8 +52,8 @@ namespace Combat.View
         /// <summary>
         /// Builds the card's visuals into <paramref name="root"/> (sized Size * s). Used for the hand card, the hover
         /// preview and the inspect screen, so bigger versions are crisp re-layouts rather than blurry upscales.
-        /// The small hand card (s <= 1) is just the rank in the top-left corner and one huge ATTACK / BUFF / DEBUFF /
-        /// HEAL word along the bottom. Bigger faces add the name header, owner and full text.
+        /// The small hand card (s <= 1) is just the rank in the top-left corner, the type icon in the top-right and one
+        /// huge ATTACK / BUFF / DEBUFF / HEAL / COUNTER word along the bottom. Bigger faces add the name header, owner and text.
         /// Rank is shown as stacking stars (CardStars) or as pips, per CardSettings.RankStars.
         /// </summary>
         public static void BuildFace(RectTransform root, CardInstance card, float s)
@@ -71,12 +78,15 @@ namespace Combat.View
             float top = 0f; // where the content under the header starts
             if (detailed)
             {
-                var header = UIFactory.CreateImage(root, "Header", ritual ? Color.Lerp(pastel, owner, 0.25f) : owner);
-                header.rectTransform.TopStrip(0f, 38f * s);
-                var title = UIFactory.CreateText(header.transform, "Title", card.Name, F(17), ritual ? PastelText : Color.white,
-                    TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(F(10), F(17));
+                // The header is the owner's color (that's how you tell whose card it is); the title picks dark or
+                // light ink so it stays readable on any color, even MC's near-white.
+                var headerColor = ritual ? Color.Lerp(pastel, owner, 0.25f) : owner;
+                var header = UIFactory.CreateImage(root, "Header", headerColor);
+                header.rectTransform.TopStrip(0f, 40f * s);
+                var title = UIFactory.CreateText(header.transform, "Title", card.Name, F(19), InkOn(headerColor),
+                    TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(F(11), F(19));
                 title.rectTransform.Fill(6f * s);
-                top = 38f * s;
+                top = 40f * s;
             }
 
             // Rank: stars from the top-left corner, or pips across the top.
@@ -97,12 +107,15 @@ namespace Combat.View
                 }
             }
 
-            if (detailed)
+            // Type icon (Attack / Debuff / Buff / Counter / Heal / Ultimate) in the top-right corner, from the CardIcons atlas.
+            float iconSize = 34f * s;
+            var iconSprite = CardIcons.Glyph(CardIcons.TypeOf(card.Definition));
+            if (iconSprite != null)
             {
-                string ownerText = ritual ? card.Owner.Name + "  \u00b7  RITUAL" : card.Owner.Name;
-                var ownerName = UIFactory.CreateText(root, "Owner", ownerText, F(13), ritual ? PastelText : new Color(0.85f, 0.85f, 0.9f),
-                    TextAnchor.MiddleRight, FontStyle.Bold);
-                ownerName.rectTransform.TopStrip(top + 6f * s, 22f * s, 9f * s);
+                var icon = UIFactory.CreateImage(root, "TypeIcon", Color.white);
+                icon.sprite = iconSprite;
+                icon.preserveAspect = true;
+                icon.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-5f * s, -top - 5f * s), new Vector2(iconSize, iconSize));
             }
 
             // Reverse 1999-style: the bottom of the card is one huge word saying what it does.
@@ -128,16 +141,16 @@ namespace Combat.View
                 middle.anchorMin = Vector2.zero;
                 middle.anchorMax = Vector2.one;
                 middle.offsetMin = new Vector2(12f, band + 8f) * s;
-                middle.offsetMax = new Vector2(-12f, -top - 36f * s);
+                middle.offsetMax = new Vector2(-12f, -top - 42f * s); // under the stars and the type icon
                 var descColor = ritual ? PastelText : new Color(0.92f, 0.92f, 0.95f);
                 // Every number / percentage is bigger, bold and gold so the values pop.
-                var desc = UIFactory.CreateText(middle, "Description", "", F(15), descColor, TextAnchor.UpperLeft);
+                var desc = UIFactory.CreateText(middle, "Description", "", F(17), descColor, TextAnchor.UpperLeft);
                 desc.font = UIFactory.BodyFont;
                 desc.lineSpacing = 1.05f;
                 desc.rectTransform.Fill();
                 string text = card.Describe();
                 var numberColor = ritual ? new Color(0.55f, 0.25f, 0.6f) : NumberGold;
-                UIFactory.FitRich(desc, size => UIFactory.EmphasizeNumbers(text, Mathf.RoundToInt(size * 1.45f), numberColor), F(9), F(15));
+                UIFactory.FitRich(desc, size => UIFactory.EmphasizeNumbers(text, Mathf.RoundToInt(size * 1.35f), numberColor), F(10), F(17));
             }
         }
 

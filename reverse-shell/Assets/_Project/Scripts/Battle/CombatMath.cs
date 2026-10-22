@@ -61,12 +61,12 @@ namespace Combat
         {
             var owners = new List<BattleUnit>();
             foreach (var u in party)
-                if (u.IsAlive && u.Character != null && u.Character.incantations.Exists(c => c != null))
+                if (u.IsAlive && u.Character != null && u.Incantations.Exists(c => c != null))
                     owners.Add(u);
             if (owners.Count == 0) return null;
 
             var owner = owners[rng.Next(owners.Count)];
-            var cards = owner.Character.incantations.FindAll(c => c != null);
+            var cards = owner.Incantations.FindAll(c => c != null);
             return new CardInstance(cards[rng.Next(cards.Count)], owner, 1);
         }
     }
