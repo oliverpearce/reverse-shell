@@ -1,0 +1,26 @@
+{
+    "name": "Game.Editor",
+    "references": [
+        "Combat.Runtime",
+        "Combat.Editor",
+        "Game.World",
+        "Unity.Postprocessing.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.postprocessing",
+            "expression": "2.0.0",
+            "define": "NEONHEX_POSTFX"
+        }
+    ],
+    "noEngineReferences": false
+}

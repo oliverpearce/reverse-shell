@@ -1,0 +1,31 @@
+# Unity generated (rebuilt automatically when the project opens)
+reverse-shell/[Ll]ibrary/
+reverse-shell/[Tt]emp/
+reverse-shell/[Oo]bj/
+reverse-shell/[Bb]uild/
+reverse-shell/[Bb]uilds/
+reverse-shell/[Ll]ogs/
+reverse-shell/[Uu]ser[Ss]ettings/
+reverse-shell/[Mm]emoryCaptures/
+
+# IDE / OS
+reverse-shell/.vs/
+reverse-shell/.vscode/
+reverse-shell/.idea/
+reverse-shell/*.csproj
+reverse-shell/*.sln
+reverse-shell/*.suo
+reverse-shell/*.user
+reverse-shell/*.pidb
+reverse-shell/*.booproj
+reverse-shell/*.unityproj
+*.DS_Store
+Thumbs.db
+
+# Tool caches
+__pycache__/
+reverse-shell/Tools/SpriteForge/.lpc_cache/
+reverse-shell/Tools/DevCheck/**/.build/
+
+# Local editor/tool settings
+.claude/

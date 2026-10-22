@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b75fb1d7babfeee4aaa2d7388f2dc523, type: 3}
+  m_Name: Seq_Ritual
+  m_EditorClassIdentifier: 
+  steps:
+  - id: 0
+  - id: 1
+  - id: 2
+  - id: 3
+  - id: 4
+  references:
+    version: 1
+    00000000:
+      type: {class: FlashStep, ns: Combat.View, asm: Combat.Runtime}
+      data:
+        runInParallel: 0
+        at: 0
+        color: {r: 1, g: 0.8, b: 0.3, a: 1}
+        useCasterColor: 0
+        duration: 0.4
+    00000001:
+      type: {class: PulseStep, ns: Combat.View, asm: Combat.Runtime}
+      data:
+        runInParallel: 0
+        at: 0
+        amount: 0.2
+        duration: 0.35
+    00000002:
+      type: {class: ProjectileStep, ns: Combat.View, asm: Combat.Runtime}
+      data:
+        runInParallel: 0
+        color: {r: 1, g: 0.85, b: 0.4, a: 1}
+        useCasterColor: 0
+        size: 60
+        duration: 0.3
+    00000003:
+      type: {class: ScreenShakeStep, ns: Combat.View, asm: Combat.Runtime}
+      data:
+        runInParallel: 1
+        strength: 16
+        duration: 0.35
+    00000004:
+      type: {class: FlashStep, ns: Combat.View, asm: Combat.Runtime}
+      data:
+        runInParallel: 0
+        at: 1
+        color: {r: 1, g: 0.9, b: 0.6, a: 1}
+        useCasterColor: 0
+        duration: 0.3

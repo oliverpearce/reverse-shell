@@ -1,0 +1,23 @@
+{
+    "name": "Game.World",
+    "references": [
+        "Combat.Runtime",
+        "UnityEngine.UI",
+        "Unity.Postprocessing.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.postprocessing",
+            "expression": "2.0.0",
+            "define": "NEONHEX_POSTFX"
+        }
+    ],
+    "noEngineReferences": false
+}

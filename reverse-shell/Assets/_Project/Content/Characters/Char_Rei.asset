@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf22662e2936bd543a3f13e4bc9cb4b9, type: 3}
+  m_Name: Char_Rei
+  m_EditorClassIdentifier: 
+  displayName: Rei
+  color: {r: 1, g: 0.55, b: 0.2, a: 1}
+  portrait: {fileID: 0}
+  animations: {fileID: 11400000, guid: 3da7f8c2ee2e9b14d92b3e8d01659296, type: 2}
+  spriteSheet: {fileID: 0}
+  sheetColumns: 3
+  sheetRows: 4
+  afflatus: 5
+  damageType: 1
+  stats:
+    maxHP: 2100
+    attack: 200
+    realityDefense: 120
+    mentalDefense: 150
+    critRate: 0.1
+    critDamage: 1.5
+  archetype: Android Medic
+  incantations:
+  - {fileID: 11400000, guid: 5c00b30b7a0b3784d9aba008bf6c854f, type: 2}
+  - {fileID: 11400000, guid: 30c3360b68f29c749aafc57b771f60e4, type: 2}
+  ritual: {fileID: 11400000, guid: 2c9f0ef211dd338419f749d8be31330c, type: 2}
