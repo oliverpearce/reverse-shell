@@ -8,55 +8,41 @@ using UnityEngine.UI;
 namespace Game.World
 {
     /// <summary>
-    /// The Esc crew menu, in the Reverse: 1999 look (<see cref="InkStyle"/>). Every party member is a character card:
-    /// pixel art on an ink card with a gold hero frame. Left/Right swap between cards, L makes the shown member the
-    /// leader. Enter flips the card over and it opens on the left: the robot opened up, with its four item slots (Parts:
-    /// WPN / ARM / CHIP / CORE) pinned onto the internals. Top right are the stats (Part bonuses in gold) and the fitted
-    /// Parts; along the bottom, every ability card as the real card face: the deck, the Ult and spare cards to swap in.
-    /// Up/Down move the gold focus over the slots and deck cards, Enter opens a picker, Esc goes back a step.
-    /// The game is paused while it's open; everything animates on unscaled time.
+    /// The Esc party menu, Reverse: 1999-style (<see cref="InkStyle"/>): one detail page per member.
+    /// Member tabs run along the top (the first is the leader). The member's idle animation stands large on the left;
+    /// on the right are the name, element and level (with an XP hairline), HP, the stats as label / value strips (Part
+    /// bonuses in gold), the two item slots (CHIP, CORE) and the cards: the deck and the Ult. Clicking a card opens it
+    /// (<see cref="CardDetailPopup"/>: the full text, scroll for upgrades). Left/Right (or the tabs) switch member,
+    /// Up/Down move the gold focus over the item slots and deck cards, Enter opens the item picker or the card,
+    /// L makes the shown member the leader, Esc closes (an open card first). The game is paused while it's open; everything
+    /// animates on unscaled time. Everything sits within x = -820..820 so it fits a 4:3 view.
     /// </summary>
     public class CharacterMenu : MonoBehaviour
     {
-        // Front card.
-        static readonly Vector2 CardSize = new Vector2(500f, 820f);
-        const float CardSpacing = 600f, SideScale = 0.74f, PortraitScale = 4f;
-        const float FlipTime = 0.38f;
-        /// <summary>How long the carousel takes to settle on a new card (critically damped, so it never overshoots).</summary>
-        const float SlideTime = 0.16f;
+        const float Left = -820f, Right = 820f, Top = 600f;
+        const float InfoX = -60f;                   // the info column's left edge
+        const float SpriteScale = 12f;              // 64 px frames at 12x (whole pixels)
+        const float RowCardScale = 1f;      // the pixel card at 5x, like the hand
 
-        /// <summary>The item slots shown on the card (weapon / armor slots are shelved for now).</summary>
+        /// <summary>The item slots shown (weapon / armor slots are shelved for now).</summary>
         static readonly PartSlot[] Slots = { PartSlot.Chip, PartSlot.Core };
 
         static string SlotLabel(PartSlot slot)
         {
             return slot == PartSlot.Chip ? "CHIP" : "CORE";
         }
-        /// <summary>Default socket spots on the shared robot's internals, indexed by slot number (art pixels from the
-        /// top-left of the 96x144 portrait): weapon, armor (unused for now), chip, core.</summary>
-        static readonly Vector2[] SocketSpots = { new Vector2(30f, 100f), new Vector2(70f, 70f), new Vector2(56f, 44f), new Vector2(52f, 94f) };
-        // Every crew card is the reference knight (recoloured): CHIP on the head, CORE on the opened chest.
 
         OverworldBuilder world;
         CanvasGroup group;
-        RectTransform page, carousel, back, backCard, keyBar, titleGroup;
+        RectTransform page, tabs, detail, keyBar;
         RawImage glowBackdrop;
         Text keyText;
-        readonly List<RectTransform> cards = new List<RectTransform>();
-        readonly List<Image> glows = new List<Image>();
         List<CharacterDefinition> party = new List<CharacterDefinition>();
         int selected;
-        float openT;
-        // The carousel position: a continuous card index that glides toward its target (see AnimateCards).
-        float scroll, scrollTarget, scrollVelocity;
+        float openT, detailT;
 
-        // Flip: 0 = front, 1 = back.
-        bool flipped;
-        float flipT;
-
-        // Back state. Focus order: the four sockets, then the two deck cards.
+        // Focus order: the item slots, then the deck cards.
         int focus;
-        int deckSlot;
         readonly List<RectTransform> focusTargets = new List<RectTransform>();
         RectTransform focusFrame, picker;
         readonly List<System.Action> pickerActions = new List<System.Action>();
@@ -83,24 +69,28 @@ namespace Game.World
 
         // ------------------------------------------------------------------ Open / close
 
+        /// <summary>Runs after the menu closes (the Escape card menu reopens itself this way).</summary>
+        System.Action onClosed;
+
         public void Open()
         {
+            Open(null);
+        }
+
+        /// <param name="whenClosed">Called once the menu closes, by X or Esc (e.g. back to the Escape menu).</param>
+        public void Open(System.Action whenClosed)
+        {
             if (IsOpen) return;
+            onClosed = whenClosed;
             LastToggleFrame = Time.frameCount;
             gameObject.SetActive(true);
             transform.SetAsLastSibling();
             Time.timeScale = 0f;
             openT = 0f;
-            flipped = false;
-            flipT = 0f;
-            party = world.Party;
+            party = world.Roster;   // the Units screen shows everyone who has joined
             selected = 0;
-            scroll = scrollTarget = scrollVelocity = 0f;
-            BuildCards();
-            if (back != null) Destroy(back.gameObject);
-            back = null;
-            UpdateKeyBar();
-            UpdateBackdrop();
+            focus = 0;
+            Rebuild();
         }
 
         public void Close()
@@ -112,6 +102,9 @@ namespace Game.World
             world.RefreshPartyHud();
             Time.timeScale = 1f;
             gameObject.SetActive(false);
+            var then = onClosed;
+            onClosed = null;
+            if (then != null) then();
         }
 
         void OnDisable()
@@ -127,23 +120,19 @@ namespace Game.World
             openT = Mathf.Min(1f, openT + dt / 0.25f);
             group.alpha = Ease(openT);
             page.anchoredPosition = new Vector2(0f, Mathf.Lerp(-30f, 0f, Ease(openT)));
-
-            if (Time.frameCount != LastToggleFrame) HandleInput();
-            AnimateCards(dt);
-            AnimateFlip(dt);
-
-            float pulse = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 2.4f);
-            foreach (var g in glows)
+            // Switching member: the detail slides in from the right and fades up.
+            detailT = Mathf.Min(1f, detailT + dt / 0.22f);
+            if (detail != null)
             {
-                if (g == null) continue;
-                var c = g.color;
-                c.a = pulse;
-                g.color = c;
+                detail.anchoredPosition = new Vector2(Mathf.Lerp(40f, 0f, Ease(detailT)), 0f);
+                detail.GetComponent<CanvasGroup>().alpha = Ease(detailT);
             }
+            if (Time.frameCount != LastToggleFrame) HandleInput();
         }
 
         void HandleInput()
         {
+            if (CardDetailPopup.IsOpen) return;   // the open card takes Esc / clicks first
             bool cancel = Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Backspace);
             bool confirm = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.F) || Input.GetKeyDown(KeyCode.Space);
             bool left = Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A);
@@ -161,20 +150,14 @@ namespace Game.World
             }
             if (cancel)
             {
-                if (flipped) Flip(false);
-                else Close();
+                Close();
                 return;
             }
             if (party.Count == 0) return;
-            if (left) Step(-1);
-            if (right) Step(1);
-
-            if (!flipped)
-            {
-                if (confirm) Flip(true);
-                if (Input.GetKeyDown(KeyCode.L)) MakeLeader();
-            }
-            else if (focusTargets.Count > 0)
+            if (left) Select(Mod(selected - 1, party.Count));
+            if (right) Select(Mod(selected + 1, party.Count));
+            if (Input.GetKeyDown(KeyCode.L)) MakeLeader();
+            if (focusTargets.Count > 0)
             {
                 if (up) SetFocus((focus - 1 + focusTargets.Count) % focusTargets.Count);
                 if (down) SetFocus((focus + 1) % focusTargets.Count);
@@ -182,71 +165,26 @@ namespace Game.World
             }
         }
 
-        /// <summary>Moves the carousel by whole cards (negative = left), the short way round.</summary>
-        void Step(int cards)
-        {
-            if (party.Count == 0 || cards == 0) return;
-            scrollTarget += cards;
-            selected = Mod(Mathf.RoundToInt(scrollTarget), party.Count);
-            if (flipped) BuildBack();
-            UpdateBackdrop();
-        }
-
         static int Mod(int a, int n)
         {
             return ((a % n) + n) % n;
+        }
+
+        void Select(int index)
+        {
+            if (index == selected) return;
+            selected = index;
+            focus = 0;
+            Rebuild();
         }
 
         void MakeLeader()
         {
             if (Member == null || selected == 0) return;
             world.SetLeader(Member);
-            party = world.Party;
+            party = world.Roster;   // the Units screen shows everyone who has joined
             selected = 0;
-            scroll = scrollTarget = scrollVelocity = 0f;
-            BuildCards();
-            UpdateBackdrop();
-        }
-
-        void Flip(bool toBack)
-        {
-            if (flipped == toBack) return;
-            flipped = toBack;
-            if (toBack)
-            {
-                focus = 0;
-                deckSlot = 0;
-                BuildBack();
-            }
-            else ClosePicker();
-            UpdateKeyBar();
-        }
-
-        /// <summary>
-        /// The flip: the front card turns edge-on (scale X to 0), then the back card turns face-on from the same spot
-        /// while the side panels fade in. Scaling reads as a Y rotation in a screen-space canvas and keeps pixels square.
-        /// </summary>
-        void AnimateFlip(float dt)
-        {
-            flipT = Mathf.MoveTowards(flipT, flipped ? 1f : 0f, dt / FlipTime);
-            float t = Mathf.SmoothStep(0f, 1f, flipT);
-            bool showBack = t > 0.5f && back != null;
-            float squash = Mathf.Abs(Mathf.Cos(t * Mathf.PI));
-            carousel.gameObject.SetActive(!showBack);
-            titleGroup.gameObject.SetActive(!showBack);
-            if (back != null) back.gameObject.SetActive(showBack);
-            if (!showBack)
-            {
-                if (cards.Count > 0)
-                {
-                    var center = cards[selected];
-                    center.localScale = new Vector3(center.localScale.y * squash, center.localScale.y, 1f);
-                }
-                return;
-            }
-            backCard.localScale = new Vector3(squash, 1f, 1f);
-            var cg = back.GetComponent<CanvasGroup>();
-            cg.alpha = Mathf.Clamp01((t - 0.5f) * 2f);
+            Rebuild();
         }
 
         static float Ease(float t)
@@ -263,472 +201,311 @@ namespace Game.World
             bg.rectTransform.Fill();
             InkStyle.Gradient(bg.rectTransform, new Color(0.16f, 0.15f, 0.14f), new Color(0.06f, 0.055f, 0.05f));
 
-            // A soft glow in the shown member's color behind the card.
+            // A soft glow in the shown member's color behind the sprite.
             glowBackdrop = new GameObject("Glow", typeof(RectTransform)).AddComponent<RawImage>();
             glowBackdrop.rectTransform.SetParent(root, false);
-            glowBackdrop.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 20f), new Vector2(1600f, 1600f));
+            glowBackdrop.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2((Left + InfoX) / 2f, -40f), new Vector2(1100f, 1100f));
             glowBackdrop.texture = RadialTexture();
             glowBackdrop.raycastTarget = false;
             InkStyle.Grain(root, new Color(1f, 0.95f, 0.85f, 0.04f));
 
             page = UIFactory.CreateRect("Content", root).Fill();
-            titleGroup = UIFactory.CreateRect("Title", page).Fill();
-            var title = InkStyle.Title(titleGroup, "Title", "Crew", 76, InkStyle.Paper, TextAnchor.UpperLeft);
-            title.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(90f, -36f), new Vector2(500f, 100f));
-            var rule = InkStyle.Line(titleGroup, "TitleRule", InkStyle.Gold);
-            rule.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(90f, -138f), new Vector2(260f, 2f));
+            var center = new Vector2(0.5f, 0.5f);
+            var title = InkStyle.Title(page, "Title", "Units", 56, InkStyle.Paper, TextAnchor.UpperLeft);
+            title.rectTransform.Place(center, new Vector2(0f, 1f), new Vector2(Left, Top), new Vector2(260f, 70f));
+            tabs = UIFactory.CreateRect("Tabs", page).Place(center, new Vector2(0f, 1f), new Vector2(Left + 230f, Top - 4f), new Vector2(Right - Left - 230f - 110f, 60f));
 
-            carousel = UIFactory.CreateRect("Cards", page).Fill();
+            // A visible X (top-right): closes the menu, back to wherever it was opened from.
+            // On the root, after the page, so nothing on the page can ever cover it.
+            var x = InkStyle.CloseButton(root, Close);
+            x.GetComponent<RectTransform>().Place(center, new Vector2(1f, 1f), new Vector2(Right, Top + 6f), new Vector2(84f, 84f));
 
             keyBar = UIFactory.CreateRect("Keys", page).Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(1600f, 44f));
-            keyText = UIFactory.CreateText(keyBar, "Text", "", 22, InkStyle.PaperDim, TextAnchor.MiddleCenter, FontStyle.Bold);
+            keyText = UIFactory.CreateText(keyBar, "Text", "", 28, InkStyle.PaperDim, TextAnchor.MiddleCenter, FontStyle.Bold);
             keyText.supportRichText = true;
             keyText.rectTransform.Fill();
-        }
-
-        void UpdateKeyBar()
-        {
             const string gold = "<color=#C2A061>";
-            keyText.text = flipped
-                ? gold + "← →</color>  Switch      " + gold + "↑ ↓</color>  Select      " + gold + "Enter</color>  Change      " + gold + "Esc</color>  Back"
-                : gold + "← →</color>  Switch      " + gold + "Enter</color>  Open      " + gold + "L</color>  Leader      " + gold + "Esc</color>  Close";
+            keyText.text = gold + "← →</color>  Member      " + gold + "↑ ↓</color>  Select      " + gold + "Enter</color>  Open      "
+                           + gold + "L</color>  Leader      " + gold + "Esc</color>  Close";
         }
 
-        void UpdateBackdrop()
+        void Rebuild()
         {
+            BuildTabs();
+            BuildDetail();
             var c = AfflatusInfo.GlowFor(Member);
             c.a = 0.16f;
             glowBackdrop.color = c;
         }
 
-        // ------------------------------------------------------------------ Front: the card carousel
-
-        void BuildCards()
+        /// <summary>One tab per member: the name in serif, gold when shown, with a small "Leader" over the first.</summary>
+        void BuildTabs()
         {
-            UIFactory.ClearChildren(carousel);
-            cards.Clear();
-            glows.Clear();
+            UIFactory.ClearChildren(tabs);
+            float x = 0f;
             for (int i = 0; i < party.Count; i++)
             {
-                int captured = i;
-                var card = BuildCard(party[i], i == 0);
-                Clickable(card, () =>
+                var member = party[i];
+                bool on = i == selected;
+                float w = Mathf.Max(150f, member.DisplayName.Length * 22f + 40f);
+                var tab = UIFactory.CreateRect(member.DisplayName, tabs).Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, 0f), new Vector2(w, 60f));
+                var name = InkStyle.Title(tab, "Name", member.DisplayName, 40, on ? InkStyle.GoldBright : InkStyle.PaperDim, TextAnchor.LowerCenter);
+                name.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 8f), new Vector2(w, 44f));
+                if (on)
                 {
-                    if (selected == captured) Flip(true);
-                    else Step(Mathf.RoundToInt(Offset(captured, selected)));
-                });
-                cards.Add(card);
+                    var rule = InkStyle.Line(tab, "Underline", InkStyle.Gold);
+                    rule.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(w - 30f, 2f));
+                }
+                if (i == 0)
+                {
+                    var lead = InkStyle.Label(tab, "Leader", "Leader", 24, InkStyle.Gold, TextAnchor.LowerCenter);
+                    lead.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 2f), new Vector2(w, 34f));
+                }
+                int index = i;
+                Clickable(tab, () => Select(index));
+                x += w + 20f;
             }
-            PlaceCards();
         }
 
-        RectTransform BuildCard(CharacterDefinition member, bool leader)
-        {
-            var progress = WorldSession.ProgressOf(member);
-            var glowColor = AfflatusInfo.GlowFor(member);
+        // ------------------------------------------------------------------ The detail page
 
-            var root = UIFactory.CreateRect(member.DisplayName, carousel).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, CardSize);
-            root.gameObject.AddComponent<CanvasGroup>();
-            CardFace(root, glowColor);
-            Portrait(root, member.portraitFront, member.portraitGlow, glowColor, PortraitScale, new Vector2(0f, -26f), member);
-
-            if (leader)
-            {
-                var tag = InkStyle.Label(root, "Leader", "Leader", 16, InkStyle.Gold, TextAnchor.UpperRight);
-                tag.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-30f, -26f), new Vector2(240f, 30f));
-            }
-
-            // Name, element and class, level, a slim HP bar.
-            var bottom = new Vector2(0.5f, 0f);
-            var divider = InkStyle.Line(root, "Divider", InkStyle.Rule);
-            divider.rectTransform.Place(bottom, bottom, new Vector2(0f, 214f), new Vector2(CardSize.x - 80f, 2f));
-            var name = InkStyle.Title(root, "Name", member.DisplayName, 64, InkStyle.Paper, TextAnchor.LowerLeft).BestFit(30, 64);
-            name.rectTransform.Place(Vector2.zero, Vector2.zero, new Vector2(40f, 118f), new Vector2(300f, 90f));
-            var meta = InkStyle.Label(root, "Meta", AfflatusInfo.LabelFor(member) + " · " + member.archetype, 15, UIFactory.WithAlpha(glowColor, 0.9f), TextAnchor.UpperLeft);
-            meta.rectTransform.Place(Vector2.zero, Vector2.zero, new Vector2(42f, 78f), new Vector2(330f, 36f));
-            var lvLabel = InkStyle.Label(root, "LvLabel", "Lv", 15, InkStyle.Muted, TextAnchor.LowerRight);
-            lvLabel.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 186f), new Vector2(120f, 26f));
-            var lv = InkStyle.Title(root, "Lv", progress.Level.ToString(), 86, InkStyle.GoldBright, TextAnchor.UpperRight);
-            lv.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 70f), new Vector2(150f, 116f));
-            HpBar(root, member, new Vector2(0f, 46f), CardSize.x - 80f, 8f, bottom);
-            return root;
-        }
-
-        /// <summary>The ink card face: a tinted wash from the top and the gold hero frame.</summary>
-        static void CardFace(RectTransform root, Color glowColor)
-        {
-            var face = UIFactory.CreateImage(root, "Face", new Color(0.09f, 0.085f, 0.08f), true);
-            face.rectTransform.Fill();
-            var wash = InkStyle.Gradient(face.rectTransform, UIFactory.WithAlpha(glowColor, 0.2f), new Color(0f, 0f, 0f, 0f));
-            wash.rectTransform.offsetMin = new Vector2(0f, root.sizeDelta.y * 0.3f);
-            InkStyle.HeroFrame(root, InkStyle.Gold, 10f);
-        }
-
-        /// <summary>A portrait at a whole-number scale (crisp pixels) with its pulsing glow layer on top.</summary>
-        RectTransform Portrait(RectTransform root, Sprite art, Sprite glowMask, Color glowColor, float scale, Vector2 position, CharacterDefinition member)
-        {
-            var top = new Vector2(0.5f, 1f);
-            var size = new Vector2(96f, 144f) * scale;
-            var holder = UIFactory.CreateRect("Portrait", root).Place(top, top, position, size);
-            if (art == null)
-            {
-                var initial = InkStyle.Title(holder, "Initial", member.DisplayName.Substring(0, 1), 300, UIFactory.WithAlpha(glowColor, 0.6f), TextAnchor.MiddleCenter);
-                initial.rectTransform.Fill();
-                return holder;
-            }
-            var img = UIFactory.CreateImage(holder, "Art", Color.white);
-            img.sprite = art;
-            img.rectTransform.Fill();
-            if (glowMask != null)
-            {
-                var glow = UIFactory.CreateImage(holder, "Glow", glowColor);
-                glow.sprite = glowMask;
-                glow.rectTransform.Fill();
-                glows.Add(glow);
-            }
-            return holder;
-        }
-
-        static void HpBar(RectTransform root, CharacterDefinition member, Vector2 position, float width, float height, Vector2 anchor)
-        {
-            int hp = WorldSession.HPOf(member), max = WorldSession.MaxHPOf(member);
-            var track = UIFactory.CreateImage(root, "HpTrack", new Color(1f, 1f, 1f, 0.1f));
-            track.rectTransform.Place(anchor, anchor, position, new Vector2(width, height));
-            Fill(track.rectTransform, hp / (float)Mathf.Max(1, max), hp <= max / 4 ? new Color(0.92f, 0.32f, 0.3f) : new Color(0.4f, 0.85f, 0.5f));
-        }
-
-        static void Fill(RectTransform track, float amount, Color color)
-        {
-            var fill = UIFactory.CreateImage(track, "Fill", color);
-            fill.rectTransform.anchorMin = Vector2.zero;
-            fill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(amount), 1f);
-            fill.rectTransform.offsetMin = fill.rectTransform.offsetMax = Vector2.zero;
-        }
-
-        /// <summary>Where card i sits relative to <paramref name="at"/> (a card index, fractional while gliding),
-        /// wrapped so the cards either side of it are its neighbours: in (-n/2, n/2].</summary>
-        float Offset(int i, float at)
-        {
-            int n = party.Count;
-            float o = (i - at) % n;
-            if (o < 0f) o += n;
-            if (o > n * 0.5f) o -= n;
-            return o;
-        }
-
-        /// <summary>
-        /// Lays the cards out from the gliding scroll value: the centre card full size, neighbours smaller and dimmer,
-        /// a gentle drop toward the sides. Cards fade out before they wrap round, so nothing visibly jumps.
-        /// </summary>
-        void PlaceCards()
-        {
-            var order = new List<KeyValuePair<float, RectTransform>>();
-            for (int i = 0; i < cards.Count; i++)
-            {
-                float o = Offset(i, scroll);
-                float d = Mathf.Abs(o);
-                float near = Mathf.Clamp01(d);
-                var card = cards[i];
-                card.anchoredPosition = new Vector2(o * CardSpacing, -36f * near * near);
-                float s = Mathf.Lerp(1f, SideScale, near);
-                card.localScale = new Vector3(s, s, 1f);
-                float alpha = d <= 1f ? Mathf.Lerp(1f, 0.4f, d) : Mathf.Max(0f, 0.4f * (1f - (d - 1f) * 2.5f));
-                card.GetComponent<CanvasGroup>().alpha = alpha;
-                order.Add(new KeyValuePair<float, RectTransform>(d, card));
-            }
-            order.Sort((a, b) => b.Key.CompareTo(a.Key)); // the nearest card draws on top
-            foreach (var entry in order) entry.Value.SetAsLastSibling();
-        }
-
-        void AnimateCards(float dt)
-        {
-            if (!carousel.gameObject.activeSelf) return;
-            scroll = Mathf.SmoothDamp(scroll, scrollTarget, ref scrollVelocity, SlideTime, Mathf.Infinity, dt);
-            PlaceCards();
-        }
-
-        // ------------------------------------------------------------------ Back: the opened card, stats and cards
-
-        // The back fits the narrowest view (4:3 shows ~1740 of the 2400 wide layout): everything sits within
-        // x = -820..820 around the centre. The opened card on the left, stats top right, every card along the bottom.
-        const float BackLeft = -820f, BackRight = 820f, BackTop = 615f, TopHeight = 760f, BottomRowTop = -175f;
-        const float BackArtScale = 4f, RowCardScale = 1.5f;
-        static readonly Vector2 BackCardSize = new Vector2(480f, TopHeight);
-
-        void BuildBack()
+        void BuildDetail()
         {
             ClosePicker();
-            if (back != null) Destroy(back.gameObject);
+            if (detail != null) Destroy(detail.gameObject);
             focusTargets.Clear();
             focusFrame = null;
-            glows.RemoveAll(g => g == null); // glow layers of earlier rebuilds
             var member = Member;
             if (member == null) return;
 
-            back = UIFactory.CreateRect("Back", page).Fill();
-            back.gameObject.AddComponent<CanvasGroup>();
-            back.gameObject.SetActive(flipT > 0.5f);
-            var glowColor = AfflatusInfo.GlowFor(member);
+            detail = UIFactory.CreateRect("Detail", page).Fill();
+            detail.gameObject.AddComponent<CanvasGroup>();
+            detailT = 0f;
             var progress = WorldSession.ProgressOf(member);
-            var center = new Vector2(0.5f, 0.5f);
 
-            // The opened card, on the left: the robot's internals with the item sockets pinned on.
-            backCard = UIFactory.CreateRect("Card", back).Place(center, center,
-                new Vector2(BackLeft + BackCardSize.x / 2f, BackTop - BackCardSize.y / 2f), BackCardSize);
-            CardFace(backCard, glowColor);
-            var art = Portrait(backCard, member.portraitInternals != null ? member.portraitInternals : member.portraitFront,
-                member.portraitInternals != null ? member.portraitInternalsGlow : member.portraitGlow, glowColor, BackArtScale, new Vector2(0f, -40f), member);
-            var caption = InkStyle.Label(backCard, "Caption", "Internals", 15, InkStyle.Gold, TextAnchor.MiddleCenter);
-            caption.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 82f), new Vector2(400f, 30f));
-            var name = InkStyle.Title(backCard, "Name", member.DisplayName, 46, InkStyle.Paper, TextAnchor.MiddleCenter);
-            name.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 26f), new Vector2(420f, 56f));
-            for (int s = 0; s < Slots.Length; s++)
-            {
-                var socket = Socket(art, member, Slots[s]);
-                int index = s;
-                Clickable(socket, () => { SetFocus(index); Activate(index); });
-                focusTargets.Add(socket);
-            }
-
-            BuildStats(member, progress, glowColor);
-            BuildCardRow(member, progress);
-            SetFocus(Mathf.Clamp(focus, 0, focusTargets.Count - 1));
+            BuildSprite(member);
+            float y = Top - 110f;
+            y = BuildHeader(member, progress, y);
+            y = BuildHealth(member, y - 14f);
+            y = BuildStats(member, progress, y - 22f);
+            y = BuildItems(member, y - 26f);
+            y = BuildResonance(member, y - 22f);
+            BuildCardRow(member, progress, y - 30f);
+            SetFocus(Mathf.Clamp(focus, 0, Mathf.Max(0, focusTargets.Count - 1)));
         }
 
-        /// <summary>An item socket on the internals art: a ring (gold when filled, in the Part's color) with its slot label.</summary>
-        RectTransform Socket(RectTransform art, CharacterDefinition member, PartSlot slot)
+        /// <summary>The member's idle animation, large, standing on a soft shadow on the left.</summary>
+        void BuildSprite(CharacterDefinition member)
         {
-            var part = WorldSession.PartIn(member, slot);
-            int i = (int)slot;
-            var spot = (member.partSockets != null && i < member.partSockets.Count ? member.partSockets[i] : SocketSpots[i]) * BackArtScale;
-            var socket = UIFactory.CreateRect(SlotLabel(slot), art).Place(new Vector2(0f, 1f), new Vector2(0.5f, 0.5f), new Vector2(spot.x, -spot.y), new Vector2(64f, 64f));
-            var ring = UIFactory.CreateImage(socket, "Ring", part != null ? InkStyle.GoldBright : UIFactory.WithAlpha(InkStyle.Paper, 0.75f), true);
-            ring.sprite = RingSprite();
-            ring.rectTransform.Fill();
-            var core = UIFactory.CreateImage(socket, "Core", part != null ? part.color : new Color(0f, 0f, 0f, 0.6f));
-            core.sprite = CircleSprite();
-            core.rectTransform.Fill(10f);
-            var icon = UIFactory.CreateImage(socket, "Icon", part != null ? InkStyle.Ink : UIFactory.WithAlpha(InkStyle.Paper, 0.6f));
-            icon.sprite = SlotIcon(i);
-            icon.rectTransform.Fill(20f);
-            var label = UIFactory.CreateText(socket, "Label", SlotLabel(slot), 15, InkStyle.Paper, TextAnchor.UpperCenter, FontStyle.Bold);
-            label.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, -2f), new Vector2(120f, 22f));
-            label.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
-            return socket;
+            var center = new Vector2(0.5f, 0.5f);
+            float cx = (Left + InfoX) / 2f, ground = -420f;
+            var shadow = UIFactory.CreateImage(detail, "Shadow", new Color(0f, 0f, 0f, 0.4f));
+            shadow.sprite = CircleSprite();
+            shadow.rectTransform.Place(center, center, new Vector2(cx, ground + 10f), new Vector2(300f, 50f));
+            if (member.animations == null || !member.animations.Has(UISpriteAnimator.Idle)) return;
+            float size = 64f * SpriteScale;
+            var img = UIFactory.CreateImage(detail, "Sprite", Color.white);
+            img.preserveAspect = true;
+            // The frame's feet sit ~2 px above its bottom edge.
+            img.rectTransform.Place(center, new Vector2(0.5f, 0f), new Vector2(cx, ground - 2f * SpriteScale), new Vector2(size, size));
+            var anim = img.gameObject.AddComponent<UISpriteAnimator>();
+            anim.UnscaledTime = true;
+            anim.Init(member.animations, Facing.Right, img);
+        }
+
+        /// <summary>The glowing element orb, the name in big serif and the level with an XP hairline.</summary>
+        float BuildHeader(CharacterDefinition member, MemberProgress progress, float y)
+        {
+            var center = new Vector2(0.5f, 0.5f);
+            var tl = new Vector2(0f, 1f);
+            ElementBadge.Create(detail, WorldSession.ElementOf(member), 64f, center, new Vector2(InfoX + 40f, y - 46f));
+            var name = InkStyle.Title(detail, "Name", member.DisplayName, 76, InkStyle.Paper, TextAnchor.MiddleLeft).BestFit(40, 76);
+            name.rectTransform.Place(center, tl, new Vector2(InfoX + 96f, y + 4f), new Vector2(Right - InfoX - 330f, 92f));
+
+            var lv = UIFactory.CreateText(detail, "Level", "Level  " + UIFactory.Size(48) + progress.Level + "</size>", 30, InkStyle.PaperDim, TextAnchor.LowerRight);
+            lv.font = UIFactory.SerifFont;
+            lv.supportRichText = true;
+            lv.rectTransform.Place(center, new Vector2(1f, 1f), new Vector2(Right, y - 6f), new Vector2(240f, 70f));
+
+            y -= 96f;
+            var rule = InkStyle.Line(detail, "Rule", UIFactory.WithAlpha(InkStyle.Gold, 0.55f));
+            rule.rectTransform.Place(center, tl, new Vector2(InfoX + 96f, y), new Vector2(Right - InfoX - 96f, 1f));
+            // XP toward the next level: a gold hairline over the rule.
+            float xp = progress.Level >= Leveling.MaxLevel ? 1f : progress.Xp / (float)Mathf.Max(1, Leveling.XpToNext(progress.Level));
+            var xpLine = UIFactory.CreateImage(detail, "Xp", InkStyle.GoldBright);
+            xpLine.rectTransform.Place(center, tl, new Vector2(InfoX + 96f, y + 1f), new Vector2((Right - InfoX - 96f) * Mathf.Clamp01(xp), 3f));
+            return y - 3f;
         }
 
         /// <summary>
-        /// Top right: name, element and class, the level inside a ring that fills with XP, HP, then Persona-style stat
-        /// bars (Part bonuses as a gold segment) and the CHIP / CORE slots. Bars are scaled to the reference
-        /// character (MC) so that its level-30 stats fill 90% of them (<see cref="Leveling.BarMax"/>).
+        /// The protagonist's resonances (bible §3): one button per unlocked resonance, the active one gold. Switching is
+        /// free outside combat and swaps the innate cards, element and Ult shown below. Other members show nothing.
         /// </summary>
-        void BuildStats(CharacterDefinition member, MemberProgress progress, Color glowColor)
+        float BuildResonance(CharacterDefinition member, float y)
         {
-            float left = BackLeft + BackCardSize.x + 40f;
-            var size = new Vector2(BackRight - left, TopHeight);
-            var p = InkStyle.Panel(back, "Stats", InkStyle.InkPanel).rectTransform;
-            p.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, 1f), new Vector2(left, BackTop), size);
-            InkStyle.Frame(p, InkStyle.Rule, 2f);
+            var available = WorldSession.AvailableResonances(member);
+            if (available.Count == 0) return y;
+            var center = new Vector2(0.5f, 0.5f);
             var tl = new Vector2(0f, 1f);
-            float w = size.x - 80f;
+            float x0 = InfoX + 96f;
+            var head = InkStyle.Label(detail, "ResonanceLabel", "Resonance", 30, InkStyle.Gold, TextAnchor.MiddleLeft);
+            head.rectTransform.Place(center, tl, new Vector2(x0, y), new Vector2(260f, 64f));
+            var active = WorldSession.ElementOf(member);
+            for (int i = 0; i < available.Count; i++)
+            {
+                var element = available[i];
+                bool on = element == active;
+                var b = InkStyle.Button(detail, "Res" + element, AfflatusInfo.Display(element), () =>
+                {
+                    WorldSession.SetResonance(element);
+                    SaveGame.Save();
+                    Rebuild();
+                }, on, 34);
+                b.GetComponent<RectTransform>().Place(center, tl, new Vector2(x0 + 270f + i * 230f, y - 2f), new Vector2(210f, 60f));
+            }
+            return y - 68f;
+        }
 
-            var name = InkStyle.Title(p, "Name", member.DisplayName, 64, InkStyle.Paper, TextAnchor.UpperLeft).BestFit(30, 64);
-            name.rectTransform.Place(tl, tl, new Vector2(40f, -22f), new Vector2(w - 220f, 80f));
-            var meta = InkStyle.Label(p, "Meta", AfflatusInfo.LabelFor(member) + " · " + member.archetype + " · " + member.damageType, 15, glowColor, TextAnchor.UpperLeft);
-            meta.rectTransform.Place(tl, tl, new Vector2(42f, -102f), new Vector2(w - 220f, 30f));
-            LevelRing(p, progress);
-
-            // HP, with exact numbers (this is the details screen).
+        /// <summary>HP: the label left and the numbers right on one line, over a thin bar.</summary>
+        float BuildHealth(CharacterDefinition member, float y)
+        {
+            var center = new Vector2(0.5f, 0.5f);
+            var tl = new Vector2(0f, 1f);
+            float x = InfoX + 96f, w = Right - x;
             int hp = WorldSession.HPOf(member), max = WorldSession.MaxHPOf(member);
-            Meter(p, "HP", hp + " / " + max, hp / (float)Mathf.Max(1, max), hp <= max / 4 ? new Color(0.92f, 0.32f, 0.3f) : new Color(0.4f, 0.85f, 0.5f), -160f, w);
+            var label = InkStyle.Title(detail, "HP", "HP", 40, InkStyle.Paper, TextAnchor.MiddleLeft);
+            label.rectTransform.Place(center, tl, new Vector2(x, y), new Vector2(200f, 50f));
+            var value = InkStyle.Title(detail, "HPValue", hp + " / " + max, 36, InkStyle.Paper, TextAnchor.MiddleRight);
+            value.rectTransform.Place(center, tl, new Vector2(Right - 400f, y), new Vector2(400f, 50f));
+            y -= 54f;
+            var track = UIFactory.CreateImage(detail, "HPTrack", new Color(1f, 1f, 1f, 0.1f));
+            track.rectTransform.Place(center, tl, new Vector2(x, y), new Vector2(w, 6f));
+            Fill(track.rectTransform, hp / (float)Mathf.Max(1, max), hp <= max / 4 ? new Color(0.92f, 0.32f, 0.3f) : new Color(0.45f, 0.82f, 0.55f));
+            return y - 6f;
+        }
 
-            // Stat bars.
-            var reference = party.Find(m => m != null && m.statBarReference) ?? member;
+        /// <summary>The stats as label / value strips in two columns; a Part's bonus shows as a small gold "+N".</summary>
+        float BuildStats(CharacterDefinition member, MemberProgress progress, float y)
+        {
+            var center = new Vector2(0.5f, 0.5f);
+            var tl = new Vector2(0f, 1f);
             var with = UnitFor(member, progress, true);
             var without = UnitFor(member, progress, false);
             var stats = new[]
             {
-                new KeyValuePair<string, StatType>("HP", StatType.MaxHP),
                 new KeyValuePair<string, StatType>("ATK", StatType.Attack),
-                new KeyValuePair<string, StatType>("P.DEF", StatType.PhysicalDefense),
-                new KeyValuePair<string, StatType>("S.DEF", StatType.SpecialDefense),
+                new KeyValuePair<string, StatType>("PHYS DEF", StatType.PhysicalDefense),
                 new KeyValuePair<string, StatType>("CRIT", StatType.CritRate),
-                new KeyValuePair<string, StatType>("C.DMG", StatType.CritDamage),
+                new KeyValuePair<string, StatType>("SPEC DEF", StatType.SpecialDefense),
+                new KeyValuePair<string, StatType>("CRIT DMG", StatType.CritDamage),
+                new KeyValuePair<string, StatType>("MAX HP", StatType.MaxHP),
             };
-            // Persona 5-style: a white slab with the rows stacked tight.
-            var slab = UIFactory.CreateImage(p, "StatSlab", InkStyle.Paper);
-            slab.rectTransform.Place(tl, tl, new Vector2(24f, -204f), new Vector2(w + 32f, stats.Length * StatRow + 12f));
+            float x0 = InfoX + 96f, gap = 14f, cw = (Right - x0 - gap) / 2f, ch = 48f;
             for (int i = 0; i < stats.Length; i++)
             {
                 var stat = stats[i].Value;
                 bool percent = stat == StatType.CritRate || stat == StatType.CritDamage;
                 float a = with.GetStat(stat), b = without.GetStat(stat);
-                float barMax = Leveling.BarMax(reference, stat);
-                StatBar(p, stats[i].Key, percent ? Mathf.RoundToInt(a * 100f) + "%" : Mathf.RoundToInt(a).ToString(),
-                    b / barMax, a / barMax, -210f - i * StatRow, w);
-            }
+                string value = percent ? Mathf.RoundToInt(a * 100f) + "%" : Mathf.RoundToInt(a).ToString();
+                float bonus = percent ? (a - b) * 100f : a - b;
+                if (Mathf.Abs(bonus) >= 0.5f)
+                    value = UIFactory.Size(20) + "<color=#E6C784>" + (bonus > 0 ? "+" : "") + Mathf.RoundToInt(bonus) + (percent ? "%" : "") + "</color></size>  " + value;
 
-            // Item slots: CHIP and CORE side by side (click to change, same as the sockets on the card).
-            const float gap = 30f;
-            var head = InkStyle.Label(p, "PartsLabel", "Parts", 15, InkStyle.Gold, TextAnchor.LowerLeft);
-            head.rectTransform.Place(tl, tl, new Vector2(40f, -558f), new Vector2(300f, 28f));
-            float partW = (w - gap) / 2f;
+                int col = i % 2, row = i / 2;
+                var strip = UIFactory.CreateImage(detail, stats[i].Key, new Color(0.06f, 0.055f, 0.05f, 0.62f));
+                strip.rectTransform.Place(center, tl, new Vector2(x0 + col * (cw + gap), y - row * (ch + 8f)), new Vector2(cw, ch));
+                var l = UIFactory.CreateText(strip.transform, "Label", stats[i].Key, 30, InkStyle.PaperDim, TextAnchor.MiddleLeft);
+                l.font = UIFactory.SerifFont;
+                l.rectTransform.Fill();
+                l.rectTransform.offsetMin = new Vector2(18f, 0f);
+                var v = UIFactory.CreateText(strip.transform, "Value", value, 34, InkStyle.Paper, TextAnchor.MiddleRight, FontStyle.Bold);
+                v.supportRichText = true;
+                v.rectTransform.Fill();
+                v.rectTransform.offsetMax = new Vector2(-18f, 0f);
+            }
+            return y - 3f * (ch + 8f);
+        }
+
+        /// <summary>The two item slots, side by side: icon, slot name, the fitted Part and what it does (click to change).</summary>
+        float BuildItems(CharacterDefinition member, float y)
+        {
+            var center = new Vector2(0.5f, 0.5f);
+            var tl = new Vector2(0f, 1f);
+            float x0 = InfoX + 96f, gap = 14f, w = (Right - x0 - gap) / 2f, h = 110f;
+            var head = InkStyle.Label(detail, "ItemsLabel", "Items", 30, InkStyle.Gold, TextAnchor.LowerLeft);
+            head.rectTransform.Place(center, tl, new Vector2(x0, y), new Vector2(300f, 40f));
+            y -= 46f;
             for (int s = 0; s < Slots.Length; s++)
             {
                 var slot = Slots[s];
                 var part = WorldSession.PartIn(member, slot);
-                var row = InkStyle.Panel(p, SlotLabel(slot), new Color(1f, 1f, 1f, 0.04f), true).rectTransform;
-                row.Place(tl, tl, new Vector2(40f + s * (partW + gap), -594f), new Vector2(partW, 130f));
-                var icon = UIFactory.CreateImage(row, "Icon", part != null ? part.color : new Color(1f, 1f, 1f, 0.2f));
+                var row = UIFactory.CreateImage(detail, SlotLabel(slot), new Color(0.06f, 0.055f, 0.05f, 0.62f)).rectTransform;
+                row.Place(center, tl, new Vector2(x0 + s * (w + gap), y), new Vector2(w, h));
+                var icon = UIFactory.CreateImage(row, "Icon", part != null ? Color.white : new Color(1f, 1f, 1f, 0.3f));
                 icon.sprite = SlotIcon((int)slot);
-                icon.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(22f, 0f), new Vector2(56f, 56f));
-                var slotText = UIFactory.CreateText(row, "Slot", SlotLabel(slot), 16, InkStyle.Gold, TextAnchor.UpperLeft, FontStyle.Bold);
-                slotText.rectTransform.Place(tl, tl, new Vector2(98f, -16f), new Vector2(120f, 24f));
-                var partName = UIFactory.CreateText(row, "Name", part != null ? part.DisplayName : "Empty", 28,
-                    part != null ? InkStyle.Paper : InkStyle.Muted, TextAnchor.UpperLeft, FontStyle.Bold).BestFit(14, 28);
-                partName.rectTransform.Place(tl, tl, new Vector2(98f, -44f), new Vector2(partW - 116f, 38f));
+                icon.preserveAspect = true;
+                icon.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(64f, 64f));
+                var slotText = InkStyle.Label(row, "Slot", SlotLabel(slot), 26, InkStyle.Gold, TextAnchor.UpperLeft);
+                slotText.rectTransform.Place(tl, tl, new Vector2(96f, -8f), new Vector2(160f, 34f));
+                var partName = InkStyle.Title(row, "Name", part != null ? part.DisplayName : "Empty", 36,
+                    part != null ? InkStyle.Paper : InkStyle.PaperDim, TextAnchor.UpperLeft).BestFit(18, 36);
+                partName.rectTransform.Place(tl, tl, new Vector2(96f, -42f), new Vector2(w - 112f, 38f));
                 if (part != null)
                 {
-                    var desc = UIFactory.CreateText(row, "Desc", part.description, 20, InkStyle.GoldBright, TextAnchor.UpperLeft, FontStyle.Bold).BestFit(11, 20);
-                    desc.rectTransform.Place(tl, tl, new Vector2(98f, -86f), new Vector2(partW - 116f, 30f));
+                    var desc = UIFactory.CreateText(row, "Desc", part.description, 24, InkStyle.GoldBright, TextAnchor.UpperLeft).BestFit(14, 24);
+                    desc.rectTransform.Place(tl, tl, new Vector2(96f, -80f), new Vector2(w - 112f, 26f));
                 }
                 int index = s;
                 Clickable(row, () => { SetFocus(index); Activate(index); });
+                focusTargets.Add(row);
             }
-        }
-
-        /// <summary>The level number inside a ring that fills clockwise with XP toward the next level.</summary>
-        static void LevelRing(RectTransform p, MemberProgress progress)
-        {
-            var corner = new Vector2(1f, 1f);
-            var holder = UIFactory.CreateRect("Level", p).Place(corner, corner, new Vector2(-40f, -16f), new Vector2(118f, 118f));
-            var track = UIFactory.CreateImage(holder, "Track", new Color(1f, 1f, 1f, 0.12f));
-            track.sprite = RingSprite();
-            track.rectTransform.Fill();
-            var fill = UIFactory.CreateImage(holder, "Xp", InkStyle.Gold);
-            fill.sprite = RingSprite();
-            fill.type = Image.Type.Filled;
-            fill.fillMethod = Image.FillMethod.Radial360;
-            fill.fillOrigin = (int)Image.Origin360.Top;
-            fill.fillClockwise = true;
-            fill.fillAmount = progress.Level >= Leveling.MaxLevel ? 1f : progress.Xp / (float)Mathf.Max(1, Leveling.XpToNext(progress.Level));
-            fill.rectTransform.Fill();
-            var lv = InkStyle.Title(holder, "Lv", progress.Level.ToString(), 54, InkStyle.GoldBright, TextAnchor.MiddleCenter);
-            lv.rectTransform.Fill();
-            lv.rectTransform.offsetMin = new Vector2(0f, -6f);
-            var cap = InkStyle.Label(holder, "Cap", "Lv", 12, InkStyle.Muted, TextAnchor.UpperCenter);
-            cap.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(80f, 20f));
-        }
-
-        const float StatRow = 54f;
-        static readonly Color P5Red = new Color(0.84f, 0.06f, 0.1f);
-        static readonly Color P5Track = new Color(0.86f, 0.8f, 0.78f);
-
-        /// <summary>
-        /// A Persona 5-style stat row on the white slab: a big condensed black label and value ("MAX" once the bar is
-        /// full), then a long red bar. The Parts' bonus continues the bar in gold (a drop shows dark), and a thin mark
-        /// shows the 90% level-cap point.
-        /// </summary>
-        static void StatBar(RectTransform p, string label, string value, float baseFill, float totalFill, float y, float w)
-        {
-            var tl = new Vector2(0f, 1f);
-            var ink = new Color(0.08f, 0.04f, 0.06f);
-            var l = UIFactory.CreateText(p, label, label, 40, ink, TextAnchor.MiddleLeft, FontStyle.Italic);
-            l.font = UIFactory.DisplayFont;
-            l.rectTransform.Place(tl, tl, new Vector2(40f, y), new Vector2(120f, StatRow - 4f));
-            var v = UIFactory.CreateText(p, label + "Value", value, 44, ink, TextAnchor.MiddleRight, FontStyle.Italic);
-            v.font = UIFactory.DisplayFont;
-            v.rectTransform.Place(tl, tl, new Vector2(150f, y), new Vector2(120f, StatRow - 4f));
-            if (totalFill >= 0.999f)
-            {
-                var max = UIFactory.CreateText(p, label + "Max", "MAX", 22, ink, TextAnchor.LowerLeft, FontStyle.Italic);
-                max.font = UIFactory.DisplayFont;
-                max.rectTransform.Place(tl, tl, new Vector2(274f, y - 4f), new Vector2(60f, StatRow - 12f));
-            }
-
-            float barX = 336f, barW = w + 40f - barX;
-            var track = UIFactory.CreateImage(p, label + "Track", P5Track);
-            track.rectTransform.Place(tl, tl, new Vector2(barX, y - 6f), new Vector2(barW, StatRow - 14f));
-            float lo = Mathf.Clamp01(Mathf.Min(baseFill, totalFill)), hi = Mathf.Clamp01(Mathf.Max(baseFill, totalFill));
-            Segment(track.rectTransform, 0f, lo, P5Red);
-            if (hi - lo > 0.001f) Segment(track.rectTransform, lo, hi, totalFill >= baseFill ? InkStyle.GoldBright : ink);
-            var tick = UIFactory.CreateImage(track.transform, "CapTick", new Color(0f, 0f, 0f, 0.35f));
-            tick.rectTransform.anchorMin = new Vector2(Leveling.BarFillAtCap, 0f);
-            tick.rectTransform.anchorMax = new Vector2(Leveling.BarFillAtCap, 1f);
-            tick.rectTransform.offsetMin = new Vector2(-1.5f, 0f);
-            tick.rectTransform.offsetMax = new Vector2(1.5f, 0f);
-        }
-
-        static void Segment(RectTransform track, float from, float to, Color color)
-        {
-            var seg = UIFactory.CreateImage(track, "Fill", color);
-            seg.rectTransform.anchorMin = new Vector2(from, 0f);
-            seg.rectTransform.anchorMax = new Vector2(to, 1f);
-            seg.rectTransform.offsetMin = seg.rectTransform.offsetMax = Vector2.zero;
-        }
-
-        void Meter(RectTransform p, string label, string value, float amount, Color color, float y, float w)
-        {
-            var tl = new Vector2(0f, 1f);
-            var l = InkStyle.Label(p, label, label, 15, InkStyle.Gold, TextAnchor.MiddleLeft);
-            l.rectTransform.Place(tl, tl, new Vector2(40f, y), new Vector2(80f, 36f));
-            var track = UIFactory.CreateImage(p, label + "Track", new Color(1f, 1f, 1f, 0.1f));
-            track.rectTransform.Place(tl, tl, new Vector2(130f, y - 12f), new Vector2(w - 330f, 12f));
-            Fill(track.rectTransform, amount, color);
-            var v = UIFactory.CreateText(p, label + "Value", value, 24, InkStyle.Paper, TextAnchor.MiddleRight, FontStyle.Bold);
-            v.rectTransform.Place(tl, tl, new Vector2(40f + w - 190f, y), new Vector2(190f, 36f));
+            return y - h;
         }
 
         /// <summary>
-        /// Along the bottom: every card this member has, as the real card faces. Deck (click one to pick its slot),
-        /// the Ult, and spare cards (click one to swap it into the picked deck slot). Scroll over a card to flip its rank.
+        /// The deck and the Ult as the real card faces in a hairline bracket. Click a card to open it (full text, scroll
+        /// for upgrades); deck cards are also focus targets (Enter swaps one for another card).
         /// </summary>
-        void BuildCardRow(CharacterDefinition member, MemberProgress progress)
+        void BuildCardRow(CharacterDefinition member, MemberProgress progress, float y)
         {
+            var center = new Vector2(0.5f, 0.5f);
+            var tl = new Vector2(0f, 1f);
             var unit = UnitFor(member, progress, true);
             var deck = WorldSession.DeckOf(member);
-            var spares = member.AllIncantations().FindAll(c => !deck.Contains(c));
             var groups = new List<KeyValuePair<string, List<CardDefinition>>>
             {
                 new KeyValuePair<string, List<CardDefinition>>("Deck", deck.Count > 2 ? deck.GetRange(0, 2) : deck),
-                new KeyValuePair<string, List<CardDefinition>>("Ult", member.ritual != null ? new List<CardDefinition> { member.ritual } : new List<CardDefinition>()),
-                new KeyValuePair<string, List<CardDefinition>>(spares.Count > 0 ? "Spare · click to swap in" : "Spare", spares),
+                new KeyValuePair<string, List<CardDefinition>>("Ult", WorldSession.UltimateOf(member) != null ? new List<CardDefinition> { WorldSession.UltimateOf(member) } : new List<CardDefinition>()),
             };
             groups.RemoveAll(g => g.Value.Count == 0 && g.Key != "Deck");
 
+            float x0 = InfoX + 96f;
             var cardSize = CardView.Size * RowCardScale;
-            const float cardGap = 24f, groupGap = 70f;
-            float total = 0f;
-            foreach (var g in groups) total += g.Value.Count * cardSize.x + Mathf.Max(0, g.Value.Count - 1) * cardGap;
-            total += (groups.Count - 1) * groupGap;
+            const float cardGap = 16f, groupGap = 40f, pad = 18f, labelH = 26f;
+            var bracket = UIFactory.CreateRect("Cards", detail).Place(center, tl, new Vector2(x0, y), new Vector2(Right - x0, cardSize.y + labelH + pad * 2f));
+            InkStyle.Frame(bracket, UIFactory.WithAlpha(InkStyle.Gold, 0.4f), 1f);
 
-            var center = new Vector2(0.5f, 0.5f);
-            float x = -total / 2f;
+            float x = pad;
             foreach (var g in groups)
             {
                 float groupW = g.Value.Count * cardSize.x + Mathf.Max(0, g.Value.Count - 1) * cardGap;
-                var label = InkStyle.Label(back, g.Key, g.Key, 15, InkStyle.Gold, TextAnchor.LowerLeft);
-                label.rectTransform.Place(center, new Vector2(0f, 1f), new Vector2(x, BottomRowTop), new Vector2(Mathf.Max(groupW, 360f), 28f));
-                var rule = InkStyle.Line(back, "Rule", InkStyle.Rule);
-                rule.rectTransform.Place(center, new Vector2(0f, 1f), new Vector2(x, BottomRowTop - 32f), new Vector2(groupW, 1f));
+                var label = InkStyle.Label(bracket, g.Key, g.Key, 28, InkStyle.Gold, TextAnchor.LowerLeft);
+                label.rectTransform.Place(tl, tl, new Vector2(x, -pad + 6f), new Vector2(Mathf.Max(groupW, 120f), labelH));
                 for (int i = 0; i < g.Value.Count; i++)
                 {
                     var card = g.Value[i];
-                    var holder = UIFactory.CreateRect("Slot", back).Place(center, new Vector2(0f, 1f), new Vector2(x, BottomRowTop - 46f), cardSize);
-                    var ability = AbilityCard.Create(holder, unit, card, 0, RowCardScale);
+                    var holder = UIFactory.CreateRect("Slot", bracket).Place(tl, tl, new Vector2(x, -pad - labelH), cardSize);
+                    var ability = AbilityCard.Create(holder, unit, card, 0, RowCardScale, true);   // icon only: the text is in the popup
                     var rt = (RectTransform)ability.transform;
                     rt.Fill();
+                    var captured = card;
                     if (g.Key == "Deck")
                     {
                         int slot = i;
-                        Clickable(rt, () => SetFocus(Slots.Length + slot));
+                        Clickable(rt, () => { SetFocus(Slots.Length + slot); OpenCard(captured, rt); });
                         focusTargets.Add(rt);
                     }
-                    else if (!card.isRitual)
-                    {
-                        var captured = card;
-                        Clickable(rt, () => SwapIn(captured));
-                    }
+                    else Clickable(rt, () => OpenCard(captured, rt));
                     x += cardSize.x + cardGap;
                 }
                 x += groupGap - cardGap;
@@ -743,17 +520,32 @@ namespace Game.World
             return unit;
         }
 
-        // ------------------------------------------------------------------ Back: focus, pickers and changes
+        static void Fill(RectTransform track, float amount, Color color)
+        {
+            var fill = UIFactory.CreateImage(track, "Fill", color);
+            fill.rectTransform.anchorMin = Vector2.zero;
+            fill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(amount), 1f);
+            fill.rectTransform.offsetMin = fill.rectTransform.offsetMax = Vector2.zero;
+        }
 
-        /// <summary>Moves the gold focus frame. Focusing a deck card also makes it the one spare cards swap into.</summary>
+        /// <summary>Opens a card's details (the flip-over popup; scroll for upgrades).</summary>
+        void OpenCard(CardDefinition card, RectTransform from)
+        {
+            var member = Member;
+            if (member == null) return;
+            CardDetailPopup.Open((RectTransform)transform, UnitFor(member, WorldSession.ProgressOf(member), true), card, 1, from);
+        }
+
+        // ------------------------------------------------------------------ Focus, pickers and changes
+
+        /// <summary>Moves the gold focus frame (item slots, then deck cards).</summary>
         void SetFocus(int index)
         {
             if (focusTargets.Count == 0) return;
             focus = Mathf.Clamp(index, 0, focusTargets.Count - 1);
-            if (focus >= Slots.Length) deckSlot = focus - Slots.Length;
             if (focusFrame != null) Destroy(focusFrame.gameObject);
-            focusFrame = UIFactory.CreateRect("Focus", focusTargets[focus]).Fill(-10f);
-            InkStyle.Frame(focusFrame, InkStyle.GoldBright, 4f);
+            focusFrame = UIFactory.CreateRect("Focus", focusTargets[focus]).Fill(-6f);
+            InkStyle.Frame(focusFrame, InkStyle.GoldBright, 3f);
         }
 
         void Activate(int index)
@@ -761,34 +553,26 @@ namespace Game.World
             var member = Member;
             if (member == null) return;
             if (index < Slots.Length) OpenPartPicker(member, Slots[index]);
-            else OpenCardPicker(member, index - Slots.Length);
-        }
-
-        void SwapIn(CardDefinition card)
-        {
-            WorldSession.SetDeckCard(Member, deckSlot, card);
-            SaveGame.Save();
-            BuildBack();
-        }
-
-        void OpenCardPicker(CharacterDefinition member, int slot)
-        {
-            deckSlot = slot;
-            var deck = WorldSession.DeckOf(member);
-            var options = new List<KeyValuePair<string, System.Action>>();
-            foreach (var card in member.AllIncantations())
+            else
             {
-                var captured = card;
-                int at = deck.IndexOf(card);
-                string label = card.DisplayName + (at == slot ? "   (here)" : at >= 0 ? "   (swap places)" : "");
-                options.Add(new KeyValuePair<string, System.Action>(label, () => SwapIn(captured)));
+                // A deck card: open it (swapping deck cards is shelved for now, along with spare cards).
+                var deck = WorldSession.DeckOf(member);
+                int slot = index - Slots.Length;
+                if (slot < deck.Count) OpenCard(deck[slot], focusTargets[index]);
             }
-            OpenPicker("Deck card " + (slot + 1), options);
         }
 
         void OpenPartPicker(CharacterDefinition member, PartSlot slot)
         {
             var options = new List<KeyValuePair<string, System.Action>>();
+            var fitted = WorldSession.PartIn(member, slot);
+            if (WorldSession.IsBound(fitted))
+            {
+                // Your own Core: it holds the Soul Card, nothing replaces it.
+                options.Add(new KeyValuePair<string, System.Action>(fitted.DisplayName + "    <color=#E6C784>" + fitted.description + "</color>", ClosePicker));
+                OpenPicker(SlotLabel(slot), options);
+                return;
+            }
             if (WorldSession.Catalog != null)
                 foreach (var part in WorldSession.Catalog.parts)
                 {
@@ -800,7 +584,7 @@ namespace Game.World
                     {
                         WorldSession.Equip(member, captured);
                         SaveGame.Save();
-                        BuildBack();
+                        BuildDetail();
                     }));
                 }
             if (WorldSession.PartIn(member, slot) != null)
@@ -808,9 +592,9 @@ namespace Game.World
                 {
                     WorldSession.Unequip(member, slot);
                     SaveGame.Save();
-                    BuildBack();
+                    BuildDetail();
                 }));
-            if (options.Count == 0) options.Add(new KeyValuePair<string, System.Action>("No spare parts", ClosePicker));
+            if (options.Count == 0) options.Add(new KeyValuePair<string, System.Action>("No spare items", ClosePicker));
             OpenPicker(SlotLabel(slot), options);
         }
 
@@ -819,7 +603,7 @@ namespace Game.World
         {
             ClosePicker();
             const float rowH = 70f, width = 820f;
-            picker = UIFactory.CreateImage(back, "Picker", new Color(0f, 0f, 0f, 0.55f), true).rectTransform;
+            picker = UIFactory.CreateImage(page, "Picker", new Color(0f, 0f, 0f, 0.55f), true).rectTransform;
             picker.Fill();
             Clickable(picker, ClosePicker);
             float height = 100f + options.Count * (rowH + 10f) + 20f;
@@ -827,7 +611,7 @@ namespace Game.World
             box.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(width, height));
             InkStyle.HeroFrame(box, InkStyle.Gold, 8f);
 
-            var head = InkStyle.Label(box, "Title", title, 18, InkStyle.Gold, TextAnchor.MiddleLeft);
+            var head = InkStyle.Label(box, "Title", title, 32, InkStyle.Gold, TextAnchor.MiddleLeft);
             head.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(34f, -24f), new Vector2(width - 68f, 50f));
             pickerActions.Clear();
             pickerRows.Clear();
@@ -835,7 +619,7 @@ namespace Game.World
             {
                 var row = InkStyle.Panel(box, "Option" + i, new Color(1f, 1f, 1f, 0.05f), true);
                 row.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(28f, -90f - i * (rowH + 10f)), new Vector2(width - 56f, rowH));
-                var t = UIFactory.CreateText(row.transform, "Text", options[i].Key, 24, InkStyle.Paper, TextAnchor.MiddleLeft, FontStyle.Bold).BestFit(12, 24);
+                var t = UIFactory.CreateText(row.transform, "Text", options[i].Key, 30, InkStyle.Paper, TextAnchor.MiddleLeft, FontStyle.Bold).BestFit(14, 30);
                 t.supportRichText = true;
                 t.rectTransform.Fill(20f);
                 var action = options[i].Value;
@@ -893,7 +677,7 @@ namespace Game.World
             });
         }
 
-        static Sprite circle, ring;
+        static Sprite circle;
         static Texture2D radial;
         static readonly Sprite[] slotIcons = new Sprite[4];
 
@@ -901,12 +685,6 @@ namespace Game.World
         {
             if (circle == null) circle = Disc(0f);
             return circle;
-        }
-
-        static Sprite RingSprite()
-        {
-            if (ring == null) ring = Disc(0.78f);
-            return ring;
         }
 
         /// <summary>An anti-aliased disc; inner > 0 cuts a hole (a ring with that inner radius fraction).</summary>
@@ -943,9 +721,15 @@ namespace Game.World
             return radial;
         }
 
-        /// <summary>Tiny pixel icons for the Part slots: blade, shield, chip, core (12 px, drawn in code).</summary>
+        /// <summary>Icons for the Part slots: CHIP and CORE come from the icon atlas (Raven pack); otherwise tiny pixel
+        /// icons drawn in code: blade, shield, chip, core (12 px).</summary>
         static Sprite SlotIcon(int slot)
         {
+            if (slot == (int)PartSlot.Chip || slot == (int)PartSlot.Core)
+            {
+                var fromAtlas = CardIcons.Part((PartSlot)slot);
+                if (fromAtlas != null) return fromAtlas;
+            }
             if (slotIcons[slot] != null) return slotIcons[slot];
             string[][] art =
             {

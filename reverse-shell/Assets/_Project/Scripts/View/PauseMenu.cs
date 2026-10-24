@@ -4,7 +4,8 @@ using UnityEngine.UI;
 namespace Combat.View
 {
     /// <summary>
-    /// Pause button (top-right) and menu: Resume, Restart Fight, Leave Fight. Esc toggles it.
+    /// Pause button (top-right) and menu: Resume, Settings, Restart Fight, Leave Fight. Esc toggles it. Settings swaps
+    /// the buttons for the settings list (the same options as the title screen, <see cref="GameSettings"/>).
     /// Pausing sets Time.timeScale to 0, which freezes battle animations; the menu itself runs on unscaled time.
     /// </summary>
     public class PauseMenu : MonoBehaviour
@@ -12,6 +13,9 @@ namespace Combat.View
 
         BattleView view;
         GameObject overlay;
+        RectTransform mainPage, settingsPage;
+        readonly System.Collections.Generic.List<Text> optionLabels = new System.Collections.Generic.List<Text>();
+        Text help;
 
         public bool IsOpen { get { return overlay.activeSelf; } }
 
@@ -32,7 +36,7 @@ namespace Combat.View
             var button = InkStyle.Button(root, "PauseButton", "II", view.TogglePause, false, 40);
             var brt = button.GetComponent<RectTransform>();
             brt.Place(topRight, topRight, new Vector2(-24f, -24f), new Vector2(100f, 80f));
-            var esc = UIFactory.CreateText(brt, "Esc", "ESC", 13, InkStyle.Gold, TextAnchor.LowerCenter, FontStyle.Bold);
+            var esc = UIFactory.CreateText(brt, "Esc", "ESC", 16, InkStyle.Gold, TextAnchor.LowerCenter, FontStyle.Bold);
             esc.rectTransform.Fill(4f);
 
             // Overlay: an ink page with paper grain and a centered card with the hero frame.
@@ -41,7 +45,8 @@ namespace Combat.View
             overlay = dim.gameObject;
             InkStyle.Grain(dim.rectTransform, new Color(1f, 0.95f, 0.85f, 0.035f));
             var card = InkStyle.Panel(dim.transform, "Card", InkStyle.InkPanel);
-            card.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 820f));
+            // Sized to its content: the title, then four buttons, with an even margin below.
+            card.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 700f));
             InkStyle.HeroFrame(card.rectTransform, InkStyle.Gold, 10f);
 
             var title = InkStyle.Title(card.transform, "Title", "Paused", 110, InkStyle.Paper, TextAnchor.MiddleCenter);
@@ -50,32 +55,56 @@ namespace Combat.View
             rule.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -178f), new Vector2(420f, 2f));
 
             // Buttons stacked down the card; Resume is the gold one.
-            var column = UIFactory.CreateRect("Buttons", card.transform).Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(580f, 520f));
+            mainPage = UIFactory.CreateRect("Buttons", card.transform).Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(580f, 440f));
             float y = 0f;
-            MenuButton(column, "Resume", true, view.TogglePause, ref y, 0);
-            MenuButton(column, "Restart Fight", false, view.RestartFight, ref y, 1);
-            MenuButton(column, "Leave Fight", false, view.LeaveFight, ref y, 2);
-            var rankToggle = MenuButton(column, RankLabel(), false, null, ref y, 3);
-            var rankLabel = rankToggle.GetComponentInChildren<Text>();
-            rankToggle.onClick.AddListener(() =>
-            {
-                CardSettings.RankStars = !CardSettings.RankStars;
-                rankLabel.text = RankLabel();
-            });
+            MenuButton(mainPage, "Resume", true, view.TogglePause, ref y);
+            MenuButton(mainPage, "Settings", false, () => ShowSettings(true), ref y);
+            MenuButton(mainPage, "Restart Fight", false, view.RestartFight, ref y);
+            MenuButton(mainPage, "Leave Fight", false, view.LeaveFight, ref y);
 
-            var hint = InkStyle.Label(dim.transform, "Hint", "Esc  resume", 18, InkStyle.PaperDim, TextAnchor.LowerCenter);
-            hint.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 36f), new Vector2(700f, 40f));
+            settingsPage = UIFactory.CreateRect("Settings", card.transform).Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(580f, 440f));
+            y = 0f;
+            // Every setting (shared with the title screen), each with a "?" whose help shows in the box under the card.
+            help = InkStyle.HelpPanel(dim.transform, new Vector2(0f, -364f), new Vector2(760f, 200f));
+            foreach (var option in GameSettings.Options)
+            {
+                var opt = option;
+                Text label = null;
+                var b = MenuButton(settingsPage, opt.Label(), false, () =>
+                {
+                    opt.Toggle();
+                    label.text = opt.Label();
+                }, ref y);
+                label = b.GetComponentInChildren<Text>();
+                label.rectTransform.offsetMax = new Vector2(-70f, label.rectTransform.offsetMax.y);   // room for the "?"
+                optionLabels.Add(label);
+                InkStyle.HelpBadge((RectTransform)b.transform, () => ShowHelp(opt.Help), () => ShowHelp(null));
+            }
+            MenuButton(settingsPage, "Back", true, () => ShowSettings(false), ref y);
+            settingsPage.gameObject.SetActive(false);
+
+            var hint = UIFactory.CreateText(dim.transform, "Hint", "Esc  Resume", 30, InkStyle.Paper, TextAnchor.LowerCenter);
+            hint.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(900f, 60f));
 
             overlay.SetActive(false);
         }
 
-        /// <summary>Card rank display: stacking stars or pips.</summary>
-        static string RankLabel()
+        void ShowSettings(bool on)
         {
-            return "Card Rank: " + (CardSettings.RankStars ? "Stars" : "Pips");
+            mainPage.gameObject.SetActive(!on);
+            settingsPage.gameObject.SetActive(on);
+            ShowHelp(null);
+            if (on)
+                for (int i = 0; i < optionLabels.Count; i++) optionLabels[i].text = GameSettings.Options[i].Label();
         }
 
-        static Button MenuButton(RectTransform column, string label, bool primary, UnityEngine.Events.UnityAction action, ref float y, int i)
+        void ShowHelp(string text)
+        {
+            help.text = text ?? "";
+            help.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(text));
+        }
+
+        static Button MenuButton(RectTransform column, string label, bool primary, UnityEngine.Events.UnityAction action, ref float y)
         {
             var b = InkStyle.Button(column, label, label, action, primary, 44);
             var rt = b.GetComponent<RectTransform>();
@@ -87,6 +116,7 @@ namespace Combat.View
 
         public void Open()
         {
+            ShowSettings(false);
             overlay.SetActive(true);
             transform.SetAsLastSibling();
             Time.timeScale = 0f;

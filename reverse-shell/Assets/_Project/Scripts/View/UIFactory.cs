@@ -11,59 +11,69 @@ namespace Combat.View
         public const float UIScale = 0.8f;
 
         public static Vector2 ReferenceResolution { get { return new Vector2(1920f, 1080f) / UIScale; } }
-        // UI typography: M PLUS 1p (OFL), a clean Japanese gothic in the spirit of NieR:Automata's menus.
-        // Light is the default; "bold" text uses the real Medium weight rather than a synthesized bold.
-        static Font font, mediumFont, boldFont, displayFont, serifFont, fallback;
+        // UI typography: one pixel font for everything, monogram (CC0, datagoblin), so the UI matches the pixel art.
+        // It has a single weight: "bold" and "italic" requests render plain, since synthesized styles smear pixel glyphs.
+        // Imported as Hinted Raster (Editor/World/PixelArtImporter) and its glyph texture is point-filtered at runtime.
+        static Font pixelFont;
 
-        static Font Load(ref Font cache, string path)
+        /// <summary>
+        /// monogram's capitals are 7 px of a 16 px em, much smaller than the old fonts at the same size, so every size
+        /// handed to <see cref="CreateText"/>, <see cref="BestFit"/>, <see cref="FitRich"/> and <see cref="Size"/> is scaled by this.
+        /// </summary>
+        public const float FontScale = 1.6f;
+
+        /// <summary>A layout font size in the game's old units, as the actual monogram size.</summary>
+        public static int Px(int size) { return Mathf.Max(1, Mathf.RoundToInt(size * FontScale)); }
+
+        /// <summary>A rich-text size tag ("&lt;size=N&gt;") scaled like every other font size.</summary>
+        public static string Size(int size) { return "<size=" + Px(size) + ">"; }
+
+        /// <summary>monogram-extended: the game's only font.</summary>
+        public static Font PixelFont
         {
-            if (cache == null) cache = Resources.Load<Font>(path);
-            if (cache != null) return cache;
-            if (fallback == null) fallback = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            return fallback;
+            get
+            {
+                if (pixelFont != null) return pixelFont;
+                pixelFont = Resources.Load<Font>("Fonts/monogram-extended");
+                if (pixelFont == null) return pixelFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+                Crisp(pixelFont);
+                Font.textureRebuilt += f => { if (f == pixelFont) Crisp(f); };
+                return pixelFont;
+            }
         }
 
-        /// <summary>M PLUS 1p Light: the default UI font.</summary>
-        public static Font Font { get { return Load(ref font, "Fonts/MPLUS1p-Light"); } }
+        static void Crisp(Font f)
+        {
+            if (f.material != null && f.material.mainTexture != null) f.material.mainTexture.filterMode = FilterMode.Point;
+        }
 
-        /// <summary>M PLUS 1p Medium: names, headings, buttons (anything created with FontStyle.Bold).</summary>
-        public static Font MediumFont { get { return Load(ref mediumFont, "Fonts/MPLUS1p-Medium"); } }
+        /// <summary>The default UI font.</summary>
+        public static Font Font { get { return PixelFont; } }
 
-        /// <summary>M PLUS 1p Bold: the heaviest weight, for big statement words.</summary>
-        public static Font BoldFont { get { return Load(ref boldFont, "Fonts/MPLUS1p-Bold"); } }
+        /// <summary>Names, headings, buttons (anything created with FontStyle.Bold).</summary>
+        public static Font MediumFont { get { return PixelFont; } }
+
+        /// <summary>Big statement words.</summary>
+        public static Font BoldFont { get { return PixelFont; } }
 
         /// <summary>Body copy that has to stay readable at small sizes (card text, descriptions).</summary>
-        public static Font BodyFont { get { return MediumFont; } }
+        public static Font BodyFont { get { return PixelFont; } }
 
-        /// <summary>Cormorant Garamond SemiBold (OFL): the serif for headings in the Reverse: 1999-style UI (<see cref="InkStyle"/>).</summary>
-        public static Font SerifFont
-        {
-            get
-            {
-                if (serifFont == null) serifFont = Resources.Load<Font>("Fonts/CormorantGaramond-SemiBold");
-                return serifFont != null ? serifFont : MediumFont;
-            }
-        }
+        /// <summary>Headings in the <see cref="InkStyle"/> UI (was a serif; now the same pixel font).</summary>
+        public static Font SerifFont { get { return PixelFont; } }
 
-        /// <summary>Anton (OFL): heavy condensed display face for labels such as dialogue speaker tags.</summary>
-        public static Font DisplayFont
-        {
-            get
-            {
-                if (displayFont == null) displayFont = Resources.Load<Font>("Fonts/Anton-Regular");
-                return displayFont != null ? displayFont : Font;
-            }
-        }
+        /// <summary>The display face for big labels (dialogue speaker tags, card words).</summary>
+        public static Font DisplayFont { get { return PixelFont; } }
 
         static readonly System.Text.RegularExpressions.Regex Number =
             new System.Text.RegularExpressions.Regex(@"[+-]?\d+(?:\.\d+)?%?");
 
-        /// <summary>Wraps every number / percentage in bold, a bigger size and an accent color (rich text).</summary>
+        /// <summary>Wraps every number / percentage in a bigger size and an accent color (rich text).</summary>
         public static string EmphasizeNumbers(string text, int numberSize, Color color)
         {
             if (string.IsNullOrEmpty(text)) return text;
             string hex = ColorUtility.ToHtmlStringRGB(color);
-            return Number.Replace(text, m => "<b><size=" + numberSize + "><color=#" + hex + ">" + m.Value + "</color></size></b>");
+            return Number.Replace(text, m => Size(numberSize) + "<color=#" + hex + ">" + m.Value + "</color></size>");
         }
 
         /// <summary>
@@ -79,7 +89,7 @@ namespace Combat.View
             float height = t.rectTransform.rect.height, width = t.rectTransform.rect.width;
             for (int size = max; size >= min; size--)
             {
-                t.fontSize = size;
+                t.fontSize = Px(size);
                 t.text = build(size);
                 if (width <= 0f || height <= 0f) return;
                 var settings = t.GetGenerationSettings(new Vector2(width, 0f));
@@ -143,24 +153,11 @@ namespace Combat.View
         {
             var rt = CreateRect(name, parent);
             var t = rt.gameObject.AddComponent<Text>();
-            // Map styles onto real weights: Bold -> Medium, BoldAndItalic -> Bold (italic is synthesized).
-            switch (style)
-            {
-                case FontStyle.Bold:
-                    t.font = MediumFont;
-                    t.fontStyle = FontStyle.Normal;
-                    break;
-                case FontStyle.BoldAndItalic:
-                    t.font = BoldFont;
-                    t.fontStyle = FontStyle.Italic;
-                    break;
-                default:
-                    t.font = Font;
-                    t.fontStyle = style;
-                    break;
-            }
+            // One pixel font with one weight: styles are accepted for call-site intent but always render plain.
+            t.font = Font;
+            t.fontStyle = FontStyle.Normal;
             t.text = text;
-            t.fontSize = size;
+            t.fontSize = Px(size);
             t.color = color;
             t.alignment = anchor;
             t.raycastTarget = false;
@@ -172,8 +169,8 @@ namespace Combat.View
         public static Text BestFit(this Text t, int min, int max)
         {
             t.resizeTextForBestFit = true;
-            t.resizeTextMinSize = min;
-            t.resizeTextMaxSize = max;
+            t.resizeTextMinSize = Px(min);
+            t.resizeTextMaxSize = Px(max);
             t.verticalOverflow = VerticalWrapMode.Truncate;
             return t;
         }

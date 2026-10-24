@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01c7f95fb3fdedb42b6544a2cc432e43, type: 3}
+  m_Name: Enemy_Collector
+  m_EditorClassIdentifier: 
+  displayName: Collector
+  color: {r: 0.62, g: 0.66, b: 0.72, a: 1}
+  portrait: {fileID: 0}
+  animations: {fileID: 11400000, guid: 0658375394eb0054e841e736f08bfe1c, type: 2}
+  spriteSheet: {fileID: 0}
+  sheetColumns: 3
+  sheetRows: 4
+  afflatus: 6
+  damageType: 0
+  stats:
+    maxHP: 4400
+    attack: 185
+    physicalDefense: 140
+    specialDefense: 130
+    critRate: 0.1
+    critDamage: 1.5
+  skills:
+  - card: {fileID: 11400000, guid: fd2f2d387a12ce942805253be76790c5, type: 2}
+    rank: 1
+    weight: 2
+  - card: {fileID: 11400000, guid: a58352e3e7063944fbba29effb604aa2, type: 2}
+    rank: 1
+    weight: 1
+  xpReward: 150
+  ritual: {fileID: 11400000, guid: ae9473b7e3557f04094847ed03c9a984, type: 2}

@@ -24,7 +24,7 @@ namespace Combat
             float def = Mathf.Max(0f, defender.GetStat(defStat));
             float mitigation = def / (def + Mathf.Max(1f, config.defenseScale));
 
-            var relation = AfflatusChart.Relation(attacker.Definition.afflatus, defender.Definition.afflatus);
+            var relation = AfflatusChart.Relation(attacker.Afflatus, defender.Afflatus);
             float afflatus = 1f, critBonus = 0f;
             if (relation == AfflatusRelation.Advantage)
             {
@@ -73,10 +73,12 @@ namespace Combat
 
     public static class EnemyAI
     {
-        public static CardInstance ChooseIntent(BattleUnit enemy, System.Random rng)
+        /// <summary>The enemy's move this round: its Ult when its Ult points are full, else a weighted random skill.</summary>
+        public static CardInstance ChooseIntent(BattleUnit enemy, System.Random rng, int moxieCap)
         {
             var def = enemy.Enemy;
             if (def == null) return null;
+            if (def.ritual != null && enemy.Moxie >= moxieCap) return new CardInstance(def.ritual, enemy, 1);
 
             float total = 0f;
             foreach (var s in def.skills)

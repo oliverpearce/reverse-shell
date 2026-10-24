@@ -95,7 +95,7 @@ namespace Combat.View
             Time.timeScale = 1f;
             if (!string.IsNullOrEmpty(leaveScene) && Application.CanStreamedLevelBeLoaded(leaveScene))
             {
-                UnityEngine.SceneManagement.SceneManager.LoadScene(leaveScene);
+                ScreenFade.LoadScene(leaveScene);
                 return;
             }
 #if UNITY_EDITOR

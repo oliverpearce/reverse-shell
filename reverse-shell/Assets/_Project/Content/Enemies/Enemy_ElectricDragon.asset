@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01c7f95fb3fdedb42b6544a2cc432e43, type: 3}
+  m_Name: Enemy_ElectricDragon
+  m_EditorClassIdentifier: 
+  displayName: Electric Dragon
+  color: {r: 0.45, g: 0.75, b: 1, a: 1}
+  portrait: {fileID: 0}
+  animations: {fileID: 11400000, guid: 0658375394eb0054e841e736f08bfe1c, type: 2}
+  spriteSheet: {fileID: 0}
+  sheetColumns: 3
+  sheetRows: 4
+  afflatus: 0
+  damageType: 1
+  stats:
+    maxHP: 2700
+    attack: 170
+    physicalDefense: 150
+    specialDefense: 160
+    critRate: 0.1
+    critDamage: 1.5
+  skills:
+  - card: {fileID: 11400000, guid: 63cc80e021af9a04f9fc8f35ea51a362, type: 2}
+    rank: 1
+    weight: 1.5
+  - card: {fileID: 11400000, guid: f9f338ba87a614449ad3ff6381009bf8, type: 2}
+    rank: 1
+    weight: 1.5
+  - card: {fileID: 11400000, guid: d531d8a3f9bd8e640b71a81dc6083ada, type: 2}
+    rank: 1
+    weight: 1
+  xpReward: 300
+  ritual: {fileID: 11400000, guid: 24235566bf1c5054288be25e26d09822, type: 2}

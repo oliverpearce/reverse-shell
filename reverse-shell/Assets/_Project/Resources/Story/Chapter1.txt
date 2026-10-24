@@ -1,0 +1,194 @@
+# REVERSE SHELL — Chapter One script
+#
+# Paste text in from the game bible or any document. How it works:
+#   [key]                 starts a block (the game asks for blocks by key; keep the keys as they are)
+#   Speaker | text        one dialogue box spoken by Speaker
+#   text                  one box of narration (no speaker)
+#   # anything            a comment, ignored
+# A whole paragraph can go on one line: lines too long for the box are split into several boxes automatically.
+# {name} is replaced by the protagonist's name.
+# Markup: {p} short pause, {p=0.8} pause 0.8 s, {slow}...{/slow}, {fast}...{/slow}, {wave}...{/wave},
+#         {shake}...{/shake}, colours {gold} {red} {gray} {green} {c=#RRGGBB} ... {/c}
+# All of this text is a first draft (bible §13). Edit freely; the game reads it fresh each run.
+
+# ------------------------------------------------------------------ Opening (the recording, the failure, the name)
+
+[prologue.recording]
+Everyone has someone they would give anything to keep.
+A parent. A child. A friend who always knew what to say.
+For most of history, we could only hold on to them for a little while.
+Reverse Shell changes that.
+Your mind is carefully recorded onto a Soul Card, then given a new body built to outlast anything this world can do.
+No more cold. No more hunger. No more goodbyes.
+The procedure is safe, certified and permanent.
+
+[prologue.tagline]
+Reverse Shell. Live once. Live on.
+
+[prologue.procedure]
+Please remain still while your Soul Card is prepared.
+
+[prologue.name]
+...
+A name surfaces, and almost slips away.
+
+[prologue.name.question]
+What is your name?
+
+# ------------------------------------------------------------------ Awakening
+
+[awakening]
+{slow}...{/slow}
+{name} | Light.{p} Too much of it.
+Grass where a floor should be. A capsule beside you, its lid cracked open to the sky.
+On its side, a small red light blinks the same words over and over.{p} {red}TRANSFER INCOMPLETE{/c}
+{name} | {slow}Where...{/slow}{p} Where is everyone?
+
+[pod]
+The capsule's light still blinks.{p} {red}TRANSFER INCOMPLETE{/c}
+
+# ------------------------------------------------------------------ Memory fragments
+
+[memory.1]
+Memory Fragment | A hand on your shoulder.{p} Someone close says {slow}it'll be like falling asleep{/slow}.{p} You can't see their face.
+
+[memory.2]
+Memory Fragment | This street, but crowded. Rain.{p} You are holding an umbrella over someone shorter than you,{p} and a poster across the road says {gold}EVERLASTING{/c}.
+
+[memory.3]
+Memory Fragment | A form on a bright screen. A box to sign.{p} Your hand hovers over it{p=0.5}... and the memory ends there.
+
+[memory.after]
+{name} | {gray}...Whose memory was that?{/c}
+
+# ------------------------------------------------------------------ Records (city 4-7, tunnel 4)
+
+[record.city.4]
+Record | A notice, sun-faded: {gray}"Residents: the cooling stations close at the end of the month. Conversion appointments are still open. Please don't wait."{/c}
+
+[record.city.5]
+Record | A poster of a smiling family under a clear sky.{p} {gold}"Be there for every birthday. Reverse Shell. EVERLASTING."{/c}{p} Someone has scratched a small question mark after the last word.
+
+[record.city.6]
+Record | A plaque under a dead tree.{p} {gray}"Planted for those who went ahead. We'll catch up."{/c}{p} Moss has filled in every letter.
+
+[record.city.7]
+Record | A clinic terminal, still awake.{p} {gray}"Scanner unit checked out for field harvest. Guardian-class residue reported near the south line. Do not engage alone."{/c}{p} The logo beside it has been scratched away.
+
+[record.tunnel.4]
+Record | A maintenance log on the wall.{p} {gray}"Line closed. Something down here keeps pulling the power to itself. We sealed the wall and let it keep the lights on."{/c}
+
+# ------------------------------------------------------------------ People
+
+[npc.small_machine]
+{slow}...{/slow}{p} It doesn't look up. It is pressing soil around a flower with one careful claw.
+{gray}Watering. Watering.{/c}{p} It tilts a cracked can over each stem in turn, though the can is empty.
+It sets one flower down by your feet,{p} then goes back to the others.
+
+# ------------------------------------------------------------------ The scanner
+
+[scanner.pickup]
+A small visor lies in the broken glass. When you lift it, it hums,{p} and thin lines settle over everything you look at.
+Scanner | {gray}LINK ESTABLISHED. TRACE, MATERIAL AND STRUCTURE MODES READY.{/c}
+{gold}You got the optical scanner.{/c}{p} Press {gold}Q{/c} to scan your surroundings.
+
+[scan.jammed]
+Scanner | {gray}STRUCTURE: WEAK POINT{p=0.3}... SIGNAL JAMMED.{/c}{p} Something nearby is drowning the readout.
+
+[scan.trace]
+Scanner | {gray}TRACE: DISCHARGE RESIDUE. GUARDIAN CLASS.{/c}{p} The marks lead along the south street.
+
+[scan.none.hint]
+Scanner | {gray}NO TRACE IN RANGE.{/c}{p} The residue it found at the clinic pointed south.
+
+[scan.none]
+Scanner | {gray}NO TRACE IN RANGE.{/c}
+
+[route.open]
+Scanner | {gray}STRUCTURE: WEAK POINT. HOLLOW BEHIND. TRACE CONTINUES BELOW.{/c}
+You press where the lines meet.{p} The wall gives{p=0.4}... and cold air breathes up from somewhere underneath.
+
+# ------------------------------------------------------------------ The Collector
+
+[collector.intro]
+Footsteps on the rubble behind you. Unhurried.
+Collector | Stop there.{p} That scanner isn't yours.
+Collector | No registry tag either.{p} {slow}Where did you even come from?{/slow}
+
+[collector.question]
+Collector | Well?
+
+# The two answers the player can pick (one per line, in order).
+[collector.options]
+It found me.
+Who are you?
+
+[collector.answer.1]
+Collector | Then it found the wrong hands.{p} Give it back and walk away.
+
+[collector.answer.2]
+Collector | Someone who needs it more than you do.{p} People are counting on what it finds.
+
+[collector.final]
+Collector | I won't ask twice.
+
+[collector.again]
+Collector | Back for another try? Fine.
+
+[collector.win]
+The Collector drops to one knee{p=0.4}... and laughs, quietly.
+{gray}"Keep it, then. It'll lead you somewhere you won't like."{/c}
+A grapple line hisses, and they're gone over the rooftops.
+
+# ------------------------------------------------------------------ The guardian
+
+[guardian.intro]
+The air tastes of copper. Every wire in the walls hums the same low note.
+Scanner | {gray}SIGNAL: GUARDIAN CLASS.{p} SOUL CARD DETECTED. STATUS: {gold}BLANK{/c}{gray}.{/c}
+Something uncoils at the back of the hall.{p} {shake}Light runs down its spine like water.{/shake}
+It has no face to read.{p} It only stands between you and the small glowing card behind it.
+
+[guardian.again]
+The guardian lifts its head again. {shake}The hum rises.{/shake}
+
+[guardian.win]
+{slow}The guardian folds down onto the stone.{/slow}
+The humming stops.
+Behind it, something small is still glowing.
+
+# ------------------------------------------------------------------ The Soul Card and the ending
+
+[pedestal.empty]
+The pedestal is empty now. It is still faintly warm.
+
+[pedestal.blocked]
+The guardian's hum fills the hall. You can't reach the card while it stands.
+
+[absorb]
+Scanner | {gray}SOUL CARD. STATUS: BLANK. STATUS: {slow}WAITING.{/slow}{/c}
+The card is warm. You lift it{p=0.4}... and it slips out of your fingers{p} into them. Into your chest, where your Core turns.
+{shake}Static{/shake} runs through every joint,{p} then settles, like a breath you didn't know you were holding.
+
+# The banner after the absorption: first line is the title, second the subtitle.
+[absorb.banner]
+ELECTRIC RESONANCE
+Unlocked. Switch it any time outside battle: Esc, then Units.
+
+# After the banner: the Core the card bound with.
+[absorb.core]
+The cracks in your Core have sealed over with a faint blue light.
+{gold}Your Fragmented Core is now the Resonant Core.{/c}{p} {gray}+10% damage while Electric.{/c}
+
+[ending]
+Scanner | {gray}NEW TRACE.{/c}
+Far off, past the edge of the city, something answers the scanner's ping.
+Scanner | {gray}SIGNATURE MATCH.{/c}
+The readout lays a second signature over your own.{p} They match.{p} {slow}And it is moving.{/slow}
+{name} | {slow}...Who are you?{/slow}
+
+# The end card: title, subtitle, thank-you line, then the hint at the bottom.
+[endcard]
+End of Chapter One
+The Overgrown City
+Thank you for playing the Reverse Shell demo.
+Enter  continue exploring

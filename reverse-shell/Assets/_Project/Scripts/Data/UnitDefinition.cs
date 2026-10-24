@@ -20,9 +20,21 @@ namespace Combat
         public DamageType damageType;
         public Stats stats = new Stats();
 
+        /// <summary>
+        /// Runtime names that replace an asset's display name, keyed by asset name (the protagonist's chosen name
+        /// replaces "MC"). Never saved into the asset.
+        /// </summary>
+        public static readonly System.Collections.Generic.Dictionary<string, string> NameOverrides =
+            new System.Collections.Generic.Dictionary<string, string>();
+
         public string DisplayName
         {
-            get { return string.IsNullOrEmpty(displayName) ? name : displayName; }
+            get
+            {
+                string over;
+                if (NameOverrides.TryGetValue(name, out over) && !string.IsNullOrEmpty(over)) return over;
+                return string.IsNullOrEmpty(displayName) ? name : displayName;
+            }
         }
     }
 }

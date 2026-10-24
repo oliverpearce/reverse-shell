@@ -52,3 +52,12 @@ reverse-shell/Tools/DevCheck/**/.build/
 
 # Local editor/tool settings
 .claude/
+
+# Rider plugin, crash dumps and editor temp files
+reverse-shell/Assets/Plugins/Editor/JetBrains*
+reverse-shell/[Cc]rashes/
+*.tmp
+*.swp
+*~
+.vscode/
+.idea/

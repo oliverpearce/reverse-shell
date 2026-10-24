@@ -11,6 +11,10 @@ namespace Game.World
         public static readonly Color Sunlight = new Color(1f, 0.93f, 0.78f);
         /// <summary>Machine eye / threat glow.</summary>
         public static readonly Color MachineRed = new Color(1f, 0.28f, 0.16f);
+        /// <summary>Access Point stand squares (heal and save).</summary>
+        public static readonly Color HealPurple = new Color(0.72f, 0.45f, 1f);
+        /// <summary>Warp squares (travel between areas).</summary>
+        public static readonly Color WarpCyan = new Color(0.4f, 0.9f, 1f);
 
         // Overworld UI: sepia paper panels with dark ink, like an old field terminal.
         public static readonly Color UiPanel = new Color(0.85f, 0.82f, 0.71f, 0.94f);

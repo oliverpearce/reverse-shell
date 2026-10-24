@@ -227,6 +227,65 @@ namespace Game.World
             return root;
         }
 
+        /// <summary>A treasure chest: a wooden box with gold bands and a soft gold glow seeping from the lid.</summary>
+        public static GameObject Chest(Transform parent, Vector3 basePosition)
+        {
+            var root = new GameObject("Chest");
+            root.transform.SetParent(parent, false);
+            root.transform.position = basePosition;
+            var wood = WorldArt.Emissive(new Color(0.45f, 0.26f, 0.14f), 0.25f);
+            var gold = WorldArt.Emissive(new Color(1f, 0.78f, 0.35f), 1.2f);
+            var box = Block(root.transform, "Box", wood);
+            box.localPosition = new Vector3(0f, 0.28f, 0f);
+            box.localScale = new Vector3(0.8f, 0.52f, 0.55f);
+            var lid = Block(root.transform, "Lid", wood);
+            lid.localPosition = new Vector3(0f, 0.6f, 0.02f);
+            lid.localScale = new Vector3(0.84f, 0.16f, 0.6f);
+            foreach (float x in new[] { -0.28f, 0.28f })
+            {
+                var band = Block(root.transform, "Band", gold);
+                band.localPosition = new Vector3(x, 0.38f, 0f);
+                band.localScale = new Vector3(0.08f, 0.72f, 0.62f);
+            }
+            var latch = Block(root.transform, "Latch", gold);
+            latch.localPosition = new Vector3(0f, 0.45f, -0.29f);
+            latch.localScale = new Vector3(0.14f, 0.16f, 0.04f);
+            Motes(root.transform, basePosition + Vector3.up * 0.8f, 0.35f, 5f, new Color(1f, 0.85f, 0.45f));
+            return root;
+        }
+
+        /// <summary>A rune stone: a dark standing slab with a glowing glyph on its face and sparkles drifting up.</summary>
+        public static GameObject RuneStone(Transform parent, Vector3 basePosition)
+        {
+            var root = new GameObject("RuneStone");
+            root.transform.SetParent(parent, false);
+            root.transform.position = basePosition;
+            var slab = Block(root.transform, "Slab", WorldArt.DarkMetal());
+            slab.localPosition = new Vector3(0f, 0.65f, 0f);
+            slab.localScale = new Vector3(0.62f, 1.3f, 0.3f);
+            slab.localRotation = Quaternion.Euler(0f, 0f, 4f);   // a little weathered lean
+            var glyph = WorldArt.Primitive(PrimitiveType.Quad, "Glyph", root.transform, WorldArt.Emissive(WorldArt.WarpCyan, 2.6f));
+            glyph.transform.localPosition = new Vector3(0f, 0.8f, -0.16f);
+            glyph.transform.localScale = new Vector3(0.26f, 0.5f, 1f);
+            Motes(root.transform, basePosition + Vector3.up * 1.1f, 0.35f, 4f, WorldArt.WarpCyan);
+            return root;
+        }
+
+        /// <summary>A warp square: a bright cyan frame inside a softer outer glow, with sparkles rising off it.</summary>
+        public static GameObject WarpPad(Transform parent, Vector3 center)
+        {
+            var root = new GameObject("WarpPad");
+            root.transform.SetParent(parent, false);
+            root.transform.position = center;
+            var outer = FloorMarker(root.transform, center, WorldArt.WarpCyan * new Color(1f, 1f, 1f, 0.5f));
+            outer.transform.localScale = new Vector3(1.15f, 1.15f, 1f);
+            FloorMarker(root.transform, center + new Vector3(0f, 0.005f, 0f), WorldArt.WarpCyan);
+            var inner = FloorMarker(root.transform, center + new Vector3(0f, 0.01f, 0f), Color.white);
+            inner.transform.localScale = new Vector3(0.5f, 0.5f, 1f);
+            Motes(root.transform, center + Vector3.up * 0.6f, 0.4f, 9f, WorldArt.WarpCyan);
+            return root;
+        }
+
         public static GameObject FloorMarker(Transform parent, Vector3 center, Color color)
         {
             var marker = WorldArt.Primitive(PrimitiveType.Quad, "StandMarker", parent, WorldArt.AdditiveTinted(WorldArt.FrameTexture(), color));

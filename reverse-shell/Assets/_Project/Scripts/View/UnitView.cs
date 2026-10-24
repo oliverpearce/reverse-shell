@@ -19,10 +19,11 @@ namespace Combat.View
         static readonly Color Gold = new Color(1f, 0.8f, 0.3f);
 
         public const float Width = 220f;
-        /// <summary>Battle sprite size: 64 px LPC frames at 4x.</summary>
-        const float SpriteSize = 256f;
-        /// <summary>The intent icon floats just above the (taller) sprite's head.</summary>
-        const float IntentY = 48f;
+        /// <summary>Battle sprite size: 64 px frames at 6x (the knight-based sprites are about 38 px tall).</summary>
+        const float SpriteSize = 384f;
+        /// <summary>The intent card floats just above the sprite's head.</summary>
+        const float IntentY = 64f;
+        const float IntentSize = 96f;
         public const float Height = 380f;
 
         public BattleUnit Unit { get; private set; }
@@ -41,7 +42,9 @@ namespace Combat.View
 
         BattleView view;
         CanvasGroup group;
-        Image portrait, sprite, flash, hpFill, intentIcon;
+        Image portrait, sprite, flash, intentIcon;
+        SlantBar hpFill;
+        Text nameText;   // shown on hover only
         Reticle lockOn, focusRing, targetPreview;
         UISpriteAnimator animator;
         RectTransform hpBar;
@@ -86,7 +89,7 @@ namespace Combat.View
                 // Intent: a small card above the head showing what the enemy will play: its type icon on a cream,
                 // silver or gold card for rank I / II / III (details are in the inspect screen).
                 intentIcon = UIFactory.CreateImage(transform, "Intent", Color.white);
-                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, IntentY), new Vector2(68f, 68f));
+                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, IntentY), new Vector2(IntentSize, IntentSize));
                 intentIcon.preserveAspect = true;
                 intentIcon.gameObject.SetActive(false);
             }
@@ -108,41 +111,34 @@ namespace Combat.View
             if (unit.Team == Team.Enemy)
                 lockOn = TargetReticle.CreateLock(Body, reticleAnchor, reticlePos, 156f);
 
-            string label = def.DisplayName; // levels live in the crew menu, not on the battlefield
-            var nameText = UIFactory.CreateText(transform, "Name", label, 32, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(16, 32);
-            nameText.supportRichText = true;
-            nameText.rectTransform.Place(top, top, new Vector2(0f, -232f), new Vector2(Width + 40f, 42f));
+            // A slim nameplate: the HP bar and Ult pips (and small status icons). The name only shows on hover.
+            nameText = InkStyle.Title(transform, "Name", def.DisplayName, 34, InkStyle.Paper, TextAnchor.MiddleCenter).BestFit(18, 34);
+            // Above the head (for enemies, above the floating intent card).
+            float nameY = unit.Team == Team.Enemy ? IntentY + IntentSize / 2f + 24f : 18f;
+            nameText.rectTransform.Place(top, new Vector2(0.5f, 0f), new Vector2(0f, nameY), new Vector2(Width + 80f, 42f));
             var nameShadow = nameText.gameObject.AddComponent<Shadow>();
             nameShadow.effectColor = new Color(0f, 0f, 0f, 0.75f);
             nameShadow.effectDistance = new Vector2(2f, -2f);
+            nameText.enabled = false;
 
-            var character = def as CharacterDefinition;
-            string subtitle = AfflatusInfo.Display(def.afflatus) + "  ·  " + def.damageType;
-            if (character != null && !string.IsNullOrEmpty(character.archetype)) subtitle = character.archetype + "  ·  " + subtitle;
-            var sub = UIFactory.CreateText(transform, "Afflatus", subtitle, 16, new Color(0.75f, 0.75f, 0.8f)).BestFit(10, 16);
-            sub.rectTransform.Place(top, top, new Vector2(0f, -276f), new Vector2(Width, 22f));
-
-            var hpBg = UIFactory.CreateImage(transform, "HPBar", PanelDark);
-            hpBg.rectTransform.Place(top, top, new Vector2(0f, -302f), new Vector2(200f, 22f));
-            hpBar = hpBg.rectTransform;
-            hpFill = UIFactory.CreateImage(hpBg.transform, "Fill", unit.Team == Team.Player ? new Color(0.35f, 0.8f, 0.45f) : new Color(0.85f, 0.3f, 0.3f));
-            var fillRt = hpFill.rectTransform;
-            fillRt.anchorMin = Vector2.zero;
-            fillRt.anchorMax = Vector2.one;
-            fillRt.offsetMin = fillRt.offsetMax = Vector2.zero;
-
-            // An empty diamond to the left of the bars: reserved for unit-type icons (enemy and ally types).
-            var typeSlot = UIFactory.CreateImage(transform, "TypeDiamond", new Color(1f, 1f, 1f, 0.55f));
-            typeSlot.sprite = CardIcons.EmptyDiamond;
-            typeSlot.preserveAspect = true;
-            typeSlot.rectTransform.Place(top, new Vector2(1f, 0.5f), new Vector2(-108f, -325f), new Vector2(44f, 44f)); // centred on the HP + Ult rows
-            if (typeSlot.sprite == null) typeSlot.enabled = false;
-
-            // Ult points right under the HP bar: a row of small diamonds that fill gold.
-            if (unit.Team == Team.Player)
+            // Reverse: 1999-style HP bar: a slanted parallelogram (dark backing with a thin rim, coloured fill).
+            hpBar = UIFactory.CreateRect("HPBar", transform).Place(top, top, new Vector2(0f, -300f), new Vector2(186f, 14f));
+            SlantBar.Create(hpBar, "Back", PanelDark, HpSlant, 2f);
+            hpFill = SlantBar.Create(hpBar, "Fill", unit.Team == Team.Player ? new Color(0.35f, 0.8f, 0.45f) : new Color(0.85f, 0.3f, 0.3f), HpSlant);
+            if (unit.IsBoss)
             {
-                var row = UIFactory.CreateRect("Ult", transform).Place(top, top, new Vector2(0f, -330f), new Vector2(200f, 18f));
-                const float pipSize = 18f, gap = 4f;
+                var boss = InkStyle.Title(transform, "Boss", "BOSS", 34, InkStyle.Crimson, TextAnchor.LowerCenter);
+                boss.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.85f);
+                boss.rectTransform.Place(top, new Vector2(0.5f, 0f), new Vector2(0f, -296f), new Vector2(Width, 48f));
+            }
+
+            // Ult points right under the HP bar (enemies with an Ult show theirs too).
+            if (unit.Team == Team.Player || (unit.Enemy != null && unit.Enemy.ritual != null))
+            {
+                // Big pips (no backing): solid dark when empty, gold when earned, orange and pulsing when the Ult is ready.
+                const float pipSize = 32f, gap = 4f;
+                float rowW = moxieCap * pipSize + (moxieCap - 1) * gap;
+                var row = UIFactory.CreateRect("Ult", transform).Place(top, top, new Vector2(0f, -318f), new Vector2(rowW, pipSize));
                 for (int i = 0; i < moxieCap; i++)
                 {
                     var pip = UIFactory.CreateImage(row, "Pip" + i, Color.white);
@@ -152,7 +148,7 @@ namespace Combat.View
                 }
             }
 
-            statusRow = UIFactory.CreateRect("Statuses", transform).Place(top, top, new Vector2(0f, -358f), new Vector2(Width, 26f));
+            statusRow = UIFactory.CreateRect("Statuses", transform).Place(top, top, new Vector2(0f, -354f), new Vector2(Width + 40f, StatusSize));
             var layout = statusRow.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.spacing = 4f;
@@ -175,22 +171,23 @@ namespace Combat.View
             shadow.sprite = ShadowSprite();
             shadow.rectTransform.Place(bottom, new Vector2(0.5f, 0.5f), new Vector2(0f, -6f), new Vector2(120f, 30f));
 
-            // 64 px frames at exactly 4x keep pixels crisp; the LPC feet sit ~3px (12 at 4x) above the frame bottom.
+            // 64 px frames at exactly 6x keep pixels crisp (a boss is drawn at 9x); the feet sit ~2 px above the frame bottom.
+            float size = unit.IsBoss ? SpriteSize * 1.5f : SpriteSize;
             var images = new List<Image>();
             var glowColor = Color.Lerp(unit.Character != null ? AfflatusInfo.GlowFor(unit.Character) : unit.Definition.color, Color.white, 0.45f);
             glowColor.a = 0.16f;
-            foreach (var o in new[] { new Vector2(-4f, 0f), new Vector2(4f, 0f), new Vector2(0f, 4f), new Vector2(0f, -4f),
-                                      new Vector2(-3f, 3f), new Vector2(3f, 3f), new Vector2(-3f, -3f), new Vector2(3f, -3f) })
+            foreach (var o in new[] { new Vector2(-6f, 0f), new Vector2(6f, 0f), new Vector2(0f, 6f), new Vector2(0f, -6f),
+                                      new Vector2(-4.5f, 4.5f), new Vector2(4.5f, 4.5f), new Vector2(-4.5f, -4.5f), new Vector2(4.5f, -4.5f) })
             {
                 var glow = UIFactory.CreateImage(Body, "Glow", glowColor);
-                glow.rectTransform.Place(bottom, bottom, new Vector2(0f, -20f) + o, new Vector2(SpriteSize, SpriteSize));
+                glow.rectTransform.Place(bottom, bottom, new Vector2(0f, -20f) + o, new Vector2(size, size));
                 images.Add(glow);
             }
             sprite = UIFactory.CreateImage(Body, "Sprite", Color.white);
-            sprite.rectTransform.Place(bottom, bottom, new Vector2(0f, -20f), new Vector2(SpriteSize, SpriteSize));
+            sprite.rectTransform.Place(bottom, bottom, new Vector2(0f, -20f), new Vector2(size, size));
             flash = UIFactory.CreateImage(Body, "Flash", Color.clear);
             flash.material = AdditiveUI();
-            flash.rectTransform.Place(bottom, bottom, new Vector2(0f, -20f), new Vector2(SpriteSize, SpriteSize));
+            flash.rectTransform.Place(bottom, bottom, new Vector2(0f, -20f), new Vector2(size, size));
             images.Add(sprite);
             images.Add(flash);
 
@@ -239,6 +236,16 @@ namespace Combat.View
         {
             if (intentIcon != null && intentIcon.gameObject.activeSelf) // gentle bob, in whole pixels
                 intentIcon.rectTransform.anchoredPosition = new Vector2(0f, IntentY + Mathf.Round(Mathf.Sin(Time.time * 2.5f) * 1.5f) * 2f);
+            if (ultReady)   // a full Ult bar pulses bright
+            {
+                float p = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f);
+                var c = Color.Lerp(PipReady, new Color(1f, 0.92f, 0.6f), p);
+                foreach (var pip in moxiePips)
+                {
+                    pip.color = c;
+                    pip.transform.localScale = Vector3.one * (1f + 0.12f * p);
+                }
+            }
         }
 
         // ------------------------------------------------------------------ Input
@@ -318,25 +325,28 @@ namespace Combat.View
         public void SetHP(int hp, int max, bool instant = false)
         {
             float target = max > 0 ? Mathf.Clamp01((float)hp / max) : 0f;
-            var rt = hpFill.rectTransform;
             if (hpRoutine != null) StopCoroutine(hpRoutine);
             if (instant || !isActiveAndEnabled)
             {
-                rt.anchorMax = new Vector2(target, 1f);
+                hpFill.Fill = target;
                 return;
             }
-            float from = rt.anchorMax.x;
-            hpRoutine = StartCoroutine(Tween.Run(0.25f, p => rt.anchorMax = new Vector2(Mathf.Lerp(from, target, p), 1f)));
+            float from = hpFill.Fill;
+            hpRoutine = StartCoroutine(Tween.Run(0.25f, p => hpFill.Fill = Mathf.Lerp(from, target, p)));
         }
+
+        bool ultReady;
+        static readonly Color PipReady = new Color(1f, 0.55f, 0.2f), PipEmptyColor = new Color(0.42f, 0.4f, 0.46f);
 
         public void SetMoxie(int value, int cap)
         {
-            bool full = value >= cap;
+            ultReady = value >= cap && cap > 0;
             for (int i = 0; i < moxiePips.Count; i++)
             {
                 bool on = i < value;
                 if (CardIcons.PipFull != null) moxiePips[i].sprite = on ? CardIcons.PipFull : CardIcons.PipEmpty;
-                moxiePips[i].color = on ? (full ? new Color(1f, 0.55f, 0.2f) : Gold) : new Color(1f, 1f, 1f, 0.45f);
+                moxiePips[i].color = on ? (ultReady ? PipReady : Gold) : PipEmptyColor;
+                moxiePips[i].transform.localScale = Vector3.one;
             }
         }
 
@@ -356,21 +366,20 @@ namespace Combat.View
             if (show) intentIcon.sprite = CardIcons.IntentCard(intent);
         }
 
+        /// <summary>How far the HP bar leans over its height (canvas units).</summary>
+        const float HpSlant = 9f;
+
+        /// <summary>Status icon size under the unit (canvas units).</summary>
+        const float StatusSize = 52f;
+
         public void SetStatuses(List<StatusSnapshot> statuses)
         {
             Statuses = new List<StatusSnapshot>(statuses);
             UIFactory.ClearChildren(statusRow);
 
+            // Big icons with the turns left; hover one for what it does (StatusChip / StatusTooltip).
             foreach (var s in statuses)
-            {
-                var chip = UIFactory.CreateImage(statusRow, s.Definition.DisplayName, UIFactory.Darken(s.Definition.color, 0.35f));
-                chip.rectTransform.sizeDelta = new Vector2(58f, 24f);
-                string stacks = s.Stacks > 1 ? "x" + s.Stacks : "";
-                var label = UIFactory.CreateText(chip.transform, "Label", s.Definition.shortLabel + stacks + " " + s.Remaining, 13, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
-                label.rectTransform.Fill(1f);
-                var outline = chip.gameObject.AddComponent<Outline>();
-                outline.effectColor = s.Definition.isDebuff ? new Color(0.9f, 0.25f, 0.25f) : new Color(0.4f, 0.85f, 1f);
-            }
+                StatusChip.Create(statusRow, s, StatusSize);
         }
 
         /// <summary>Red lock-on: this enemy is the current target.</summary>
@@ -389,6 +398,7 @@ namespace Combat.View
         public void SetFocused(bool focused)
         {
             if (focusRing != null) focusRing.Show(focused && Unit.IsAlive);
+            if (nameText != null) nameText.enabled = focused && Unit.IsAlive;   // the name shows with the focus ring
         }
 
         public IEnumerator Die()

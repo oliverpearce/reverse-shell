@@ -6,11 +6,25 @@ namespace Combat.View
     /// <summary>
     /// Lays out CardViews to match a hand snapshot. Views are keyed by CardInstance, so any
     /// snapshot (draw, merge, undo...) can be applied and missing/extra views are reconciled.
+    /// Slay the Spire-style fan: the cards overlap along a gentle arc, tilted outward, squeezed so the whole hand
+    /// always fits between the screen's left edge and the Go button. The hovered card rises in front and its
+    /// neighbours lean aside.
     /// </summary>
     public class HandView : MonoBehaviour
     {
-        public const float Spacing = 162f;
+        /// <summary>Widest gap between card centres (cards slightly overlap even in a small hand).</summary>
+        public static float MaxSpacing { get { return CardView.Size.x * 0.82f; } }
         public const float PreviewScale = 1.9f;
+        /// <summary>Tilt per card from the middle (degrees), capped so big hands don't over-curve.</summary>
+        const float TiltPerCard = 4f, MaxTilt = 14f;
+        /// <summary>How far the arc drops per card from the middle, squared (canvas units).</summary>
+        const float ArcDrop = 5f;
+        /// <summary>How far the hovered card's neighbours lean aside (canvas units, halving per card).</summary>
+        const float HoverPush = 70f;
+        /// <summary>Room kept clear on the left edge and for the Go button on the right (canvas units).</summary>
+        const float LeftMargin = 24f, RightReserve = 300f;
+
+        CardView hoveredCard;
 
         public BattleView View { get; private set; }
         public RectTransform Rect { get; private set; }
@@ -27,12 +41,10 @@ namespace Combat.View
             Rect = (RectTransform)transform;
             Order = new List<CardInstance>();
             this.previewLayer = previewLayer;
-            CardSettings.Changed += RefreshFaces;
         }
 
         void OnDestroy()
         {
-            CardSettings.Changed -= RefreshFaces;
         }
 
         /// <summary>Rebuilds every card in hand, e.g. after switching between rank pips and rank borders.</summary>
@@ -85,15 +97,77 @@ namespace Combat.View
             previewOwner = null;
         }
 
+        /// <summary>The hand's usable strip in this rect's local x: from the left edge to just before the Go button.</summary>
+        void Bounds(out float left, out float right)
+        {
+            var parent = Rect.parent as RectTransform;
+            float half = parent != null && parent.rect.width > 0f ? parent.rect.width / 2f : 1200f;
+            float offset = Rect.anchoredPosition.x;
+            left = -half + LeftMargin + CardView.Size.x / 2f - offset;
+            right = half - RightReserve - CardView.Size.x / 2f - offset;
+        }
+
+        /// <summary>Distance between card centres for a hand of <paramref name="count"/>: as wide as fits, up to MaxSpacing.</summary>
+        public float SpacingFor(int count)
+        {
+            if (count <= 1) return MaxSpacing;
+            float left, right;
+            Bounds(out left, out right);
+            return Mathf.Clamp((right - left) / (count - 1), 30f, MaxSpacing);
+        }
+
+        float Centre()
+        {
+            float left, right;
+            Bounds(out left, out right);
+            return (left + right) / 2f;
+        }
+
         public Vector2 SlotPosition(int index, int count)
         {
-            return new Vector2((index - (count - 1) / 2f) * Spacing, 0f);
+            float t = index - (count - 1) / 2f;
+            return new Vector2(Centre() + t * SpacingFor(count), -t * t * ArcDrop);
+        }
+
+        /// <summary>The fan tilt for a slot: the left side leans left, the right side right.</summary>
+        public float SlotAngle(int index, int count)
+        {
+            float t = index - (count - 1) / 2f;
+            return Mathf.Clamp(-t * TiltPerCard, -MaxTilt, MaxTilt);
         }
 
         /// <summary>Spawn position for newly drawn cards: just right of the last slot.</summary>
         public Vector2 IncomingPosition(int count)
         {
-            return SlotPosition(count, count + 1) + new Vector2(Spacing * 2f, 0f);
+            return SlotPosition(count, count + 1) + new Vector2(SpacingFor(count + 1) * 2f, 0f);
+        }
+
+        /// <summary>Re-poses every card in <see cref="Order"/> (with the hovered card's neighbours leaning aside).</summary>
+        void ApplyPoses(List<CardInstance> order)
+        {
+            int hoverIndex = hoveredCard != null ? order.IndexOf(hoveredCard.Card) : -1;
+            for (int i = 0; i < order.Count; i++)
+            {
+                var cv = Get(order[i]);
+                if (cv == null) continue;
+                var pos = SlotPosition(i, order.Count);
+                if (hoverIndex >= 0 && i != hoverIndex)
+                {
+                    int d = i - hoverIndex;
+                    pos.x += Mathf.Sign(d) * HoverPush / Mathf.Abs(d);
+                }
+                cv.SetPose(pos, SlotAngle(i, order.Count));
+                if (cv != hoveredCard) cv.Rect.SetSiblingIndex(i);
+            }
+            if (hoveredCard != null) hoveredCard.Rect.SetAsLastSibling();
+        }
+
+        /// <summary>Called by a card when the pointer enters or leaves it.</summary>
+        public void OnCardHover(CardView cv, bool on)
+        {
+            if (on) hoveredCard = cv;
+            else if (hoveredCard == cv) hoveredCard = null;
+            if (dragging == null) ApplyPoses(Order);
         }
 
         public CardView Get(CardInstance card)
@@ -135,19 +209,17 @@ namespace Combat.View
                 if (cv != null) Destroy(cv.gameObject);
             }
 
+            if (hoveredCard != null && !keep.Contains(hoveredCard.Card)) hoveredCard = null;
             for (int i = 0; i < order.Count; i++)
-            {
-                var cv = CreateView(order[i], IncomingPosition(order.Count));
-                cv.Rect.SetSiblingIndex(i);
-                cv.AnimateTo(SlotPosition(i, order.Count), duration);
-            }
+                CreateView(order[i], IncomingPosition(order.Count));
+            ApplyPoses(order);
         }
 
         public int IndexFromWorldX(float worldX)
         {
             if (Order.Count == 0) return 0;
             float localX = Rect.InverseTransformPoint(new Vector3(worldX, Rect.position.y, 0f)).x;
-            int index = Mathf.RoundToInt(localX / Spacing + (Order.Count - 1) / 2f);
+            int index = Mathf.RoundToInt((localX - Centre()) / SpacingFor(Order.Count) + (Order.Count - 1) / 2f);
             return Mathf.Clamp(index, 0, Order.Count - 1);
         }
 
@@ -183,7 +255,7 @@ namespace Combat.View
             {
                 if (preview[i] == cv.Card) continue;
                 var other = Get(preview[i]);
-                if (other != null) other.AnimateTo(SlotPosition(i, preview.Count), 0.12f);
+                if (other != null) other.SetPose(SlotPosition(i, preview.Count), SlotAngle(i, preview.Count));
             }
 
             ClearHighlights();

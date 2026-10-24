@@ -55,9 +55,36 @@ namespace Game.World
             return ui;
         }
 
+        RectTransform objectivePanel;
+        Text objectiveText;
+
+        /// <summary>The current story objective, top-right ("" hides it).</summary>
+        public void SetObjective(string text)
+        {
+            if (objectivePanel == null) return;
+            objectivePanel.gameObject.SetActive(!string.IsNullOrEmpty(text));
+            objectiveText.text = text ?? "";
+        }
+
+        void BuildObjective(RectTransform root)
+        {
+            var topRight = new Vector2(1f, 1f);
+            var panel = InkStyle.Panel(root, "Objective", UIFactory.WithAlpha(InkStyle.Ink, 0.78f));
+            objectivePanel = panel.rectTransform;
+            objectivePanel.Place(topRight, topRight, new Vector2(-28f, -28f), new Vector2(640f, 118f));
+            InkStyle.Frame(objectivePanel, InkStyle.Rule, 2f);
+            var label = InkStyle.Label(objectivePanel, "Label", "Objective", 24, InkStyle.Gold, TextAnchor.UpperLeft);
+            label.rectTransform.TopStrip(10f, 34f, 18f);
+            objectiveText = UIFactory.CreateText(objectivePanel, "Text", "", 30, InkStyle.Paper, TextAnchor.UpperLeft);
+            objectiveText.rectTransform.TopStrip(44f, 66f, 18f);
+            objectiveText.gameObject.AddComponent<Outline>().effectColor = HudShadow;
+            objectivePanel.gameObject.SetActive(false);
+        }
+
         void Build()
         {
             var root = (RectTransform)transform;
+            BuildObjective(root);
             var bottomLeft = Vector2.zero;
             var bottomCenter = new Vector2(0.5f, 0f);
             var center = new Vector2(0.5f, 0.5f);
@@ -66,10 +93,10 @@ namespace Game.World
             // An ink box with a gold hairline and a gold key: simple and readable.
             var promptBg = InkStyle.Panel(root, "Prompt", InkStyle.InkPanel);
             promptRect = promptBg.rectTransform;
-            promptRect.sizeDelta = new Vector2(380f, 52f);
+            promptRect.sizeDelta = new Vector2(320f, 76f);
             promptRect.pivot = new Vector2(0.5f, 0f);
             InkStyle.Frame(promptRect, InkStyle.Rule, 2f);
-            promptText = UIFactory.CreateText(promptRect, "Text", "", 26, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(12, 26);
+            promptText = UIFactory.CreateText(promptRect, "Text", "", 40, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(18, 40);
             promptText.supportRichText = true;
             promptText.rectTransform.Fill(10f);
             promptBg.gameObject.SetActive(false);
@@ -88,13 +115,8 @@ namespace Game.World
             titleText.rectTransform.TopStrip(6f, 112f);
             var ruleBottom = InkStyle.Line(title, "RuleBottom", InkStyle.Gold);
             ruleBottom.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -122f), new Vector2(760f, 2f));
-            subtitleText = UIFactory.CreateText(title, "Subtitle", "", 22, InkStyle.Gold, TextAnchor.MiddleCenter, FontStyle.Bold);
+            subtitleText = UIFactory.CreateText(title, "Subtitle", "", 32, InkStyle.Gold, TextAnchor.MiddleCenter, FontStyle.Bold);
             subtitleText.rectTransform.TopStrip(128f, 40f);
-
-            var hint = UIFactory.CreateText(root, "Hint", "WASD / Arrows: move    Shift: run    F: interact    Esc: crew", 20,
-                new Color(0.95f, 0.93f, 0.85f, 0.85f), TextAnchor.LowerLeft);
-            hint.rectTransform.Place(bottomLeft, bottomLeft, new Vector2(24f, 16f), new Vector2(800f, 30f));
-            hint.gameObject.AddComponent<Outline>().effectColor = new Color(0.15f, 0.14f, 0.11f, 0.8f); // readable over bright ground
 
             // Party HP (top left): name, big HP number, thin bar.
             partyPanel = UIFactory.CreateRect("Party", root).Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(20f, -20f), new Vector2(420f, 0f));
@@ -123,9 +145,9 @@ namespace Game.World
             {
                 var m = members[i];
                 bool leader = i == 0;
-                float nameSize = leader ? 26f : 20f, barHeight = leader ? 18f : 11f, lvSize = leader ? 16f : 14f;
-                float width = leader ? 360f : 280f;
-                float height = nameSize + 6f + barHeight + 4f + lvSize + 2f;
+                float nameSize = leader ? 34f : 27f, barHeight = leader ? 20f : 13f;
+                float width = leader ? 420f : 330f;
+                float height = nameSize + 6f + barHeight + 4f;
                 const float lineX = 4f, contentX = 18f;
 
                 var row = UIFactory.CreateRect(m.Name, partyPanel);
@@ -161,8 +183,11 @@ namespace Game.World
                 fill.rectTransform.offsetMin = Vector2.zero;
                 fill.rectTransform.offsetMax = Vector2.zero;
 
-                var lv = UIFactory.CreateText(row, "Level", "Lv. " + m.Level, (int)lvSize, HudText, TextAnchor.UpperLeft, FontStyle.Bold);
-                lv.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(contentX, -(nameSize + 6f + barHeight + 4f)), new Vector2(width, lvSize + 4f));
+                // The level on the name line, right-aligned, as big as the name and in gold so it reads at a glance.
+                var lv = InkStyle.Title(row, "Level", "<size=" + UIFactory.Px((int)(nameSize * 0.8f)) + ">Lv</size> " + m.Level,
+                    (int)(nameSize * 1.35f), InkStyle.GoldBright, TextAnchor.LowerRight);
+                lv.supportRichText = true;
+                lv.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(contentX, 0f), new Vector2(width, nameSize + 4f));
                 lv.gameObject.AddComponent<Outline>().effectColor = HudShadow;
 
                 y += height + (leader ? 18f : 10f);

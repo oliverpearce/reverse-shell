@@ -1,12 +1,260 @@
 # HANDOFF: where we left off (2026-10-22, session 4)
 
-> **Sprites (newest):** the crew and NPCs come from **`Tools/ChibiForge/girl_model.py`**, using the user's 6-frame front-view walk cycle (`reference/Girl_walk.png`, native 64 px).
+# Chapter One demo (start here)
+
+**Canon:** `GAME_BIBLE.md` v0.3 is the source of truth; its §13 lists what is only a draft (Collector, record and memory
+texts, the ending mystery, the Electric kit and enemy numbers) and the code-name mapping (Electric = `Volt`, Physical =
+`Afflatus.None`). The protagonist is player-named (asset `Char_MC`) and alone. Heal Bot, Lucy, Blue and the Training
+Center are debug-only: Esc → **Settings → Enter Training Mode** takes you to the Training Center (the crew joins
+there), and the same row, now **Leave Training Mode**, puts you back exactly where you were (saved, so it survives a
+Continue). Esc → **Save** asks which slot to save to (saving to another slot makes it this game's slot; overwriting a
+different occupied slot asks first). Both pages are a `RowMenu` over the Esc cards.
+
+**First launch:** open the project in Unity once. `Editor/BlueContentBootstrap.cs` then runs
+`SampleContentGenerator.EnsureChapterOne()` (and `EnsureBlue()`), which creates the chapter's assets: the protagonist's
+resonance kits, `Status_Stunned`, the Scrap Hound / Wire Crawler / Collector / Electric Dragon enemies (all on the red
+Rust Sentry sprite), their cards, and `Resources/Bestiary.asset`. The Console logs it. It runs again whenever
+`SampleContentGenerator.ChapterOneVersion` is higher than the bestiary's `contentVersion` (v2 = the harder enemies), so
+bump that constant after changing the chapter's numbers. Then press Play in `Scenes/Overworld_Mossline.unity`.
+
+**Story text:** every word the game says lives in `Assets/_Project/Resources/Story/` (`StoryText` reads every .txt
+there): `Chapter1.txt` is the chapter's script, `World.txt` everything else (objectives, Access Points, chests and
+rewards, battle outcomes, the Summon Beacon, the Training Center people). Text can be pasted in from the bible or any
+document without touching code. Some blocks take fill-ins such as `{item}` (listed above them in the file). `[key]` starts a block, `Speaker | text` is one
+box spoken by Speaker (Scanner, Collector and Memory get their own voices, anyone else the narrator's), a bare line is
+narration, `#` is a comment, `{name}` is the protagonist's name. Lines too long for the dialogue box are split into
+several boxes automatically (`World/Dialogue/DialoguePager`, which never breaks inside a tag and carries colours and
+effects over), so a whole paragraph can sit on one line. Keep the keys; `StoryTests` checks they all exist, and a
+missing one shows `[missing: key]` in game.
+
+**How to play:** Title → New Game → pick a slot → the opening recording (Enter/Space/click advances, Esc skips) → name
+the protagonist (type, Enter) → wake in the city's walled courtyard. WASD/arrows move, **F** interacts, **Q** scans
+(once you have the scanner), **Esc** opens the pause cards (Quit, Save, Resume, Party, Units), **F8** opens the story
+debug panel (editor / development builds).
+
+**The chapter, beat by beat** (flags in `World/Story/Chapter1.cs`; the objective shows top-right):
+1. Opening (`PrologueSequence`): the hopeful public-information recording ending on EVERLASTING, the transfer stalling at
+   63% and failing, then name entry. Flag `ch1.named`.
+2. Awakening beside the procedure pod (`ch1.awake`). Three memory fragments (`ch1.memory.1-3`, optional) and records
+   (courtyard notice, plaza poster, park plaque, clinic terminal) are spread across the city; a small machine tends
+   flowers in the park.
+3. The optical scanner in the ruined clinic (top-right block) (`ch1.scanner`). **Q** sends a pulse: traces show as cyan
+   marks; it never reveals elemental weaknesses.
+4. Leaving the clinic through its only gate (a `Z` trigger) meets the **Collector** (`ch1.collector.met`): dialogue
+   with a choice, then a fight. Winning sets `ch1.collector.beaten` and they retreat over the rooftops.
+5. On the south street, the trace marks lead to a cracked wall in the building face on its north side (facing the camera); scanning it (after the Collector) opens the hidden
+   route (`ch1.route`), a warp into **The Buried Line** (tunnel, dim; `ch1.tunnel`): a maintenance log, two optional
+   Wire Crawler fights, an Access Point.
+6. **The Humming Hall** (chamber): crossing the line in the middle wakes the guardian (`ch1.dragon.seen`), then the
+   **Electric Dragon** boss fight (Lv 7, boss) (`ch1.dragon.beaten`).
+7. The pedestal's blank Soul Card binds to the Core: **Electric resonance** unlocked (`ch1.resonance.volt`), switchable
+   for free in Units → Resonance (Electric swaps the innate cards for Arc Edge / Static Field and the Ult for
+   Thunderheart). Then the ending (a second signature matching your own, moving) and the "End of Chapter One" card
+   (`ch1.complete`). Free roam continues.
+
+**Losing:** a defeat wakes you at full HP at the last Access Point you rested at (`WorldSession.LastAccessPoint`,
+saved; the area's start if you never rested). Story fights (Collector, dragon) start again when you step back onto
+their trigger (or, for the dragon, interact with it). Nothing is ever lost.
+
+**Access Points** heal, save, become your wake-up point, and bring back every beaten patrol machine
+(`WorldSession.RespawnPatrols`; story fights stay gone because their flags block them). If machines return in this
+area, it reloads around you.
+
+**Parts in Chapter One:** no spare Parts at the start. The only Part found is the **Ult Chip** (`Part_UltChip`, start
+every battle with 2 Ult points via `StatType.StartingMoxie`), the Collector's story reward (`EncounterDef.Reward`). The
+dragon's reward is the Soul Card on the pedestal (Electric resonance), not a Part. There are no other Cores: the
+protagonist's own Core binds with the Soul Card, so it can't be removed or swapped (`WorldSession.IsBound`). Loot chests
+still work (`c` on the map, contents in `WorldAreas.Area.Chests`, opened once via a `chest.<area>.<n>` flag) but none
+are placed.
+
+**Saving:** the save keeps your exact position (`WorldSession.PlayerSpot`), so Continue puts you where you saved. Save
+slots (title and Esc → Save) show your chosen name, level, area and time (`SaveGame.SlotLabel`).
+
+**Code map (Chapter One):** `World/Story/` (`StoryState` flags + name, `Chapter1` flags + objective,
+`ChapterOneDirector` all beats, `StoryText` the script file, `PrologueSequence`, `StoryProps` placeholder props, `StoryDebugPanel` F8).
+`WorldAreas` (areas, warps, per-encounter enemies, NPCs, dim lighting); maps are generated and checked by
+`Tools/MapForge/chapter1_maps.py` (paste its output into `WorldAreas`). Resonance: `ResonanceKit`,
+`CharacterDefinition.resonances`, `WorldSession.ActiveResonance/UnlockedResonances`, `BattleUnit.Afflatus/Ultimate`.
+Enemy lookup at runtime: `EnemyCatalog` (`Resources/Bestiary.asset`). Map legend additions are documented on
+`OverworldMap`.
+
+**Results screen:** only members who fought get XP (a backup who never stepped in gets none and isn't listed). Each
+member who levels gets a stat panel on the right, stacked (up to three fit above the button), one line per stat:
+`LABEL  old → new  +N ▲`. Ordinary wins say nothing afterwards (the results screen covers XP and levels); only story
+fights (Collector, dragon) have a line after.
+
+**Starting kit:** a new game has no spare Parts; the protagonist starts with `Part_FragmentedCore` (no bonuses) fitted
+in the Core slot (`PartCatalog.starterCore`, fitted by `WorldSession.GiveStarterParts`). Older saves keep what they have.
+
+**Tests:** `StoryTests` (objective, save round trip, name override, resonance switching, Physical neutral, Stunned,
+script parsing + every key present, dialogue paging) and
+`OverworldMapTests` (every area's warps pair up, fight definitions match the map, every Chapter One beat reachable).
+They compile; run them in the Test Runner.
+
+**Known issues / not verified in Unity:** nothing here has been play-tested in the editor yet (no Unity run was
+possible); the props are primitive placeholders; there is no music or sound; enemy numbers are first drafts; scanning
+"materials" only shows as text; an old save from before Chapter One plays the opening again on Continue; in-combat
+resonance switching is not built (the bible leaves its cost open).
+
+---
+
+> **Icons (newest):** the game's icons are the user's picks from Clockwork Raven's **Raven Fantasy Icons**. It's the free version (personal use only, no redistribution, so keep the pack folder out of public repos). The 32x32 files sit in `Assets/_Project/Art/ThirdParty/RavenFantasyIcons/`, and `LICENSE-NOTE.md` there lists every icon used.
+> - **Build:** `Tools/IconForge/card_icons.py` composites them (4x, hard pixels) into `Resources/UI/CardIcons.png`, now an **8x8** atlas.
+>   - Rows 0–1: the card types, as white masks and in their own colours.
+>   - Rows 2–4: intent cards, with the icon at 2x on the cream / silver / gold card faces.
+>   - Row 5: UI bits. The Ult pips are fb2186 (the empty pip is greyed) and the star is fb984; the empty diamond, the filled diamond and the card back are still drawn in code.
+>   - Row 6: the element orbs.
+>   - Row 7: CHIP, CORE and the status icons.
+> - **Code:** `CardIcons.Element(afflatus)` (the orb beside each unit's bars, replacing the empty diamond), `CardIcons.Part(slot)` (party-menu sockets and part rows) and `CardIcons.Status(status)` (a status's own `icon`, else the atlas icon by asset name; status chips now show it beside the label). `CardStars` uses the atlas star.
+> - **Colours:** icons keep their own colours (no tinting).
+> - **Incantation Might Up** has no icon yet (the user is deciding).
+>
+> **Goal:** a polished **Chapter 1 demo** with the user's own art and music; everything visual now is a placeholder. The decisions so far are recorded in memory (chapter1-polish-plan).
+>
+> **Compile check without the editor:** a scratch script compiled every assembly (Combat.Runtime, Game.World, both editor assemblies and Combat.Tests) with Unity's bundled Roslyn `csc` at C# 7.3, using the references from the `.csproj` files. Everything below compiles; the tests were compiled, not run.
+>
+> **Card text + icon-only cards (newest):**
+> - **Card text:** one short sentence per effect, worded the same at every rank, with no commas (`CardText.Sentences` no longer joins clauses; `Joinable` / `Clause` / `TargetKey` were removed).
+>   - Status sentences no longer write turns or stacks: "Give the weakest ally Regeneration." or, with a verb, "Poison 1 enemy."
+>   - The detailed face (the card popup) shows **status chips** above the kind band instead: the status icon with its turns, plus "2x3" when stacks > 1 (`CardView.StatusChips`).
+>   - `CardTextTests` were updated, plus a no-commas test and a Sap Mend wording test. They compile but weren't run (the editor was open).
+> - **Icon-only cards:** `CardView.BuildFace(..., iconOnly)` and `AbilityCard.Create(..., iconOnly)` show only the rank stars, a big type icon and a thin kind-colour strip, and they ignore the wheel. Used in the party menu (click to open) and the battle inspect sheet (hold to open, through `AbilityCard.OnLongPress`).
+> - **Popup:** the wheel stops at rank I and III rather than wrapping. `BattleView.HandleTargetKeys` ignores keys while a card is open.
+> - **Status icons:** a pick sheet for every status was made for the user (`pick_statuses.png`, scratch). The current picks are 673 / 641 / 642 / 645 / 968, and Incantation Might Up is still unpicked.
+>
+> **Card popup + element glow (previous):**
+> - **`CardDetailPopup` (shared):** the card lifts from where it is, glides to the centre growing to 2.5x, then flips (scale X 0 -> 1) to its detailed face with the full text. "Scroll to see upgrades" appears when it has ranks (`AbilityCard` flips the rank on the wheel). A click anywhere or Esc shrinks it back.
+>   - **Party menu:** clicking a card opens it, and Enter on a focused deck card does the same.
+>   - **Battle:** holding a hand card for 0.45 s opens it (`CardView` long-press; releasing doesn't queue it). The hover text preview is gone; hovering lifts the card to 1.06x. `BattleView.InputEnabled` is false while it's open, and Esc closes the card before the pause menu.
+> - **`ElementBadge`:** the element orb with a thick dark outline on a soft, slowly pulsing glow in the element colour, with no box. Used in the battle inspect header and the party menu header.
+> - **Battle:**
+>   - Inspect cards are 1.35x.
+>   - Unit names (shown on hover or focus) sit above the head; for enemies they sit above the intent card.
+> - **Party menu:**
+>   - The sprite is 12x and the cards 1.45x.
+>   - Spare cards are removed, and with them deck swapping (`OpenCardPicker` / `SwapIn` deleted; `WorldSession.SetDeckCard` still exists).
+> - **Dialogue box:** one default look for everyone, with no portraits (the profile poster is no longer used).
+>   - A dark ink panel with a gold hairline and a thin accent bar in the speaker's colour.
+>   - The name in gold serif with an accent underline, and paper-white text.
+>   - A gold "next" diamond, and ink choice rows that turn gold when selected.
+>   - It rises and fades in, with no tilt.
+>
+> **Polish pass (previous):**
+> - **Battle inspect:** the unit keeps its side of the screen and the sheet fills the other side. The sheet has a tab with the element orb, the name, the level, HP as one line, the stats as two columns of label / value strips, and the cards in a hairline bracket, with "Click anywhere to return to battle" below. The zoom offset is clamped to `(Zoom - 1) * screen / 2`, so the backdrop never shows its edges.
+> - **Party menu (`CharacterMenu`, rewritten):** one detail page per member.
+>   - Tabs along the top (the first is marked Leader); the member's idle animation at 9x on the left (`UISpriteAnimator.UnscaledTime`, because the menu pauses the game).
+>   - On the right: the element tab, name, level with an XP hairline, HP, stat strips (Part bonuses as a gold +N), Items (CHIP / CORE strips, click to change) and every card in a bracket (Deck / Ult / Spare).
+>   - Left/Right switch member, Up/Down focus, Enter opens a picker, L sets the leader, Esc closes.
+>   - The opened-robot internals, the carousel, the flip and the Persona stat slab are gone. `CharacterDefinition.portraitInternals` and `partSockets` are no longer read.
+> - **Battle HUD:**
+>   - No battle log (`HudView.Log` is a no-op).
+>   - The turn counter is a small "TURN" label over a serif number, with no plate.
+>   - The queue is a slim row of slots with no panel or labels (still clickable to take every card back).
+>   - Nameplates are just the HP bar and Ult pips; the name shows on hover or focus. The element / class line and the element orb are gone.
+>   - Status effects are small icons with turns left (the short label when there's no icon).
+>   - Hand cards now show the card name (serif) between the rank / icon and the kind word.
+> - **Formation, Blue, targeting, enemy levels (2026-10-23):** `WorldSession.Formation` (saved): slots 0-2 active (slot 0 leads/walks), slot 3 backup; `FormationActive/Backup`, `Assign` (swaps), `ClearSlot` (never leaves no active), recruits fill empty slots. `FormationScreen` edits it with Ult-art slot cards + a member strip: from the Esc cards (**Party**, X/Esc back) and as the **pre-fight** screen before every encounter (enemies with level/BOSS on the left, Start/Space). `OverworldBuilder.BuildSetup` makes the fight (active + backup, enemy count, training level) for both preview and battle. Esc cards are now Quit/Save/Resume/Party/**Units** (Units = the old character detail menu, retitled). **Blue**: Light Guardian backup (Shield Bash, Bulwark, Ult Aegis Dawn; new Status_DefUp), sprites from knight_model `Blue`, assets made by `SampleContentGenerator.EnsureBlue` (auto-run once by `BlueContentBootstrap`), added to Battle_Sample's roster; joins in the Training Center. **Targeting**: queueing a single-enemy card locks `CardInstance.Target` to the enemy under the cursor. **Enemy levels**: enemy stats are their Lv 5 values scaled by `BattleUnit.EnemyScale` (1-99); boss = 3x HP, 1.25x ATK, 9x sprite, BOSS tag; XP scales too. `BattleSetup.enemyLevel/boss/backup`. The Training Center chest (`C`, `EnemyLevelPanel`) sets presets Enemy Lv 5 / Boss Lv 20 / Custom Lv 30 and ±1/±10 up to 99 (saved).
+> - **AP / hand / party rules (2026-10-23):** `BattleState`: `Party` = up to 3 active (`MaxActive`), `Backup` = 1 reserve (`MaxBackup`), `Roster` = everyone (loadouts, levels, results use it). Each turn AP = living active units (+ bonus), hand cap = AP + 4 (`HandBonus`); `CombatConfig.handSize`/`actionPointsPerRound` are no longer used. A fallen member's cards leave the hand/queue and the backup takes their slot (`UnitEnteredEvent`, `BattleView.PlayUnitEntered`); defeat only when no one is active and no backup is left. Moves cost 1 AP and count in `MovesThisRound` (undo restores it); the queue shows each as a locked "CARD MOVED" slot. Merges after a play/move/draw are free and chain (`ResolveMerges`). Overworld: Access Points have a purple stand square (`HealPurple`) and prompt "[F] Heal"; the party menu has an X (top-right) and, opened from the Esc cards, returns to them on close.
+> - **Results screen (2026-10-23):** `ResultScreen.Play` (started by `HudView.ShowResult`) animates: RESULTS/DEFEAT header between gold rules, +XP, member rows sliding in with slanted XP bars that fill from `BattleResult.Before` (new: pre-XP progress) to the new XP, wrapping per level with a LEVEL UP! tag, the alert effect and an Lv punch; then per levelled member a gold diamond LEVEL UP / N burst and a stat panel (HP, ATK, PHYS DEF, SPEC DEF counting up with gold "+N ▲", base stats without Parts); the Continue / Fight Again button appears last.
+> - **Party & pause (2026-10-23):** `WorldSession.Members` (saved as `members`; empty = everyone, for old saves): a new game is just MC (Lv 1); entering the Training Center recruits the rest of the roster (`RecruitAll`, with a "joins your party!" message) and they stay. `OverworldBuilder.Party`/battles use `WorldSession.Joined`; encounters field at most as many machines as party members. Overworld **Esc** opens `PauseCards`: pixel cards Quit / Save / **Resume** (default) / Party (icons from CardForge `MENU_ICONS`); Party opens the CharacterMenu, Save flashes SAVED!, Quit saves and returns to the title. Overworld text is bigger (party HUD, prompt, area subtitle, dialogue), and prompts are just "[F] Talk" (NPCs) or "[F] Interact".
+> - **Camera rule (2026-10-23):** `OverworldMap.ApplyCameraRule(pitch)` runs on every area at build: a block k rows south of a walkable square in its column is lowered to at most `0.9 + k*tan(pitch)` (H 5 / # 3 / B 2 / L 1), and trees within ~2 rows become bushes, so nothing hides the player (Octopath-style: tall architecture behind, low things in front). Solidity is unchanged. City start: the Training Center warp is immediately left of the spawn; a paved path leads east to a rune stone (`G`, `WorldFx.RuneStone`, a TalkInteractable with a prompt override) that says "YOUR NAME IS MC". CardSettings.Changed (never raised) was removed.
+> - **Areas (2026-10-23):** one overworld scene builds the area named by `WorldSession.CurrentArea` (saved as `area`), defined in `WorldAreas`: **city** = The City Ruins, a 64x42 open NieR-style ruined city (main map; new games start here; generated layout, reachability checked) and **training** = Training Center (the old Mossline Station map, practice fights + summon beacon). `W` on a map is a glowing cyan warp pad (`WorldFx.WarpPad`, `WarpInteractable`): interact to travel; `OverworldBuilder.TravelTo` saves and reloads as the other area, arriving beside its warp. Encounter ids are per area (training keeps the old scene-only prefix for old saves). **Settings** are one shared list (`GameSettings.Options`: label, toggle, help) shown by the title screen and the battle pause menu, each row with a "?" (`InkStyle.HelpBadge`) whose help shows in `InkStyle.HelpPanel`. (Superseded: the old Training Mode toggle that skipped the title is gone; see Esc → Settings above.) Battle HUD: the turn counter is back top-left ("TURN 3", one line). Overworld party HUD: the level sits on the name line, big and gold.
+> - **Polish (2026-10-23, later):** Ult cards (party and enemy) are a 2x bust of the battle sprite (CardForge `sprite_art`), so the crew's cards match their shared model. `UltShine` (replaces UltGlow): light bands sweep across Ult cards every 2.6 s plus twinkling pixel sparkles, masked to the card art; also on every channelled card. Ult pips are 26 px on a dark strip, solid dark when empty, pulsing orange/gold when ready (inspect: 34 px). End-of-turn ticks: a pause, an "End of Turn" banner, then each tick on its own beat. IM Up's icon is Raven fb877 (violet rising arrow, user's pick; atlas RowExtra 7).
+> - **Statuses (2026-10-23):** 52 px icons under units and 64 px by the HP bar on the inspect screen, both `StatusChip.Create`; hover shows `StatusTooltip` (name, description, turns/stacks, big text). **Beats:** `BattleView.PlayStatuses` lands newly gained statuses `StatusDelay` after the hit (buff/debuff FX + the name floating up); end-of-turn ticks start after `TickLead` and play one by one (`TickHold`), labelled with the status (e.g. Poison).
+> - **Fanned hand (2026-10-23):** Slay the Spire-style. `HandView` squeezes the spacing (`SpacingFor`, up to 0.82 card widths) so any hand fits between the left edge and the Go button, tilts cards outward (`SlotAngle`, 4 deg per card, max 14) on a gentle arc (`ArcDrop`). Cards ease to their pose in `CardView.LateUpdate` (`SetPose` replaced `AnimateTo`). Hover: the card straightens, grows to 1.25x and comes to the front, risen just enough that its bottom edge stays put (no hover flicker); neighbours lean aside (`HoverPush`).
+> - **Battle pass (2026-10-23, later):** hand cards are now 5x (240x320, spacing 248, hand at y 178); the hold popup is 10x with live numbers (DAMAGE / HEAL from the owner's current ATK and bonuses, before DEF; `CardView.LiveNumbers`). The info screen (`UnitInspectView`) holds cards the same polled way (`AbilityCard`), shows an ULT pip row under HP and the Ult card for party and enemies, cards at 4x across the whole sheet. **Enemy Ults:** `EnemyDefinition.ritual`; enemies with one gain Ult points per cast and use it instead of a skill when full (`EnemyAI.ChooseIntent(..., moxieCap)`, `EnemyTurn`). Rust Sentry: *Meltdown* (140% ATK, all), Scrap Stalker: *Toxic Swarm* (90% ATK all + Poison). Their Ult art is a 2x bust from the idle sprite (CardForge `ULT_ENEMIES`). The SampleContentGenerator doesn't know these yet. **HUD:** the Turn counter and AP pips are gone (round banner and empty slots say it); the 3 queue slots sit above the hand and show the card icons. **Pacing:** each cast first channels its card (`BattleView.ChannelCard`: slot -> above the caster, glow and bob, flare), then the cast animation, then a pause; constants `ChannelFly/Hold/Release`, `CastPause`, plus longer damage/heal waits.
+> - **Pixel cards (2026-10-23):** cards are 48x64 px pixel art (hand 4x, popup 10x, inspect 4x, party menu 5x), modelled on the user's "Soul" reference: owner-tinted swirl, pale rim with plum outline, rank pips across the top, small type icon top-right, a centre icon per card, the name on a bottom plate. Ult cards are full art (MC's reference recoloured per member) with a pale border and no text. Pieces are painted by `Tools/CardForge/card_forge.py` into `Resources/Cards/` and assembled by `CardView.BuildFace` via `CardArt`. The hold popup shows the card left of centre with an ink text panel beside it (`CardView.DetailPanel`). Hand cards: the wheel previews other ranks in place; holding opens the popup (now polled per frame, with the drag threshold raised to the hold slop so a shaky hold isn't a drag).
+> - **Battle effects (2026-10-23):** pixel animations from the free **Super Pixel Effects Gigapack** (Will Tice / unTied Games; credit required, raw files must not be publicly redistributed) live in `Resources/Fx/` as sheet + frame list. `FxLibrary` plays them at 15 fps and 6x on the battle FX layer; `BattleFx` holds the user's picks: a hit effect per attacker element, plus crit, heal, buff/debuff landing, poison tick, unit destroyed, Ult wind-up on the caster and the big Ult impact, and a looping alert beside LEVEL UP! on the results. To swap one, copy its spritesheet into `Resources/Fx/` (txt lines `frameNNNN x y w h`) and change the name in `BattleFx`.
+> - **Fonts (2026-10-23):** every font getter in `UIFactory` now returns the pixel font **monogram-extended** (CC0), so the UI matches the pixel art. It has one weight, so Bold and Italic render plain. All sizes go through `UIFactory.Px` (scale `FontScale` = 1.6, because monogram's capitals are 7 px of a 16 px em); rich-text sizes use `UIFactory.Size(n)` instead of a literal `<size=n>`. The importer sets Hinted Raster and the glyph texture is point-filtered at runtime.
+> - **Transitions:** `Combat.View.ScreenFade` is a persistent ink fade (DontDestroyOnLoad, unscaled). `ScreenFade.LoadScene` fades out, loads, and fades in after the new scene builds. The overworld uses it into and out of battle and for area reloads, and the battle uses it for Leave Fight.
+> - **Title screen + save slots:**
+>   - `TitleScreen` opens over the first area of a session and pauses the world. It has Continue (latest slot), New Game, Load, Settings (fullscreen) and Quit. New Game and Load list 3 slots with the leader, level and save time; overwriting asks first.
+>   - Saves are now `save_1.json` .. `save_3.json` (`SaveGame.Slot`, `Peek`, `LatestSlot`, `DeleteAll`). The old `save.json` moves to slot 1 automatically.
+>   - `WorldSession.StartSlot` / `TitleDone`. Tools > Overworld > Delete Save Data wipes every slot.
+>   - The game's name is the working title `TitleScreen.GameTitle` ("REVERSE SHELL").
+> - **Overworld:** the controls hint bar was removed.
+> - **NPCs:** knight reskins in civilian colours with no glow (vendor in red, courier in blue and gold, drifter in drab green).
+> - **Still open from the plan:** none of the user's art or music has gone in yet. The user declined an art pipeline, a music system and chapter data for now.
+>
+> **Inspect screen (previous), Reverse: 1999-style:** holding a unit (or Space on the ringed one) zooms the battlefield in, and `UnitInspectView` was rewritten for it.
+> - **Zoom:** the backdrop and `Stage` scale to 1.5x (the 6x sprites become exactly 9x) and slide the unit to the left (`FocusPoint` -470, -40). The hand and HUD fade out through their CanvasGroups.
+> - **Right-hand column:** the name (big serif over a gold hairline), HP (numbers and a bar), STATS (the six stat boxes, with +/-% badges when changed) and CARDS (the unit's card faces at 1x; scroll over one to flip its rank).
+> - **Removed on purpose:** effects, Ult pips, the profile poster and icons, and the enemy "next move" box.
+> - **Closing:** Esc, Space or clicking the battlefield closes it, and everything eases back.
+>
+> **Fixes:** the queue panel now receives clicks (`UIFactory.CreateImage` makes images click-through by default, so `queueBg.raycastTarget` is now true). Overworld sprites use `animatedCharacterScale` **2.5** (it was 3), in code and in the scene.
+>
+> **Latest pass (all knights, bigger sprites, queue click):**
+> - **Party:** Heal Bot (sage plating, green lights) and Lucy (violet-grey plating, purple lights) are knight reskins too (`knight_model.SKINS`), so the whole party and both machines share one look. Their party-menu cards come from `knight_model.portrait` as well. Only the NPCs are still on the rig.
+> - **Rank display:** card ranks are always stars. `CardSettings.RankStars` is fixed to true, and the "Card Rank: Stars / Pips" button is gone from the pause menu.
+> - **Select reticle:** the white focus ring (and the orange card-target ring, which uses it) no longer has the dark shadow ring behind it. The red lock-on keeps its shadow.
+> - **Bigger sprites:**
+>   - Battle sprites are 64 px frames at **6x** (`UnitView.SpriteSize` 384), and the rim-glow offsets were scaled to match.
+>   - The enemy intent cards are 96 px (`IntentSize`, at `IntentY` 64).
+>   - Overworld animated sprites use `animatedCharacterScale` **3** (it was 2), changed both in code and in `Overworld_Mossline.unity`.
+> - **Undo button removed:** clicking the **queue panel** (`HudView.queueButton`, which is interactable only when there's something to undo) calls `BattleView.OnReturnAll`. That unwinds this turn's whole undo stack, so every queued card goes back to the hand and all AP returns. Moves and merges made in the hand are undone too.
+>
+> **Enemies (newest): the Free Knight too.** The machine enemies use the same knight, reskinned per character (`knight_model.SKINS`). Enemies face left in battle, which the game handles by mirroring.
+> - **Rust Sentry:** rusted plates, dark steel joints with red lights, a red visor and collar.
+> - **Scrap Stalker:** mossy plates, rust joints with amber lights, an amber visor and collar.
+> - **Build:** `chibi_forge.build_sheets` routes every name in `SKINS` (MC, RustSentry, ScrapStalker) to the knight. NPCs, Heal Bot and Lucy are unchanged.
+> - **Slash trail:** the sword's trail shares the steel colours, so on attack frames the big un-outlined steel patches (`swoosh`, 80 px or more) keep their pale colours.
+> - **MC's party card:** `knight_model.portrait` puts the reskinned idle pose at 3x in the 96×144 card, with glow pixels marked for the card's glow mask. The internals card opens its chest (`open_chest` now takes an `armour` colour set). The ability cards are unchanged.
+>
+> **MC's sprites (newest): the Free Knight, reskinned as a robot.** The source is "Fantasy Knight - Free Pixelart Animated Character" by aamatniekss (Colour2 / Outline sheets in `Tools/ChibiForge/reference/FreeKnight/`), built by **`Tools/ChibiForge/knight_model.py`**. `chibi_forge.build_sheets` checks the knight first, then the sample, then the card model.
+> - **Reskin (`RESKIN`):** the steel becomes white plating; gold and leather become dark joints with orange highlights; the red scarf becomes an orange collar; and the visor slit (interior outline pixels in the head, found per frame) glows orange.
+> - **Frames:** 120×80 frames are cropped to 64×64 with one window for every clip (body centred, feet on row 61). Wide sword swings are clipped at the edge.
+> - **Clips:** idle = `_Idle` (10). Walk = idle 0 + `_Run` (10). Slash = `_AttackComboNoMovement` (10). Spellcast = idle 0 + an orange orb (12). Hurt = `_Hit` + `_DeathNoMovement` (11).
+> - **Directions:** right as drawn, left mirrored; down uses right and up uses left (no front / back views).
+> - **Size:** the knight is about 38 px tall, so about 0.6 units, a bit smaller than the machines (0.73).
+> - **Licence:** free and commercial use and modification are allowed, with credit appreciated (credited in MC's `CREDITS.md`). No redistribution on its own. Its page says "can't be used in AI creations"; the user reviewed that and chose to proceed.
+>
+> **MC's sprites (previous): the user's own animation.** `Tools/ChibiForge/reference/sample/` holds the Aseprite sources and the exported sheets, and **`Tools/ChibiForge/sample_model.py`** builds MC's sheets from them. `chibi_forge.build_sheets` routes MC there before the card model.
+> - **Idle:** 10 frames of 46×55, a front three-quarter view facing left.
+> - **Walk:** 24 frames of 45×58 (a 4×6 grid), a side view facing left, played as one loop after a standing frame 0 (idle frame 0).
+> - **Directions:** left as drawn, right mirrored. There's no front or back walk yet, so down uses the left walk and up the right one.
+> - **Not used:** `from idle.png` (2 transition frames), since the game has no idle-to-walk transition.
+> - **Slash, spellcast and hurt** are built from idle frame 0 (a lunge with an orange arc, an orb, a fall) until the user draws them.
+> - **Walk speed:** `SampleContentGenerator.AnimSet` now sets the walk fps so one cycle takes 0.8 s whatever the frame count (rig 12 frames at 15 fps, MC 24 at 30).
+> - Heal Bot and Lucy still use the card model, and the card portraits are still the card art.
+>
+> **Crew sprites (Heal Bot and Lucy):** the crew's overworld and battle sprites are their **card art**, animated: **`Tools/ChibiForge/card_model.py`** uses `reference/MC.png` (recoloured for Heal Bot and Lucy through `chibi_forge.reference_pixels`). `chibi_forge.build_sheets` hands the party to it; NPCs and machines stay on the rig.
+> - **Sword:** removed (`SWORD = False` clears the blade, leaving the raised gauntlet).
+> - **Walk:** the legs (near x ≤ 29 from row 46, far from row 45) swing side to side against each other, the stepping foot lifts a pixel, and the body bobs. 13 frames, with frame 0 standing.
+> - **Back view (walking up):** repainted on the art's silhouette (`back_view`). The head is all hair, with wavy light strands, a dark rim and a crown shine. A long hair cascade runs down the back to the waist with uneven tips, and the mane behind the left shoulder takes the hair colour. The front details (gold trim, gems, skin) become back plates in the armour ramp. The crest and the raised gauntlet stay as drawn.
+> - **Size:** native 64 px frames. Shrinking to the machines' size with 84 px frames was tried and **reverted**: the animation scrolled the character off screen in the UI. Unity does *not* resize these textures (`nPOTScale: 0`). The likely cause is that `SpriteAnimationSet.frameSize` is stored in each `Anim_*.asset` and only updated by **Generate Sample Content**, so 64 px rects were being cut from 84 px sheets. To shrink the crew, scale the art down in 64 px frames instead, or fix the import settings first.
+> - **Party menu:** the element · class line under the names (card front and back) was removed; it will be replaced later.
+> - **Directions:** left is the mirror of the art.
+> - **Other clips:** idle is a breath, slash a lunge with a glow arc, cast an orb, and hurt a fall.
+>
+> **Battle UI (newest):**
+> - **Reticles** (`TargetReticle`): several concentric rings of **uneven** arcs (`Segments` with (start, length) pairs, plus `Dashes` for random-length dashes), each spinning at its own speed and direction.
+>   - Focus: outer +70°/s, middle −44, hairline +118, dashed inner −23.
+>   - Lock: main −110, outer +57, inner +163, still ticks.
+> - **Queue slots** are plain empty frames (no "+").
+> - **AP:** the help text under the AP pips ("Click card: queue…") was removed; the AP label and pips stay.
+>
+> **Sprites (rig, a style test; the crew now use the card model above):** every character (crew, NPCs and machines) is drawn by the one parametric rig in **`Tools/ChibiForge/chibi_forge.py`** again, so everything shares one style. This is a placeholder until the user draws the real sprites.
+> - **Smoother animation:** poses are eased curves (`lerp_keys`, smoothstep between keyframes) sampled per frame. Idle has 8 frames (a breath with the hair lagging), walk 13 (frame 0 stands, then a 12-frame stride), slash 10 (a slow wind-up, a fast swing, an eased recovery), spellcast 12 and hurt 9 (recoil and kneel, then tip over, bounce a pixel and lie still).
+> - **Clip rates** in `SampleContentGenerator.AnimSet` were raised to keep the old timings: idle 6, walk 15, slash 22, spellcast 20, hurt 15 fps. Re-run **Generate Sample Content** after rebuilding the sheets.
+> - **Crew outfit (rig `SPECS`):** no sword (strikes leave a glowing arc, `Pose.trail`). Big white plates: the shoulders sit out at ±6.6 with 1.35× pauldrons, and there's a broad breastplate, wide hip plates and big gloves (1.9). The dark sleeves and leggings (`Spec.joint`) are slim (0.68 / 0.7×) and carry glowing knee and elbow pads; the gloves have a glowing core (`Spec.hi` ramp). An **earpiece** (`headgear='earpiece'`) is a crimson pod with a gold rim, a glowing light and a gold fin, like the card's ornament. **Eyes** are drawn like the card (`card_eye`): a warm lash with a dark outer corner over an iris that's dark on top and glowing below. Wings were tried and removed (`wings()` remains but is unused). No capes. MC glows **orange** (`ORANGE_HI`, eyes and trim; `mc.glowColor` is orange in the generator too).
+> - **Hair:** the crew have no separate `back_hair`, so the hair is one colour from every side. From behind, the crown and the long hair are one shape with strand lines (`back_hair(over=True)`).
+> - **Menu text:** the Esc menu title is **"Party"** (was "Crew"), and the overworld hint says "Esc: party".
+> - **Unused:** `hero_model.py` and `reference/Hero.png` (the user's single front-view girl) are kept but no longer called; `build_sheets` no longer hands the crew to any reference model.
+> **Sprites (previous):** the crew and NPCs came from **`Tools/ChibiForge/hero_model.py`**, using the user's single front-view sprite `reference/Hero.png` (29×47, 16 colours, native 64 px frames). It was chosen because it's easier to animate.
+> - **Layers:** ponytail (behind), two legs (from row 37, split at x 16), two arms (x ≤ 10 / x ≥ 23, rows 24–37) and the body. A moved layer fills the gap at its seam with its own source pixels.
+> - **Animations:** idle is a breathing dip. Walk has 9 frames (frame 0 stands): legs lift in turn, arms swing, the body bobs and the ponytail trails, and the side views add a 1 px stride. Slash is a lunge with the right arm and an arc in the member's colour. Cast raises the arms with an orb at the chest. Hurt ends lying down.
+> - **Directions:** down and right use the art as drawn, left is the mirror, and up is a back view (face painted with hair).
+> - **Recolours (`SPECS`):** 4-tone hair (the ponytail's outline-coloured mass takes hair tone 1 on recolours), glowing eyes for the crew, the magenta accent (gloves, boots, collar), and the top and pants for NPCs. MC keeps the original colours.
+> - **Size:** the character is 47 px tall in a 64 px frame, so it's smaller in the world than the 61 px girl. That keeps one pixel density with the machines.
+> - **Superseded:** `girl_model.py` (Girl_walk.png) is no longer used. `chibi_forge.py` `build_sheets` now calls `hero_model`.
+> **Sprites (older):** the crew and NPCs came from **`Tools/ChibiForge/girl_model.py`**, using the user's 6-frame front-view walk cycle (`reference/Girl_walk.png`, native 64 px).
 > - **Walk:** the drawn cycle (7 frames, frame 0 stands).
 > - **Other animations:** idle is a breathing dip; slash is a lunge with an arc in the member's colour; cast grows an orb at the hands; hurt ends lying down.
 > - **Directions:** left and right reuse the front frames (no side views were drawn); up is a generated back view.
 > - **Recolours (`SPECS`):** hair; glowing eyes for the crew; outfits for the NPCs.
 > - **Superseded:** the robot model and the mech-arm base model are no longer used.
-> **Sprites (previous):** the crew and NPCs come from **`Tools/ChibiForge/robot_model.py`**, which uses the user's clean 64 px sprite `reference/Robot.png`. It's a 51×62 knight with a white helmet, white plate, a cape and a sword, used at native resolution with no scaling.
+> **Sprites (older):** the crew and NPCs came from **`Tools/ChibiForge/robot_model.py`**, which uses the user's clean 64 px sprite `reference/Robot.png`. It's a 51×62 knight with a white helmet, white plate, a cape and a sword, used at native resolution with no scaling.
 > - **Crew (robots):** glowing eyes in the member's colour, a collar light, a chest seam and core, an ear module, and mech joints instead of bare skin. Hair, eyes and cape are recoloured per member (`SPECS`).
 > - **NPCs:** the same sprite as humans, unarmed, with their own hair and cape colours.
 > - **Animation:** the cape, sword, legs and body are animated as layers. The art faces right, so left is the mirror and up is the back view.
@@ -31,15 +279,15 @@ Read this first when resuming. See also [GAME_PLAN.md](GAME_PLAN.md) (roadmap) a
 
 ## Project at a glance
 - **Engine:** Unity **2019.4.14f1**, C# 7.3 only (no switch expressions or records). Project folder: `reverse-shell/`.
-- **Game:** a non-commercial fan project (working title *NEON HEX*; a new title is pending, see the Bible). It has an HD-2D overworld (Octopath-style) and Reverse: 1999-style card-merge battles.
+- **Game:** a non-commercial fan project (working title *Reverse Shell*). It has an HD-2D overworld (Octopath-style) and Reverse: 1999-style card-merge battles.
 - **Look (new this session):** an **overgrown, sunlit city ruin** in the spirit of *NieR:Automata*, replacing the neon cyberpunk city.
 - **Party (new in session 4):**
   - **MC** (the Prototype, the leader) is a standout robot model: a dark trench coat, a smooth plated head with **white glowing eyes** and a halo crest. It glows **white** for now. It is prepared to **channel several elements** later, with its hue following the element (`CharacterDefinition.channels`, `neutralGlow`, `glowColor`, `AfflatusInfo.GlowFor`).
   - **No blindfolds:** every robot has two glowing eyes in its element color and **scale-pattern armour trims**. In the portraits that's `eyes()` / `scales()` in PortraitForge. On the LPC sprites, a smooth `hair_buzzcut` plate replaces the visor helmets, with custom eye ramps `eye_moss` / `eye_virus` / `eye_white`, the `eyes:#hex` mask and the `trim:#hex` overlay; `'overlay'` can be a list.
-  - **Heal Bot** (Earth, Medic) and **Lucy** (Virus, Hacker) are the **same robot model** with different accents. Heal Bot is overgrown like a dryad (vines, leaves, flowers, a sapling) with a green glow. Lucy has cable twin-tails, circuit traces and glitch rows, with a purple glow.
+  - **Heal Bot** (Earth, Medic) and **Lucy** (Void, Hacker) are the **same robot model** with different accents. Heal Bot is overgrown like a dryad (vines, leaves, flowers, a sapling) with a green glow. Lucy has cable twin-tails, circuit traces and glitch rows, with a purple glow.
   - 2B, V1 and V2 were retired. Old saves migrate (`SaveGame.Migrate`: Char_2B to Char_MC, Char_V1 to Char_HealBot, Char_V2 to Char_Lucy).
   - **Kits:** MC has Edge Strike and Sync Field, pool card Cross Slash, Ult Prism Burst. Heal Bot has Sap Mend and Bramble Lash, pool card Overgrowth, Ult Verdant Bloom. Lucy has Virus Spike and Corrupt (new ATK Down status), pool card Worm, Ult Zero Day.
-- **Elements:** the six afflatus values stay (the advantage wheel is unchanged), but Plant is shown as **Earth** and Intellect as **Virus** (`AfflatusInfo.Display`).
+- **Elements (2026-10-23):** picked to match the free Super Pixel Effects Gigapack animations: **Volt, Fire, Toxin, Earth, Light, Void** (the `Afflatus` enum, renamed in place from Star, Mineral, Beast, Plant, Spirit, Intellect, so saved data and balance are unchanged). Wheel: Volt > Fire > Toxin > Earth > Volt; Light and Void beat each other. MC is Volt (multi-element later), Heal Bot Earth, Lucy Void, Rust Sentry Fire, Scrap Stalker Toxin. The element orb icons (`ELEMENT_ICONS` in `Tools/IconForge/card_icons.py`) are still the old picks.
 - **Enemies:** machine lifeforms, the **Rust Sentry** and the **Scrap Stalker**.
 - **Packages added:** `com.unity.postprocessing` **3.0.3**, the newest version that works on 2019.4.14.
 
@@ -66,7 +314,7 @@ Read this first when resuming. See also [GAME_PLAN.md](GAME_PLAN.md) (roadmap) a
 - **Levels and XP:** winning gives every member the enemies' XP (Rust Sentry 120 and Scrap Stalker 80, so 200 a fight). Lv 2 needs 100 XP, then 200, 300 and so on. Each level adds 8% base HP, ATK and DEF. The result screen shows "+XP", each member's level, "LEVEL UP!", and XP toward the next level. The battle nameplates show "Lv N".
 - **UI theme (new in session 4): Reverse: 1999-style** (`InkStyle`). It replaces the Persona look; `PersonaStyle` and `PartyMenu` were deleted.
   - **Colors:** ink panels (#1B1A18), cream paper text (#ECE5D3) and muted **gold** (#C2A061) for numbers, ranks, AP and hairline rules. HP bars are green (party) / red (enemies), and the profile posters stay Psycho-Pass cyan.
-  - **Shapes:** straight panels with 1–2 px gold hairlines, the **hero frame** (a double rule with corner ticks) for key pieces, and subtle paper grain. No slants, tilts, halftone or burst rays. **Type:** serif headings in **Cormorant Garamond** (`UIFactory.SerifFont`, OFL), letter-spaced caps labels (`InkStyle.Label`), and M PLUS for body text. Anton remains only for the dialogue speaker tag and the cards' kind word.
+  - **Shapes:** straight panels with 1–2 px gold hairlines, the **hero frame** (a double rule with corner ticks) for key pieces, and subtle paper grain. No slants, tilts, halftone or burst rays. **Type:** all text is the pixel font **monogram** (see Fonts above); `SerifFont` and the other getters are kept as names for call-site intent. Letter-spaced caps labels (`InkStyle.Label`).
   - Restyled: the battle HUD (Turn plate, Go/Undo, queue, banner, result screen), the pause menu, the overworld HUD, prompt and area title, the button hover (a gold hairline) and the inspect-screen headers. The dialogue box, profile posters, reticles and cards are unchanged on purpose.
   - **Unit nameplates** are plain M PLUS with a soft shadow. Cards have no owner badge (it was removed).
 - **Card text** joins effects that hit the same target into one sentence, naming the target once (`CardText.Sentences`, `CardEffect.Joinable/Clause`): "Deal 120% ATK damage and poison 1 enemy (x1, 2 turns)." Statuses can set a `verb` (Poison: "poison"); otherwise they read "give 1 enemy ATK Up (2 turns)". Different targets stay separate sentences.
@@ -83,7 +331,7 @@ Read this first when resuming. See also [GAME_PLAN.md](GAME_PLAN.md) (roadmap) a
   - **Cards** are Reverse 1999-style (`CardView.BuildFace`). The small hand card shows only the rank (top-left) and one huge ATTACK / BUFF / DEBUFF / HEAL word along the bottom; the middle is a clean solid color (art comes later). The hover preview and the zoom-in cards add the name header, owner and full text.
   - **Card rank** is **stacking stars** in the top-left (`CardStars`): rank I none, rank II one star, rank III two stars, Ritual (ult) cards three. Stars also show on the battle queue slots. The pause menu toggles **CARD RANK: STARS / PIPS** (`CardSettings.RankStars`, saved in PlayerPrefs). The hand and queue rebuild live. The earlier LoL-style borders were removed at the user's request.
   - The zoom-in screen's **ABILITIES** section shows each ability as the real card, at 1.6× (`AbilityCard`). Scroll over a card to flip its rank; the stars and text change.
-  - **UI font:** all text is **M PLUS 1p**, a sleek Japanese gothic close to NieR:Automata's menus. Light is the default; `FontStyle.Bold` maps to the real Medium weight and BoldAndItalic to Bold (`UIFactory.CreateText`). Card text shows every number and percentage bigger, bold and gold (`UIFactory.EmphasizeNumbers` + `FitRich`, a rich-text-aware best fit).
+  - **UI font:** all text is **monogram** (pixel, one weight). Card text shows every number and percentage bigger and gold (`UIFactory.EmphasizeNumbers` + `FitRich`, a rich-text-aware best fit).
   - **Profile posters** (`ProfilePoster`): Psycho-Pass-inspired holographic "virtual wanted posters".
     - Contents: dark teal glass with a grid, a TARGET PROFILE / PERSONNEL FILE header with an ID code, a cyan-tinted portrait behind scrolling scanlines and corner brackets (with an occasional glitch), the name in caps, a threat index with a cyan / amber / red gauge, a barcode, and a WANTED (enemy) or CLEARED (ally) stamp.
     - Where: the full poster is the zoom-in screen's portrait; a compact poster is the dialogue portrait.
@@ -136,7 +384,7 @@ The scripts are written for Git Bash on Windows. The Python scripts are pure Pyt
   - Other pieces: `PlayerController`, `CharacterSprite`, `OverworldCamera`, `PostFxFocus` and `OverworldUI` (sepia panels plus party rows with level and HP).
   - `WorldSession` holds the return point, defeated encounters and `Party` (progress keyed by CharacterDefinition asset name). `SaveGame` writes and reads it as JSON.
   - Map legend (`OverworldMap`): `H # B L` blocks, `.` pavement, `=` road, `P` grass plaza, `,` tall grass, `*` flowers, `T` tree, `b` bush, `r` rubble, `A` access point, `S n E X` spawn, NPC, enemy, stand square.
-- `Resources/Fonts/`: M PLUS 1p Light/Medium/Bold (all UI text) and Anton (dialogue speaker tags), both **SIL OFL 1.1** from Google Fonts. Licenses and credits are in that folder.
+- `Resources/Fonts/`: **monogram-extended** by datagoblin (CC0), all UI text. The old OFL fonts (M PLUS 1p, Anton, Cormorant Garamond) are still there but unused. Credits are in that folder.
 - `Editor/` (**Combat.Editor**) and `Editor/World/` (**Game.Editor**): generators, the `SubclassSelectorDrawer` type picker, and `PixelArtImporter` (point filtering; `ThirdParty/` and `Tiles/` textures are Read/Write).
 - `Tests/EditMode` (**Combat.Tests**): hand/merge, rules, controller (party carry-over and XP results), progression (XP curve, level stats, save JSON round trip), map and card-text tests.
 - `Art/`:
@@ -177,9 +425,7 @@ Everything above compiles with `compile_check.sh`, but this session couldn't ope
 
 ## Open items / ideas for next session
 - Phase 1 continues: loot (Parts) on the results screen, a Flee button (chance-based, disabled for bosses), and a second card set per character.
-- Defeat currently regroups at full HP where the party stood. It should respawn at the last Access Point (save the Access Point's position too).
 - More fights are needed for levels to matter: random encounters in the tall grass would supply them.
-- The save doesn't store the player's position yet; a loaded game starts at the spawn.
 - Pick a new title (ideas are in the Bible).
 - An optional sepia NieR-style pass on the battle UI, to match the overworld.
 - MC's element channeling: the data and the glow hook are in place (`channels`, `AfflatusInfo.GlowFor(member, channeled)`). Next: a battle mechanic that picks the element, then pass it to the battle glow, overworld glow and card portraits.

@@ -32,6 +32,8 @@ namespace Combat.View
         PauseMenu pause;
         UnitInspectView inspect;
         RectTransform root;
+        RectTransform backdropLayer;               // zooms with the stage when inspecting
+        CanvasGroup handGroup, hudGroup;           // fade out when inspecting
         readonly Dictionary<BattleUnit, UnitView> unitViews = new Dictionary<BattleUnit, UnitView>();
         bool playing;
 
@@ -42,7 +44,7 @@ namespace Combat.View
             get
             {
                 return !playing && Controller.Events.Count == 0 && Controller.State.Phase == BattlePhase.Planning
-                       && !IsPaused && inspect == null;
+                       && !IsPaused && inspect == null && !CardDetailPopup.IsOpen;
             }
         }
 
@@ -72,8 +74,8 @@ namespace Combat.View
             var center = new Vector2(0.5f, 0.5f);
 
             var backdrop = boot.ActiveSetup != null ? boot.ActiveSetup.backdrop : null;
-            if (backdrop != null) BattleBackdrop.Create(root, backdrop);
-            else UIFactory.CreateImage(root, "Background", Background).rectTransform.Fill();
+            if (backdrop != null) backdropLayer = (RectTransform)BattleBackdrop.Create(root, backdrop).transform;
+            else backdropLayer = UIFactory.CreateImage(root, "Background", Background).rectTransform.Fill();
 
             Stage = UIFactory.CreateRect("Stage", root).Fill();
             var state = controller.State;
@@ -83,11 +85,13 @@ namespace Combat.View
             for (int i = 0; i < state.Enemies.Count; i++)
                 AddUnit(state.Enemies[i], new Vector2(EnemyCenterX + (i - (state.Enemies.Count - 1) / 2f) * UnitSpacing, StageY), cap);
 
-            var handRect = UIFactory.CreateRect("Hand", root).Place(new Vector2(0.5f, 0f), center, new Vector2(-60f, 150f), Vector2.zero);
+            var handRect = UIFactory.CreateRect("Hand", root).Place(new Vector2(0.5f, 0f), center, new Vector2(-60f, 178f), Vector2.zero);
             hand = handRect.gameObject.AddComponent<HandView>();
+            handGroup = handRect.gameObject.AddComponent<CanvasGroup>();
 
             var hudRect = UIFactory.CreateRect("HUD", root);
             hud = hudRect.gameObject.AddComponent<HudView>();
+            hudGroup = hudRect.gameObject.AddComponent<CanvasGroup>();
             hud.Build(this);
 
             var previewLayer = UIFactory.CreateRect("CardPreview", root).Fill();
@@ -124,7 +128,8 @@ namespace Combat.View
 
             if (Input.GetKeyDown(KeyCode.Escape))
             {
-                if (inspect != null) inspect.Close();
+                if (CardDetailPopup.IsOpen) { }   // the card popup closes itself on Esc
+                else if (inspect != null) inspect.Close();
                 else TogglePause();
             }
             HandleTargetKeys();
@@ -152,11 +157,19 @@ namespace Combat.View
             bootstrap.Leave();
         }
 
-        /// <summary>Long-press on a unit: open its full character sheet (only while the board is idle).</summary>
+        /// <summary>Long-press on a hand card: open its details (the full text; scroll for upgrades).</summary>
+        public void OpenCardDetail(CardView card)
+        {
+            if (IsPaused || inspect != null || CardDetailPopup.IsOpen || card == null) return;
+            CardDetailPopup.Open(root, card.Card.Owner, card.Card.Definition, card.Card.Rank, card.Rect);
+        }
+
+        /// <summary>Long-press on a unit: zoom in on it and show its sheet (only while the board is idle).</summary>
         public void OpenInspect(UnitView unit)
         {
             if (IsPaused || inspect != null || playing || Controller.Events.Count > 0) return;
-            inspect = UnitInspectView.Open(root, unit, () => inspect = null);
+            inspect = UnitInspectView.Open(root, unit, new[] { backdropLayer, Stage }, new[] { handGroup, hudGroup },
+                () => inspect = null);
             pause.transform.SetAsLastSibling();
         }
 
@@ -221,7 +234,7 @@ namespace Combat.View
         /// </summary>
         void HandleTargetKeys()
         {
-            if (IsPaused) return;
+            if (IsPaused || CardDetailPopup.IsOpen) return;   // an open card takes the keys
             if (Input.GetKeyDown(KeyCode.Space))
             {
                 if (inspect != null) inspect.Close();
@@ -268,9 +281,12 @@ namespace Combat.View
             if (InputEnabled) Controller.EndPlanning();
         }
 
-        public void OnUndo()
+        /// <summary>Clicking the queue: every queued card goes back to the hand. It unwinds this turn's whole undo stack, so
+        /// moves and merges made in the hand are undone too and all AP comes back.</summary>
+        public void OnReturnAll()
         {
-            if (InputEnabled) Controller.Undo();
+            if (!InputEnabled) return;
+            while (Controller.CanUndo && Controller.Undo()) { }
         }
 
         public string ResultButtonLabel { get { return bootstrap.HasReturn ? "Continue" : "Fight Again"; } }
@@ -296,6 +312,9 @@ namespace Combat.View
 
         IEnumerator Play(BattleEvent e)
         {
+            // A run of end-of-turn ticks starts with a pause; anything else ends the run.
+            var damageEvent = e as DamageEvent;
+            if (!(damageEvent != null && damageEvent.IsTick) && !(e is StatusesChangedEvent) && !(e is HealEvent)) tickRun = false;
             switch (e)
             {
                 case RoundStartedEvent round:
@@ -319,8 +338,10 @@ namespace Combat.View
                     hud.SetQueue(restored.QueueAfter);
                     return Tween.Wait(0.2f);
                 case ActionPointsChangedEvent ap:
-                    hud.SetActionPoints(ap.Current, ap.Max);
+                    hud.SetActionPoints(ap.Current, ap.Max, ap.Moves);
                     return null;
+                case UnitEnteredEvent entered:
+                    return PlayUnitEntered(entered);
                 case MoxieChangedEvent moxie:
                     return PlayMoxie(moxie);
                 case IntentChosenEvent intent:
@@ -338,12 +359,11 @@ namespace Combat.View
                 case HealEvent heal:
                     return PlayHeal(heal);
                 case StatusesChangedEvent statuses:
-                    var sv = Get(statuses.Unit);
-                    if (sv != null) sv.SetStatuses(statuses.Statuses);
-                    return null;
+                    return PlayStatuses(statuses);
                 case UnitDiedEvent died:
                     hud.Log(died.Unit.Name + " is defeated!");
                     var dv = Get(died.Unit);
+                    if (dv != null) FxLibrary.PlayAt(FxLayer, BattleFx.Death, dv.Center);
                     return dv != null ? dv.Die() : null;
                 case LogEvent log:
                     hud.Log(log.Message);
@@ -421,8 +441,10 @@ namespace Combat.View
 
         IEnumerator PlayCast(CardCastEvent e)
         {
-            hud.SetQueue(e.QueueAfter);
+            // The card leaves its queue slot (enemies: from above their head) before the slot row updates.
             var caster = Get(e.Caster);
+            Vector3 from = e.Caster.Team == Team.Player ? hud.FirstSlotPosition : (caster != null ? AboveHead(caster) : Vector3.zero);
+            hud.SetQueue(e.QueueAfter);
             var targets = new List<UnitView>();
             foreach (var t in e.Targets)
             {
@@ -435,6 +457,9 @@ namespace Combat.View
             hud.ShowBanner(title, color, e.Card.IsRitual ? 0.9f : 0.5f);
             hud.Log(e.Caster.Name + " uses " + title);
             if (caster != null && e.Caster.Team == Team.Enemy) caster.SetIntent(null);
+            ritualHits = e.Card.IsRitual;
+            if (e.Card.IsRitual && caster != null) FxLibrary.PlayAt(FxLayer, BattleFx.UltCharge, caster.Center);
+            if (caster != null) yield return StartCoroutine(ChannelCard(e.Card, caster, from));
 
             var def = e.Card.Definition;
             var sequence = def.castSequence != null ? def.castSequence : CastSequence.GetDefault(def.kind, e.Card.IsRitual);
@@ -445,7 +470,117 @@ namespace Combat.View
                 caster.PlayAnimation(attack ? "slash" : "spellcast");
             }
             yield return StartCoroutine(sequence.Play(new CastContext(this, caster, targets, color)));
+
+            // Damage, heals and statuses get their effects (and their own beats) from their events.
+            yield return Tween.Wait(CastPause);
         }
+
+        // Pacing: how long each part of a cast takes (seconds).
+        const float ChannelFly = 0.4f, ChannelHold = 0.55f, ChannelRelease = 0.22f, CastPause = 0.35f;
+        // Statuses land a beat after the hit that applied them; end-of-turn ticks start after a pause, one at a time.
+        const float StatusDelay = 0.45f, StatusHold = 0.55f, TickLead = 0.9f, TickBanner = 0.7f, TickHold = 0.8f;
+        static readonly Color TickColor = new Color(0.75f, 0.5f, 1f);
+        bool tickRun;
+
+        /// <summary>
+        /// A unit's statuses changed. Newly gained (or refreshed / stacked) ones land on their own beat: a pause so the
+        /// hit reads first, then the buff / debuff effect and the status name floating up in its colour. Statuses
+        /// only ticking down or wearing off just update the icons.
+        /// </summary>
+        IEnumerator PlayStatuses(StatusesChangedEvent e)
+        {
+            var uv = Get(e.Unit);
+            if (uv == null) yield break;
+            var gained = new List<StatusSnapshot>();
+            foreach (var now in e.Statuses)
+            {
+                bool had = false;
+                if (uv.Statuses != null)
+                    foreach (var before in uv.Statuses)
+                        if (before.Definition == now.Definition && before.Stacks >= now.Stacks && before.Remaining >= now.Remaining) had = true;
+                if (!had) gained.Add(now);
+            }
+            if (gained.Count == 0 || !e.Unit.IsAlive)
+            {
+                uv.SetStatuses(e.Statuses);
+                yield break;
+            }
+
+            yield return Tween.Wait(StatusDelay);
+            uv.SetStatuses(e.Statuses);
+            bool anyDebuff = gained.Exists(g => g.Definition.isDebuff), anyBuff = gained.Exists(g => !g.Definition.isDebuff);
+            if (anyDebuff) FxLibrary.PlayAt(FxLayer, BattleFx.Debuff, uv.Center);
+            if (anyBuff) FxLibrary.PlayAt(FxLayer, BattleFx.Buff, uv.Center);
+            foreach (var g in gained) SpawnDamageNumber(uv, g.Definition.DisplayName, g.Definition.color, 58);
+            yield return Tween.Wait(StatusHold);
+        }
+
+        /// <summary>The name of the status dealing a unit's end-of-turn damage (Poison), for the tick's label.</summary>
+        static string TickSource(UnitView uv)
+        {
+            if (uv.Statuses != null)
+                foreach (var s in uv.Statuses)
+                    if (s.Definition != null && s.Definition.damagePerRoundPercentMaxHP > 0f) return s.Definition.DisplayName;
+            return "";
+        }
+
+        Vector3 AboveHead(UnitView unit)
+        {
+            return unit.Center + new Vector3(0f, 250f * transform.lossyScale.y, 0f);
+        }
+
+        /// <summary>
+        /// The card being used: it flies from its queue slot to above the caster, hangs there glowing in the owner's
+        /// colour while the caster channels it, then flares and fades as the cast animation starts.
+        /// </summary>
+        IEnumerator ChannelCard(CardInstance card, UnitView caster, Vector3 from)
+        {
+            var rt = UIFactory.CreateRect("Channel_" + card.Name, FxLayer);
+            rt.sizeDelta = CardView.Size * ChannelScale;
+            CardView.BuildFace(rt, card, ChannelScale, true);
+            if (!card.IsRitual) UltShine.Add(rt, null, CardArt.HandPixel * ChannelScale);   // Ult faces already shine
+            var group = rt.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            rt.position = from;
+            rt.localScale = Vector3.one * 0.4f;
+
+            Vector3 above = AboveHead(caster);
+            StartCoroutine(Tween.Scale(rt, Vector3.one, ChannelFly, Tween.OutBack));
+            yield return Tween.MoveWorld(rt, above, ChannelFly, Tween.InOutQuad);
+
+            // Channel: the caster flashes in its colour and the card bobs gently.
+            StartCoroutine(caster.Flash(card.Owner.Definition.color, ChannelHold));
+            float bob = 10f * transform.lossyScale.y;
+            yield return Tween.Run(ChannelHold, p => { if (rt != null) rt.position = above + new Vector3(0f, Mathf.Sin(p * Mathf.PI * 2f) * bob, 0f); });
+
+            // Release: a flare, then gone.
+            StartCoroutine(Tween.Fade(group, 0f, ChannelRelease));
+            yield return Tween.Scale(rt, Vector3.one * 1.3f, ChannelRelease, Tween.OutCubic);
+            if (rt != null) Destroy(rt.gameObject);
+        }
+
+        /// <summary>The channelled card: 3x card pixels.</summary>
+        const float ChannelScale = 0.6f;
+
+        /// <summary>The backup steps in: the fallen member's view leaves and the newcomer fades in at the same spot.</summary>
+        IEnumerator PlayUnitEntered(UnitEnteredEvent e)
+        {
+            var gone = Get(e.Replaces);
+            Vector2 spot = gone != null ? gone.Rect.anchoredPosition : new Vector2(PartyCenterX, StageY);
+            yield return Tween.Wait(0.4f);
+            if (gone != null) gone.gameObject.SetActive(false);
+            AddUnit(e.Unit, spot, Controller.State.Config.moxieCap);
+            var uv = Get(e.Unit);
+            var group = uv.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 0f;
+            hud.ShowBanner(e.Unit.Name + " steps in!", e.Unit.Definition.color, 0.8f);
+            FxLibrary.PlayAt(FxLayer, BattleFx.Buff, uv.Center);
+            yield return Tween.Fade(group, 1f, 0.35f);
+            yield return Tween.Wait(0.3f);
+        }
+
+        // True while the damage events of a Ritual (Ult) cast are playing: they add the big Ult impact.
+        bool ritualHits;
 
         IEnumerator PlayDamage(DamageEvent e)
         {
@@ -453,19 +588,40 @@ namespace Combat.View
             if (tv == null) yield break;
             tv.SetHP(e.HPAfter, e.MaxHP);
 
+            if (e.IsTick && !tickRun)
+            {
+                // The attacks are done: a clear break, a banner, then the end-of-turn ticks one by one.
+                tickRun = true;
+                yield return Tween.Wait(TickLead);
+                hud.ShowBanner("End of Turn", TickColor, TickBanner);
+                yield return Tween.Wait(TickBanner);
+            }
+
             Color color = Color.white;
             int size = 72;
             string text = e.Amount.ToString();
-            if (e.IsTick) color = new Color(0.75f, 0.5f, 1f);
+            if (e.IsTick)
+            {
+                color = TickColor;
+                string source = TickSource(tv);
+                if (source.Length > 0) text = UIFactory.Size(30) + source + "</size>\n" + text;
+            }
             else if (e.Relation == AfflatusRelation.Advantage) color = new Color(1f, 0.85f, 0.35f);
             else if (e.Relation == AfflatusRelation.Disadvantage) color = new Color(0.7f, 0.7f, 0.75f);
             if (e.Crit)
             {
                 size = 92;
                 color = Color.Lerp(color, new Color(1f, 0.45f, 0.2f), 0.6f);
-                text = "<size=34>CRIT!</size>\n" + text;
+                text = UIFactory.Size(34) + "CRIT!</size>\n" + text;
             }
             SpawnDamageNumber(tv, text, color, size);
+            if (e.IsTick) FxLibrary.PlayAt(FxLayer, BattleFx.PoisonTick, tv.Center);
+            else
+            {
+                if (e.Source != null) FxLibrary.PlayAt(FxLayer, BattleFx.Hit(e.Source.Afflatus), tv.Center);
+                if (ritualHits) FxLibrary.PlayAt(FxLayer, BattleFx.UltHit, tv.Center, BattleFx.UltHitScale);
+                if (e.Crit) FxLibrary.PlayAt(FxLayer, BattleFx.Crit, tv.Center);
+            }
             StartCoroutine(tv.Shake(e.Crit ? 16f : 10f, 0.22f));
             StartCoroutine(tv.Flash(e.IsTick ? new Color(0.7f, 0.4f, 1f) : new Color(1f, 0.35f, 0.35f), 0.2f));
 
@@ -473,7 +629,7 @@ namespace Combat.View
             if (e.Relation == AfflatusRelation.Advantage) note += " (afflatus+)";
             else if (e.Relation == AfflatusRelation.Disadvantage) note += " (afflatus-)";
             hud.Log(e.Target.Name + " takes " + e.Amount + note);
-            yield return Tween.Wait(0.16f);
+            yield return Tween.Wait(e.IsTick ? TickHold : 0.3f);
         }
 
         IEnumerator PlayHeal(HealEvent e)
@@ -482,8 +638,9 @@ namespace Combat.View
             if (tv == null) yield break;
             tv.SetHP(e.HPAfter, e.MaxHP);
             SpawnDamageNumber(tv, "+" + e.Amount, new Color(0.45f, 1f, 0.55f), 64);
+            FxLibrary.PlayAt(FxLayer, BattleFx.Heal, tv.Center);
             hud.Log(e.Target.Name + " heals " + e.Amount);
-            yield return Tween.Wait(0.12f);
+            yield return Tween.Wait(0.25f);
         }
 
         // Numbers currently showing per unit, so multi-hits stack upward instead of overlapping.

@@ -12,3 +12,7 @@
 *.otf binary
 *.fbx binary
 *.dll binary
+*.aseprite binary
+*.ase binary
+*.exe binary
+*.raw binary

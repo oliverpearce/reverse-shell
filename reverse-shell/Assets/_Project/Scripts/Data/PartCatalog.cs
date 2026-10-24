@@ -10,6 +10,10 @@ namespace Combat
         public List<PartDefinition> parts = new List<PartDefinition>();
         [Tooltip("Parts a new game starts with in the inventory.")]
         public List<PartDefinition> starterParts = new List<PartDefinition>();
+        [Tooltip("The Core the protagonist wakes up with, already fitted on a new game.")]
+        public PartDefinition starterCore;
+        [Tooltip("What the starter Core becomes once the Soul Card binds with it (Chapter One's ending).")]
+        public PartDefinition boundCore;
 
         public PartDefinition Find(string assetName)
         {

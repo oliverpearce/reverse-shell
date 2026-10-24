@@ -3,17 +3,18 @@ using UnityEngine;
 namespace Combat.View
 {
     /// <summary>
-    /// The card-type icon atlas, Resources/UI/CardIcons.png (painted by Tools/IconForge/card_icons.py; keep the layout
-    /// in sync). Six types (Attack, Debuff, Buff, Counter, Heal, Ultimate) as white glyphs to tint, colored glyphs and
-    /// small intent cards in three ranks (cream I, silver II, gold III), plus UI bits: the empty unit-type diamond,
-    /// Ult pips, a star, a filled diamond and a card back. Sprites are cut from the atlas once and cached.
+    /// The icon atlas, Resources/UI/CardIcons.png (built by Tools/IconForge/card_icons.py, mostly from the user's picks
+    /// in Clockwork Raven's "Raven Fantasy Icons"; keep the layout in sync). Six card types (Attack, Debuff, Buff,
+    /// Counter, Heal, Ultimate) as white masks, in their own colors and as small intent cards in three ranks (cream I,
+    /// silver II, gold III); UI bits (the empty unit-type diamond, Ult pips, a star, a filled diamond, a card back);
+    /// element orbs; and Part / status icons. Sprites are cut from the atlas once and cached.
     /// </summary>
     public static class CardIcons
     {
         public enum Type { Attack = 0, Debuff = 1, Buff = 2, Counter = 3, Heal = 4, Ultimate = 5 }
 
-        const int Cell = 128, Cols = 6, Rows = 6;
-        const int RowWhite = 0, RowColored = 1, RowIntent = 2, RowMisc = 5;
+        const int Cell = 128, Cols = 8, Rows = 8;
+        const int RowWhite = 0, RowColored = 1, RowIntent = 2, RowMisc = 5, RowElement = 6, RowExtra = 7;
 
         static Texture2D atlas;
         static Sprite[,] sprites;
@@ -58,6 +59,38 @@ namespace Combat.View
         public static Sprite Star { get { return Get(RowMisc, 3); } }
         public static Sprite Diamond { get { return Get(RowMisc, 4); } }
         public static Sprite CardBack { get { return Get(RowMisc, 5); } }
+
+        /// <summary>The element's orb (Volt, Fire, Toxin, Earth, Light, Void), shown beside a unit's bars. The orbs are still the six picked for the old elements (ELEMENT_ICONS in Tools/IconForge/card_icons.py).</summary>
+        public static Sprite Element(Afflatus afflatus)
+        {
+            if (afflatus == Afflatus.None) return null;   // Physical has no orb
+            return Get(RowElement, (int)afflatus);
+        }
+
+        /// <summary>The icon for a Part slot: a chip or a core.</summary>
+        public static Sprite Part(PartSlot slot)
+        {
+            return Get(RowExtra, slot == PartSlot.Core ? 1 : 0);
+        }
+
+        /// <summary>A status's icon: its own sprite if set, else the atlas icon picked for it (by asset name), else null.</summary>
+        public static Sprite Status(StatusDefinition status)
+        {
+            if (status == null) return null;
+            if (status.icon != null) return status.icon;
+            switch (status.name)
+            {
+                case "Status_Poison": return Get(RowExtra, 2);
+                case "Status_AtkUp": return Get(RowExtra, 3);
+                case "Status_AtkDown": return Get(RowExtra, 4);
+                case "Status_PhysicalDefDown": return Get(RowExtra, 5);
+                case "Status_Regen": return Get(RowExtra, 6);
+                case "Status_IncantationMightUp": return Get(RowExtra, 7);
+                case "Status_DefUp": return CardArt.Icon("Status_DefUp");   // drawn by Tools/CardForge
+                case "Status_Stunned": return CardArt.Icon("Status_Stunned");
+                default: return null;
+            }
+        }
 
         static Sprite Get(int row, int col)
         {

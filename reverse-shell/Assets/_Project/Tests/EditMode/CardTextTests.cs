@@ -28,9 +28,42 @@ namespace Combat.Tests
             StatusDefinition poison;
             var text = CardText.AllRanks(VirusSpike(out poison));
 
-            StringAssert.Contains("Deal (120% I / 180% II / 280% III) ATK damage and give 1 enemy Poison", text);
-            StringAssert.Contains("(x1 I / x2 II / x3 III)", text);
-            StringAssert.Contains("(2 I / 2 II / 3 III) turns", text);
+            StringAssert.Contains("Deal (120% I / 180% II / 280% III) ATK damage to 1 enemy.", text);
+            StringAssert.Contains("Give 1 enemy Poison.", text);
+        }
+
+        [Test]
+        public void Text_HasNoCommas_AndNoTurnCounts()
+        {
+            StatusDefinition poison;
+            var card = VirusSpike(out poison);
+            for (int rank = 1; rank <= 3; rank++)
+            {
+                string text = CardText.ForRank(card, rank);
+                StringAssert.DoesNotContain(",", text);
+                StringAssert.DoesNotContain("turns", text);
+            }
+        }
+
+        [Test]
+        public void SameEffect_ReadsTheSameAtEveryRank()
+        {
+            // Sap Mend: rank III adds Regeneration, but the heal keeps its wording.
+            var regen = ScriptableObject.CreateInstance<StatusDefinition>();
+            regen.displayName = "Regeneration";
+            var card = ScriptableObject.CreateInstance<CardDefinition>();
+            card.targetMode = TargetMode.SingleAlly;
+            card.ranks = new List<CardRank>
+            {
+                new CardRank { effects = new List<CardEffect> { new HealEffect { target = EffectTarget.CardTargets, multiplier = 1.4f } } },
+                new CardRank { effects = new List<CardEffect>
+                {
+                    new HealEffect { target = EffectTarget.CardTargets, multiplier = 3.2f },
+                    new ApplyStatusEffect { target = EffectTarget.CardTargets, status = regen, duration = 2 }
+                } },
+            };
+            Assert.AreEqual("Heal the weakest ally for 140% of ATK.", CardText.ForRank(card, 1));
+            Assert.AreEqual("Heal the weakest ally for 320% of ATK. Give the weakest ally Regeneration.", CardText.ForRank(card, 2));
         }
 
         [Test]
@@ -55,16 +88,16 @@ namespace Combat.Tests
         {
             StatusDefinition poison;
             var card = VirusSpike(out poison);
-            Assert.AreEqual("Deal 180% ATK damage and give 1 enemy Poison (x2, 2 turns).", CardText.ForRank(card, 2));
+            Assert.AreEqual("Deal 180% ATK damage to 1 enemy. Give 1 enemy Poison.", CardText.ForRank(card, 2));
         }
 
         [Test]
-        public void SameTargetEffects_ShareOneSentence_UsingTheStatusVerb()
+        public void StatusWithAVerb_UsesIt()
         {
             StatusDefinition poison;
             var card = VirusSpike(out poison);
             poison.verb = "poison";
-            Assert.AreEqual("Deal 120% ATK damage and poison 1 enemy (x1, 2 turns).", CardText.ForRank(card, 1));
+            Assert.AreEqual("Deal 120% ATK damage to 1 enemy. Poison 1 enemy.", CardText.ForRank(card, 1));
         }
 
         [Test]
@@ -81,7 +114,7 @@ namespace Combat.Tests
                     new ApplyStatusEffect { target = EffectTarget.AllAllies, status = buff, duration = 2 }
                 } },
             };
-            Assert.AreEqual("Deal 600% ATK damage to 1 enemy over 2 hits. Give all allies ATK Up (2 turns).", CardText.ForRank(card, 1));
+            Assert.AreEqual("Deal 600% ATK damage to 1 enemy over 2 hits. Give all allies ATK Up.", CardText.ForRank(card, 1));
         }
     }
 }

@@ -95,14 +95,14 @@ namespace Game.EditorTools
                 "\n\nPress Play, walk to the red square in the plaza, and press F.", "OK");
         }
 
-        /// <summary>Wipes save.json (party levels, XP, HP and beaten encounters) so the next Play starts fresh.</summary>
+        /// <summary>Wipes every save slot (party levels, XP, HP and beaten encounters) so the next Play starts fresh.</summary>
         [MenuItem("Tools/Overworld/Delete Save Data")]
         static void DeleteSaveData()
         {
-            if (!EditorUtility.DisplayDialog("Overworld", "Delete the save file?\n" + SaveGame.FilePath +
+            if (!EditorUtility.DisplayDialog("Overworld", "Delete all " + SaveGame.SlotCount + " save slots?\n" + Application.persistentDataPath +
                     "\n\nParty levels, XP, HP and beaten encounters will reset.", "Delete", "Cancel"))
                 return;
-            SaveGame.Delete();
+            SaveGame.DeleteAll();
         }
 
         const string PlayFromOverworldMenu = "Tools/Overworld/Always Play From Overworld";

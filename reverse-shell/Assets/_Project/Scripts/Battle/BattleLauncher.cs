@@ -28,8 +28,11 @@ namespace Combat
         public Dictionary<CharacterDefinition, MemberProgress> Party = new Dictionary<CharacterDefinition, MemberProgress>();
         /// <summary>Levels gained this fight, for members who leveled up.</summary>
         public Dictionary<CharacterDefinition, int> LevelsGained = new Dictionary<CharacterDefinition, int>();
+        /// <summary>Each member's level and XP before this fight's XP was added (the results screen animates from it).</summary>
+        public Dictionary<CharacterDefinition, MemberProgress> Before = new Dictionary<CharacterDefinition, MemberProgress>();
 
-        /// <summary>Builds the result: current HP from the battle, plus the XP reward on a win (knocked-out members earn it too).</summary>
+        /// <summary>Builds the result: current HP from the battle, plus the XP reward on a win. Knocked-out members earn it
+        /// too; a backup who never stepped in does not (and isn't in <see cref="Before"/>, so the results screen skips them).</summary>
         public static BattleResult Build(BattleOutcome outcome, BattleController controller, IDictionary<CharacterDefinition, MemberProgress> start)
         {
             var result = new BattleResult { Outcome = outcome, Party = controller.PartySnapshot(start) };
@@ -38,6 +41,8 @@ namespace Combat
             result.XpGained = controller.XpReward();
             foreach (var entry in result.Party)
             {
+                if (controller.State.Backup.Exists(u => u.Definition == entry.Key)) continue;
+                result.Before[entry.Key] = entry.Value.Clone();
                 int levels = Leveling.AddXp(entry.Key, entry.Value, result.XpGained);
                 if (levels > 0) result.LevelsGained[entry.Key] = levels;
             }

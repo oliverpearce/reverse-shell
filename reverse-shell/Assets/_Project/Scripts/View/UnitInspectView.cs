@@ -1,48 +1,72 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Combat.View
 {
     /// <summary>
-    /// Character sheet opened by long-pressing a unit. Kept simple and number-first: big auto-fitting
-    /// numbers for HP and stats, and abilities you can flip between ranks by scrolling over them.
-    /// Esc / the X / click outside closes.
+    /// Character sheet opened by long-pressing a unit, Reverse: 1999-style. The battlefield zooms in on the unit while
+    /// the HUD and hand fade out; the unit stays on its own side (party left, enemies right) and the sheet fills the
+    /// open side: a header tab with the element orb, the name and level, HP, stats as thin label / value strips in two
+    /// columns, and the cards in a hairline bracket. No effects, Ult points or posters. Esc / clicking anywhere closes.
     /// </summary>
     public class UnitInspectView : MonoBehaviour
     {
-        static readonly Color Dim = new Color(0.01f, 0.01f, 0.03f, 0.88f);
-        static readonly Color PanelColor = new Color(0.06f, 0.055f, 0.09f, 0.99f);
         public static readonly Color CardColor = new Color(0.11f, 0.1f, 0.16f, 1f);
-        static readonly Color TextColor = new Color(0.96f, 0.96f, 0.98f);
-        public static readonly Color Muted = new Color(0.72f, 0.72f, 0.8f);
-        public static readonly Color Gold = new Color(1f, 0.82f, 0.36f);
+        static readonly Color TextColor = new Color(0.93f, 0.9f, 0.84f);           // paper
+        public static readonly Color Muted = new Color(0.72f, 0.7f, 0.66f);
+        public static readonly Color Gold = new Color(0.76f, 0.63f, 0.38f);        // InkStyle gold
         static readonly Color Good = new Color(0.45f, 1f, 0.6f);
         static readonly Color Bad = new Color(1f, 0.45f, 0.45f);
+        static readonly Color Strip = new Color(0.06f, 0.055f, 0.05f, 0.62f);
+        static readonly Color Shade = new Color(0.03f, 0.028f, 0.025f, 0.86f);
 
-        const float PanelW = 1440f, PanelH = 860f, Pad = 32f, LeftW = 400f;
+        /// <summary>Zoom factor: the 6x battle sprites become exactly 9x, so pixels stay crisp.</summary>
+        const float Zoom = 1.5f;
+        /// <summary>How far from the centre the unit ends up (1920 x 1080 layout), on its own side.</summary>
+        static readonly Vector2 Focus = new Vector2(470f, -40f);
+        const float SheetW = 820f, SheetInner = 60f, SheetTop = 470f;
+        const float OpenSeconds = 0.28f, CloseSeconds = 0.2f;
 
         Action onClosed;
-        RectTransform panel;
+        RectTransform sheet;
         CanvasGroup group;
+        RectTransform[] zoomLayers;
+        CanvasGroup[] hiddenUi;
+        Vector2 zoomOffset;
+        float sheetX, slide;
         bool closing;
 
-        public static UnitInspectView Open(RectTransform root, UnitView unitView, Action onClosed)
+        /// <param name="zoomLayers">Full-screen layers that zoom together (backdrop, stage).</param>
+        /// <param name="hideUi">UI that fades out while inspecting (HUD, hand).</param>
+        public static UnitInspectView Open(RectTransform root, UnitView unitView, RectTransform[] zoomLayers, CanvasGroup[] hideUi, Action onClosed)
         {
-            // The dim backdrop is a sibling of the panel (not its parent) so clicks on the panel
-            // don't bubble up to the backdrop's close button.
             var container = UIFactory.CreateRect("Inspect", root).Fill();
             var view = container.gameObject.AddComponent<UnitInspectView>();
             view.onClosed = onClosed;
+            view.zoomLayers = zoomLayers ?? new RectTransform[0];
+            view.hiddenUi = hideUi ?? new CanvasGroup[0];
             view.group = container.gameObject.AddComponent<CanvasGroup>();
-            var dim = UIFactory.CreateImage(container, "Dim", Dim, true);
-            dim.rectTransform.Fill();
-            var closeOnDim = dim.gameObject.AddComponent<Button>();
-            closeOnDim.transition = Selectable.Transition.None;
-            closeOnDim.onClick.AddListener(view.Close);
-            view.Build(root, unitView);
+
+            // Clicking anywhere closes (the sheet's cards still take scrolls; clicks fall through to here).
+            var catcher = UIFactory.CreateImage(container, "CloseCatcher", new Color(0f, 0f, 0f, 0f), true);
+            catcher.rectTransform.Fill();
+            var close = catcher.gameObject.AddComponent<Button>();
+            close.transition = Selectable.Transition.None;
+            close.onClick.AddListener(view.Close);
+
+            // The unit keeps its side of the screen; the zoom moves it there. The offset is clamped so the zoomed
+            // layers always cover the screen (no out-of-bounds edges).
+            Vector3 local = root.InverseTransformPoint(unitView.Center);
+            bool unitOnLeft = local.x < 0f;
+            var target = new Vector2(unitOnLeft ? -Focus.x : Focus.x, Focus.y);
+            var offset = target - Zoom * new Vector2(local.x, local.y);
+            var room = (Zoom - 1f) * root.rect.size / 2f;
+            view.zoomOffset = new Vector2(Mathf.Clamp(offset.x, -room.x, room.x), Mathf.Clamp(offset.y, -room.y, room.y));
+
+            view.Build(unitView, !unitOnLeft);
+            view.StartCoroutine(view.Animate(0f, 1f, OpenSeconds));
             return view;
         }
 
@@ -55,244 +79,284 @@ namespace Combat.View
 
         IEnumerator CloseRoutine()
         {
-            yield return Animate(1f, 0f, 0.12f, 1f, 0.92f);
+            yield return Animate(1f, 0f, CloseSeconds);
             if (onClosed != null) onClosed();
             Destroy(gameObject);
         }
 
-        // ------------------------------------------------------------------ Layout
-
-        void Build(RectTransform root, UnitView unitView)
+        /// <summary>Eases the zoom, the sheet and the hidden UI between closed (0) and open (1).</summary>
+        IEnumerator Animate(float from, float to, float duration)
         {
-            var def = unitView.Unit.Definition;
-            var panelImg = UIFactory.CreateImage(transform, "Panel", PanelColor, true);
-            panel = panelImg.rectTransform;
-            panel.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(PanelW, PanelH));
-            var outline = panelImg.gameObject.AddComponent<Outline>();
-            outline.effectColor = UIFactory.WithAlpha(def.color, 0.9f);
-            outline.effectDistance = new Vector2(3f, -3f);
-
-            BuildLeft(unitView);
-            BuildRight(unitView);
-
-            var close = UIFactory.CreateButton(panel, "Close", "X", new Color(0.3f, 0.28f, 0.38f), Close, 28);
-            close.GetComponent<RectTransform>().Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-8f, -8f), new Vector2(46f, 46f));
-
-            Vector3 local = root.InverseTransformPoint(unitView.Center);
-            StartCoroutine(Animate(0f, 1f, 0.2f, 0.25f, 1f, new Vector2(local.x, local.y)));
+            float t = 0f;
+            while (t < duration)
+            {
+                t += Time.unscaledDeltaTime; // works while paused
+                Apply(Mathf.Lerp(from, to, Tween.OutCubic(Mathf.Clamp01(t / duration))));
+                yield return null;
+            }
+            Apply(to);
         }
 
-        void BuildLeft(UnitView unitView)
+        void Apply(float p)
+        {
+            foreach (var layer in zoomLayers)
+            {
+                if (layer == null) continue;
+                layer.localScale = Vector3.one * Mathf.Lerp(1f, Zoom, p);
+                layer.anchoredPosition = zoomOffset * p;
+            }
+            foreach (var ui in hiddenUi)
+                if (ui != null) ui.alpha = 1f - p;
+            group.alpha = p;
+            sheet.anchoredPosition = new Vector2(sheetX + (1f - p) * slide, 0f);
+        }
+
+        // ------------------------------------------------------------------ Layout
+
+        void Build(UnitView unitView, bool sheetOnLeft)
         {
             var unit = unitView.Unit;
             var def = unit.Definition;
-            var character = def as CharacterDefinition;
-            var left = UIFactory.CreateRect("Left", panel);
-            left.anchorMin = new Vector2(0f, 0f);
-            left.anchorMax = new Vector2(0f, 1f);
-            left.pivot = new Vector2(0f, 1f);
-            left.offsetMin = new Vector2(Pad, Pad);
-            left.offsetMax = new Vector2(Pad + LeftW, -Pad);
+            var root = (RectTransform)transform;
 
-            // Psycho-Pass-style holographic profile: name, ID, stamp and threat index live on the poster.
-            var stage = UIFactory.CreateRect("Profile", left);
-            stage.TopStrip(0f, 400f);
-            var poster = ProfilePoster.Build(stage, new PosterInfo
-            {
-                Name = def.DisplayName,
-                Hostile = unit.Team == Team.Enemy,
-                Index = ThreatIndex(unit),
-                Accent = def.color,
-            }, false);
-            if (def.animations != null && def.animations.Has(UISpriteAnimator.Idle))
-            {
-                poster.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, -100f), new Vector2(320f, 320f)); // 64px at 5x: head and torso
-                poster.gameObject.AddComponent<UISpriteAnimator>().Init(def.animations, Facing.Down, poster);
-            }
-            else
-            {
-                poster.enabled = false;
-                string letter = def.DisplayName.Length > 0 ? def.DisplayName.Substring(0, 1) : "?";
-                UIFactory.CreateText(poster.transform.parent, "Initial", letter, 160, UIFactory.WithAlpha(ProfilePoster.Holo, 0.7f), TextAnchor.MiddleCenter, FontStyle.Bold).rectTransform.Fill();
-            }
+            // A dark wash over the sheet's half, fading out toward the unit.
+            var shade = HorizontalShade(root, sheetOnLeft ? Shade : Clear(Shade), sheetOnLeft ? Clear(Shade) : Shade);
+            shade.rectTransform.anchorMin = new Vector2(sheetOnLeft ? 0f : 0.4f, 0f);
+            shade.rectTransform.anchorMax = new Vector2(sheetOnLeft ? 0.6f : 1f, 1f);
+            shade.rectTransform.offsetMin = shade.rectTransform.offsetMax = Vector2.zero;
 
-            float y = 416f;
-            string cls = character != null && !string.IsNullOrEmpty(character.archetype) ? character.archetype : (unit.Team == Team.Enemy ? "Enemy" : "Ally");
-            Fit(left, cls + "  ·  " + AfflatusInfo.Display(def.afflatus) + "  ·  " + def.damageType, Muted, FontStyle.Bold, ref y, 30f, 14, 22);
+            sheet = UIFactory.CreateRect("Sheet", root);
+            sheet.anchorMin = sheet.anchorMax = new Vector2(0.5f, 0.5f);
+            sheet.pivot = new Vector2(sheetOnLeft ? 1f : 0f, 0.5f);
+            sheet.sizeDelta = new Vector2(SheetW, 1000f);
+            sheetX = sheetOnLeft ? -SheetInner : SheetInner;
+            slide = sheetOnLeft ? -60f : 60f;
+            sheet.anchoredPosition = new Vector2(sheetX, 0f);
 
-            y += 12f;
-            Fit(left, "HP", Muted, FontStyle.Bold, ref y, 24f, 14, 20);
-            Fit(left, unit.HP + " / " + unit.MaxHP, TextColor, FontStyle.Bold, ref y, 86f, 30, 84); // as big as fits
-            var barBg = UIFactory.CreateImage(left, "HPBar", new Color(0.16f, 0.15f, 0.22f));
-            barBg.rectTransform.TopStrip(y + 4f, 22f);
-            var fill = UIFactory.CreateImage(barBg.transform, "Fill", unit.Team == Team.Player ? new Color(0.35f, 0.85f, 0.5f) : new Color(0.9f, 0.35f, 0.35f));
-            fill.rectTransform.anchorMin = Vector2.zero;
-            fill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(unit.HPPercent), 1f);
-            fill.rectTransform.offsetMin = fill.rectTransform.offsetMax = Vector2.zero;
-            y += 44f;
+            float y = 500f - SheetTop;   // from the sheet's top edge (sheet is 1000 tall, centred)
+            y = Header(sheet, unit, y);
+            y = Health(sheet, unit, y + 18f);
+            y = StatusRow(sheet, unitView, y + 12f);
+            y = UltPoints(sheet, unit, unitView.MoxieCap, y + 14f);
+            y = Stats(sheet, unit, y + 22f);
+            Cards(sheet, unit, y + 40f);
 
-            if (unit.Team != Team.Player) return;
-            int cap = Mathf.Max(1, unitView.MoxieCap);
-            bool ready = unit.Moxie >= cap;
-            Fit(left, ready ? "ULT  ·  READY" : "ULT", ready ? Gold : Muted, FontStyle.Bold, ref y, 24f, 14, 20);
-            var row = UIFactory.CreateRect("Moxie", left);
-            row.TopStrip(y + 4f, 28f);
-            float pipW = (LeftW - (cap - 1) * 8f) / cap;
-            for (int i = 0; i < cap; i++)
-            {
-                var pip = UIFactory.CreateImage(row, "Pip", i < unit.Moxie ? Gold : new Color(0.2f, 0.19f, 0.27f));
-                pip.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(i * (pipW + 8f), 0f), new Vector2(pipW, 28f));
-            }
-        }
-
-        /// <summary>The poster's big number: a rough read of how dangerous the unit is (ATK and toughness).</summary>
-        static int ThreatIndex(BattleUnit unit)
-        {
-            return Mathf.RoundToInt(unit.GetStat(StatType.Attack) * 0.5f + unit.MaxHP * 0.02f);
-        }
-
-        void BuildRight(UnitView unitView)
-        {
-            var unit = unitView.Unit;
-            var right = UIFactory.CreateRect("Right", panel);
-            right.anchorMin = Vector2.zero;
-            right.anchorMax = Vector2.one;
-            right.offsetMin = new Vector2(Pad + LeftW + Pad, Pad);
-            right.offsetMax = new Vector2(-Pad, -Pad);
-
-            var scroll = right.gameObject.AddComponent<ScrollRect>();
-            var viewport = UIFactory.CreateRect("Viewport", right).Fill();
-            viewport.gameObject.AddComponent<RectMask2D>();
-            viewport.gameObject.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
-            var content = UIFactory.CreateRect("Content", viewport);
-            content.anchorMin = new Vector2(0f, 1f);
-            content.anchorMax = new Vector2(1f, 1f);
-            content.pivot = new Vector2(0.5f, 1f);
-            content.offsetMin = content.offsetMax = Vector2.zero;
-            var layout = content.gameObject.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 12f;
-            layout.padding = new RectOffset(4, 16, 4, 16);
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
-            content.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            scroll.viewport = viewport;
-            scroll.content = content;
-            scroll.horizontal = false;
-            scroll.movementType = ScrollRect.MovementType.Clamped;
-            scroll.scrollSensitivity = 45f;
-
-            if (unit.Team == Team.Enemy && unitView.Intent != null)
-            {
-                Header(content, "NEXT MOVE");
-                var box = Box(content, UnitView.KindColor(unitView.Intent.Definition.kind));
-                Line(box, unitView.Intent.Name + " " + CardText.Roman(unitView.Intent.Rank), 28, TextColor, FontStyle.Bold);
-                Line(box, UIFactory.EmphasizeNumbers(unitView.Intent.Describe(), 30, Gold), 22, Muted, FontStyle.Normal).font = UIFactory.BodyFont;
-            }
-
-            if (unitView.Statuses != null && unitView.Statuses.Count > 0)
-            {
-                Header(content, "EFFECTS");
-                foreach (var s in unitView.Statuses)
-                {
-                    var d = s.Definition;
-                    var box = Box(content, d.isDebuff ? Bad : Good);
-                    string stacks = s.Stacks > 1 ? "  x" + s.Stacks : "";
-                    string turns = s.Remaining == 1 ? "last turn" : s.Remaining + " turns";
-                    Line(box, d.DisplayName + stacks + "  <size=20><color=#B8B8C8>" + turns + "</color></size>", 26, TextColor, FontStyle.Bold);
-                    if (!string.IsNullOrEmpty(d.description)) Line(box, UIFactory.EmphasizeNumbers(d.description, 27, Gold), 20, Muted, FontStyle.Normal).font = UIFactory.BodyFont;
-                }
-            }
-
-            Header(content, "STATS");
-            Stats(content, unit);
-
-            Header(content, unit.Team == Team.Player ? "ABILITIES" : "SKILLS");
-            Abilities(content, unit);
+            var hint = UIFactory.CreateText(root, "Hint", "Click anywhere to return to battle", 26, Muted, TextAnchor.MiddleCenter);
+            hint.font = UIFactory.SerifFont;
+            hint.raycastTarget = false;
+            hint.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(sheetOnLeft ? -SheetInner - SheetW / 2f : SheetInner + SheetW / 2f, 34f), new Vector2(SheetW, 40f));
         }
 
         // ------------------------------------------------------------------ Sections
 
-        void Stats(RectTransform content, BattleUnit unit)
+        /// <summary>The glowing element orb, the name in big serif, the level on the right, a hairline.</summary>
+        static float Header(RectTransform sheet, BattleUnit unit, float y)
         {
-            var gridGo = UIFactory.CreateRect("StatGrid", content);
-            var grid = gridGo.gameObject.AddComponent<GridLayoutGroup>();
-            grid.cellSize = new Vector2(294f, 112f);
-            grid.spacing = new Vector2(12f, 12f);
-            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = 3;
-            gridGo.gameObject.AddComponent<LayoutElement>().preferredHeight = 112f * 2 + 12f;
+            var def = unit.Definition;
+            ElementBadge.Create(sheet, unit.Afflatus, 60f, new Vector2(0f, 1f), new Vector2(40f, -y - 42f));
 
-            var s = unit.Definition.stats;
-            StatBox(gridGo, "ATK", unit.GetStat(StatType.Attack), s.attack, false);
-            StatBox(gridGo, "PHYS DEF", unit.GetStat(StatType.PhysicalDefense), s.physicalDefense, false);
-            StatBox(gridGo, "SPEC DEF", unit.GetStat(StatType.SpecialDefense), s.specialDefense, false);
-            StatBox(gridGo, "CRIT", unit.GetStat(StatType.CritRate), s.critRate, true);
-            StatBox(gridGo, "CRIT DMG", unit.GetStat(StatType.CritDamage), s.critDamage, true);
-            float spell = unit.GetStat(StatType.DamageBonus) + unit.GetStat(StatType.IncantationMight);
-            StatBox(gridGo, "SPELL DMG", spell, 0f, true, true);
+            var name = UIFactory.CreateText(sheet, "Name", def.DisplayName, 66, TextColor, TextAnchor.MiddleLeft).BestFit(36, 66);
+            name.font = UIFactory.SerifFont;
+            name.raycastTarget = false;
+            name.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.6f);
+            name.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(92f, -y), new Vector2(SheetW - 300f, 84f));
+
+            if (unit.Level > 0)
+            {
+                var lv = UIFactory.CreateText(sheet, "Level", "Level  " + UIFactory.Size(34) + unit.Level + "</size>", 22, Muted, TextAnchor.LowerRight);
+                lv.font = UIFactory.SerifFont;
+                lv.supportRichText = true;
+                lv.raycastTarget = false;
+                lv.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(0f, -y - 14f), new Vector2(200f, 60f));
+            }
+
+            y += 92f;
+            var rule = UIFactory.CreateImage(sheet, "Rule", UIFactory.WithAlpha(Gold, 0.55f));
+            rule.raycastTarget = false;
+            rule.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(92f, -y), new Vector2(SheetW - 92f, 1f));
+            return y + 1f;
         }
 
-        /// <summary>Label on top, number filling the rest of the box, "+15%" badge only when effects change it.</summary>
-        static void StatBox(RectTransform grid, string label, float current, float baseValue, bool percent, bool isBonus = false)
+        /// <summary>HP: the label left and the numbers right on one line, over a thin bar.</summary>
+        static float Health(RectTransform sheet, BattleUnit unit, float y)
         {
-            var box = UIFactory.CreateImage(grid, label, CardColor);
-            var name = UIFactory.CreateText(box.transform, "Label", label, 18, Muted, TextAnchor.UpperLeft, FontStyle.Bold);
-            name.rectTransform.TopStrip(10f, 24f, 14f);
+            float x = 92f, w = SheetW - 92f;
+            var label = UIFactory.CreateText(sheet, "HP", "HP", 38, TextColor, TextAnchor.MiddleLeft);
+            label.font = UIFactory.SerifFont;
+            label.raycastTarget = false;
+            label.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(200f, 48f));
+            var value = UIFactory.CreateText(sheet, "HPValue", unit.HP + " / " + unit.MaxHP, 34, TextColor, TextAnchor.MiddleRight);
+            value.font = UIFactory.SerifFont;
+            value.raycastTarget = false;
+            value.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + w - 400f, -y), new Vector2(400f, 48f));
+            y += 52f;
+            // Slanted like the battle bars (Reverse: 1999 style).
+            var bar = UIFactory.CreateRect("HPBar", sheet).Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(w, 10f));
+            SlantBar.Create(bar, "Back", new Color(1f, 1f, 1f, 0.12f), 8f);
+            SlantBar.Create(bar, "Fill", unit.Team == Team.Player ? new Color(0.45f, 0.82f, 0.55f) : new Color(0.88f, 0.38f, 0.36f), 8f).Fill = Mathf.Clamp01(unit.HPPercent);
+            return y + 10f;
+        }
 
+        /// <summary>The unit's statuses right under the HP bar, as the same icons as in battle (hover for details).</summary>
+        static float StatusRow(RectTransform sheet, UnitView unitView, float y)
+        {
+            var statuses = unitView.Statuses;
+            if (statuses == null || statuses.Count == 0) return y;
+            const float size = 64f;
+            var row = UIFactory.CreateRect("Statuses", sheet).Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(92f, -y), new Vector2(SheetW - 92f, size));
+            var layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            layout.childAlignment = TextAnchor.MiddleLeft;
+            layout.spacing = 14f;
+            layout.childControlWidth = false;
+            layout.childControlHeight = false;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+            foreach (var s in statuses) StatusChip.Create(row, s, size);
+            return y + size + 6f;
+        }
+
+        /// <summary>"ULT" and a row of Ult point pips (lit = earned), for units that have an Ult card.</summary>
+        static float UltPoints(RectTransform sheet, BattleUnit unit, int cap, float y)
+        {
+            bool hasUlt = unit.Ultimate != null;
+            if (!hasUlt || cap <= 0) return y;
+            float x = 92f;
+            var label = UIFactory.CreateText(sheet, "Ult", "ULT", 24, Muted, TextAnchor.MiddleLeft);
+            label.raycastTarget = false;
+            label.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(90f, 30f));
+            const float pip = 34f, gap = 8f;
+            bool full = unit.Moxie >= cap;
+            for (int i = 0; i < cap; i++)
+            {
+                bool on = i < unit.Moxie;
+                var img = UIFactory.CreateImage(sheet, "UltPip" + i, Color.white);
+                img.raycastTarget = false;
+                img.sprite = on && CardIcons.PipFull != null ? CardIcons.PipFull : CardIcons.PipEmpty;
+                img.color = on ? (full ? new Color(1f, 0.55f, 0.2f) : Gold) : new Color(0.42f, 0.4f, 0.46f);
+                img.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + 90f + i * (pip + gap), -y - 3f), new Vector2(pip, pip));
+            }
+            if (full)
+            {
+                var ready = UIFactory.CreateText(sheet, "UltReady", "READY", 20, new Color(1f, 0.55f, 0.2f), TextAnchor.MiddleLeft);
+                ready.raycastTarget = false;
+                ready.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + 100f + cap * (pip + gap), -y), new Vector2(160f, 30f));
+            }
+            return y + 40f;
+        }
+
+        /// <summary>Six stats as label / value strips in two columns (a +/-% tag when something changes one).</summary>
+        static float Stats(RectTransform sheet, BattleUnit unit, float y)
+        {
+            var s = unit.Definition.stats;
+            float spell = unit.GetStat(StatType.DamageBonus) + unit.GetStat(StatType.IncantationMight);
+            var rows = new[]
+            {
+                Stat("ATK", unit.GetStat(StatType.Attack), s.attack, false), Stat("PHYS DEF", unit.GetStat(StatType.PhysicalDefense), s.physicalDefense, false),
+                Stat("CRIT", unit.GetStat(StatType.CritRate), s.critRate, true), Stat("SPEC DEF", unit.GetStat(StatType.SpecialDefense), s.specialDefense, false),
+                Stat("CRIT DMG", unit.GetStat(StatType.CritDamage), s.critDamage, true), Stat("SPELL DMG", spell, 0f, true, true),
+            };
+            float x0 = 92f, gap = 12f, cw = (SheetW - 92f - gap) / 2f, ch = 44f;
+            for (int i = 0; i < rows.Length; i++)
+            {
+                int col = i % 2, row = i / 2;
+                var strip = UIFactory.CreateImage(sheet, rows[i].Label, Strip);
+                strip.raycastTarget = false;
+                strip.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x0 + col * (cw + gap), -(y + row * (ch + 8f))), new Vector2(cw, ch));
+                var label = UIFactory.CreateText(strip.transform, "Label", rows[i].Label, 24, Muted, TextAnchor.MiddleLeft);
+                label.font = UIFactory.SerifFont;
+                label.rectTransform.Fill();
+                label.rectTransform.offsetMin = new Vector2(16f, 0f);
+                var value = UIFactory.CreateText(strip.transform, "Value", rows[i].Value, 28, TextColor, TextAnchor.MiddleRight, FontStyle.Bold);
+                value.supportRichText = true;
+                value.rectTransform.Fill();
+                value.rectTransform.offsetMax = new Vector2(-16f, 0f);
+            }
+            return y + 3 * (ch + 8f);
+        }
+
+        struct StatRow { public string Label, Value; }
+
+        static StatRow Stat(string label, float current, float baseValue, bool percent, bool isBonus = false)
+        {
             string value = isBonus
                 ? "+" + Mathf.RoundToInt(current * 100f) + "%"
                 : percent ? Mathf.RoundToInt(current * 100f) + "%" : Mathf.RoundToInt(current).ToString();
-            var val = UIFactory.CreateText(box.transform, "Value", value, 72, TextColor, TextAnchor.MiddleLeft, FontStyle.Bold).BestFit(24, 72);
-            var vrt = val.rectTransform;
-            vrt.anchorMin = Vector2.zero;
-            vrt.anchorMax = Vector2.one;
-            vrt.offsetMin = new Vector2(14f, 6f);
-            vrt.offsetMax = new Vector2(-14f, -34f);
-
-            float diff = isBonus ? current : (baseValue != 0f ? current / baseValue - 1f : 0f);
-            if (Mathf.Abs(diff) < 0.005f || isBonus) return;
-            var badge = UIFactory.CreateText(box.transform, "Badge", (diff > 0 ? "+" : "") + Mathf.RoundToInt(diff * 100f) + "%", 20,
-                diff > 0 ? Good : Bad, TextAnchor.UpperRight, FontStyle.Bold);
-            badge.rectTransform.TopStrip(10f, 24f, 14f);
+            float diff = isBonus ? 0f : (baseValue != 0f ? current / baseValue - 1f : 0f);
+            if (Mathf.Abs(diff) >= 0.005f)
+            {
+                string c = ColorUtility.ToHtmlStringRGB(diff > 0 ? Good : Bad);
+                value = UIFactory.Size(18) + "<color=#" + c + ">" + (diff > 0 ? "+" : "") + Mathf.RoundToInt(diff * 100f) + "%</color></size>  " + value;
+            }
+            return new StatRow { Label = label, Value = value };
         }
 
-        /// <summary>The unit's cards, side by side as real card faces (scroll over one to flip its rank).</summary>
-        void Abilities(RectTransform content, BattleUnit unit)
+        const float CardScale = 0.8f;    // the pixel card at 4x (four fit across the sheet); hold one for the big view
+
+        /// <summary>The cards (and the Ult card) in a hairline bracket across the whole sheet; hold one to open it.</summary>
+        static void Cards(RectTransform sheet, BattleUnit unit, float y)
         {
-            var row = UIFactory.CreateRect("Cards", content);
+            float x = 0f, h = CardView.Size.y * CardScale + 20f;
+            var bracket = UIFactory.CreateRect("CardBracket", sheet).Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(SheetW - x, h));
+            InkStyle.Frame(bracket, UIFactory.WithAlpha(Gold, 0.4f), 1f);
+
+            var row = UIFactory.CreateRect("Cards", bracket).Fill();
             var layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 28f;
-            layout.padding = new RectOffset(30, 30, 30, 30); // room for the diamond glow
-            layout.childAlignment = TextAnchor.UpperLeft;
+            layout.spacing = 10f;
+            layout.padding = new RectOffset(10, 10, 10, 10);
+            layout.childAlignment = TextAnchor.MiddleLeft;
             layout.childControlWidth = true;
             layout.childControlHeight = true;
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
-            row.gameObject.AddComponent<LayoutElement>().preferredHeight = AbilityCard.FaceSize.y + 60f;
 
+            // Icon-only cards; hold one to open it (full text, scroll for upgrades).
+            // The battle canvas itself (Transform.root would be the bootstrap object above it, outside any canvas,
+            // so the popup was built but never drawn).
+            var canvas = (RectTransform)sheet.GetComponentInParent<Canvas>().rootCanvas.transform;
             if (unit.Character != null)
             {
                 foreach (var card in unit.Incantations)
-                    if (card != null) AbilityCard.Create(row, unit, card, 0);
-                if (unit.Character.ritual != null) AbilityCard.Create(row, unit, unit.Character.ritual, 0);
+                    if (card != null) IconCard(row, canvas, unit, card, 1);
+                if (unit.Ultimate != null) IconCard(row, canvas, unit, unit.Ultimate, 1);
             }
             else if (unit.Enemy != null)
             {
                 foreach (var skill in unit.Enemy.skills)
-                    if (skill.card != null) AbilityCard.Create(row, unit, skill.card, skill.rank);
+                    if (skill.card != null) IconCard(row, canvas, unit, skill.card, Mathf.Max(1, skill.rank));
+                if (unit.Enemy.ritual != null) IconCard(row, canvas, unit, unit.Enemy.ritual, 1);
             }
+        }
+
+        static void IconCard(RectTransform row, RectTransform canvas, BattleUnit unit, CardDefinition card, int rank)
+        {
+            var ability = AbilityCard.Create(row, unit, card, rank, CardScale, true);
+            var rt = (RectTransform)ability.transform;
+            // Click or hold: the same card popup as the party menu (flip, full text, live numbers with this unit's
+            // current stats, scroll for the other ranks).
+            Action open = () => { if (!CardDetailPopup.IsOpen) CardDetailPopup.Open(canvas, unit, card, rank, rt); };
+            ability.OnLongPress = open;
+            ability.OnClick = open;
         }
 
         // ------------------------------------------------------------------ Building blocks
 
-        static void Header(RectTransform content, string text)
+        static Color Clear(Color c)
         {
-            var t = UIFactory.CreateText(content, "Header", text, 40, Gold, TextAnchor.LowerLeft);
-            t.font = UIFactory.SerifFont;
-            t.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.6f);
-            t.gameObject.AddComponent<LayoutElement>().minHeight = 50f;
+            c.a = 0f;
+            return c;
+        }
+
+        /// <summary>A left-to-right gradient (left colour to right colour).</summary>
+        static RawImage HorizontalShade(RectTransform parent, Color left, Color right)
+        {
+            var tex = new Texture2D(64, 1, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            for (int x = 0; x < 64; x++) tex.SetPixel(x, 0, Color.Lerp(left, right, x / 63f));
+            tex.Apply();
+            var img = new GameObject("Shade", typeof(RectTransform)).AddComponent<RawImage>();
+            img.rectTransform.SetParent(parent, false);
+            img.texture = tex;
+            img.raycastTarget = false;
+            return img;
         }
 
         public static RectTransform Box(RectTransform content, Color accent)
@@ -326,14 +390,6 @@ namespace Combat.View
             return t;
         }
 
-        /// <summary>A single line that shrinks its font to fit the column width.</summary>
-        static void Fit(RectTransform parent, string text, Color color, FontStyle style, ref float y, float height, int min, int max)
-        {
-            var t = UIFactory.CreateText(parent, "Fit", text, max, color, TextAnchor.MiddleLeft, style).BestFit(min, max);
-            t.rectTransform.TopStrip(y, height);
-            y += height;
-        }
-
         public static string Target(TargetMode mode, bool enemyPerspective)
         {
             switch (mode)
@@ -346,23 +402,6 @@ namespace Combat.View
                 case TargetMode.AllAllies: return "all allies";
                 default: return "random ally";
             }
-        }
-
-        IEnumerator Animate(float fromAlpha, float toAlpha, float duration, float fromScale, float toScale, Vector2? fromPos = null)
-        {
-            Vector2 start = fromPos ?? Vector2.zero;
-            float t = 0f;
-            while (t < duration)
-            {
-                t += Time.unscaledDeltaTime; // works while paused
-                float p = Tween.OutCubic(Mathf.Clamp01(t / duration));
-                group.alpha = Mathf.Lerp(fromAlpha, toAlpha, p);
-                panel.localScale = Vector3.one * Mathf.Lerp(fromScale, toScale, p);
-                if (fromPos.HasValue) panel.anchoredPosition = Vector2.Lerp(start, Vector2.zero, p);
-                yield return null;
-            }
-            group.alpha = toAlpha;
-            panel.localScale = Vector3.one * toScale;
         }
     }
 }

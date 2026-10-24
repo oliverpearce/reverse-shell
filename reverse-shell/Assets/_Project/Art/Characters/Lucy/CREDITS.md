@@ -1,3 +1,3 @@
 # Lucy: sprite credits
 
-Built by `Tools/ChibiForge/girl_model.py` from `Tools/ChibiForge/reference/Girl_walk.png` (the user's reference walk cycle; see that folder's README for its rights note), recoloured per character. Native 64 px frames.
+"Fantasy Knight - Free Pixelart Animated Character" by aamatniekss (https://aamatniekss.itch.io/fantasy-knight-free-pixelart-animated-character), reskinned as a robot by `Tools/ChibiForge/knight_model.py`. Free and commercial use and modification are allowed; credit appreciated; the art may not be redistributed or resold on its own.

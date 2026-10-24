@@ -4,7 +4,8 @@ using UnityEngine.UI;
 namespace Combat.View
 {
     /// <summary>
-    /// Modern, Blue Archive-style lock-on graphics: smooth segmented rings that spin like a loading circle.
+    /// Modern, Blue Archive-style lock-on graphics: several concentric rings of uneven arcs (long sweeps, short
+    /// dashes and gaps of different sizes), each spinning at its own speed and direction, like a HUD scope.
     /// The red target reticle marks the selected enemy; the white focus ring (sized to fit around it) marks
     /// the unit under the mouse or arrow-key cursor. Each ring sits on a soft dark shadow (contrast on bright
     /// backgrounds) and carries a blurred colored glow that spins with its segments.
@@ -18,10 +19,19 @@ namespace Combat.View
         const int Res = 256;
         const float GlowBlur = 9f; // texture pixels
 
-        static Sprite focusOuter, focusOuterGlow, focusInner, focusShadow;
-        static Sprite lockArcs, lockArcsGlow, lockTicks, lockShadow;
+        static Sprite focusOuter, focusOuterGlow, focusMid, focusInner, focusHair;
+        static Sprite lockArcs, lockArcsGlow, lockOuter, lockInner, lockTicks, lockShadow;
 
-        /// <summary>White focus ring: three long arcs (outer, spinning) plus a faint dashed inner ring (counter-spinning).</summary>
+        // Ring patterns: (start, length) pairs in degrees. Uneven on purpose so the rings read as moving parts.
+        static readonly float[] FocusOuterSegs = { 0f, 112f, 128f, 38f, 184f, 92f, 298f, 30f };
+        static readonly float[] FocusMidSegs = { 12f, 58f, 86f, 14f, 118f, 136f, 274f, 52f };
+        static readonly float[] FocusHairSegs = { 40f, 24f, 150f, 70f, 250f, 10f };
+        static readonly float[] LockArcSegs = { 0f, 70f, 94f, 28f, 148f, 86f, 258f, 56f };
+        static readonly float[] LockOuterSegs = { 20f, 138f, 196f, 40f, 256f, 64f };
+        static readonly float[] LockInnerSegs = { 0f, 40f, 66f, 92f, 196f, 24f, 246f, 72f };
+
+        /// <summary>White focus ring: a bold uneven outer ring, a thin middle ring and a fine hairline ring
+        /// (each spinning its own way) plus a dashed inner ring.</summary>
         public static Reticle CreateFocus(RectTransform parent, Vector2 anchor, Vector2 position, float size)
         {
             return CreateFocus(parent, anchor, position, size, Color.white, FocusGlow, "FocusRing");
@@ -32,27 +42,30 @@ namespace Combat.View
         {
             if (focusOuter == null)
             {
-                focusOuter = Arcs(0.4f, 0.019f, 3, 96f, 0f, 0f);
-                focusOuterGlow = Arcs(0.4f, 0.019f, 3, 96f, 0f, GlowBlur);
-                focusInner = Arcs(0.345f, 0.008f, 24, 7f, 0f, 0f);
-                focusShadow = Arcs(0.4f, 0.03f, 1, 360f, 0f, 12f);
+                focusOuter = Segments(0.4f, 0.019f, FocusOuterSegs, 0f);
+                focusOuterGlow = Segments(0.4f, 0.019f, FocusOuterSegs, GlowBlur);
+                focusMid = Segments(0.365f, 0.008f, FocusMidSegs, 0f);
+                focusHair = Segments(0.44f, 0.005f, FocusHairSegs, 0f);
+                focusInner = Segments(0.33f, 0.007f, Dashes(22, 3f, 11f, 7), 0f);
             }
-            var r = Reticle.Create(parent, name, anchor, position, size);
-            r.AddLayer(focusShadow, Shadow, 0f, null, Color.clear);
+            var r = Reticle.Create(parent, name, anchor, position, size);   // no dark shadow ring behind it
             r.AddLayer(focusOuter, tint, 70f, focusOuterGlow, glow);
-            var inner = tint;
-            inner.a *= 0.6f;
-            r.AddLayer(focusInner, inner, -30f, null, Color.clear);
+            r.AddLayer(focusMid, Fade(tint, 0.8f), -44f, null, Color.clear);
+            r.AddLayer(focusHair, Fade(tint, 0.55f), 118f, null, Color.clear);
+            r.AddLayer(focusInner, Fade(tint, 0.6f), -23f, null, Color.clear);
             return r;
         }
 
-        /// <summary>Red lock-on: four arcs (spinning) plus four inward ticks and a center pip (still).</summary>
+        /// <summary>Red lock-on: a bold uneven ring, a thin outer ring and a fast inner ring (each spinning its own
+        /// way) plus four inward ticks and a center pip (still).</summary>
         public static Reticle CreateLock(RectTransform parent, Vector2 anchor, Vector2 position, float size)
         {
             if (lockArcs == null)
             {
-                lockArcs = Arcs(0.31f, 0.026f, 4, 52f, 45f, 0f);
-                lockArcsGlow = Arcs(0.31f, 0.026f, 4, 52f, 45f, GlowBlur);
+                lockArcs = Segments(0.31f, 0.026f, LockArcSegs, 0f);
+                lockArcsGlow = Segments(0.31f, 0.026f, LockArcSegs, GlowBlur);
+                lockOuter = Segments(0.38f, 0.008f, LockOuterSegs, 0f);
+                lockInner = Segments(0.25f, 0.01f, LockInnerSegs, 0f);
                 lockTicks = Ticks();
                 lockShadow = Arcs(0.31f, 0.05f, 1, 360f, 0f, 12f);
             }
@@ -61,6 +74,8 @@ namespace Combat.View
             var r = Reticle.Create(parent, "LockOn", anchor, position, size);
             r.AddLayer(lockShadow, Shadow, 0f, null, Color.clear);
             r.AddLayer(lockArcs, LockRed, -110f, lockArcsGlow, glow);
+            r.AddLayer(lockOuter, Fade(LockRed, 0.75f), 57f, null, Color.clear);
+            r.AddLayer(lockInner, Fade(LockRed, 0.85f), 163f, null, Color.clear);
             r.AddLayer(lockTicks, LockRed, 0f, null, Color.clear);
             return r;
         }
@@ -96,6 +111,63 @@ namespace Combat.View
                         ? Gauss(radialOut, blur) * Gauss(angularOut, blur)
                         : Mathf.Clamp01(0.5f - radialOut) * Mathf.Clamp01(0.5f - angularOut);
                     if (a > 0.002f) px[y * Res + x] = new Color32(255, 255, 255, (byte)(255 * Mathf.Clamp01(a)));
+                }
+            tex.SetPixels32(px);
+            tex.Apply();
+            return Sprite.Create(tex, new Rect(0, 0, Res, Res), new Vector2(0.5f, 0.5f), 100f);
+        }
+
+        static Color Fade(Color c, float alpha)
+        {
+            c.a *= alpha;
+            return c;
+        }
+
+        /// <summary><paramref name="count"/> dashes of varying length (between minDeg and maxDeg), evenly spread,
+        /// from a deterministic pseudo-random pattern, as (start, length) pairs.</summary>
+        static float[] Dashes(int count, float minDeg, float maxDeg, int seed)
+        {
+            var segs = new float[count * 2];
+            float spacing = 360f / count;
+            uint h = (uint)seed * 2654435761u;
+            for (int i = 0; i < count; i++)
+            {
+                h ^= h << 13; h ^= h >> 17; h ^= h << 5;
+                float t = (h % 1000u) / 999f;
+                segs[i * 2] = i * spacing;
+                segs[i * 2 + 1] = Mathf.Lerp(minDeg, maxDeg, t);
+            }
+            return segs;
+        }
+
+        /// <summary>
+        /// A ring made of arbitrary arcs: <paramref name="segs"/> holds (start, length) pairs in degrees. Same
+        /// shading as <see cref="Arcs"/>: crisp anti-aliased edges at blur = 0, a soft falloff (glow / shadow) above.
+        /// </summary>
+        static Sprite Segments(float radius, float thickness, float[] segs, float blur)
+        {
+            var tex = NewTexture();
+            float c = (Res - 1) / 2f, rad = radius * Res, half = thickness * Res / 2f;
+            var px = new Color32[Res * Res];
+            for (int y = 0; y < Res; y++)
+                for (int x = 0; x < Res; x++)
+                {
+                    float dx = x - c, dy = y - c, d = Mathf.Sqrt(dx * dx + dy * dy);
+                    float radialOut = Mathf.Abs(d - rad) - half;
+                    if (radialOut > blur * 3f + 1f) continue;
+                    float theta = Mathf.Atan2(dy, dx) * Mathf.Rad2Deg;
+                    float pxPerDeg = Mathf.Max(0.001f, d * Mathf.Deg2Rad);
+                    float angularOut = float.MaxValue;
+                    for (int i = 0; i + 1 < segs.Length; i += 2)
+                    {
+                        float a = Mathf.Repeat(theta - segs[i], 360f), len = segs[i + 1];
+                        float o = a <= len ? -Mathf.Min(a, len - a) * pxPerDeg : Mathf.Min(a - len, 360f - a) * pxPerDeg;
+                        if (o < angularOut) angularOut = o;
+                    }
+                    float alpha = blur > 0f
+                        ? Gauss(radialOut, blur) * Gauss(angularOut, blur)
+                        : Mathf.Clamp01(0.5f - radialOut) * Mathf.Clamp01(0.5f - angularOut);
+                    if (alpha > 0.002f) px[y * Res + x] = new Color32(255, 255, 255, (byte)(255 * Mathf.Clamp01(alpha)));
                 }
             tex.SetPixels32(px);
             tex.Apply();

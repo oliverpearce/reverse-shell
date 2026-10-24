@@ -1,3 +1,3 @@
 # ScrapStalker: sprite credits
 
-Original pixel art drawn in code by `Tools/ChibiForge/chibi_forge.py` (no third-party assets, no license strings). Re-run it to rebuild these sheets.
+"Fantasy Knight - Free Pixelart Animated Character" by aamatniekss (https://aamatniekss.itch.io/fantasy-knight-free-pixelart-animated-character), reskinned as a robot by `Tools/ChibiForge/knight_model.py`. Free and commercial use and modification are allowed; credit appreciated; the art may not be redistributed or resold on its own.

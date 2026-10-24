@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Combat;
+using Combat.View;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -13,24 +14,15 @@ namespace Game.World
     /// </summary>
     public class OverworldBuilder : MonoBehaviour
     {
-        public const string DefaultMap =
-            "HHHHHH####HHHHH#BBBBBBBBBBBB\n" +
-            "HHHHHH####HHHHH#BPPP,,PPPPPB\n" +
-            "HHHHHH####HHHHH#BPT,PPEPP,TB\n" +
-            "HHHHHH####HHHHH#B,,PPPXPPP,B\n" +
-            "HHHHHH####HHHHH#BPR*PPPPPbPB\n" +
-            "HHHHHH####HHHHH#BLLLLP.PLLLB\n" +
-            "B.T,,...b..n.r,,....*..,.,TB\n" +
-            "B=====,,==========,,=======B\n" +
-            "B=======,===========r======B\n" +
-            "B.b..,.n..T,,......b...,T..B\n" +
-            "B.S.A,,......*....n..,,..*.B\n" +
-            "LLLLLLLLLLLLLLLLLLLLLLLLLLLL\n";
+        /// <summary>The Training Center map (the original Mossline Station test level). Areas live in
+        /// <see cref="WorldAreas"/>; with useDefaultMap on (the default) the current area's map is built.</summary>
+        public const string DefaultMap = WorldAreas.TrainingMap;
 
         [Header("Area")]
+        [Tooltip("Shown on arrival; replaced at runtime by the current area's name (WorldAreas).")]
         public string areaName = "MOSSLINE STATION";
         public string areaSubtitle = "The City Ruins";
-        [Tooltip("On: always use the built-in DefaultMap from code, so map updates show up without regenerating the scene. " +
+        [Tooltip("On: build the current area's map from code (WorldAreas), so map updates show up without regenerating the scene. " +
                  "Turn off to use the custom map below.")]
         public bool useDefaultMap = true;
         [TextArea(12, 30)] public string map = DefaultMap;
@@ -52,8 +44,8 @@ namespace Game.World
         public List<SpriteAnimationSet> npcAnimations = new List<SpriteAnimationSet>();
         [Tooltip("Overworld look of encounter enemies. Overrides enemySheet.")]
         public SpriteAnimationSet encounterAnimations;
-        [Tooltip("Scale for animated sprites: 2 makes a 48px-tall body about 1.5 tiles tall.")]
-        public float animatedCharacterScale = 2f;
+        [Tooltip("Scale for animated sprites (64 px frames): 2.5 makes the ~38 px knight-based bodies about 1.5 tiles tall.")]
+        public float animatedCharacterScale = 2.5f;
 
         [Header("Battle")]
         public BattleSetup encounterSetup;
@@ -76,10 +68,24 @@ namespace Game.World
         }
         public OverworldMap Map { get; private set; }
 
-        /// <summary>The party in the player's chosen order (WorldSession.PartyOrder). The first is the leader you play as.</summary>
+        /// <summary>The formation: the active members in slot order (the first leads and is who you walk as), then the
+        /// backup. The party HUD shows these.</summary>
         public List<CharacterDefinition> Party
         {
-            get { return encounterSetup != null ? WorldSession.Ordered(encounterSetup.party) : new List<CharacterDefinition>(); }
+            get
+            {
+                if (encounterSetup == null) return new List<CharacterDefinition>();
+                var list = WorldSession.FormationActive(encounterSetup.party);
+                var backup = WorldSession.FormationBackup(encounterSetup.party);
+                if (backup != null) list.Add(backup);
+                return list;
+            }
+        }
+
+        /// <summary>Everyone who has joined (the Units screen, the formation pick list).</summary>
+        public List<CharacterDefinition> Roster
+        {
+            get { return encounterSetup != null ? WorldSession.Joined(encounterSetup.party) : new List<CharacterDefinition>(); }
         }
 
         CharacterDefinition Lead
@@ -91,7 +97,16 @@ namespace Game.World
             }
         }
 
+        /// <summary>Each 'E' cell's fight definition (from the area, in reading order).</summary>
+        readonly Dictionary<Vector2Int, WorldAreas.EncounterDef> encounterDefs = new Dictionary<Vector2Int, WorldAreas.EncounterDef>();
+        Vector2Int playerCell = new Vector2Int(-1, -1);
+
         CharacterMenu menu;
+        FormationScreen formation;
+        PauseCards pauseCards;
+        EnemyLevelPanel chestPanel;
+        TitleScreen title;
+        WorldAreas.Area area;
 
         /// <summary>Overworld name of the encounter: the first enemy in its battle setup.</summary>
         string EncounterName
@@ -121,12 +136,38 @@ namespace Game.World
 #endif
             WorldSession.EnsureLoaded(); // first area of the session reads save.json
             WorldSession.GiveStarterParts(); // a new game (or an older save) gets the starter Parts once
-            Map = new OverworldMap(useDefaultMap || string.IsNullOrEmpty(map) ? DefaultMap : map);
+            if (StoryState.Has(Chapter1.ResonanceVolt)) WorldSession.BindSoulCard(); // saves from before the Resonant Core
+            area = WorldAreas.Get(WorldSession.CurrentArea);
+            areaName = area.Name;
+            areaSubtitle = area.Subtitle;
+            Map = new OverworldMap(useDefaultMap || string.IsNullOrEmpty(map) ? area.Map : map);
             cam = Camera.main;
+            // Nothing tall just south of a walkable square, where it would hide the player (OverworldMap.ApplyCameraRule).
+            var follow = cam != null ? cam.GetComponent<OverworldCamera>() : null;
+            Map.ApplyCameraRule(follow != null ? follow.pitch : 38f);
+            // The Training Center brings the whole crew in (a new game is just MC until then).
+            if (area.Id == WorldAreas.Training && encounterSetup != null)
+            {
+                var joined = WorldSession.RecruitAll(encounterSetup.party);
+                if (joined.Count > 0)
+                {
+                    SaveGame.Save();
+                    string key = joined.Count == 1 ? "training.joins" : "training.joins.many";
+                    WorldSession.PendingSpeaker = StoryText.Speaker(key);
+                    WorldSession.PendingMessage = StoryText.Text(key, "who", string.Join(" and ", joined.ToArray()));
+                }
+            }
             ApplyAtmosphere();
 
-            foreach (var cell in Map.FindAll('E'))
-                if (WorldSession.DefeatedEncounters.Contains(EncounterId(cell))) ClearEncounter(cell);
+            // Each 'E' gets the area's fight in reading order; beaten ones (and story fights whose flags say so) are gone.
+            var fights = Map.FindAll('E');
+            for (int i = 0; i < fights.Count; i++)
+            {
+                var def = i < area.Encounters.Count ? area.Encounters[i] : null;
+                encounterDefs[fights[i]] = def;
+                bool absent = def != null && !StoryState.Allows(def.Requires, def.Blocks);
+                if (absent || WorldSession.DefeatedEncounters.Contains(EncounterId(fights[i]))) ClearEncounter(fights[i]);
+            }
 
             BuildGeometry();
             BuildProps();
@@ -135,18 +176,114 @@ namespace Game.World
             SpawnEncounters();
             SpawnAccessPoints();
             SpawnSummonBeacons();
+            SpawnWarps();
+            foreach (var cell in Map.FindAll('C'))
+                interactables.Add(WorldFx.Chest(transform, Map.CellCenter(cell.x, cell.y)).AddComponent<ChestInteractable>());
+            SpawnLootChests();
 
             drift = WorldFx.Drift(transform).transform;
             UI = OverworldUI.Create(transform);
             menu = CharacterMenu.Create((RectTransform)UI.transform, this);
+            formation = FormationScreen.Create((RectTransform)UI.transform, this);
+            pauseCards = PauseCards.Create((RectTransform)UI.transform, this, menu, formation);
+            chestPanel = EnemyLevelPanel.Create((RectTransform)UI.transform);
+            // The first area of the session opens under the title screen (New Game / Continue / Load ...).
+            if (!WorldSession.TitleDone) title = TitleScreen.Create((RectTransform)UI.transform, Party);
             RefreshPartyHud();
+            ChapterOneDirector.OnAreaBuilt(this);
+            StoryState.Changed += OnStoryChanged;
+            RefreshObjective();
+            StoryDebugPanel.Ensure();
             StartCoroutine(Arrive());
+        }
+
+        void OnDestroy()
+        {
+            StoryState.Changed -= OnStoryChanged;
+        }
+
+        void OnStoryChanged(string flag)
+        {
+            RefreshObjective();
+        }
+
+        /// <summary>The objective on the HUD (none in the Training Center).</summary>
+        public void RefreshObjective()
+        {
+            if (UI != null) UI.SetObjective(area != null && area.Id == WorldAreas.Training ? "" : Chapter1.CurrentObjective());
+        }
+
+        // ------------------------------------------------------------------ Story hooks (ChapterOneDirector)
+
+        public WorldAreas.Area Area { get { return area; } }
+        public Camera Cam { get { return cam; } }
+        public Vector3 PlayerPosition { get { return player != null ? player.transform.position : Vector3.zero; } }
+
+        /// <summary>True while anything (a conversation, a menu, a fade) has the player's attention.</summary>
+        public bool Busy
+        {
+            get
+            {
+                return cutscene || transitioning || UI == null || UI.DialogueOpen || (menu != null && menu.IsOpen) || (title != null && title.IsOpen)
+                       || (pauseCards != null && pauseCards.IsOpen) || (formation != null && formation.IsOpen) || (chestPanel != null && chestPanel.IsOpen);
+            }
+        }
+
+        /// <summary>Freezes / frees the player for a scripted moment.</summary>
+        public void SetCutscene(bool on) { cutscene = on; if (on && UI != null) UI.HidePrompt(); }
+
+        public void AddInteractable(Interactable it) { if (it != null) interactables.Add(it); }
+
+        /// <summary>The first map fight matching <paramref name="match"/> still standing (null if none).</summary>
+        public EncounterInteractable FindEncounter(System.Predicate<EncounterInteractable> match)
+        {
+            foreach (var it in interactables)
+            {
+                var e = it as EncounterInteractable;
+                if (e != null && match(e)) return e;
+            }
+            return null;
+        }
+
+        public void RemoveInteractable(Interactable it) { interactables.Remove(it); }
+
+        /// <summary>Opens a warp at a cell at runtime (the city's hidden route): walkable, a pad, travels on interact.</summary>
+        public void OpenWarp(Vector2Int cell, string destination)
+        {
+            Map.Set(cell.x, cell.y, 'w');
+            SpawnWarpPad(cell, destination);
+        }
+
+        /// <summary>A scripted fight with no map machine (the Collector): the pre-fight screen, then the battle.</summary>
+        public void StartStoryFight(WorldAreas.EncounterDef def, string id)
+        {
+            var go = new GameObject("StoryFight_" + id);
+            go.transform.SetParent(transform, false);
+            go.transform.position = PlayerPosition;
+            var encounter = go.AddComponent<EncounterInteractable>();
+            encounter.def = def;
+            encounter.id = SceneManager.GetActiveScene().name + "/" + area.Id + "/" + id;
+            encounter.displayName = DisplayNameFor(def);
+            encounter.setup = encounterSetup;
+            StartEncounter(encounter);
+        }
+
+        static string DisplayNameFor(WorldAreas.EncounterDef def)
+        {
+            var catalog = EnemyCatalog.Get();
+            var first = def != null && def.Enemies != null && def.Enemies.Length > 0 && catalog != null ? catalog.Find(def.Enemies[0]) : null;
+            return first != null ? first.DisplayName : "Machine";
         }
 
         // ------------------------------------------------------------------ Build
 
         void ApplyAtmosphere()
         {
+            if (area != null && area.Dim)
+            {
+                ApplyUnderground();
+                return;
+            }
             // A dim ruin under a leafy canopy: the only light is the sun, broken into dappled spots by the
             // leaves overhead (a cookie on the sun), over a low, cool green ambient and haze. No point lights.
             var haze = new Color(0.36f, 0.41f, 0.38f);
@@ -177,6 +314,36 @@ namespace Game.World
             sun.cookie = WorldArt.DappleCookie();
             sun.cookieSize = 9f;
             sun.gameObject.AddComponent<CanopySway>();
+        }
+
+        /// <summary>Underground (the tunnel, the chamber): a weak shaft of daylight through the cracks, a cold teal
+        /// ambient and a dark haze. Still no point lights; the glow comes from the story props and the guardian.</summary>
+        void ApplyUnderground()
+        {
+            var haze = new Color(0.07f, 0.1f, 0.12f);
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(0.16f, 0.22f, 0.26f);
+            RenderSettings.ambientEquatorColor = new Color(0.1f, 0.14f, 0.16f);
+            RenderSettings.ambientGroundColor = new Color(0.05f, 0.06f, 0.07f);
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogColor = haze;
+            RenderSettings.fogDensity = 0.045f;
+            if (cam != null)
+            {
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = haze;
+                cam.allowHDR = true;
+            }
+            var shaft = new GameObject("Daylight").AddComponent<Light>();
+            shaft.transform.SetParent(transform, false);
+            shaft.type = LightType.Directional;
+            shaft.color = new Color(0.75f, 0.85f, 0.95f);
+            shaft.intensity = 0.7f;
+            shaft.shadows = LightShadows.Soft;
+            shaft.transform.rotation = Quaternion.Euler(64f, -20f, 0f);
+            shaft.cookie = WorldArt.DappleCookie();
+            shaft.cookieSize = 14f;
         }
 
         void BuildGeometry()
@@ -246,8 +413,115 @@ namespace Game.World
         {
             var spawns = Map.FindAll('S');
             var start = spawns.Count > 0 ? Map.CellCenter(spawns[0].x, spawns[0].y) : Map.CellCenter(1, Map.Height - 2);
-            if (WorldSession.HasReturnPoint) start = WorldSession.ReturnPosition;
+            if (!string.IsNullOrEmpty(WorldSession.ArrivedFrom))
+            {
+                // Arriving through a warp: stand beside the warp here that leads back where you came from.
+                foreach (var warp in area.Warps)
+                {
+                    if (warp.Value != WorldSession.ArrivedFrom) continue;
+                    var cells = Map.FindAll(warp.Key);
+                    if (cells.Count == 0 && warp.Key == 'V') cells = Map.FindAll('w');
+                    if (cells.Count > 0) { start = BesideCell(cells[0]); break; }
+                }
+                WorldSession.ArrivedFrom = null;
+            }
+            else if (WorldSession.HasReturnPoint) start = WorldSession.ReturnPosition;
             SpawnPlayerAt(start, WorldSession.HasReturnPoint ? WorldSession.ReturnFacing : CharacterSprite.Down);
+        }
+
+        /// <summary>The first walkable square next to <paramref name="cell"/> (south first), or the cell itself.</summary>
+        Vector3 BesideCell(Vector2Int cell)
+        {
+            foreach (var d in new[] { new Vector2Int(0, 1), new Vector2Int(1, 0), new Vector2Int(-1, 0), new Vector2Int(0, -1) })
+                if (!Map.IsSolidCell(cell.x + d.x, cell.y + d.y)) return Map.CellCenter(cell.x + d.x, cell.y + d.y);
+            return Map.CellCenter(cell.x, cell.y);
+        }
+
+        /// <summary>The Training Center chest: set the practice fights' enemy level and boss mode.</summary>
+        public void OpenTrainingChest()
+        {
+            UI.HidePrompt();
+            chestPanel.Open();
+        }
+
+        /// <summary>Warp tiles (WorldAreas.Area.Warps): a glowing pad each; interact on it to travel. The city's hidden
+        /// route ('V') stays a cracked wall until the scanner opens it (ChapterOneDirector).</summary>
+        void SpawnWarps()
+        {
+            foreach (var warp in area.Warps)
+            {
+                foreach (var cell in Map.FindAll(warp.Key))
+                {
+                    if (warp.Key == 'V')
+                    {
+                        if (StoryState.Has(Chapter1.Route)) OpenWarp(cell, warp.Value);
+                        continue;
+                    }
+                    SpawnWarpPad(cell, warp.Value);
+                }
+            }
+        }
+
+        void SpawnWarpPad(Vector2Int cell, string destination)
+        {
+            var pad = WorldFx.WarpPad(transform, Map.CellCenter(cell.x, cell.y));
+            var warp = pad.AddComponent<WarpInteractable>();
+            warp.destination = destination;
+            interactables.Add(warp);
+        }
+
+        /// <summary>Warp: save, then reload the scene as the destination area (you arrive beside its warp).</summary>
+        public void TravelTo(string destination)
+        {
+            if (!BeginTransition()) return;
+            WorldSession.ArrivedFrom = area.Id;
+            WorldSession.CurrentArea = destination;
+            WorldSession.HasReturnPoint = false;
+            Reload();
+        }
+
+        /// <summary>Settings → Enter Training Mode: remember this spot, then go to the Training Center's start.</summary>
+        public void EnterTraining()
+        {
+            if (WorldSession.InTraining || player == null || !BeginTransition()) return;
+            WorldSession.HasTrainingReturn = true;
+            WorldSession.TrainingReturnArea = area.Id;
+            WorldSession.TrainingReturnPosition = player.transform.position;
+            WorldSession.TrainingReturnFacing = player.Sprite.Facing;
+            WorldSession.CurrentArea = WorldAreas.Training;
+            WorldSession.ArrivedFrom = null;
+            WorldSession.HasReturnPoint = false;
+            Reload();
+        }
+
+        /// <summary>Settings → Leave Training Mode: back to the spot you entered from (the city's start if unknown).</summary>
+        public void LeaveTraining()
+        {
+            if (!WorldSession.InTraining || !BeginTransition()) return;
+            WorldSession.CurrentArea = WorldSession.HasTrainingReturn ? WorldSession.TrainingReturnArea : WorldAreas.City;
+            WorldSession.ArrivedFrom = null;
+            WorldSession.HasReturnPoint = WorldSession.HasTrainingReturn;
+            WorldSession.ReturnPosition = WorldSession.TrainingReturnPosition;
+            WorldSession.ReturnFacing = WorldSession.TrainingReturnFacing;
+            WorldSession.HasTrainingReturn = false;
+            Reload();
+        }
+
+        bool BeginTransition()
+        {
+            if (transitioning) return false;
+            transitioning = true;
+            WorldSession.PlayerSpot = null;   // travelling: the new area places you
+            cutscene = true;
+            UI.HidePrompt();
+            return true;
+        }
+
+        void Reload()
+        {
+            SaveGame.Save();
+            UI.SetFade(new Color(0.45f, 0.85f, 1f, 0.6f));
+            ScreenFade.LoadScene(SceneManager.GetActiveScene().name);
         }
 
         void SpawnPlayerAt(Vector3 start, int facing)
@@ -288,38 +562,33 @@ namespace Game.World
             if ((npcSheet == null && !animated) || cells.Count == 0) return;
             var sheet = npcSheet != null ? WorldArt.SliceSheet(npcSheet, 3, 4) : null;
 
-            // (sheet row, col), name, voice, lines. Lines use DialogueMarkup ({wave}, {shake}, {red}, {p}, {slow}...).
+            // (sheet row, col), voice, and the script block with their name and lines (Resources/Story/World.txt).
             // Add more entries for more NPCs; they cycle if the map has extras.
             var cast = new[]
             {
                 // Gruff, low and unhurried.
-                new NpcInfo(1, 0, "Resistance Trader", new DialogueVoice(0.72f, 0.85f, new Color(0.72f, 0.45f, 0.24f)), new[]
-                {
-                    "Quiet morning.{p} Just birds, wind{p=0.4}... and the {shake}creak{/shake} of machines somewhere in the green.",
-                    "One of 'em planted itself in the old station plaza up north. {gray}Rusted{/c} thing, but it {shake}still swings hard{/shake}.",
-                    "Want to fight it? Stand on the {red}red square{/c}.{p} Better you than me."
-                }),
+                Npc(1, 0, "training.trader", new DialogueVoice(0.72f, 0.85f, new Color(0.72f, 0.45f, 0.24f))),
                 // Young, quick and a little starstruck.
-                new NpcInfo(1, 1, "Resistance Scout", new DialogueVoice(1.35f, 1.5f, new Color(0.3f, 0.65f, 1f)), new[]
-                {
-                    "{wave}Whoa{/wave}{p} you're " + LeaderName + "?! {fast}The android from the orbital Bunker? The one who came down on the last flight?!{/fast}",
-                    "Sorry, sorry.{p} I've just never met one of you up close.",
-                    "Your crew's waiting by the road. {green}Heal Bot{/c} keeps everyone running, and {c=#C98AFF}Lucy{/c}... {shake}infects{/shake} things.{p} {wave}Good company down here!{/wave}"
-                }),
+                Npc(1, 1, "training.scout", new DialogueVoice(1.35f, 1.5f, new Color(0.3f, 0.65f, 1f))),
                 // Dreamy and slow, with long pauses.
-                new NpcInfo(2, 2, "Wanderer", new DialogueVoice(1.05f, 0.6f, new Color(0.5f, 0.75f, 0.45f)), new[]
-                {
-                    "{slow}The trees took this city slowly...{/slow}",
-                    "{wave}Kind of beautiful{/wave}, if you stop and look.",
-                    "{gray}{slow}...Do machines dream, do you think?{/slow}{/c}"
-                }),
+                Npc(2, 2, "training.wanderer", new DialogueVoice(1.05f, 0.6f, new Color(0.5f, 0.75f, 0.45f))),
             };
+
+            // An area can bring its own people (WorldAreas.Area.Npcs); otherwise the old Mossline cast.
+            if (area.Npcs.Count > 0)
+            {
+                cast = new NpcInfo[area.Npcs.Count];
+                for (int i = 0; i < area.Npcs.Count; i++)
+                    cast[i] = new NpcInfo(0, 0, area.Npcs[i].Name, new DialogueVoice(1.2f, 0.75f, new Color(1f, 0.6f, 0.4f)),
+                        area.Npcs[i].LinesKey != null ? StoryText.Texts(area.Npcs[i].LinesKey) : area.Npcs[i].Lines);
+            }
 
             for (int i = 0; i < cells.Count; i++)
             {
                 var info = cast[i % cast.Length];
                 var pos = Map.CellCenter(cells[i].x, cells[i].y);
                 var look = animated ? npcAnimations[i % npcAnimations.Count] : null;
+                if (i < area.Npcs.Count && area.Npcs[i].Machine && encounterAnimations != null) look = encounterAnimations;
                 var npc = look != null
                     ? CharacterSprite.Create(transform, info.Name, look, animatedCharacterScale, pos)
                     : CharacterSprite.Create(transform, info.Name, WorldArt.SingleFrame(sheet, info.Row, info.Col), characterScale, pos, 0.04f);
@@ -338,16 +607,20 @@ namespace Game.World
             foreach (var cell in Map.FindAll('E'))
             {
                 var pos = Map.CellCenter(cell.x, cell.y);
+                WorldAreas.EncounterDef def;
+                encounterDefs.TryGetValue(cell, out def);
+                string label = def != null ? DisplayNameFor(def) : EncounterName;
                 var enemy = encounterAnimations != null
-                    ? CharacterSprite.Create(transform, EncounterName, encounterAnimations, animatedCharacterScale, pos)
-                    : CharacterSprite.Create(transform, EncounterName, frames, characterScale, pos, 0.03f);
+                    ? CharacterSprite.Create(transform, label, encounterAnimations, animatedCharacterScale, pos)
+                    : CharacterSprite.Create(transform, label, frames, characterScale, pos, 0.03f);
                 enemy.SetFacing(CharacterSprite.Down);
 
                 WorldFx.Motes(enemy.transform, pos + Vector3.up * 0.9f, 0.5f, 6f, new Color(1f, 0.45f, 0.25f));
 
                 var encounter = enemy.gameObject.AddComponent<EncounterInteractable>();
+                encounter.def = def;
                 encounter.id = EncounterId(cell);
-                encounter.displayName = EncounterName;
+                encounter.displayName = label;
                 encounter.setup = encounterSetup;
                 encounter.standPoint = StandPointFor(cell);
                 interactables.Add(encounter);
@@ -365,7 +638,15 @@ namespace Game.World
             }
         }
 
-        string EncounterPrefix { get { return SceneManager.GetActiveScene().name + "/encounter_"; } }
+        /// <summary>Encounter ids are per area. The Training Center keeps the old scene-only prefix so older saves still match.</summary>
+        string EncounterPrefix
+        {
+            get
+            {
+                string scene = SceneManager.GetActiveScene().name;
+                return (area == null || area.Id == WorldAreas.Training ? scene : scene + "/" + area.Id) + "/encounter_";
+            }
+        }
 
         /// <summary>How many encounters in this area are currently beaten.</summary>
         public int BeatenEncountersHere()
@@ -380,21 +661,103 @@ namespace Game.World
         public void ResummonEncounters()
         {
             WorldSession.DefeatedEncounters.RemoveWhere(id => id.StartsWith(EncounterPrefix));
-            SaveGame.Save();
-            WorldSession.HasReturnPoint = true;
-            WorldSession.ReturnPosition = player.transform.position;
-            WorldSession.ReturnFacing = player.Sprite.Facing;
-            WorldSession.PendingSpeaker = LeaderName;
-            WorldSession.PendingMessage = "{red}Signal sent.{/c}{p} Something is {shake}stirring{/shake} in the plaza again.";
-            StartCoroutine(ReloadArea());
+            ReloadHere(LeaderName, StoryText.Text("beacon.sent"), new Color(1f, 0.3f, 0.2f, 0.5f));
         }
 
-        IEnumerator ReloadArea()
+        /// <summary>Saves, then reloads this area with you standing where you are and a message once it is back.</summary>
+        void ReloadHere(string speaker, string message, Color fade)
         {
+            if (transitioning) return;
+            transitioning = true;
             cutscene = true;
-            UI.SetFade(new Color(1f, 0.3f, 0.2f, 0.5f));
-            yield return UI.FadeTo(Color.black, 0.4f);
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            UI.HidePrompt();
+            WorldSession.ReturnTo(CurrentSpot());
+            WorldSession.PendingSpeaker = speaker;
+            WorldSession.PendingMessage = message;
+            SaveGame.Save();
+            UI.SetFade(fade);
+            ScreenFade.LoadScene(SceneManager.GetActiveScene().name);
+        }
+
+        WorldSession.Spot CurrentSpot()
+        {
+            return new WorldSession.Spot { area = area.Id, position = player.transform.position, facing = player.Sprite.Facing };
+        }
+
+        // ------------------------------------------------------------------ Access Points and chests
+
+        /// <summary>
+        /// An Access Point: full HP, it becomes where a lost fight wakes you, every beaten patrol machine comes back
+        /// (story fights don't), and the game saves. If machines return here, the area reloads around you.
+        /// </summary>
+        public void RestAtAccessPoint(Vector3 standPoint)
+        {
+            int beatenHere = BeatenEncountersHere();
+            WorldSession.LastAccessPoint = new WorldSession.Spot { area = area.Id, position = standPoint, facing = player.Sprite.Facing };
+            WorldSession.RestoreParty();
+            WorldSession.RespawnPatrols();
+            RefreshPartyHud();
+            string speaker = StoryText.Speaker("access.rest");
+            if (beatenHere > 0)
+            {
+                ReloadHere(speaker, StoryText.Text("access.rest") + "{p} " + StoryText.Text("access.respawn"), new Color(0.45f, 0.85f, 1f, 0.5f));
+                return;
+            }
+            SaveGame.Save();
+            UI.Say(speaker, StoryText.Text("access.rest"), DialogueVoice.System);
+        }
+
+        /// <summary>Loot chests ('c'): each holds the area's Part for it (WorldAreas.Area.Chests, reading order), once.</summary>
+        void SpawnLootChests()
+        {
+            var cells = Map.FindAll('c');
+            for (int i = 0; i < cells.Count; i++)
+            {
+                var go = WorldFx.Chest(transform, Map.CellCenter(cells[i].x, cells[i].y));
+                var chest = go.AddComponent<LootChestInteractable>();
+                chest.part = i < area.Chests.Count ? area.Chests[i] : null;
+                chest.flag = "chest." + area.Id + "." + i;
+                if (StoryState.Has(chest.flag)) chest.ShowOpen();
+                interactables.Add(chest);
+            }
+        }
+
+        public void OpenLootChest(LootChestInteractable chest)
+        {
+            if (StoryState.Has(chest.flag) || string.IsNullOrEmpty(chest.part))
+            {
+                UI.Say("", StoryText.Text("chest.empty"), DialogueVoice.Default);
+                return;
+            }
+            StoryState.Set(chest.flag);
+            chest.ShowOpen();
+            string found = GiveItem(chest.part);
+            SaveGame.Save();
+            UI.Say("", found, DialogueVoice.Default);
+        }
+
+        /// <summary>Puts a Part (asset name) in the inventory and returns the "You got the ..." line for it.</summary>
+        public static string GiveItem(string partName)
+        {
+            var part = WorldSession.Catalog != null ? WorldSession.Catalog.Find(partName) : null;
+            if (part != null) WorldSession.AddPart(part);
+            return StoryText.Text("item.found", "item", part != null ? part.DisplayName : partName, "desc", part != null ? part.description : "");
+        }
+
+        /// <summary>
+        /// After the formation changes: if someone else now leads, walk as them, and redraw the party HUD.
+        /// </summary>
+        public void RefreshParty()
+        {
+            var lead = Lead;
+            if (player != null && lead != null && player.name != LeaderName)
+            {
+                var position = player.transform.position;
+                int facing = player.Sprite.Facing;
+                Destroy(player.gameObject);
+                SpawnPlayerAt(position, facing);
+            }
+            RefreshPartyHud();
         }
 
         /// <summary>Crew menu: make <paramref name="member"/> the leader and switch to playing as them.</summary>
@@ -415,7 +778,11 @@ namespace Game.World
             foreach (var cell in Map.FindAll('A'))
             {
                 var point = WorldFx.AccessPoint(transform, Map.CellCenter(cell.x, cell.y));
-                interactables.Add(point.AddComponent<AccessPointInteractable>());
+                var access = point.AddComponent<AccessPointInteractable>();
+                // A purple square on its first free side (south first): stand there and press F to heal.
+                access.standPoint = BesideCell(cell);
+                WorldFx.FloorMarker(transform, access.standPoint, WorldArt.HealPurple);
+                interactables.Add(access);
             }
         }
 
@@ -453,7 +820,7 @@ namespace Game.World
 
         string EncounterId(Vector2Int cell)
         {
-            return SceneManager.GetActiveScene().name + "/encounter_" + cell.x + "_" + cell.y;
+            return EncounterPrefix + cell.x + "_" + cell.y;
         }
 
         static Sprite[,] PlaceholderFrames()
@@ -476,8 +843,18 @@ namespace Game.World
             }
             if (player == null || UI == null) return;
             if (drift != null) drift.position = player.transform.position + new Vector3(0f, 7f, 3f);
+            // Where you are, for the save (Continue puts you back here).
+            if (!transitioning)
+            {
+                if (WorldSession.PlayerSpot == null) WorldSession.PlayerSpot = new WorldSession.Spot();
+                WorldSession.PlayerSpot.area = area.Id;
+                WorldSession.PlayerSpot.position = player.transform.position;
+                WorldSession.PlayerSpot.facing = player.Sprite.Facing;
+            }
 
-            bool menuOpen = menu != null && menu.IsOpen;
+            bool menuOpen = (menu != null && menu.IsOpen) || (title != null && title.IsOpen) || (pauseCards != null && pauseCards.IsOpen)
+                            || (formation != null && formation.IsOpen)
+                            || (chestPanel != null && chestPanel.IsOpen);
             player.Frozen = cutscene || UI.DialogueOpen || menuOpen;
             if (menuOpen)
             {
@@ -485,11 +862,15 @@ namespace Game.World
                 UI.HidePrompt();
                 return;
             }
+            // Esc: the card menu (Quit / Save / Resume / Party).
             if (Input.GetKeyDown(KeyCode.Escape) && menu != null && menu.LastToggleFrame != Time.frameCount
+                && pauseCards != null && pauseCards.LastToggleFrame != Time.frameCount
+                && chestPanel != null && chestPanel.LastToggleFrame != Time.frameCount
+                && formation != null && formation.LastToggleFrame != Time.frameCount
                 && !UI.Dialogue.gameObject.activeSelf && !cutscene && !transitioning)
             {
                 UI.HidePrompt();
-                menu.Open();
+                pauseCards.Open();
                 return;
             }
             if (UI.DialogueOpen)
@@ -499,6 +880,18 @@ namespace Game.World
                 UI.HidePrompt();
                 return;
             }
+
+            // Story: stepping onto a new square (triggers) and the scanner (Q).
+            int px, prow;
+            Map.WorldToCell(player.transform.position, out px, out prow);
+            var nowCell = new Vector2Int(px, prow);
+            if (nowCell != playerCell)
+            {
+                bool first = playerCell.x < 0;
+                playerCell = nowCell;
+                if (!first && !Busy) ChapterOneDirector.OnEnterCell(this, nowCell, Map.At(px, prow));
+            }
+            if (Input.GetKeyDown(KeyCode.Q) && !Busy) ChapterOneDirector.Scan(this);
 
             focused = null;
             if (!transitioning)
@@ -516,7 +909,15 @@ namespace Game.World
                 }
             }
 
-            if (focused != null) UI.ShowPrompt(interactKey.ToString(), focused.Prompt, focused.PromptAnchor, cam);
+            // Prompts are simply "[F] Talk" for people and "[F] Interact" for everything else, for now
+            // (each interactable still has its own Prompt text for later).
+            if (focused != null)
+            {
+                var talk = focused as TalkInteractable;
+                bool person = talk != null && string.IsNullOrEmpty(talk.prompt);
+                string verb = person ? "Talk" : focused is AccessPointInteractable ? "Heal" : "Interact";
+                UI.ShowPrompt(interactKey.ToString(), verb, focused.PromptAnchor, cam);
+            }
             else UI.HidePrompt();
         }
 
@@ -567,7 +968,49 @@ namespace Game.World
                 UI.Say("System", "No BattleSetup assigned to this encounter.", DialogueVoice.System);
                 return;
             }
-            StartCoroutine(BattleTransition(encounter));
+            // Every fight opens the pre-fight screen first: choose who to bring, then Start.
+            UI.HidePrompt();
+            formation.OpenPreFight(() => BuildSetup(encounter), () => StartCoroutine(BattleTransition(encounter)));
+        }
+
+        /// <summary>
+        /// The fight an encounter starts, as the battle will run it: the formation's active members and backup, no more
+        /// machines than active members, and (in the Training Center) the chest's level and boss mode.
+        /// </summary>
+        public BattleSetup BuildSetup(EncounterInteractable encounter)
+        {
+            var setup = Instantiate(encounter.setup);
+            setup.name = encounter.setup.name;
+            setup.party = WorldSession.FormationActive(encounter.setup.party);
+            setup.backup = WorldSession.FormationBackup(encounter.setup.party);
+            // A defined fight (story / area encounters): exactly its enemies, at its level.
+            var def = encounter.def;
+            var catalog = EnemyCatalog.Get();
+            if (def != null && def.Enemies != null && catalog != null)
+            {
+                setup.enemies = new List<EnemyDefinition>();
+                foreach (var name in def.Enemies)
+                {
+                    var e = catalog.Find(name);
+                    if (e != null) setup.enemies.Add(e);
+                    else Debug.LogWarning("Bestiary has no enemy '" + name + "' (open the project in Unity once to create Chapter One's content).");
+                }
+                setup.enemyLevel = def.Level;
+                setup.boss = def.Boss;
+                if (setup.enemies.Count > 0) return setup;
+                setup.enemies = new List<EnemyDefinition>(encounter.setup.enemies);
+            }
+            // No more machines than active members: MC alone (a new game) faces one, the full crew faces them all.
+            if (setup.party.Count > 0 && setup.enemies.Count > setup.party.Count)
+                setup.enemies = setup.enemies.GetRange(0, setup.party.Count);
+            // Training Center fights use the chest's level; a boss fight is one big machine.
+            if (area != null && area.Id == WorldAreas.Training)
+            {
+                setup.enemyLevel = WorldSession.TrainingEnemyLevel;
+                setup.boss = WorldSession.TrainingBoss;
+                if (setup.boss && setup.enemies.Count > 1) setup.enemies = setup.enemies.GetRange(0, 1);
+            }
+            return setup;
         }
 
         IEnumerator BattleTransition(EncounterInteractable encounter)
@@ -582,13 +1025,17 @@ namespace Game.World
 
             string returnScene = SceneManager.GetActiveScene().name;
             string id = encounter.id;
-            string enemyName = encounter.displayName;
+            string winFlag = encounter.def != null ? encounter.def.WinFlag : null;
+            string winMessage = encounter.def == null ? null
+                : encounter.def.WinKey != null ? StoryText.Text(encounter.def.WinKey) : encounter.def.WinMessage;
+            string reward = encounter.def != null ? encounter.def.Reward : null;
             string leader = LeaderName;
-            var setup = Instantiate(encounter.setup);
-            setup.name = encounter.setup.name;
-            setup.party = WorldSession.Ordered(encounter.setup.party);
-            var party = WorldSession.PartyFor(setup.party);
-            BattleLauncher.Request(setup, party, WorldSession.LoadoutsFor(setup.party), result =>
+            var setup = BuildSetup(encounter);
+            // Levels, HP and loadouts for everyone who comes (the backup too).
+            var everyone = new List<CharacterDefinition>(setup.party);
+            if (setup.backup != null) everyone.Add(setup.backup);
+            var party = WorldSession.PartyFor(everyone);
+            BattleLauncher.Request(setup, party, WorldSession.LoadoutsFor(everyone), result =>
             {
                 WorldSession.PendingSpeaker = leader;
                 // Levels, XP and HP carry over; a defeat sends the party back to regroup at full HP.
@@ -599,38 +1046,48 @@ namespace Game.World
                 {
                     case BattleOutcome.Victory:
                         WorldSession.DefeatedEncounters.Add(id);
-                        WorldSession.PendingMessage = "The " + enemyName + " grinds to a halt.{p} The plaza goes quiet{p=0.4}... just wind in the leaves." +
-                            LevelUpLine(result);
+                        if (winFlag != null) StoryState.Set(winFlag);
+                        // The results screen already shows XP and level ups: only story fights say anything after
+                        // (plus the Part a story fight gives).
+                        if (!string.IsNullOrEmpty(reward))
+                        {
+                            string got = GiveItem(reward);
+                            winMessage = string.IsNullOrEmpty(winMessage) ? got : winMessage + "{p} " + got;
+                        }
+                        WorldSession.PendingMessage = winMessage;
                         break;
                     case BattleOutcome.Fled:
-                        WorldSession.PendingMessage = "Withdrawing.{p} It's still out there... {gray}we come back ready.{/c}";
+                        WorldSession.PendingMessage = StoryText.Text("battle.fled");
                         break;
                     default:
-                        WorldSession.PendingMessage = "{shake}...{/shake}We pulled back and patched up.{p} That machine hits {shake}harder{/shake} than it looks.";
+                        // A lost fight wakes you at the last Access Point you rested at (or the area's start).
+                        if (WorldSession.LastAccessPoint != null) WorldSession.ReturnTo(WorldSession.LastAccessPoint);
+                        else
+                        {
+                            WorldSession.HasReturnPoint = false;
+                            WorldSession.PlayerSpot = null;
+                        }
+                        WorldSession.PendingMessage = StoryText.Text("battle.lost");
                         break;
                 }
                 SaveGame.Save();
-                SceneManager.LoadScene(returnScene);
+                ScreenFade.LoadScene(returnScene);
             });
 
-            // Red alert flash, then cut to black.
+            // Red alert flash, then the ink fade into battle.
             UI.SetFade(new Color(1f, 0.3f, 0.2f, 0.7f));
-            yield return UI.FadeTo(Color.black, 0.45f);
-            SceneManager.LoadScene(battleScene);
-        }
-
-        /// <summary>" MC and Lucy reached a new level." style suffix for the victory message, or "".</summary>
-        static string LevelUpLine(BattleResult result)
-        {
-            var names = new List<string>();
-            foreach (var entry in result.LevelsGained) names.Add(entry.Key.DisplayName);
-            if (names.Count == 0) return "";
-            string who = names.Count == 1 ? names[0] : string.Join(", ", names.GetRange(0, names.Count - 1).ToArray()) + " and " + names[names.Count - 1];
-            return "{p} {gold}" + who + (names.Count == 1 ? " reached a new level!" : " reached new levels!") + "{/c}";
+            ScreenFade.LoadScene(battleScene);
+            yield break;
         }
 
         IEnumerator Arrive()
         {
+            var story = ChapterOneDirector.Arrival(this);
+            if (story != null)
+            {
+                yield return story;
+                yield break;
+            }
             bool returning = WorldSession.HasReturnPoint;
             UI.SetFade(Color.black);
             cutscene = true;
@@ -643,6 +1100,12 @@ namespace Game.World
                 WorldSession.PendingMessage = null;
             }
             if (!returning) yield return UI.ShowTitle(areaName, areaSubtitle);
+        }
+
+        /// <summary>An NPC whose name and lines are a script block (the first line's speaker is their name).</summary>
+        static NpcInfo Npc(int row, int col, string key, DialogueVoice voice)
+        {
+            return new NpcInfo(row, col, StoryText.Speaker(key), voice, StoryText.Texts(key));
         }
 
         struct NpcInfo

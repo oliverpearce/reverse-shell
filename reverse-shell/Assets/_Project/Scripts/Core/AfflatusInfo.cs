@@ -3,19 +3,16 @@ using UnityEngine;
 namespace Combat
 {
     /// <summary>
-    /// How the six afflatus values are named and colored in this game. Rules (the advantage wheel) live in
-    /// <see cref="AfflatusChart"/>; this is presentation only. Plant reads as "Earth" and Intellect as "Virus".
+    /// How the six elements are named and colored. Rules (the advantage wheel) live in <see cref="AfflatusChart"/>;
+    /// this is presentation only. The set was picked to match the free Super Pixel Effects Gigapack animations.
     /// </summary>
     public static class AfflatusInfo
     {
         public static string Display(Afflatus afflatus)
         {
-            switch (afflatus)
-            {
-                case Afflatus.Plant: return "Earth";
-                case Afflatus.Intellect: return "Virus";
-                default: return afflatus.ToString();
-            }
+            if (afflatus == Afflatus.None) return "Physical";
+            if (afflatus == Afflatus.Volt) return "Electric";
+            return afflatus.ToString();
         }
 
         /// <summary>The element's accent color (glows, labels).</summary>
@@ -23,12 +20,13 @@ namespace Combat
         {
             switch (afflatus)
             {
-                case Afflatus.Star: return new Color(1f, 0.86f, 0.5f);
-                case Afflatus.Mineral: return new Color(0.62f, 0.78f, 0.95f);
-                case Afflatus.Beast: return new Color(0.95f, 0.5f, 0.35f);
-                case Afflatus.Plant: return new Color(0.5f, 0.92f, 0.45f);
-                case Afflatus.Spirit: return new Color(0.55f, 0.95f, 0.95f);
-                case Afflatus.Intellect: return new Color(0.78f, 0.45f, 1f);
+                case Afflatus.Volt: return new Color(0.45f, 0.78f, 1f);     // electric blue
+                case Afflatus.Fire: return new Color(1f, 0.55f, 0.25f);     // orange
+                case Afflatus.Toxin: return new Color(0.78f, 0.95f, 0.2f);  // acid chartreuse
+                case Afflatus.Earth: return new Color(0.5f, 0.92f, 0.45f);  // moss green (Heal Bot)
+                case Afflatus.Light: return new Color(1f, 0.92f, 0.6f);     // warm gold-white
+                case Afflatus.Void: return new Color(0.78f, 0.45f, 1f);     // violet (Lucy)
+                case Afflatus.None: return new Color(0.78f, 0.76f, 0.72f);  // Physical: plain steel
             }
             return UnityEngine.Color.white;
         }

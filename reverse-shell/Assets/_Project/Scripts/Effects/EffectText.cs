@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+
 
 namespace Combat
 {
@@ -74,51 +74,13 @@ namespace Combat
         }
 
         /// <summary>
-        /// A rank's effects as sentences. Neighbouring effects that hit the same target share one sentence and name
-        /// the target once at the end: "Deal 120% ATK damage and poison 1 enemy (x1, 2 turns)."
+        /// A rank's effects as sentences: one short sentence per effect, always worded the same way whatever the rank
+        /// (so flipping ranks only changes numbers), with no commas. Status durations and stacks aren't written out:
+        /// the card shows them as status chips (icon + turns).
         /// </summary>
         public static List<EffectText> Sentences(CardRank data)
         {
-            var result = new List<EffectText>();
-            var effects = data.effects.Where(e => e != null).ToList();
-            int i = 0;
-            while (i < effects.Count)
-            {
-                var e = effects[i];
-                if (!e.Joinable)
-                {
-                    result.Add(e.Text());
-                    i++;
-                    continue;
-                }
-                int j = i + 1;
-                while (j < effects.Count && effects[j].Joinable && effects[j].TargetKey == e.TargetKey) j++;
-                var clauses = new List<EffectText>();
-                for (int k = i; k < j; k++) clauses.Add(effects[k].Clause(k == j - 1));
-                result.Add(Compose(clauses));
-                i = j;
-            }
-            return result;
-        }
-
-        static readonly System.Text.RegularExpressions.Regex Slot = new System.Text.RegularExpressions.Regex(@"\{(\d+)\}");
-
-        /// <summary>Joins clauses ("a", "a and b", "a, b and c"), renumbering their placeholders, as one capitalized sentence.</summary>
-        static EffectText Compose(List<EffectText> clauses)
-        {
-            var template = new StringBuilder();
-            var args = new List<string>();
-            for (int c = 0; c < clauses.Count; c++)
-            {
-                if (c > 0) template.Append(c == clauses.Count - 1 ? " and " : ", ");
-                int offset = args.Count;
-                template.Append(Slot.Replace(clauses[c].Template, m => "{" + (int.Parse(m.Groups[1].Value) + offset) + "}"));
-                args.AddRange(clauses[c].Args);
-            }
-            string t = template.ToString();
-            if (t.Length > 0) t = char.ToUpperInvariant(t[0]) + t.Substring(1);
-            if (!t.EndsWith(".")) t += ".";
-            return new EffectText(t, args.ToArray());
+            return data.effects.Where(e => e != null).Select(e => e.Text()).ToList();
         }
 
         /// <summary>

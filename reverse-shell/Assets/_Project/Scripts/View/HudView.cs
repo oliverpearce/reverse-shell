@@ -5,90 +5,65 @@ using UnityEngine.UI;
 
 namespace Combat.View
 {
-    /// <summary>Round counter, AP pips, cast queue, Go/Undo buttons, combat log, banner and result screen.</summary>
+    /// <summary>Turn number, AP pips, the cast queue (click it to take every card back), Go, banner and result screen.</summary>
     public class HudView : MonoBehaviour
     {
         // Reverse: 1999 look (InkStyle): ink panels with gold hairlines, serif headings, gold numbers.
         static readonly Color PanelDark = InkStyle.InkPanel;
         static readonly Color Gold = InkStyle.Gold;
-        const int MaxLogLines = 7;
 
         public RectTransform QueueRow { get; private set; }
 
         BattleView view;
-        Text roundText, logText, bannerText, resultText;
+        Text bannerText, turnText;
         CanvasGroup bannerGroup;
         Image bannerBg;
-        RectTransform apRow;
         GameObject resultPanel;
-        RectTransform rewardsRect;
-        Button goButton, undoButton;
-        readonly List<string> logLines = new List<string>();
+        RectTransform resultContent;
+        GameObject resultButton;
+        Button goButton, queueButton;
         Coroutine bannerRoutine;
-        Text queueLabel, resultButtonLabel;
+        Text resultButtonLabel;
         List<CardInstance> queued = new List<CardInstance>();
         int currentAP;
 
         public void Build(BattleView battleView)
         {
             view = battleView;
-            CardSettings.Changed += RebuildQueue;
             var root = (RectTransform)transform;
             root.Fill();
 
-            var topLeft = new Vector2(0f, 1f);
-            var bottomLeft = Vector2.zero;
             var bottomRight = new Vector2(1f, 0f);
 
-            // Turn counter: a serif "Turn N" on an ink plate with the hero frame.
-            var roundPlate = InkStyle.Panel(root, "RoundPlate", PanelDark);
-            roundPlate.rectTransform.Place(topLeft, topLeft, new Vector2(24f, -18f), new Vector2(260f, 76f));
-            InkStyle.HeroFrame(roundPlate.rectTransform, InkStyle.Gold, 6f);
-            roundText = InkStyle.Title(roundPlate.transform, "Round", "", 50, InkStyle.Paper, TextAnchor.MiddleCenter);
-            roundText.rectTransform.Fill(6f);
-
-            var logBg = UIFactory.CreateImage(root, "Log", PanelDark);
-            logBg.rectTransform.Place(topLeft, topLeft, new Vector2(24f, -108f), new Vector2(440f, 150f));
-            InkStyle.Frame(logBg.rectTransform, InkStyle.Rule, 1f);
-            logText = UIFactory.CreateText(logBg.transform, "Text", "", 15, new Color(0.88f, 0.88f, 0.92f), TextAnchor.LowerLeft);
-            logText.verticalOverflow = VerticalWrapMode.Truncate;
-            logText.rectTransform.Fill(10f);
-
-            // AP pips (bottom-left)
-            var apLabel = UIFactory.CreateText(root, "APLabel", "AP", 40, Gold, TextAnchor.MiddleLeft);
-            apLabel.font = UIFactory.SerifFont;
-            apLabel.gameObject.AddComponent<Shadow>().effectColor = InkStyle.Ink;
-            apLabel.rectTransform.Place(bottomLeft, bottomLeft, new Vector2(30f, 246f), new Vector2(70f, 50f));
-            apRow = UIFactory.CreateRect("APRow", root).Place(bottomLeft, bottomLeft, new Vector2(96f, 254f), new Vector2(300f, 32f));
-
-            var hint = UIFactory.CreateText(root, "Hint",
-                "Click card: queue (1 AP)\nDrag card: move & merge (1 AP)\nClick enemy: target\nHold a unit: full details", 15,
-                new Color(0.85f, 0.85f, 0.9f, 0.9f), TextAnchor.UpperLeft);
-            hint.rectTransform.Place(bottomLeft, bottomLeft, new Vector2(30f, 160f), new Vector2(280f, 80f));
-            hint.gameObject.AddComponent<Shadow>().effectColor = InkStyle.Ink;
-
-            // Queue
-            // The queue sits in the middle, right above the hand: the cards you're about to play, in order.
+            // Turn counter, top-left: one line ("TURN 3") with room to spare so it never wraps. No AP pips (the
+            // empty queue slots are the AP left).
+            var topLeft = new Vector2(0f, 1f);
+            turnText = UIFactory.CreateText(root, "Turn", "", 44, InkStyle.Paper, TextAnchor.UpperLeft, FontStyle.Bold);
+            turnText.supportRichText = true;
+            turnText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            turnText.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.85f);
+            turnText.rectTransform.Place(topLeft, topLeft, new Vector2(32f, -24f), new Vector2(420f, 80f));
+            // Queue: a slim row of slots right above the hand (no panel, no labels): the cards you're about to play,
+            // in order, then an empty frame per AP left.
             var bottomCenter = new Vector2(0.5f, 0f);
-            queueLabel = InkStyle.Title(root, "QueueLabel", "QUEUE", 30, InkStyle.Paper, TextAnchor.MiddleCenter);
-            queueLabel.gameObject.AddComponent<Shadow>().effectColor = InkStyle.Ink;
-            queueLabel.rectTransform.Place(bottomCenter, bottomCenter, new Vector2(-60f, 384f), new Vector2(440f, 36f));
-            var queueBg = UIFactory.CreateImage(root, "Queue", PanelDark);
-            queueBg.rectTransform.Place(bottomCenter, bottomCenter, new Vector2(-60f, 290f), new Vector2(440f, 88f));
+            var queueBg = UIFactory.CreateImage(root, "Queue", new Color(0f, 0f, 0f, 0f));
+            queueBg.rectTransform.Place(bottomCenter, bottomCenter, new Vector2(-60f, 384f), new Vector2(440f, 76f));
             QueueRow = queueBg.rectTransform;
-            InkStyle.Frame(UIFactory.CreateRect("QueueFrame", root).Place(bottomCenter, bottomCenter, new Vector2(-60f, 290f), new Vector2(440f, 88f)), InkStyle.Rule, 1f);
             var layout = queueBg.gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.padding = new RectOffset(8, 8, 8, 8);
+            layout.padding = new RectOffset(4, 4, 4, 4);
             layout.spacing = 8f;
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = false;
             layout.childControlHeight = false;
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
+            // Clicking the queue sends every queued card back to the hand (this replaces the Undo button).
+            queueBg.raycastTarget = true;   // CreateImage makes images click-through by default; the chips stay click-through
+            queueButton = queueBg.gameObject.AddComponent<Button>();
+            queueButton.transition = Selectable.Transition.None;
+            queueButton.onClick.AddListener(view.OnReturnAll);
 
-            // Buttons: straight ink plates with gold hairlines. GO is the gold one.
-            undoButton = InkStyle.Button(root, "Undo", "Undo", view.OnUndo, false, 34);
-            undoButton.GetComponent<RectTransform>().Place(bottomRight, bottomRight, new Vector2(-24f, 196f), new Vector2(220f, 66f));
+            // Go: a straight ink plate with gold hairlines, the gold one.
             goButton = InkStyle.Button(root, "Go", "Go", view.OnGo, true, 60);
             goButton.GetComponent<RectTransform>().Place(bottomRight, bottomRight, new Vector2(-24f, 92f), new Vector2(260f, 92f));
 
@@ -107,23 +82,17 @@ namespace Combat.View
             result.rectTransform.Fill();
             resultPanel = result.gameObject;
             InkStyle.Grain(result.rectTransform, new Color(1f, 0.95f, 0.85f, 0.035f));
-            foreach (var y in new[] { 196f, -6f })
-            {
-                var rule = InkStyle.Line(result.transform, "Rule", InkStyle.Gold);
-                rule.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(900f, 2f));
-            }
-            resultText = InkStyle.Title(result.transform, "Text", "", 150, InkStyle.Paper, TextAnchor.MiddleCenter);
-            resultText.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 95f), new Vector2(1200f, 190f));
-            var restart = InkStyle.Button(result.transform, "Restart", "Fight Again", view.OnRestart, true, 40);
+            // The animated results (ResultScreen) build into this; the button shows when they finish.
+            resultContent = UIFactory.CreateRect("Content", result.transform).Fill();
+            var restart = InkStyle.Button(result.transform, "Restart", "Fight Again", view.OnRestart, true, 44);
             resultButtonLabel = restart.GetComponentInChildren<Text>();
-            restart.GetComponent<RectTransform>().Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -300f), new Vector2(360f, 86f));
-            rewardsRect = UIFactory.CreateRect("Rewards", result.transform).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(660f, 240f));
+            restart.GetComponent<RectTransform>().Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(420f, 96f));
+            resultButton = restart.gameObject;
             resultPanel.SetActive(false);
         }
 
         void OnDestroy()
         {
-            CardSettings.Changed -= RebuildQueue;
         }
 
         public void BringOverlaysToFront()
@@ -136,25 +105,36 @@ namespace Combat.View
         {
             if (goButton.interactable != interactable) goButton.interactable = interactable;
             bool undo = interactable && view.Controller.CanUndo;
-            if (undoButton.interactable != undo) undoButton.interactable = undo;
+            if (queueButton.interactable != undo) queueButton.interactable = undo;
         }
 
         public void SetRound(int round)
         {
-            roundText.text = "Turn " + round;
+            turnText.text = "<color=#" + ColorUtility.ToHtmlStringRGB(Gold) + ">TURN</color>  " + round;
         }
 
-        public void SetActionPoints(int current, int max)
+        /// <summary>AP shows as the empty queue slots; AP spent on moves shows as locked "Card Moved" slots.</summary>
+        public void SetActionPoints(int current, int max, int moves = 0)
         {
             currentAP = current;
-            UIFactory.ClearChildren(apRow);
-            for (int i = 0; i < max; i++)
-            {
-                var pip = UIFactory.CreateImage(apRow, "AP" + i, i < current ? Gold : new Color(0.25f, 0.24f, 0.3f));
-                pip.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(i * 40f, 0f), new Vector2(30f, 30f));
-                pip.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-            }
+            movesUsed = moves;
             RebuildQueue();
+        }
+
+        int movesUsed;
+
+        /// <summary>Where the next card to be cast sits in the queue (world position), for the channel animation.</summary>
+        public Vector3 FirstSlotPosition
+        {
+            get
+            {
+                if (QueueRow.childCount > 0)
+                {
+                    var first = (RectTransform)QueueRow.GetChild(0);
+                    return first.TransformPoint(first.rect.center);
+                }
+                return QueueRow.TransformPoint(QueueRow.rect.center);
+            }
         }
 
         public void SetQueue(List<CardInstance> queue)
@@ -170,12 +150,11 @@ namespace Combat.View
         void RebuildQueue()
         {
             UIFactory.ClearChildren(QueueRow);
-            int slots = queued.Count + currentAP;
-            queueLabel.text = "AP: " + currentAP;
+            int slots = queued.Count + movesUsed + currentAP;
 
-            const float rowWidth = 440f - 16f, gap = 8f;
+            const float rowWidth = 440f - 8f, gap = 8f;
             float chipWidth = slots > 0 ? Mathf.Min(100f, (rowWidth - gap * (slots - 1)) / slots) : 100f;
-            var chipSize = new Vector2(chipWidth, 72f);
+            var chipSize = new Vector2(chipWidth, 68f);
 
             foreach (var card in queued)
             {
@@ -185,20 +164,28 @@ namespace Combat.View
                 var outline = chip.gameObject.AddComponent<Outline>();
                 outline.effectColor = Gold;
                 outline.effectDistance = new Vector2(2f, -2f);
-                bool stars = CardSettings.RankStars;
-                var label = card.IsRitual || stars ? card.Name : card.Name + "\n" + UIFactory.Roman(card.Rank);
-                var textColor = card.IsRitual ? new Color(0.22f, 0.18f, 0.28f) : Color.white;
-                var text = UIFactory.CreateText(chip.transform, "Label", label, 14, textColor, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(9, 14);
+                // The card's own pixel icon (or the Ult art) instead of words.
+                var art = card.IsRitual ? CardArt.Ult(card.Owner.Definition) : CardArt.Icon(card.Definition);
+                if (art == null) art = CardIcons.Glyph(CardIcons.TypeOf(card.Definition));
+                var icon = UIFactory.CreateImage(chip.transform, "Icon", Color.white);
+                icon.sprite = art;
+                icon.preserveAspect = true;
+                icon.rectTransform.Fill(4f);
+                int count = card.IsRitual ? 0 : CardStars.CountFor(card);
+                if (count > 0) CardStars.Build((RectTransform)chip.transform, count, 13f, new Vector2(0f, 1f), new Vector2(4f, -3f));
+            }
+
+            // A move used up an action slot: it stays locked for the turn and says so.
+            for (int i = 0; i < movesUsed; i++)
+            {
+                var locked = UIFactory.CreateImage(QueueRow, "Moved" + i, new Color(0.12f, 0.11f, 0.1f, 0.92f));
+                locked.rectTransform.sizeDelta = chipSize;
+                var lockedEdge = locked.gameObject.AddComponent<Outline>();
+                lockedEdge.effectColor = UIFactory.WithAlpha(InkStyle.PaperDim, 0.7f);
+                lockedEdge.effectDistance = new Vector2(2f, -2f);
+                var text = UIFactory.CreateText(locked.transform, "Label", "CARD\nMOVED", 16, InkStyle.PaperDim, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(9, 16);
+                text.lineSpacing = 0.85f;
                 text.rectTransform.Fill(4f);
-                if (stars)
-                {
-                    int count = CardStars.CountFor(card);
-                    if (count > 0)
-                    {
-                        text.rectTransform.offsetMax = new Vector2(-4f, -16f); // leave the top row for the stars
-                        CardStars.Build((RectTransform)chip.transform, count, 13f, new Vector2(0f, 1f), new Vector2(4f, -3f));
-                    }
-                }
             }
 
             for (int i = 0; i < currentAP; i++)
@@ -208,16 +195,13 @@ namespace Combat.View
                 var outline = slot.gameObject.AddComponent<Outline>();
                 outline.effectColor = UIFactory.WithAlpha(Gold, 0.8f);
                 outline.effectDistance = new Vector2(2f, -2f);
-                var plus = UIFactory.CreateText(slot.transform, "Plus", "+", 34, UIFactory.WithAlpha(Gold, 0.45f), TextAnchor.MiddleCenter, FontStyle.Bold);
-                plus.rectTransform.Fill();
             }
         }
 
+        /// <summary>The battle log was removed (damage numbers and the banner say what happened); kept as a no-op so
+        /// callers don't change.</summary>
         public void Log(string line)
         {
-            logLines.Add(line);
-            while (logLines.Count > MaxLogLines) logLines.RemoveAt(0);
-            logText.text = string.Join("\n", logLines.ToArray());
         }
 
         public void ShowBanner(string text, Color color, float hold = 0.7f)
@@ -238,49 +222,9 @@ namespace Combat.View
         public void ShowResult(bool victory, BattleResult result)
         {
             resultPanel.SetActive(true);
-            ShowRewards(result);
-            resultText.text = victory ? "Victory" : "Defeat";
             resultButtonLabel.text = view.ResultButtonLabel;
-            resultText.color = victory ? InkStyle.GoldBright : InkStyle.Crimson;
-            resultPanel.transform.localScale = Vector3.one * 0.9f;
-            StartCoroutine(Tween.Scale(resultPanel.transform, Vector3.one, 0.3f, Tween.OutBack));
-        }
-
-        /// <summary>"+XP" headline, then one row per member: name, big level number, XP toward the next level.</summary>
-        void ShowRewards(BattleResult result)
-        {
-            UIFactory.ClearChildren(rewardsRect);
-            if (result == null || result.XpGained <= 0) return;
-
-            var xp = InkStyle.Title(rewardsRect, "Xp", "+" + result.XpGained + " XP", 56, Gold, TextAnchor.MiddleCenter);
-            xp.rectTransform.TopStrip(0f, 52f);
-
-            float y = 62f;
-            foreach (var entry in result.Party)
-            {
-                var member = entry.Key;
-                var progress = entry.Value;
-                int levels;
-                bool leveled = result.LevelsGained.TryGetValue(member, out levels);
-
-                var row = UIFactory.CreateImage(rewardsRect, member.DisplayName, PanelDark);
-                row.rectTransform.TopStrip(y, 52f);
-                var swatch = UIFactory.CreateImage(row.transform, "Color", member.color);
-                swatch.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(8f, 0f), new Vector2(6f, 36f));
-
-                var name = UIFactory.CreateText(row.transform, "Name", member.DisplayName, 26, Color.white, TextAnchor.MiddleLeft, FontStyle.Bold);
-                name.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(24f, 0f), new Vector2(170f, 44f));
-
-                var level = UIFactory.CreateText(row.transform, "Level", "Lv " + progress.Level, 32,
-                    leveled ? new Color(0.5f, 1f, 0.55f) : Color.white, TextAnchor.MiddleLeft, FontStyle.Bold);
-                level.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(200f, 0f), new Vector2(130f, 44f));
-
-                string right = leveled ? "LEVEL UP!" : progress.Xp + " / " + Leveling.XpToNext(progress.Level) + " XP";
-                var detail = UIFactory.CreateText(row.transform, "Detail", right, leveled ? 26 : 22,
-                    leveled ? new Color(0.5f, 1f, 0.55f) : new Color(0.75f, 0.75f, 0.8f), TextAnchor.MiddleRight, FontStyle.Bold);
-                detail.rectTransform.Place(new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-14f, 0f), new Vector2(260f, 44f));
-                y += 58f;
-            }
+            ResultScreen.Host = this;
+            StartCoroutine(ResultScreen.Play(resultContent, victory, result, resultButton));
         }
     }
 }

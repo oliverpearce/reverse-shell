@@ -8,5 +8,9 @@ namespace Combat
         /// <summary>Incantation cards dealt into the hand. Empty = the character's default incantations.</summary>
         public List<CardDefinition> Cards = new List<CardDefinition>();
         public List<PartDefinition> Parts = new List<PartDefinition>();
+        /// <summary>The active resonance's element (null = the definition's element).</summary>
+        public Afflatus? Element;
+        /// <summary>The active resonance's Ult card (null = the definition's ritual).</summary>
+        public CardDefinition Ultimate;
     }
 }

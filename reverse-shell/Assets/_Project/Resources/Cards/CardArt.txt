@@ -1,0 +1,27 @@
+# cell (left to right, top to bottom, 32 px, 4 per row) and card asset name; written by Tools/CardForge
+0 Card_MC_EdgeStrike
+1 Card_MC_CrossSlash
+2 Card_MC_SyncField
+3 Card_HealBot_BrambleLash
+4 Card_HealBot_Overgrowth
+5 Card_HealBot_SapMend
+6 Card_Lucy_VirusSpike
+7 Card_Lucy_Corrupt
+8 Card_Lucy_Worm
+9 Card_Enemy_CorrodedBlade
+10 Card_Enemy_MissileVolley
+11 Card_Enemy_NetworkLink
+12 Card_Enemy_PistonSlam
+13 Card_Enemy_ReinforcePlating
+14 Menu_Units
+15 Menu_Resume
+16 Menu_Save
+17 Menu_Quit
+18 Menu_Party
+19 Menu_Settings
+20 Card_Blue_ShieldBash
+21 Card_Blue_Bulwark
+22 Status_DefUp
+23 Card_MC_ArcEdge
+24 Card_MC_StaticField
+25 Status_Stunned

@@ -19,7 +19,7 @@ namespace Combat.Tests
             strike = TestFactory.Card("Strike");
             guard = TestFactory.Card("Guard");
             sweep = TestFactory.Card("Sweep");
-            hero = TestFactory.Character("Char_Hero", Afflatus.Star, 100f, null, strike, guard);
+            hero = TestFactory.Character("Char_Hero", Afflatus.Volt, 100f, null, strike, guard);
             hero.cardPool = new List<CardDefinition> { sweep };
 
             plating = Part("Part_Plating", PartSlot.Core, new StatModifier(StatType.MaxHP, ModifierKind.Percent, 0.2f));
@@ -109,6 +109,47 @@ namespace Combat.Tests
         }
 
         [Test]
+        public void StarterCore_IsFittedOnTheProtagonist_WithNoSpares()
+        {
+            var core = Part("Part_Fragmented", PartSlot.Core);
+            catalog.parts.Add(core);
+            catalog.starterParts.Clear();
+            catalog.starterCore = core;
+            WorldSession.GiveStarterParts();
+            var progress = WorldSession.Party[WorldSession.StartingMember];
+            Assert.AreEqual(core.name, progress.Parts[(int)PartSlot.Core]);
+            Assert.AreEqual(0, WorldSession.Inventory.Count, "no spare chips or cores");
+        }
+
+        [Test]
+        public void StarterCore_IsBound_AndCannotBeRemovedOrReplaced()
+        {
+            var core = Part("Part_Fragmented", PartSlot.Core);
+            catalog.parts.Add(core);
+            catalog.starterCore = core;
+            WorldSession.GiveStarterParts();   // also hands out the spare plating
+            var mc = TestFactory.Character(WorldSession.StartingMember, Afflatus.None, 100f, null, strike);
+            Assert.IsTrue(WorldSession.IsBound(WorldSession.PartIn(mc, PartSlot.Core)));
+            WorldSession.Unequip(mc, PartSlot.Core);
+            Assert.AreEqual(core, WorldSession.PartIn(mc, PartSlot.Core), "your own Core never comes out");
+            Assert.IsFalse(WorldSession.Equip(mc, plating), "nor is it swapped for another Core");
+            Assert.AreEqual(core, WorldSession.PartIn(mc, PartSlot.Core));
+            Assert.AreEqual(1, WorldSession.CountOf(plating));
+        }
+
+        [Test]
+        public void UltChip_StartsTheBattleWithTwoUltPoints()
+        {
+            var dummy = TestFactory.Enemy("Dummy");
+            var plain = new BattleController(new[] { hero }, new[] { dummy }, CombatConfig.Default, 3);
+            plain.StartBattle();
+            var chipped = new BattleController(new[] { hero }, new[] { dummy }, CombatConfig.Default, 3);
+            chipped.State.Party[0].Parts.Add(Part("Part_UltChip", PartSlot.Chip, new StatModifier(StatType.StartingMoxie, ModifierKind.Flat, 2f)));
+            chipped.StartBattle();
+            Assert.AreEqual(Mathf.Min(CombatConfig.Default.moxieCap, plain.State.Party[0].Moxie + 2), chipped.State.Party[0].Moxie);
+        }
+
+        [Test]
         public void Equip_KeepsMissingHP()
         {
             WorldSession.GiveStarterParts();
@@ -170,16 +211,17 @@ namespace Combat.Tests
         [Test]
         public void Elements_HaveGameNames_AndNeutralGlow()
         {
-            Assert.AreEqual("Earth", AfflatusInfo.Display(Afflatus.Plant));
-            Assert.AreEqual("Virus", AfflatusInfo.Display(Afflatus.Intellect));
-            Assert.AreEqual("Star", AfflatusInfo.Display(Afflatus.Star));
+            Assert.AreEqual("Earth", AfflatusInfo.Display(Afflatus.Earth));
+            Assert.AreEqual("Void", AfflatusInfo.Display(Afflatus.Void));
+            Assert.AreEqual("Electric", AfflatusInfo.Display(Afflatus.Volt));
+            Assert.AreEqual("Physical", AfflatusInfo.Display(Afflatus.None));
 
             hero.neutralGlow = true;
             hero.glowColor = Color.white;
             Assert.AreEqual(Color.white, AfflatusInfo.GlowFor(hero));
-            Assert.AreEqual(AfflatusInfo.Color(Afflatus.Plant), AfflatusInfo.GlowFor(hero, Afflatus.Plant), "channeling changes the hue");
+            Assert.AreEqual(AfflatusInfo.Color(Afflatus.Earth), AfflatusInfo.GlowFor(hero, Afflatus.Earth), "channeling changes the hue");
             hero.neutralGlow = false;
-            Assert.AreEqual(AfflatusInfo.Color(Afflatus.Star), AfflatusInfo.GlowFor(hero));
+            Assert.AreEqual(AfflatusInfo.Color(Afflatus.Volt), AfflatusInfo.GlowFor(hero));
         }
     }
 }

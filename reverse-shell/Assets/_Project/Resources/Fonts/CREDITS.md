@@ -1,13 +1,15 @@
 # Fonts
 
-All fonts are under the **SIL Open Font License 1.1**: M PLUS 1p and Anton from Google Fonts (https://github.com/google/fonts),
-Cormorant Garamond from its upstream project (https://github.com/CatharsisFonts/Cormorant; also on Google Fonts).
-The full license texts are next to the font files (`OFL-MPLUS1p.txt`, `OFL-Anton.txt`, `OFL-CormorantGaramond.txt`). They must ship with the fonts.
+| File | Font | Author | License | Used for |
+|---|---|---|---|---|
+| `monogram-extended.ttf` | monogram (extended, v1.1.0) | datagoblin (https://datagoblin.itch.io/monogram) | CC0 (public domain; credit appreciated) | **All UI text** (`UIFactory.PixelFont`). A 16 px pixel font: imported as Hinted Raster, point-filtered at runtime, sizes scaled by `UIFactory.FontScale`. |
 
-| File | Font | Authors | Used for |
+No longer used (kept for now; safe to delete together with their license files):
+
+| File | Font | Authors | License |
 |---|---|---|---|
-| `MPLUS1p-Light.ttf`, `-Medium.ttf`, `-Bold.ttf` | M PLUS 1p | The M+ Project Authors | All UI text: Light by default, Medium for bold text, Bold for emphasized numbers. Includes Japanese glyphs. |
-| `Anton-Regular.ttf` | Anton | The Anton Project Authors (Vernon Adams) | Dialogue speaker tags |
-| `CormorantGaramond-SemiBold.ttf` | Cormorant Garamond | The Cormorant Project Authors (Christian Thalmann) | Serif headings in the Reverse: 1999-style UI (`UIFactory.SerifFont`) |
+| `MPLUS1p-Light.ttf`, `-Medium.ttf`, `-Bold.ttf` | M PLUS 1p | The M+ Project Authors | SIL OFL 1.1 (`OFL-MPLUS1p.txt`) |
+| `Anton-Regular.ttf` | Anton | The Anton Project Authors (Vernon Adams) | SIL OFL 1.1 (`OFL-Anton.txt`) |
+| `CormorantGaramond-SemiBold.ttf` | Cormorant Garamond | The Cormorant Project Authors (Christian Thalmann) | SIL OFL 1.1 (`OFL-CormorantGaramond.txt`) |
 
-They live in `Resources/` so code can load them with `Resources.Load<Font>("Fonts/...")` (see `UIFactory`).
+Fonts live in `Resources/` so code can load them with `Resources.Load<Font>("Fonts/...")` (see `UIFactory`).

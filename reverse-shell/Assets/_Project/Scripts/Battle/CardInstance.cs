@@ -10,6 +10,10 @@ namespace Combat
         public readonly BattleUnit Owner;
         public readonly int Rank;
 
+        /// <summary>The enemy this card was aimed at when it was played (the target cursor at that moment). A
+        /// single-target attack hits it if it's still standing, otherwise the current target.</summary>
+        public BattleUnit Target;
+
         public CardInstance(CardDefinition definition, BattleUnit owner, int rank)
         {
             Id = ++nextId;

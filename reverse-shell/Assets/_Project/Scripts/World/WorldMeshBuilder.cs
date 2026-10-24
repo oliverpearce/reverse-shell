@@ -112,8 +112,17 @@ namespace Game.World
         {
             switch (c)
             {
-                case '=': return new Vector2Int(0, 4);
+                case '=':
+                case ':': return new Vector2Int(0, 4);
+                case 'K':
+                case 'U':
+                case 'J':
+                case 'w':
                 case 'P':
+                case 'G':
+                case 'C':
+                case 'c':
+                case 'W':
                 case 'X':
                 case 'E': return new Vector2Int(2, 4);
                 case ',':

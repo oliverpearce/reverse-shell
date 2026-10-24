@@ -61,6 +61,15 @@ namespace Combat
     {
         public int Current;
         public int Max;
+        /// <summary>AP spent on moves this turn (shown as locked "Card Moved" slots).</summary>
+        public int Moves;
+    }
+
+    /// <summary>A backup member steps onto the field in place of a fallen one.</summary>
+    public class UnitEnteredEvent : BattleEvent
+    {
+        public BattleUnit Unit;
+        public BattleUnit Replaces;
     }
 
     public class MoxieChangedEvent : BattleEvent

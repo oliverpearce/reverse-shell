@@ -18,7 +18,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   isDebuff: 0
   stackRule: 1
-  maxStacks: 3
+  maxStacks: 2
   modifiers:
   - stat: 8
     kind: 0
@@ -26,5 +26,5 @@ MonoBehaviour:
   damagePerRoundPercentMaxHP: 0
   healPerRoundPercentMaxHP: 0
   preventsAction: 0
-  description: +12% incantation damage per stack.
+  description: +12% incantation damage per level.
   verb: 

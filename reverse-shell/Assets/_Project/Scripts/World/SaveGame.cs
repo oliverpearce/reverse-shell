@@ -7,15 +7,124 @@ using UnityEngine;
 namespace Game.World
 {
     /// <summary>
-    /// Saves WorldSession (party level, XP, HP and loadout, party order / leader, spare Parts and defeated encounters) as JSON in
-    /// Application.persistentDataPath/save.json. The overworld saves after every battle and at Access Points,
+    /// Saves WorldSession (party level, XP, HP and loadout, party order / leader, spare Parts and defeated encounters) as JSON in a
+    /// slot file, Application.persistentDataPath/save_N.json (picked on the title screen). The overworld saves after every battle and at Access Points,
     /// and loads once when the game starts. In the editor, Tools > Overworld > Delete Save Data starts fresh.
     /// </summary>
     public static class SaveGame
     {
         public const int Version = 2;
 
-        public static string FilePath { get { return Path.Combine(Application.persistentDataPath, "save.json"); } }
+        /// <summary>Save slots (chosen on the title screen): save_1.json .. save_3.json.</summary>
+        public const int SlotCount = 3;
+        public static int Slot = 1;
+
+        public static string FilePath { get { return SlotPath(Slot); } }
+
+        public static string SlotPath(int slot)
+        {
+            MigrateLegacyFile();
+            return Path.Combine(Application.persistentDataPath, "save_" + slot + ".json");
+        }
+
+        /// <summary>The single save.json from before slots becomes slot 1 (once).</summary>
+        static void MigrateLegacyFile()
+        {
+            string legacy = Path.Combine(Application.persistentDataPath, "save.json");
+            string first = Path.Combine(Application.persistentDataPath, "save_1.json");
+            try
+            {
+                if (File.Exists(legacy) && !File.Exists(first)) File.Move(legacy, first);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("Couldn't move the old save to slot 1: " + e.Message);
+            }
+        }
+
+        public static bool Exists(int slot)
+        {
+            return File.Exists(SlotPath(slot));
+        }
+
+        /// <summary>What the title screen shows for a slot: the leader, their level and when it was saved. Null if empty.</summary>
+        public class Summary
+        {
+            public string Leader;
+            /// <summary>The protagonist's chosen name ("" if none yet).</summary>
+            public string PlayerName;
+            /// <summary>The area the save is in, as shown ("The City Ruins").</summary>
+            public string AreaName;
+            public int Level;
+            public DateTime Saved;
+        }
+
+        public static Summary Peek(int slot)
+        {
+            string path = SlotPath(slot);
+            if (!File.Exists(path)) return null;
+            try
+            {
+                var data = JsonUtility.FromJson<Data>(File.ReadAllText(path));
+                var summary = new Summary { Saved = File.GetLastWriteTime(path), Leader = "", Level = 1, PlayerName = data.playerName ?? "",
+                    AreaName = AreaTitle(data.area) };
+                string leader = data.partyOrder != null && data.partyOrder.Count > 0 ? Migrate(data.partyOrder[0]) : null;
+                foreach (var m in data.party)
+                    if (m.progress != null && (leader == null || Migrate(m.id) == leader))
+                    {
+                        summary.Leader = Migrate(m.id);
+                        summary.Level = m.progress.Level;
+                        break;
+                    }
+                return summary;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>"THE CITY RUINS" as "The City Ruins".</summary>
+        static string AreaTitle(string id)
+        {
+            var name = WorldAreas.Get(string.IsNullOrEmpty(id) ? WorldAreas.City : id).Name ?? "";
+            return System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(name.ToLowerInvariant());
+        }
+
+        /// <summary>
+        /// A save slot as the title screen and the Save page show it: "Slot 2   oli · Lv 4 · The City Ruins · 23 Oct, 14:05"
+        /// (rich text; <paramref name="markCurrent"/> tags the slot this game saves to).
+        /// </summary>
+        public static string SlotLabel(int slot, bool markCurrent)
+        {
+            var summary = Peek(slot);
+            string head = "Slot " + slot + (markCurrent && slot == Slot ? " <color=#C2A061>(current)</color>" : "");
+            if (summary == null) return head + "   <color=#8A857A>Empty</color>";
+            string who = summary.Leader;
+            if (who == WorldSession.StartingMember && !string.IsNullOrEmpty(summary.PlayerName)) who = summary.PlayerName;
+            else if (who != null && who.StartsWith("Char_")) who = who.Substring(5);
+            return head + "   " + Combat.View.UIFactory.Size(28) + who + "  ·  Lv " + summary.Level + "  ·  " + summary.AreaName
+                   + "  ·  " + summary.Saved.ToString("d MMM, HH:mm") + "</size>";
+        }
+
+        /// <summary>The most recently written slot, or 0 when there are none.</summary>
+        public static int LatestSlot()
+        {
+            int best = 0;
+            DateTime newest = DateTime.MinValue;
+            for (int i = 1; i <= SlotCount; i++)
+            {
+                string path = SlotPath(i);
+                if (!File.Exists(path)) continue;
+                var t = File.GetLastWriteTime(path);
+                if (t > newest)
+                {
+                    newest = t;
+                    best = i;
+                }
+            }
+            return best;
+        }
 
         [Serializable]
         public class Data
@@ -28,6 +137,29 @@ namespace Game.World
             /// <summary>Spare Parts (version 2).</summary>
             public List<PartStack> inventory = new List<PartStack>();
             public bool starterPartsGiven;
+            /// <summary>The overworld area you were in (WorldAreas id); empty in older saves = the city.</summary>
+            public string area;
+            /// <summary>Who has joined the party (asset names); empty in older saves = everyone.</summary>
+            public List<string> members = new List<string>();
+            /// <summary>The formation: 3 active slots then the backup ("" = empty). Empty in older saves = filled in order.</summary>
+            public List<string> formation = new List<string>();
+            /// <summary>Story progress (StoryState): flags set so far, and the protagonist's chosen name.</summary>
+            public List<string> flags = new List<string>();
+            /// <summary>Unlocked resonances and the active one, by element name ("" = Physical).</summary>
+            public List<string> resonances = new List<string>();
+            public string activeResonance = "";
+            public string playerName = "";
+            /// <summary>The Training Center chest (0 in older saves = the default level).</summary>
+            public int trainingLevel;
+            public bool trainingBoss;
+            /// <summary>Where Leave Training Mode returns to (set when you enter the Training Center from Settings).</summary>
+            public bool hasTrainingReturn;
+            public string trainingReturnArea;
+            public Vector3 trainingReturnPosition;
+            public int trainingReturnFacing;
+            /// <summary>Where you were when this was saved, and the last Access Point you rested at (empty area = none).</summary>
+            public WorldSession.Spot position;
+            public WorldSession.Spot accessPoint;
         }
 
         [Serializable]
@@ -68,6 +200,21 @@ namespace Game.World
             foreach (var entry in WorldSession.Inventory)
                 if (entry.Value > 0) data.inventory.Add(new PartStack { id = entry.Key, count = entry.Value });
             data.starterPartsGiven = WorldSession.StarterPartsGiven;
+            data.area = WorldSession.CurrentArea;
+            data.members.AddRange(WorldSession.Members);
+            data.formation.AddRange(WorldSession.Formation);
+            data.flags.AddRange(StoryState.Flags);
+            foreach (var r in WorldSession.UnlockedResonances) data.resonances.Add(r.ToString());
+            data.activeResonance = WorldSession.ActiveResonance.ToString();
+            data.playerName = StoryState.PlayerName ?? "";
+            data.trainingLevel = WorldSession.TrainingEnemyLevel;
+            data.trainingBoss = WorldSession.TrainingBoss;
+            data.hasTrainingReturn = WorldSession.HasTrainingReturn;
+            data.trainingReturnArea = WorldSession.TrainingReturnArea ?? "";
+            data.trainingReturnPosition = WorldSession.TrainingReturnPosition;
+            data.trainingReturnFacing = WorldSession.TrainingReturnFacing;
+            data.position = WorldSession.PlayerSpot != null ? WorldSession.PlayerSpot.Clone() : null;
+            data.accessPoint = WorldSession.LastAccessPoint != null ? WorldSession.LastAccessPoint.Clone() : null;
             return data;
         }
 
@@ -78,7 +225,39 @@ namespace Game.World
             WorldSession.PartyOrder.Clear();
             WorldSession.Inventory.Clear();
             WorldSession.StarterPartsGiven = false;
+            WorldSession.Members.Clear();
+            StoryState.Clear();
+            WorldSession.UnlockedResonances.Clear();
+            WorldSession.ActiveResonance = Combat.Afflatus.None;
+            if (data != null && data.resonances != null)
+                foreach (var r in data.resonances)
+                {
+                    Combat.Afflatus element;
+                    if (System.Enum.TryParse(r, out element)) WorldSession.UnlockedResonances.Add(element);
+                }
+            Combat.Afflatus active;
+            if (data != null && !string.IsNullOrEmpty(data.activeResonance) && System.Enum.TryParse(data.activeResonance, out active))
+                WorldSession.ActiveResonance = active;
+            if (data != null && data.flags != null) foreach (var f in data.flags) StoryState.Flags.Add(f);
+            if (data != null && !string.IsNullOrEmpty(data.playerName)) StoryState.SetName(data.playerName);
+            for (int i = 0; i < WorldSession.FormationSlots; i++)
+                WorldSession.Formation[i] = data != null && data.formation != null && i < data.formation.Count ? Migrate(data.formation[i] ?? "") : "";
+            WorldSession.TrainingEnemyLevel = data != null && data.trainingLevel > 0 ? data.trainingLevel : Combat.BattleUnit.DefaultEnemyLevel;
+            WorldSession.TrainingBoss = data != null && data.trainingBoss;
+            WorldSession.HasTrainingReturn = data != null && data.hasTrainingReturn;
+            WorldSession.TrainingReturnArea = data != null && !string.IsNullOrEmpty(data.trainingReturnArea) ? data.trainingReturnArea : WorldAreas.City;
+            WorldSession.TrainingReturnPosition = data != null ? data.trainingReturnPosition : Vector3.zero;
+            WorldSession.TrainingReturnFacing = data != null ? data.trainingReturnFacing : 0;
+            WorldSession.CurrentArea = data != null && !string.IsNullOrEmpty(data.area) ? data.area : WorldAreas.City;
+            WorldSession.LastAccessPoint = data != null && data.accessPoint != null && !string.IsNullOrEmpty(data.accessPoint.area)
+                ? data.accessPoint.Clone() : null;
+            // Continue puts you where you saved (only if it is in the saved area: a save made mid-travel has none).
+            WorldSession.PlayerSpot = null;
+            if (data != null && data.position != null && data.position.area == WorldSession.CurrentArea)
+                WorldSession.ReturnTo(data.position);
             if (data == null) return;
+            if (data.members != null)
+                foreach (var id in data.members) WorldSession.Members.Add(Migrate(id));
             if (data.partyOrder != null)
                 foreach (var id in data.partyOrder) WorldSession.PartyOrder.Add(Migrate(id));
             foreach (var member in data.party)
@@ -119,9 +298,17 @@ namespace Game.World
             }
         }
 
+        /// <summary>Deletes the current slot's save.</summary>
         public static void Delete()
         {
             if (File.Exists(FilePath)) File.Delete(FilePath);
+        }
+
+        /// <summary>Deletes every slot (Tools > Overworld > Delete Save Data).</summary>
+        public static void DeleteAll()
+        {
+            for (int i = 1; i <= SlotCount; i++)
+                if (File.Exists(SlotPath(i))) File.Delete(SlotPath(i));
         }
     }
 }

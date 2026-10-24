@@ -30,5 +30,6 @@
 | ATK Down | fb642 |
 | Physical DEF Down | fb645 |
 | Regen | fb968 |
+| Incantation Might Up | fb877 |
 
 Incantation Might Up has no icon yet.

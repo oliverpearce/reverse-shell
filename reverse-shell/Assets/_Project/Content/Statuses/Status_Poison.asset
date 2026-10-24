@@ -18,10 +18,10 @@ MonoBehaviour:
   icon: {fileID: 0}
   isDebuff: 1
   stackRule: 1
-  maxStacks: 3
+  maxStacks: 2
   modifiers: []
   damagePerRoundPercentMaxHP: 0.03
   healPerRoundPercentMaxHP: 0
   preventsAction: 0
-  description: Lose 3% max HP per stack at round end.
+  description: Lose 3% max HP per level at round end.
   verb: poison

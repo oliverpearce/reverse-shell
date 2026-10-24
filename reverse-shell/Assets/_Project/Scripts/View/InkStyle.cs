@@ -86,10 +86,10 @@ namespace Combat.View
             return t;
         }
 
-        /// <summary>A small letter-spaced caps label ("T U R N"), the quiet captions under headings.</summary>
+        /// <summary>A caps caption ("ITEMS", "DECK"). Not letter-spaced: spaced-out pixel capitals were hard to read.</summary>
         public static Text Label(Transform parent, string name, string text, int size, Color color, TextAnchor anchor)
         {
-            return UIFactory.CreateText(parent, name, Spaced(text), size, color, anchor, FontStyle.Bold);
+            return UIFactory.CreateText(parent, name, string.IsNullOrEmpty(text) ? text : text.ToUpperInvariant(), size, color, anchor, FontStyle.Bold);
         }
 
         /// <summary>"Turn" -> "T U R N" (word gaps stay wider).</summary>
@@ -138,6 +138,57 @@ namespace Combat.View
             text.rectTransform.Fill(8f);
             root.gameObject.AddComponent<ButtonHover>();
             return button;
+        }
+
+        /// <summary>
+        /// A square close button with a drawn cross (two crossed bars, so it sits dead centre in any font), gold on hover.
+        /// </summary>
+        public static Button CloseButton(Transform parent, UnityAction onClick)
+        {
+            var button = Button(parent, "Close", "", onClick, false);
+            var label = button.transform.Find("Label");
+            if (label != null) Object.Destroy(label.gameObject);
+            foreach (float angle in new[] { 45f, -45f })
+            {
+                var bar = UIFactory.CreateImage(button.transform, "Bar", Paper);
+                bar.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(46f, 7f));
+                bar.rectTransform.localRotation = Quaternion.Euler(0f, 0f, angle);
+            }
+            return button;
+        }
+
+        /// <summary>
+        /// A "?" badge at the right end of a settings row: hovering it calls <paramref name="onEnter"/> (show the setting's
+        /// help) and leaving calls <paramref name="onExit"/>.
+        /// </summary>
+        public static Image HelpBadge(RectTransform row, System.Action onEnter, System.Action onExit)
+        {
+            var badge = UIFactory.CreateImage(row, "Help", Ink, true);
+            badge.rectTransform.Place(new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-12f, 0f), new Vector2(50f, 50f));
+            Frame(badge.rectTransform, GoldBright, 2f);
+            var q = UIFactory.CreateText(badge.transform, "Q", "?", 32, GoldBright, TextAnchor.MiddleCenter);
+            q.rectTransform.Fill();
+            var trigger = badge.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            var enter = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter };
+            enter.callback.AddListener(_ => { if (onEnter != null) onEnter(); });
+            trigger.triggers.Add(enter);
+            var exit = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit };
+            exit.callback.AddListener(_ => { if (onExit != null) onExit(); });
+            trigger.triggers.Add(exit);
+            return badge;
+        }
+
+        /// <summary>The box a settings page shows a setting's help in: an ink panel with a gold hairline and readable
+        /// text. Starts hidden; set the returned Text's text and activate its parent panel to show it.</summary>
+        public static Text HelpPanel(Transform parent, Vector2 topCenter, Vector2 size)
+        {
+            var panel = Panel(parent, "HelpPanel", InkPanel);
+            panel.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f), topCenter, size);
+            Frame(panel.rectTransform, Rule, 2f);
+            var text = UIFactory.CreateText(panel.transform, "Text", "", 26, Paper, TextAnchor.UpperLeft);
+            text.rectTransform.Fill(18f);
+            panel.gameObject.SetActive(false);
+            return text;
         }
 
         /// <summary>Subtle paper grain over a rect (tiled noise).</summary>

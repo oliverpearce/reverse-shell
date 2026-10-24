@@ -1,4 +1,4 @@
-# GAME PLAN (working title *NEON HEX*, renaming pending)
+# GAME PLAN (working title *Reverse Shell*)
 
 This is the technical roadmap. For the creative vision, see [GAME_BIBLE.md](GAME_BIBLE.md).
 **Engine:** Unity 2019.4.14f1 (C# 7.3) · **Art:** HD-2D (16 px pixel art drawn at 4× onto 64 px cells, in a 3D world) · **Render:** built-in pipeline, forward, plus Post Processing 3.0.3
@@ -9,13 +9,19 @@ This is the technical roadmap. For the creative vision, see [GAME_BIBLE.md](GAME
 
 ## Where we are
 
+### 🎯 Chapter One demo (built, awaiting play-test)
+Opening recording → naming → the City Ruins (memories, records, scanner) → the Collector → hidden route → the Buried
+Line → the Electric Dragon → Electric resonance → ending. Story flags and objectives (`World/Story`), resonance kits,
+per-area encounters, a story debug panel (F8). See HANDOFF.md "Chapter One demo". Next: a full play-test pass, real art
+for the props and enemies, audio, and approval of the draft texts (bible §13).
+
 ### ✅ Phase 0: Combat core (done)
 - A card-merge battle system: 7-card hand, adjacent merges up to rank III, 3 AP per round, Moxie that spawns a Ritual card, enemy intents, statuses, Afflatus advantage.
 - Data-driven content: Cards, Characters (with an `archetype`/class), Enemies, Statuses and Cast Sequences are all ScriptableObjects. New effects and animation steps are single subclasses.
 - Logic (`BattleController`) is separate from the view (`BattleView`), which replays `BattleEvent`s.
 - Slay the Spire-style hover preview, play-slot frames, pastel Ritual cards and big damage numbers.
 - An EditMode test suite covers merges, Moxie, AP, damage and statuses.
-- The main party is MC (Prototype, the leader; a standout robot that will channel several elements), Heal Bot (Earth medic) and Lucy (Virus hacker). Heal Bot and Lucy are one robot model with different accents. The enemies are machine lifeforms (Rust Sentry, Scrap Stalker). Enemies and NPCs are animated 32×48 LPC sprites (`SpriteAnimationSet`: idle, walk, slash, spellcast, hurt) built by `Tools/SpriteForge/lpc_compose.py`. Hovering a unit in battle opens a menu of its buffs, debuffs and intent. Holding a unit opens a full character sheet with stats, effects and abilities. The battle has a painted Mossline Station ruin backdrop with drifting leaves (`BattleBackdropDefinition`) and a pause menu (Esc or the top-right button) with Resume, Restart and Leave. The intro fight is tuned to last about 6–8 rounds.
+- The main party is MC (Prototype, the leader; a standout robot that will channel several elements), Heal Bot (Earth medic) and Lucy (Void hacker). Heal Bot and Lucy are one robot model with different accents. The enemies are machine lifeforms (Rust Sentry, Scrap Stalker). Enemies and NPCs are animated 32×48 LPC sprites (`SpriteAnimationSet`: idle, walk, slash, spellcast, hurt) built by `Tools/SpriteForge/lpc_compose.py`. Hovering a unit in battle opens a menu of its buffs, debuffs and intent. Holding a unit opens a full character sheet with stats, effects and abilities. The battle has a painted Mossline Station ruin backdrop with drifting leaves (`BattleBackdropDefinition`) and a pause menu (Esc or the top-right button) with Resume, Restart and Leave. The intro fight is tuned to last about 6–8 rounds.
 
 ---
 

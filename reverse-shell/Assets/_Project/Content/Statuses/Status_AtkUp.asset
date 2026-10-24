@@ -18,7 +18,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   isDebuff: 0
   stackRule: 1
-  maxStacks: 3
+  maxStacks: 2
   modifiers:
   - stat: 1
     kind: 1
@@ -26,5 +26,5 @@ MonoBehaviour:
   damagePerRoundPercentMaxHP: 0
   healPerRoundPercentMaxHP: 0
   preventsAction: 0
-  description: +15% ATK per stack.
+  description: +15% ATK per level.
   verb: 

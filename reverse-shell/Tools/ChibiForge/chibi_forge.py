@@ -11,8 +11,8 @@ circuit lines in their element colour); the enemies are round machine lifeforms;
 
 Output (same layout the game already uses, so nothing else changes):
   Assets/_Project/Art/Characters/<Name>/idle|walk|slash|spellcast|hurt.png
-      64 px frames; rows up, left, down, right (hurt has one row); 2 / 9 / 6 / 7 / 6 frames
-      (walk frame 0 is the standing pose).
+      64 px frames; rows up, left, down, right (hurt has one row); 8 / 13 / 10 / 12 / 9 frames
+      (walk frame 0 is the standing pose). Poses are eased curves sampled per frame, so motion is smooth.
   Assets/_Project/Art/Portraits/<Name>_front|internals[_glow].png   (party only)
       96 x 144 card art: the rig in a hero pose at the reference's pixel density (48 x 72, doubled); *_glow are white masks of the glowing
       pixels, tinted in game by the element colour.
@@ -32,7 +32,7 @@ from pngtool import write_png  # noqa: E402
 
 CHARS = os.path.join(ROOT, 'Assets', '_Project', 'Art', 'Characters')
 PORTRAITS = os.path.join(ROOT, 'Assets', '_Project', 'Art', 'Portraits')
-F = 64          # native 64 px frames, the same pixel density as the girl model (reference/Girl_walk.png)
+F = 64          # native 64 px frames
 RIG_K = 1
 OUTLINE = (32, 2, 29, 255)          # the reference's outline: #20021D
 CLEAR = (0, 0, 0, 0)
@@ -237,6 +237,7 @@ CLOTH_GRAY = ramp('#24222A', '#3E3C46', '#5E5C68', '#8A8894')
 LEAF = ramp('#1E3A1E', '#2E5E2A', '#4E8E3A', '#86C25A')
 PETAL = ramp('#8E2E52', '#C8507A', '#EE8AAE', '#FCC6DA')
 WHITE = (250, 248, 252, 255)
+ORANGE_HI = ramp('#A8401A', '#E8641E', '#FF9A3A', '#FFE2B0')   # MC's glow: deep orange to white-hot
 
 
 class Spec:
@@ -252,7 +253,7 @@ class Spec:
         self.under = BLACK_ARMOR       # bodysuit / pants
         self.glow = hx('#FFFFFF')
         self.eye = hx('#FFFFFF')
-        self.headgear = None           # crown | leaves | phones | band | cap | hood | None
+        self.headgear = None           # crown | earpiece | ornament | leaves | phones | band | cap | hood | None
         self.weapon = None             # katana | staff | dagger | piston | blade | None
         self.blade = STEEL
         self.cape = None               # ramp for coat tails / cape
@@ -261,29 +262,38 @@ class Spec:
         self.back_hair = None          # a darker ramp for the long hair behind the body (None = the hair ramp)
         self.accent = CRIMSON          # small accent details (hair ornament, sword grip, armour gems)
         self.lines = True              # glowing circuit lines on the armour (androids)
+        self.joint = None              # androids: dark leggings / sleeves ramp, with glowing knee and elbow pads and
+                                       # glowing cores on the gloves (None = plate all the way down)
+        self.hi = None                 # the glow ramp (dark..white-hot) for pads, cores, strike arcs and wing tips
+        self.wings = None              # feathered wings behind the back (a 4-tone ramp) or None
         self.size = 1.0
         self.__dict__.update(kw)
 
 
 SPECS = {
-    # The crew all share MC's design (the reference knight: no crown, plate armour head to toe with trim, the eyes
-    # in the trim colour, a cape and a greatsword); each member is a recolour of it.
-    'MC': Spec(skin=REF_SKIN, hair=REF_SLATE, back_hair=REF_DARK, hair_style='long', armor=REF_WHITE,
-               trim=REF_GOLD, under=REF_SLATE, accent=REF_CRIMSON, glow=hx('#FFF2D8'), eye=REF_GOLD[2],
-               headgear='ornament', weapon='greatsword', blade=REF_GOLD, cape=REF_DARK, lines=False),
+    # The crew all share MC's design: white plate with trim, dark leggings and sleeves with glowing knee and elbow
+    # pads, big shoulder plates, gloves, hips and chest, dark gloves with glowing cores, an earpiece like a hair
+    # ornament, the card's eyes (warm lash over a crimson-to-glow iris), unarmed (strikes leave a glowing arc).
+    # Each member is a recolour of it; MC glows orange.
+    'MC': Spec(skin=REF_SKIN, hair=REF_SLATE, hair_style='long', armor=REF_WHITE,
+               trim=ramp('#894B32', '#D2641E', '#FF8A2A', '#FFC060'), under=REF_SLATE, accent=REF_CRIMSON,
+               glow=hx('#FF8A2A'), eye=hx('#FF9A3A'), headgear='earpiece', lines=False,
+               joint=ramp('#14101A', '#221C2A', '#302838', '#443A4E'), hi=ORANGE_HI),
     'HealBot': Spec(skin=REF_SKIN, hair=ramp('#2E5232', '#3C6E36', '#5E9A48', '#8EC468'),
-                    back_hair=ramp('#0E1E10', '#1E3A1E', '#2E5232', '#406A44'), hair_style='long', armor=REF_WHITE,
+                    hair_style='long', armor=REF_WHITE,
                     trim=ramp('#1E4A1A', '#3E8A2E', '#6EC04A', '#B4EC7A'), under=REF_SLATE,
                     accent=ramp('#5A1E3A', '#B8406A', '#E07A9A', '#F4B4C8'), glow=hx('#8EF070'), eye=hx('#6EC04A'),
-                    headgear='ornament', weapon='greatsword', blade=ramp('#1E4A1A', '#3E8A2E', '#6EC04A', '#B4EC7A'),
-                    cape=ramp('#0E1E10', '#1E3A1E', '#2E5232', '#406A44'), lines=False),
+                    headgear='earpiece', lines=False,
+                    joint=ramp('#0E140E', '#1A221A', '#263026', '#384438'),
+                    hi=ramp('#2E6A1E', '#5EB03A', '#8EF070', '#E4FFD0')),
     'Lucy': Spec(skin=REF_SKIN, hair=ramp('#3E2052', '#5A2E78', '#7E48A4', '#A874CC'),
-                 back_hair=ramp('#14081E', '#24102E', '#3A1C48', '#52305E'), hair_style='long',
+                 hair_style='long',
                  armor=ramp('#2A2834', '#3E3A4C', '#5E5A70', '#827E96'),
                  trim=ramp('#3A1458', '#7A3AB0', '#B070E8', '#E2B8FF'), under=REF_SLATE,
                  accent=ramp('#2A0E3A', '#5A1E7A', '#7A2E9E', '#A24EC4'), glow=hx('#D07AFF'), eye=hx('#B070E8'),
-                 headgear='ornament', weapon='greatsword', blade=ramp('#3A1458', '#7A3AB0', '#B070E8', '#E2B8FF'),
-                 cape=ramp('#14081E', '#24102E', '#3A1C48', '#52305E'), lines=False),
+                 headgear='earpiece', lines=False,
+                 joint=ramp('#120C18', '#1E1626', '#2C2236', '#3E3248'),
+                 hi=ramp('#5A1E8A', '#9A48D8', '#D07AFF', '#F4DCFF')),
     # Machine lifeforms: round heads, barrel bodies, glowing red eyes.
     'RustSentry': Spec(kind='machine', machine=(RUST, hx('#FF5A3A')), trim=STEEL, weapon='piston', size=1.12),
     'ScrapStalker': Spec(kind='machine', machine=(MOSSY, hx('#FF8A3A')), trim=RUST, weapon='blade', blade=STEEL),
@@ -314,42 +324,100 @@ class Pose:
         self.orb = 0             # spell orb radius at the near hand (0 = none)
         self.crouch = 0          # legs shortened by this much
         self.hair_sway = 0
+        self.wing = 0            # wing tip lift (rig units): + raised / spread, - drooped
+        self.trail = None        # near-hand offsets of the last frames: an unarmed strike leaves a glowing arc
         self.__dict__.update(kw)
 
 
+def lerp_keys(keys, times, u):
+    """Values at u (0..1) between keyframes (tuples of numbers, or None) placed at `times`, eased so each
+    segment starts and ends gently (smoothstep)."""
+    for j in range(len(times) - 1):
+        if u <= times[j + 1] or j == len(times) - 2:
+            t = (u - times[j]) / float(times[j + 1] - times[j])
+            t = max(0.0, min(1.0, t))
+            t = t * t * (3 - 2 * t)
+            a, b = keys[j], keys[j + 1]
+            return tuple(x + (y - x) * t for x, y in zip(a, b))
+    return keys[-1]
+
+
+def r(v):
+    return int(round(v))
+
+
+WALK_N = 12                       # frames in one stride (the walk sheet adds the standing frame 0)
+
+
 def walk_pose(i):
-    """Walk frame i (1..8; 0 is standing). Side views stride; front / back views step in place."""
+    """Walk frame i (1..12; 0 is standing). Side views stride; front / back views step in place. The feet follow
+    sine curves sampled finely, the body rises a pixel as the legs pass, and the hair trails the arm swing."""
     if i == 0:
         return Pose()
-    t = (i - 1) / 8.0 * 2 * math.pi
-    s = math.sin(t)
-    return Pose(bob=-1 if (i - 1) % 4 in (1, 2) else 0,
-                near_foot=(round(3 * s), -max(0, round(2 * math.cos(t)))),
-                far_foot=(round(-3 * s), -max(0, round(-2 * math.cos(t)))),
-                near_hand=(round(-2 * s), 0), far_hand=(round(2 * s), 0), hair_sway=round(s))
+    t = (i - 1) / float(WALK_N) * 2 * math.pi
+    s, c = math.sin(t), math.cos(t)
+    return Pose(bob=-1 if math.cos(2 * t) > 0.3 else 0,
+                near_foot=(r(3 * s), -max(0, r(2 * c))),
+                far_foot=(r(-3 * s), -max(0, r(-2 * c))),
+                near_hand=(r(-2 * s), 0), far_hand=(r(2 * s), 0), hair_sway=r(math.sin(t - 0.6)),
+                wing=r(0.8 * math.cos(2 * t)))
+
+
+IDLE_N = 8
 
 
 def idle_pose(i):
-    return Pose(bob=i % 2, hair_sway=i % 2)
+    """A slow breath: the body sinks a pixel and rises again, the hair lagging a little behind."""
+    t = i / float(IDLE_N) * 2 * math.pi
+    return Pose(bob=r(0.5 - 0.5 * math.cos(t)), hair_sway=r(0.5 - 0.5 * math.cos(t - 1.0)),
+                near_hand=(0, r(0.5 - 0.5 * math.cos(t - 0.5))), far_hand=(0, r(0.5 - 0.5 * math.cos(t - 0.5))),
+                wing=r(1.5 * math.sin(t)))
+
+
+# wind up (blade up and back), swing through, follow through, recover: (angle, hand x, hand y, lean)
+SLASH_KEYS = [(-40, -2, -7, 0), (-80, -3, -10, -1), (-10, 3, -5, 1), (45, 5, 0, 2), (80, 4, 3, 1), (100, 1, 1, 0)]
+SLASH_TIMES = [0.0, 0.3, 0.45, 0.55, 0.72, 1.0]     # a slow wind-up, a fast swing, an eased recovery
+SLASH_N = 10
+
+
+def slash_hand(i):
+    _, hx_, hy, _ = lerp_keys(SLASH_KEYS, SLASH_TIMES, max(0, i) / float(SLASH_N - 1))
+    return r(hx_), r(hy)
 
 
 def slash_pose(i):
-    # wind up (blade up and back), swing through, follow through, recover
-    seq = [(-40, (-2, -7), 0), (-80, (-3, -10), -1), (-10, (3, -5), 1), (45, (5, 0), 2), (80, (4, 3), 1), (100, (1, 1), 0)]
-    a, h, lean = seq[i]
-    return Pose(weapon_angle=a, near_hand=h, lean=lean, far_hand=(1, 0))
+    a, hx_, hy, lean = lerp_keys(SLASH_KEYS, SLASH_TIMES, i / float(SLASH_N - 1))
+    u = i / float(SLASH_N - 1)
+    # unarmed: the hand leaves a glowing arc through the fast part of the swing
+    trail = [slash_hand(j) for j in (i - 2, i - 1, i)] if 0.35 <= u <= 0.75 else None
+    return Pose(weapon_angle=r(a), near_hand=(r(hx_), r(hy)), lean=r(lean), far_hand=(1, 0), trail=trail,
+                wing=r(1 - 2 * lean))
+
+
+# orb radius, hand x, hand y
+CAST_KEYS = [(0, 2, -2), (2, 6, -5), (4, 7, -5), (4, 7, -5), (0, 2, -1)]
+CAST_TIMES = [0.0, 0.3, 0.5, 0.75, 1.0]
+CAST_N = 12
 
 
 def cast_pose(i):
-    seq = [(0, (2, -2)), (1, (4, -4)), (2, (6, -5)), (3, (7, -5)), (4, (7, -5)), (3, (6, -4)), (0, (2, -1))]
-    r, h = seq[i]
-    return Pose(orb=r, near_hand=h, far_hand=(h[0] - 1, h[1] + 1), weapon_angle=130, lean=1 if r else 0)
+    rad, hx_, hy = lerp_keys(CAST_KEYS, CAST_TIMES, i / float(CAST_N - 1))
+    rad = r(rad)
+    return Pose(orb=rad, near_hand=(r(hx_), r(hy)), far_hand=(r(hx_) - 1, r(hy) + 1), weapon_angle=130,
+                lean=1 if rad else 0, wing=r(rad * 0.6))
+
+
+# lean, crouch: recoil back, then sink to the knees
+HURT_KEYS = [(0, 0), (-2, 0), (-1, 2), (0, 8)]
+HURT_TIMES = [0.0, 0.25, 0.5, 1.0]
+HURT_STAND = 6                    # standing / kneeling frames before the fall (then: falling, bounce, lying)
+HURT_N = HURT_STAND + 3
 
 
 def hurt_pose(i):
-    seq = [(0, -1, 0), (1, -2, 0), (2, -1, 2), (3, 0, 5), (4, 0, 8), (5, 0, 8)]
-    _, lean, crouch = seq[i]
-    return Pose(lean=lean, crouch=crouch, near_hand=(-2, 2), far_hand=(2, 2), weapon_angle=110)
+    lean, crouch = lerp_keys(HURT_KEYS, HURT_TIMES, i / float(HURT_STAND - 1))
+    return Pose(lean=r(lean), crouch=r(crouch), near_hand=(-2, 2), far_hand=(2, 2), weapon_angle=110,
+                wing=-r(crouch * 0.4))
 
 
 # ---------------------------------------------------------------------------------------------------- the rig
@@ -386,22 +454,30 @@ def draw(spec, pose, facing, k=1, hero=False, internals=False, w=F, h=F, ox=None
         sh_near = (body_dx - 0.5, sh_y)
         sh_far = (body_dx + 1.5, sh_y)
     else:
-        sh_near = (-5.0, sh_y)
-        sh_far = (5.0, sh_y)
+        sw = 6.6 if spec.joint else 5.0   # the crew's broad breastplate pushes the shoulders out
+        sh_near = (-sw, sh_y)
+        sh_far = (sw, sh_y)
     rest = (0, -11)
     nh = pose.near_hand or (0, 0)
     fh = pose.far_hand or (0, 0)
+
+    def near_hand_at(o):
+        if side:
+            return sh_near[0] + fwd * o[0] + fwd * 0.5, sh_near[1] - 14 - o[1]
+        return sh_near[0] - 0.8 + o[0] * (1 if not front else -1) * 0.5, sh_near[1] - 14 - o[1]
+
+    hand_near = near_hand_at(nh)
     if side:
-        hand_near = (sh_near[0] + fwd * nh[0] + fwd * 0.5, sh_near[1] - 14 - nh[1])
         hand_far = (sh_far[0] + fwd * fh[0] + 1, sh_far[1] - 14 - fh[1])
     else:
-        hand_near = (sh_near[0] - 0.8 + nh[0] * (1 if not front else -1) * 0.5, sh_near[1] - 14 - nh[1])
         hand_far = (sh_far[0] + 0.8 + fh[0] * 0.5, sh_far[1] - 14 - fh[1])
     if hero:
         hand_near = (sh_near[0] - 4, sh_near[1] + 2)   # sword hand raised beside the head
         hand_far = (sh_far[0] + 2, sh_far[1] - 9)
 
-    # ---- back layers: long hair / cape / twin tails behind the body
+    # ---- back layers: wings / long hair / cape / twin tails behind the body
+    if spec.wings and facing != UP:
+        wings(cv, spec, pose, facing, P, sh_y, body_dx)
     if spec.cape and facing != UP:
         cape = Part()
         if side:
@@ -437,6 +513,10 @@ def draw(spec, pose, facing, k=1, hero=False, internals=False, w=F, h=F, ox=None
     else:
         arm(cv, spec, sh_near, hand_near, P, far=False, internals=internals)
 
+    # ---- from behind, the wings sit over the back and arms (the hair falls over their roots)
+    if spec.wings and facing == UP:
+        wings(cv, spec, pose, facing, P, sh_y, body_dx)
+
     # ---- head
     head(cv, spec, pose, facing, P, head_c, internals)
     if facing == UP and spec.hair and spec.hair_style in ('long', 'twin'):
@@ -452,7 +532,53 @@ def draw(spec, pose, facing, k=1, hero=False, internals=False, w=F, h=F, ox=None
         orb = Part().ellipse(hx_, hy_ - 1 * S, (1 + pose.orb * 0.8) * S, (1 + pose.orb * 0.8) * S)
         paint(cv, orb, [spec.glow, spec.glow, spec.glow, WHITE], glow=True, sep=False)
         dot(cv, hx_, hy_ - 1 * S, WHITE, True)
+    # ---- unarmed strike: a glowing arc along the hand's recent path
+    if pose.trail and not spec.weapon and facing != UP:
+        hi = spec.hi or [spec.glow] * 3 + [WHITE]
+        pts = [P(*near_hand_at(o)) for o in pose.trail]
+        off = (-2 if side else 0) * S
+        for j in range(len(pts) - 1):
+            (x0, y0), (x1, y1) = pts[j], pts[j + 1]
+            line(cv, x0 + off, y0, x1 + off, y1, hi[1] if j == 0 else hi[2], True)
+            line(cv, x0 + off, y0 - 1, x1 + off, y1 - 1, hi[2] if j == 0 else hi[3], True)
     return cv
+
+
+def wings(cv, spec, pose, facing, P, sh_y, body_dx):
+    """Feathered wings from the shoulder blades: the wing ramp with darker feather lines and glowing tips. Front /
+    back views spread both; side views show the near wing swept back (+x when facing left) over a darker far one."""
+    w = pose.wing
+    root_y = sh_y - 2
+    hi = spec.hi or [spec.glow] * 3 + [WHITE]
+
+    def one(shape, ramp_, feathers, tips):
+        part = Part().poly([P(x, y) for x, y in shape])
+        paint(cv, part, ramp_)
+        for (ax, ay), (bx, by) in feathers:
+            a, b = P(ax, ay), P(bx, by)
+            line(cv, a[0], a[1], b[0], b[1], ramp_[1])
+        if tips:
+            # glowing tips along the outer feather edge
+            for x, y in shape[2:5]:
+                dot(cv, *P(x, y), hi[2], True)
+
+    if facing in (LEFT, RIGHT):
+        b = body_dx + 1.5
+        for far, dx in ((True, 2.5), (False, 0)):
+            B = b + dx
+            shape = [(B, root_y + 2), (B + 5, root_y + 7 + w), (B + 11, root_y + 11 + w),
+                     (B + 13, root_y + 5 + w * 0.6), (B + 11, root_y - 3 + w * 0.3),
+                     (B + 7, root_y - 7), (B + 2, root_y - 4)]
+            feathers = [((B + 3, root_y), (B + 11, root_y + 4 + w * 0.6)),
+                        ((B + 3, root_y - 2), (B + 9, root_y - 3 + w * 0.3))]
+            one(shape, dim(spec.wings) if far else spec.wings, feathers, not far)
+        return
+    for sgn in (-1, 1):
+        X = lambda x: body_dx + sgn * x
+        shape = [(X(3), root_y + 2), (X(8), root_y + 8 + w), (X(14), root_y + 11 + w),
+                 (X(16), root_y + 5 + w * 0.6), (X(14), root_y - 2 + w * 0.3), (X(10), root_y - 7), (X(5), root_y - 4)]
+        feathers = [((X(5), root_y + 1), (X(14), root_y + 5 + w * 0.6)), ((X(5), root_y - 1), (X(12), root_y - 3 + w * 0.3))]
+        one(shape, spec.wings, feathers, True)
 
 
 def back_hair(cv, spec, pose, facing, P, head_c, over=False):
@@ -470,6 +596,20 @@ def back_hair(cv, spec, pose, facing, P, head_c, over=False):
         for sgn in ((-1, 1) if facing not in (LEFT, RIGHT) else (1,)):
             bx = hcx + sgn * 8 if facing not in (LEFT, RIGHT) else hcx + 6
             hair.poly([P(bx - 2, hcy + 5), P(bx + 2, hcy + 5), P(bx + sgn * 4 + sway, hcy - 8), P(bx + sgn * 2 + sway, hcy - 17), P(bx - sgn * 1, hcy - 9)])
+    if over:
+        # from behind the hair is one piece: the crown (the head's hair ellipse) flows into the long hair in the
+        # same ramp, with darker strand lines and a light shine across the crown
+        s = P(1, 0)[0] - P(0, 0)[0]
+        cx, cy = Q(0, 0)
+        hair.merge(Part().ellipse(cx, cy, 8.4 * s * HEAD + 0.6 * s, 8.0 * s * HEAD + 0.4 * s))
+        paint(cv, hair, spec.hair)
+        for dx in (-5, -2, 2, 5):
+            a, b = Q(dx * 0.6, 4), Q(dx + sway * 0.5, -19)
+            line(cv, a[0], a[1], b[0], b[1], spec.hair[1])
+        sx, sy = Q(-4, 6)
+        for d in range(int(6 * s)):
+            dot(cv, sx + d, sy + (d % 3 == 0), spec.hair[3])
+        return
     paint(cv, hair, spec.back_hair or spec.hair)
 
 
@@ -486,22 +626,44 @@ def cables(cv, spec, pose, facing, P, head_c):
         dot(cv, tip[0] + 1, tip[1] + 1, spec.glow, True)
 
 
+def dim(r_):
+    return [r_[0], r_[0], r_[1], r_[2]]
+
+
+def glow_pad(cv, spec, c, s, far, rx=1.3, ry=1.1):
+    """A glowing pad (knee / elbow): the hi ramp, with a white-hot centre on the near side."""
+    pad = Part().ellipse(c[0], c[1], rx * s, ry * s)
+    paint(cv, pad, dim(spec.hi) if far else spec.hi, glow=not far, sep=False)
+    if not far:
+        dot(cv, c[0], c[1], spec.hi[3], True)
+
+
 def arm(cv, spec, sh, hand, P, far, internals):
     elbow = ((sh[0] + hand[0]) / 2 + (0.6 if hand[1] < sh[1] - 4 else -0.4), (sh[1] + hand[1]) / 2)
-    r = spec.armor if not far else [spec.armor[0], spec.armor[0], spec.armor[1], spec.armor[2]]
+    sleeve = spec.joint or spec.armor
+    r = sleeve if not far else dim(sleeve)
     s = P(1, 0)[0] - P(0, 0)[0]
-    up = Part().limb(P(*sh), P(*elbow), 1.6 * s, 1.4 * s)
+    thin = 0.68 if spec.joint else 1.0            # the dark undersuit is slimmer than plate
+    up = Part().limb(P(*sh), P(*elbow), 1.6 * s * thin, 1.4 * s * thin)
     paint(cv, up, r)
-    fore = Part().limb(P(*elbow), P(*hand), 1.6 * s, 1.9 * s)
+    fore = Part().limb(P(*elbow), P(*hand), 1.6 * s * thin, 1.9 * s * thin)
     paint(cv, fore, r)
     if spec.kind == 'android':
         # trim: a cuff at the wrist and the bottom rim of the pauldron
         a, b = P(*elbow), P(*hand)
         cuff = Part().limb(((a[0] + b[0] * 3) / 4, (a[1] + b[1] * 3) / 4), ((a[0] + b[0] * 5) / 6, (a[1] + b[1] * 5) / 6), 1.9 * s)
         paint(cv, cuff, spec.trim)
-    hand_part = Part().ellipse(P(*hand)[0], P(*hand)[1], 1.4 * s, 1.4 * s)
-    paint(cv, hand_part, spec.skin if spec.kind == 'human' else spec.under)
-    pad = Part().ellipse(P(*sh)[0], P(*sh)[1] + 0.3 * s, 2.5 * s, 2.0 * s)
+    glove = 1.9 if spec.joint else 1.4
+    hand_part = Part().ellipse(P(*hand)[0], P(*hand)[1], glove * s, glove * s)
+    if spec.joint:
+        # a dark glove with a glowing core, and a glowing elbow pad
+        paint(cv, hand_part, spec.joint if not far else dim(spec.joint))
+        dot(cv, P(*hand)[0], P(*hand)[1], (dim(spec.hi) if far else spec.hi)[2], not far)
+        glow_pad(cv, spec, P(*elbow), s, far, 0.9, 0.9)
+    else:
+        paint(cv, hand_part, spec.skin if spec.kind == 'human' else spec.under)
+    big = 1.35 if spec.joint else 1.0              # the crew's big pauldrons
+    pad = Part().ellipse(P(*sh)[0], P(*sh)[1] + 0.3 * s, 2.5 * s * big, 2.0 * s * big)
     paint(cv, pad, spec.armor)
     if spec.kind == 'android':
         trim_edge(cv, pad, spec.trim[2])
@@ -527,12 +689,16 @@ def legs(cv, spec, pose, facing, P, hip_y, body_dx, internals):
         knee = ((hip[0] + fx) / 2, (hip_y + 0) / 2 + 1 - foot[1] * 0.5)
         ankle = (fx, 2.5 - foot[1])
         dark = which == 'far' and side
-        legwear = spec.armor if spec.kind == 'android' else spec.under   # androids: plate all the way down
-        thigh = Part().limb(P(*hip), P(*knee), 1.9 * s, 1.7 * s)
+        legwear = spec.joint or (spec.armor if spec.kind == 'android' else spec.under)   # leggings or plate
+        thin = 0.7 if spec.joint else 1.0         # slim leggings under the plate
+        thigh = Part().limb(P(*hip), P(*knee), 1.9 * s * thin, 1.7 * s * thin)
         paint(cv, thigh, legwear if not dark else [legwear[0]] * 2 + legwear[1:3])
-        shin = Part().limb(P(*knee), P(*ankle), 1.8 * s, 2.1 * s)
-        paint(cv, shin, spec.armor if not dark else [spec.armor[0]] * 2 + spec.armor[1:3])
-        if spec.kind == 'android':
+        shin = Part().limb(P(*knee), P(*ankle), 1.8 * s * thin, 2.1 * s * thin)
+        shin_r = spec.joint or spec.armor
+        paint(cv, shin, shin_r if not dark else [shin_r[0]] * 2 + shin_r[1:3])
+        if spec.joint:
+            glow_pad(cv, spec, P(*knee), s, dark, 1.3, 1.1)
+        elif spec.kind == 'android':
             kp = Part().ellipse(*P(*knee), 1.6 * s, 1.3 * s)
             paint(cv, kp, spec.trim if not dark else [spec.trim[0]] * 2 + spec.trim[1:3])
         boot = Part()
@@ -557,10 +723,15 @@ def torso(cv, spec, pose, facing, P, top, hip_y, body_dx, internals):
     s = P(1, 0)[0] - P(0, 0)[0]
     side = facing in (LEFT, RIGHT)
     w_top, w_hip = (3.8, 3.2) if side else (5.4, 4.2)
+    if spec.joint:   # the crew: a broad breastplate over a narrow waist, and wide hip plates
+        w_top, w_hip = (4.4, 3.0) if side else (6.2, 3.8)
     t = Part().poly([P(body_dx - w_top, top), P(body_dx + w_top, top), P(body_dx + w_hip, hip_y + 1), P(body_dx - w_hip, hip_y + 1)])
+    if spec.joint:
+        t.merge(Part().ellipse(*P(body_dx + (-0.5 if side else 0), top - 4), (w_top - 0.2) * s, 4.2 * s))
     paint(cv, t, spec.armor if spec.kind != 'human' else spec.armor)
     # hips / skirt plate
-    hips = Part().poly([P(body_dx - w_hip - 1, hip_y + 2.5), P(body_dx + w_hip + 1, hip_y + 2.5), P(body_dx + w_hip + 1.6, hip_y - 1.5), P(body_dx - w_hip - 1.6, hip_y - 1.5)])
+    hw, hdown = (w_hip + 1, 2.5) if not spec.joint else (w_hip + 2.2, 3.5)
+    hips = Part().poly([P(body_dx - hw, hip_y + 2.5), P(body_dx + hw, hip_y + 2.5), P(body_dx + hw + 0.6, hip_y - hdown), P(body_dx - hw - 0.6, hip_y - hdown)])
     paint(cv, hips, spec.armor if spec.kind == 'android' else spec.under)
     if spec.kind == 'android':
         trim_edge(cv, hips, spec.trim[2], top=True)   # the belt line
@@ -629,6 +800,27 @@ def internals_overlay(cv, spec, P, top, hip_y, body_dx, s):
 HEAD = 0.8   # head size relative to the original rig: an Octopath-style body about three heads tall
 
 
+def card_eye(cv, spec, exx, eyy, s, outer, narrow=False):
+    """One eye drawn like the card art (reference/MC.png): a warm orange-brown lash line that darkens at the outer
+    corner, over an iris that is dark crimson on top and glows below. outer = +1 when the outer corner is to the
+    right; narrow draws the side-view eye (two columns)."""
+    glow = spec.kind == 'android'
+    top = spec.hi[0] if spec.hi else spec.accent[1]
+    cols = range(0, int(1.2 * s) + 1) if narrow else range(int(-1 * s), int(1.2 * s) + 1)
+    cols = list(cols)
+    y0 = int(eyy - 1.5 * s)
+    for dx in cols:
+        outer_col = dx == (cols[-1] if outer > 0 else cols[0])
+        dot(cv, exx + dx, y0, OUTLINE if outer_col else spec.skin[0])
+        dot(cv, exx + dx, y0 + 1, OUTLINE if outer_col and not narrow else top, glow and not outer_col)
+        for dy in range(2, int(1.2 * s) + 2):
+            dot(cv, exx + dx, y0 + dy, spec.eye, glow)
+    # a lash flick past the outer corner, and a pale glint in the iris
+    dot(cv, exx + (cols[-1] + 1 if outer > 0 else cols[0] - 1), y0 - 1 if s < 2 else y0, spec.skin[0])
+    if s >= 2:
+        dot(cv, exx + cols[1], y0 + 2, WHITE, glow)
+
+
 def head(cv, spec, pose, facing, P, head_c, internals):
     s = P(1, 0)[0] - P(0, 0)[0]
     Q = lambda dx, dy: P(head_c[0] + dx * HEAD, head_c[1] + dy * HEAD)
@@ -640,14 +832,9 @@ def head(cv, spec, pose, facing, P, head_c, internals):
     face = Part().ellipse(cx, cy + 0.6 * s, rx - 0.6 * s, ry - 0.4 * s)
     paint(cv, face, spec.skin)
     if facing == DOWN:
-        # anime eyes: dark lid, glowing iris, light lower lash, white glint
         for ex in (-3.3, 3.3):
             exx, eyy = Q(0 + ex, 0 - 1.6)
-            for dx in range(int(-1 * s), int(1.2 * s) + 1):
-                dot(cv, exx + dx, eyy - 1.5 * s, OUTLINE)
-                for dy in range(0, int(2.2 * s) + 1):
-                    dot(cv, exx + dx, eyy - 1.5 * s + 1 + dy, spec.eye, spec.kind == 'android')
-            dot(cv, exx - 1 * s + 1, eyy - 1.5 * s + 1, WHITE, spec.kind == 'android')
+            card_eye(cv, spec, exx, eyy, s, outer=1 if ex > 0 else -1)
         mx, my = Q(0, 0 - 5.2)
         dot(cv, mx, my, spec.skin[0])
         if s >= 2:
@@ -658,10 +845,7 @@ def head(cv, spec, pose, facing, P, head_c, internals):
                 dot(cv, bxx, byy, PETAL[2])
     elif side:
         exx, eyy = Q(0 - 4.6, 0 - 1.6)
-        for dx in range(0, int(1.2 * s) + 1):
-            dot(cv, exx + dx, eyy - 1.5 * s, OUTLINE)
-            for dy in range(0, int(2.2 * s) + 1):
-                dot(cv, exx + dx, eyy - 1.5 * s + 1 + dy, spec.eye, spec.kind == 'android')
+        card_eye(cv, spec, exx + 0.5 * s, eyy, s, outer=1, narrow=True)
         mx, my = Q(0 - 6.2, 0 - 5.0)
         dot(cv, mx, my, spec.skin[0])
     # hair
@@ -715,6 +899,23 @@ def headgear(cv, spec, pose, facing, P, head_c, s):
             gx, gy = Q(0 + (-1 if side else 0), 0 + 7.3)
             dot(cv, gx, gy, spec.glow, True)
             dot(cv, gx, gy + 1, spec.glow, True)
+    elif g == 'earpiece':
+        # front: on the viewer's right; back: the same ear, now on the viewer's left; side: the visible ear
+        if side:
+            ex_, sgn = 5.6, 1
+        else:
+            sgn = 1 if facing == DOWN else -1
+            ex_ = 8.3 * sgn
+        ecx, ecy = Q(ex_, 0.4)
+        pod = Part().ellipse(ecx, ecy, 1.9 * s, 2.3 * s)
+        paint(cv, pod, spec.accent)
+        trim_edge(cv, pod, spec.trim[3], top=True)
+        hi = spec.hi or [spec.glow] * 3 + [WHITE]
+        dot(cv, ecx, ecy, hi[2], True)
+        if s >= 2:
+            dot(cv, ecx, ecy - 1, hi[3], True)
+        fin = Part().poly([Q(ex_ - sgn * 0.6, 2.2), Q(ex_ + sgn * 2.6, 8.4), Q(ex_ + sgn * 1.6, 2.0)])
+        paint(cv, fin, spec.trim)
     elif g == 'ornament':
         # a crimson hair ornament on one side, like the reference (no crown)
         if facing != UP:
@@ -906,7 +1107,8 @@ def doubled(small):
     return big
 
 
-ANIMS = [('idle', 2, idle_pose), ('walk', 9, walk_pose), ('slash', 6, slash_pose), ('spellcast', 7, cast_pose), ('hurt', 6, hurt_pose)]
+ANIMS = [('idle', IDLE_N, idle_pose), ('walk', WALK_N + 1, walk_pose), ('slash', SLASH_N, slash_pose),
+         ('spellcast', CAST_N, cast_pose), ('hurt', HURT_N, hurt_pose)]
 
 
 def frame(spec, pose, facing):
@@ -920,8 +1122,9 @@ def frame(spec, pose, facing):
 
 
 def hurt_frame(spec, i):
-    """The defeat row (front view): recoil, kneel, then fall flat (the last frames lie on the ground)."""
-    if i < 4:
+    """The defeat row (front view): recoil, kneel, then fall flat: one frame tipping over (a little above the
+    ground), one bouncing a pixel, then lying still."""
+    if i < HURT_STAND:
         return frame(spec, hurt_pose(i), DOWN)
     cv = draw(spec, Pose(), LEFT, k=RIG_K)
     outline(cv)
@@ -929,7 +1132,7 @@ def hurt_frame(spec, i):
     # lie on the ground: move the rotated body down so its lowest pixel touches the feet line
     lowest = max((y for y in range(F) for x in range(F) if rot.px[y][x][3]), default=F - 1)
     out = Canvas(F, F)
-    shift = (F - 6) - lowest
+    shift = (F - 6) - lowest - {HURT_STAND: 4, HURT_STAND + 1: 1}.get(i, 0)
     for y in range(F):
         for x in range(F):
             ny = y + shift
@@ -939,10 +1142,19 @@ def hurt_frame(spec, i):
 
 
 def build_sheets(name):
-    import girl_model
-    if name in girl_model.SPECS and os.path.exists(girl_model.SRC):
-        girl_model.build(name)    # crew and NPCs come from the user's walk cycle (reference/Girl_walk.png), not the rig
+    import knight_model
+    if knight_model.available(name):
+        knight_model.build(name)   # MC and the machines: the Free Knight (aamatniekss), reskinned per character
         return None
+    if name in PARTY:
+        import sample_model
+        if sample_model.available(name):
+            sample_model.build(name)   # MC: the user's own idle / walk animation (reference/sample/)
+            return None
+        import card_model
+        if card_model.available(name):
+            card_model.build(name)   # the crew walk as their card art (reference/MC.png), animated by layers
+            return None
     spec = SPECS[name]
     out_dir = os.path.join(CHARS, name)
     os.makedirs(out_dir, exist_ok=True)
@@ -986,6 +1198,25 @@ def recolour_map(spec):
 def reference_portrait(name):
     """Card art from the user's reference sprite (2x into the 96 x 144 card, feet at the bottom): the character's
     own reference if there is one, otherwise MC's recoloured to the character's palette. None when missing."""
+    ref = reference_pixels(name)
+    if ref is None:
+        return None
+    w, h, px = ref
+    cv = Canvas(96, 144)
+    ox, oy = (96 - w * 2) // 2, 144 - 4 - h * 2
+    for y in range(h):
+        for x in range(w):
+            p = px[y][x]
+            if p[3]:
+                for dy in range(2):
+                    for dx in range(2):
+                        cv.set(ox + x * 2 + dx, oy + y * 2 + dy, p)
+    return cv, (ox, oy)
+
+
+def reference_pixels(name):
+    """The character's reference sprite at native size as (w, h, RGBA rows): their own file, or MC's recoloured to
+    their palette. None when missing. Used by the card art and by card_model.py (the overworld sprites)."""
     path = os.path.join(REFERENCE, name + '.png')
     mapping = None
     if not os.path.exists(path):
@@ -1021,23 +1252,15 @@ def reference_portrait(name):
                 row.append(c)
             out.append(row)
         px = out
-    cv = Canvas(96, 144)
-    ox, oy = (96 - w * 2) // 2, 144 - 4 - h * 2
-    for y in range(h):
-        for x in range(w):
-            p = px[y][x]
-            if p[3]:
-                for dy in range(2):
-                    for dx in range(2):
-                        cv.set(ox + x * 2 + dx, oy + y * 2 + dy, p)
-    return cv, (ox, oy)
+    return w, h, px
 
 
-def open_chest(cv, spec, box):
-    """Internals on a finished portrait: inside the chest box, armour pixels become a dark frame with ribs and
-    wires around a glowing core in a copper housing."""
+def open_chest(cv, spec, box, armour=None):
+    """Internals on a finished portrait: inside the chest box, armour pixels (the reference's whites and slates, or
+    the given set of RGB colours) become a dark frame with ribs and wires around a glowing core in a copper housing."""
     x0, y0, x1, y1 = box
-    armour = {c[:3] for c in REF_WHITE + REF_SLATE + spec.armor + spec.hair}
+    if armour is None:
+        armour = {c[:3] for c in REF_WHITE + REF_SLATE + spec.armor + spec.hair}
     wires = [hx('#C8483E'), hx('#3E78C8'), hx('#D8B040'), hx('#4AA86A')]
     for y in range(y0, y1):
         for x in range(x0, x1):
@@ -1054,14 +1277,22 @@ def open_chest(cv, spec, box):
 
 
 def build_portraits(name):
-    """Card art: MC's reference sprite, or the rig in a hero pose at the reference's pixel density; front and
-    opened up (internals), plus glow masks."""
+    """Card art: the reskinned knight (MC), MC's reference sprite (recoloured for the others), or the rig in a hero
+    pose; front and opened up (internals), plus glow masks."""
     spec = SPECS[name]
     os.makedirs(PORTRAITS, exist_ok=True)
     results = {}
-    ref = reference_portrait(name)
+    import knight_model
+    knight = knight_model.available(name) and name in PARTY
+    ref = None if knight else reference_portrait(name)
     for side_name, internals in (('front', False), ('internals', True)):
-        if ref is not None:
+        if knight:
+            # MC's card: the reskinned knight (the same art as the sprites)
+            cv, box = knight_model.portrait(name)
+            if internals:
+                plate = set(knight_model.SKINS[name]['map'][c] for c in knight_model.STEEL)
+                open_chest(cv, spec, box, armour=plate | set(knight_model.SKINS[name]['map'][c] for c in knight_model.GOLD[1:]))
+        elif ref is not None:
             cv, (ox, oy) = reference_portrait(name)
             if internals:
                 # the reference's breastplate: native pixels about (17..35, 33..47)

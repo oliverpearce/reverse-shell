@@ -18,6 +18,12 @@ namespace Combat
         public Color color = Color.white;
         [TextArea] public string description;
         public List<StatModifier> modifiers = new List<StatModifier>();
+        [Tooltip("The modifiers only apply while the wearer's element is the one below (e.g. the Resonant Core while Electric).")]
+        public bool elementOnly;
+        public Afflatus element;
+
+        /// <summary>Whether the modifiers count for a wearer of this element.</summary>
+        public bool AppliesTo(Afflatus wearer) { return !elementOnly || wearer == element; }
 
         public string DisplayName
         {

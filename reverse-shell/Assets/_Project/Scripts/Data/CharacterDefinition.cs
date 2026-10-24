@@ -47,6 +47,18 @@ namespace Combat
         public Color glowColor = Color.white;
 
         /// <summary>Every incantation this character could put in their deck: the defaults, then the pool.</summary>
+        [Header("Resonances (the protagonist)")]
+        [Tooltip("Innate card sets by resonance: the active resonance sets this character's element, cards and Ult. "
+                 + "The first is the starting one. Empty = the plain incantations / ritual above.")]
+        public List<ResonanceKit> resonances = new List<ResonanceKit>();
+
+        /// <summary>The kit for <paramref name="element"/>, or null.</summary>
+        public ResonanceKit KitFor(Afflatus element)
+        {
+            foreach (var kit in resonances) if (kit != null && kit.element == element) return kit;
+            return null;
+        }
+
         public List<CardDefinition> AllIncantations()
         {
             var all = new List<CardDefinition>();

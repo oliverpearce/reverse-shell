@@ -24,18 +24,36 @@ namespace Combat
 
         CombatConfig Config { get { return State.Config; } }
 
+        /// <param name="backup">Waits in reserve (otherwise a 4th party member becomes the backup).</param>
         public BattleController(IEnumerable<CharacterDefinition> party, IEnumerable<EnemyDefinition> enemies,
-            CombatConfig config = null, int seed = 0)
+            CombatConfig config = null, int seed = 0, CharacterDefinition backup = null)
         {
             if (config == null) config = CombatConfig.Default;
             State = new BattleState(config, new System.Random(seed != 0 ? seed : Environment.TickCount));
-            foreach (var c in party) if (c != null) State.Party.Add(new BattleUnit(c, Team.Player));
+            // The first MaxActive members fight; the next MaxBackup wait in reserve.
+            foreach (var c in party)
+            {
+                if (c == null) continue;
+                if (State.Party.Count + State.Backup.Count >= BattleState.MaxActive + BattleState.MaxBackup) break;
+                var unit = new BattleUnit(c, Team.Player);
+                State.Roster.Add(unit);
+                if (State.Party.Count < BattleState.MaxActive) State.Party.Add(unit);
+                else State.Backup.Add(unit);
+            }
+            if (backup != null && State.Backup.Count < BattleState.MaxBackup && !State.Roster.Exists(u => u.Definition == backup))
+            {
+                var reserve = new BattleUnit(backup, Team.Player);
+                State.Roster.Add(reserve);
+                State.Backup.Add(reserve);
+            }
             foreach (var e in enemies) if (e != null) State.Enemies.Add(new BattleUnit(e, Team.Enemy));
         }
 
         public static BattleController FromSetup(BattleSetup setup)
         {
-            return new BattleController(setup.party, setup.enemies, setup.config, setup.seed);
+            var controller = new BattleController(setup.party, setup.enemies, setup.config, setup.seed, setup.backup);
+            foreach (var enemy in controller.State.Enemies) enemy.SetEnemyLevel(setup.enemyLevel, setup.boss);
+            return controller;
         }
 
         /// <summary>
@@ -45,7 +63,7 @@ namespace Combat
         public void ApplyParty(IDictionary<CharacterDefinition, MemberProgress> party)
         {
             if (party == null) return;
-            foreach (var unit in State.Party)
+            foreach (var unit in State.Roster)
             {
                 MemberProgress progress;
                 if (unit.Character == null || !party.TryGetValue(unit.Character, out progress) || progress == null) continue;
@@ -61,7 +79,7 @@ namespace Combat
         public void ApplyLoadouts(IDictionary<CharacterDefinition, Loadout> loadouts)
         {
             if (loadouts == null) return;
-            foreach (var unit in State.Party)
+            foreach (var unit in State.Roster)
             {
                 Loadout loadout;
                 if (unit.Character != null && loadouts.TryGetValue(unit.Character, out loadout)) unit.ApplyLoadout(loadout);
@@ -75,7 +93,7 @@ namespace Combat
         public Dictionary<CharacterDefinition, MemberProgress> PartySnapshot(IDictionary<CharacterDefinition, MemberProgress> start)
         {
             var snapshot = new Dictionary<CharacterDefinition, MemberProgress>();
-            foreach (var unit in State.Party)
+            foreach (var unit in State.Roster)
             {
                 if (unit.Character == null) continue;
                 MemberProgress before;
@@ -89,10 +107,10 @@ namespace Combat
         /// <summary>XP every party member earns for winning this fight.</summary>
         public int XpReward()
         {
-            int xp = 0;
+            float xp = 0f;
             foreach (var enemy in State.Enemies)
-                if (enemy.Enemy != null) xp += enemy.Enemy.xpReward;
-            return xp;
+                if (enemy.Enemy != null) xp += enemy.Enemy.xpReward * BattleUnit.EnemyScale(enemy.Level) * (enemy.IsBoss ? 3f : 1f);
+            return Mathf.RoundToInt(xp);
         }
 
         public bool IsOver { get { return State.Phase == BattlePhase.Victory || State.Phase == BattlePhase.Defeat; } }
@@ -102,6 +120,9 @@ namespace Combat
         {
             if (State.Phase != BattlePhase.NotStarted) return;
             Emit(new BattleStartedEvent());
+            // Parts like the Ult Chip start a member with some Ult points already.
+            foreach (var unit in State.Party) GiveStartingMoxie(unit);
+            foreach (var unit in State.Backup) GiveStartingMoxie(unit);
             EnsureSelectedEnemy();
             StartRound();
         }
@@ -117,6 +138,9 @@ namespace Combat
 
             PushUndo();
             State.Hand.RemoveAt(index);
+            // Lock the aim now: the enemy under the target cursor when the card is played.
+            if (card.Definition.targetMode == TargetMode.SingleEnemy && State.SelectedEnemy != null && State.SelectedEnemy.IsAlive)
+                card.Target = State.SelectedEnemy;
             State.Queue.Add(card);
             State.ActionPoints--;
             if (card.IsRitual) SetMoxie(card.Owner, 0);
@@ -139,6 +163,7 @@ namespace Combat
             PushUndo();
             State.Hand.Move(from, toIndex);
             State.ActionPoints--;
+            State.MovesThisRound++;   // locks a queue slot ("Card Moved")
 
             Emit(new CardMovedEvent { Card = card, HandAfter = State.Hand.Snapshot() });
             EmitActionPoints();
@@ -156,6 +181,7 @@ namespace Combat
             State.Queue.Clear();
             State.Queue.AddRange(snap.Queue);
             State.ActionPoints = snap.ActionPoints;
+            State.MovesThisRound = snap.Moves;
 
             Emit(new HandRestoredEvent { HandAfter = State.Hand.Snapshot(), QueueAfter = new List<CardInstance>(State.Queue) });
             EmitActionPoints();
@@ -383,9 +409,13 @@ namespace Combat
         {
             State.Round++;
             undoStack.Clear();
-            State.MaxActionPoints = Mathf.Max(1, Config.actionPointsPerRound + State.BonusActionPointsNextRound);
+            // AP = living active members (3 / 2 / 1), plus any bonus earned last turn; the hand holds AP + 4.
+            int alive = State.Party.FindAll(p => p.IsAlive).Count;
+            State.MaxActionPoints = Mathf.Max(1, alive + State.BonusActionPointsNextRound);
             State.BonusActionPointsNextRound = 0;
             State.ActionPoints = State.MaxActionPoints;
+            State.MovesThisRound = 0;
+            State.Hand.Capacity = State.MaxActionPoints + BattleState.HandBonus;
 
             Emit(new RoundStartedEvent { Round = State.Round });
             EmitActionPoints();
@@ -393,7 +423,7 @@ namespace Combat
             foreach (var enemy in State.Enemies)
             {
                 if (!enemy.IsAlive) continue;
-                enemy.Intent = EnemyAI.ChooseIntent(enemy, State.Rng);
+                enemy.Intent = EnemyAI.ChooseIntent(enemy, State.Rng, Config.moxieCap);
                 Emit(new IntentChosenEvent { Unit = enemy, Intent = enemy.Intent });
             }
 
@@ -426,21 +456,29 @@ namespace Combat
             }
         }
 
+        void GiveStartingMoxie(BattleUnit unit)
+        {
+            int start = Mathf.Clamp(Mathf.RoundToInt(unit.GetStat(StatType.StartingMoxie)), 0, Config.moxieCap);
+            if (start > unit.Moxie) SetMoxie(unit, start);
+        }
+
         void TrySpawnRitual(BattleUnit unit)
         {
             var character = unit.Character;
-            if (character == null || character.ritual == null || !unit.IsAlive) return;
+            if (character == null || unit.Ultimate == null || !unit.IsAlive) return;
             if (unit.Moxie < Config.moxieCap) return;
             if (State.Hand.HasRitualFor(unit) || State.Queue.Exists(c => c.IsRitual && c.Owner == unit)) return;
 
-            var card = new CardInstance(character.ritual, unit, 1);
+            var card = new CardInstance(unit.Ultimate, unit, 1);
             State.Hand.Add(card);
             Emit(new RitualSpawnedEvent { Card = card, HandAfter = State.Hand.Snapshot() });
         }
 
         void Cast(BattleUnit caster, CardInstance card)
         {
-            var targets = SelectTargets(caster, card.Definition.targetMode);
+            var targets = card.Target != null && card.Target.IsAlive && card.Definition.targetMode == TargetMode.SingleEnemy
+                ? new List<BattleUnit> { card.Target }
+                : SelectTargets(caster, card.Definition.targetMode);
             Emit(new CardCastEvent
             {
                 Caster = caster,
@@ -474,6 +512,11 @@ namespace Combat
                 }
                 Cast(enemy, intent);
                 if (IsOver) return;
+                if (enemy.Enemy != null && enemy.Enemy.ritual != null && enemy.IsAlive)
+                {
+                    if (intent.IsRitual) SetMoxie(enemy, 0);
+                    else AddMoxie(enemy, Config.moxiePerCast);
+                }
             }
         }
 
@@ -533,6 +576,15 @@ namespace Combat
                 int removed = State.Hand.RemoveAllOwnedBy(unit) + State.Queue.RemoveAll(c => c.Owner == unit);
                 if (removed > 0)
                     Emit(new HandRestoredEvent { HandAfter = State.Hand.Snapshot(), QueueAfter = new List<CardInstance>(State.Queue) });
+                // The backup steps into the fallen member's place; their cards join the draw pool from now on.
+                if (State.Backup.Count > 0)
+                {
+                    var sub = State.Backup[0];
+                    State.Backup.RemoveAt(0);
+                    State.Party[State.Party.IndexOf(unit)] = sub;
+                    Emit(new UnitEnteredEvent { Unit = sub, Replaces = unit });
+                    Log(sub.Name + " steps in!");
+                }
             }
             else if (State.SelectedEnemy == unit)
             {
@@ -547,7 +599,7 @@ namespace Combat
         {
             if (IsOver) return;
             bool victory = !State.Enemies.Exists(e => e.IsAlive);
-            bool defeat = !State.Party.Exists(p => p.IsAlive);
+            bool defeat = !State.Party.Exists(p => p.IsAlive) && State.Backup.Count == 0;
             if (!victory && !defeat) return;
 
             State.Phase = victory ? BattlePhase.Victory : BattlePhase.Defeat;
@@ -580,13 +632,14 @@ namespace Combat
                 Hand = State.Hand.Snapshot(),
                 Queue = new List<CardInstance>(State.Queue),
                 ActionPoints = State.ActionPoints,
+                Moves = State.MovesThisRound,
                 Moxie = State.Party.ConvertAll(p => p.Moxie)
             });
         }
 
         void EmitActionPoints()
         {
-            Emit(new ActionPointsChangedEvent { Current = State.ActionPoints, Max = State.MaxActionPoints });
+            Emit(new ActionPointsChangedEvent { Current = State.ActionPoints, Max = State.MaxActionPoints, Moves = State.MovesThisRound });
         }
 
         void EmitStatuses(BattleUnit unit)
@@ -610,6 +663,7 @@ namespace Combat
             public List<CardInstance> Hand;
             public List<CardInstance> Queue;
             public int ActionPoints;
+            public int Moves;
             public List<int> Moxie;
         }
     }

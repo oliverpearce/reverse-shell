@@ -13,6 +13,16 @@ namespace Game.World
     ///   T  tree                   b  bush               r  rubble pile            (all solid)
     ///   S  player spawn           n  NPC                E  encounter enemy        X  encounter stand square
     ///   A  access point (heals the party, solid)      R  summon beacon (respawns beaten machines, solid)
+    ///   W  warp square (walkable; interact to travel to another area, see WorldAreas)
+    ///   G  rune stone (solid; interact to read it)
+    ///   C  training chest (solid; sets the practice fights' enemy level, Training Center)
+    ///   c  loot chest (solid; one Part each, WorldAreas.Area.Chests)
+    ///   Chapter One story tiles (ChapterOneDirector): K procedure pod, 1-3 memory fragments, 4-7 records, O the
+    ///   scanner, U the Soul Card pedestal (all solid props); Z story trigger, : trace (walkable);
+    ///   V the hidden route (a cracked wall until opened, then w, a warp); J a second warp tile.
+    ///
+    /// Camera rule (<see cref="ApplyCameraRule"/>, Octopath-style): nothing tall stands just south of a walkable
+    /// square, where it would come between the camera and the player.
     /// </summary>
     public class OverworldMap
     {
@@ -60,10 +70,53 @@ namespace Game.World
 
         public static bool IsSolidChar(char c)
         {
-            return BlockHeight(c) > 0 || c == 'T' || c == 'b' || c == 'r' || c == 'n' || c == 'E' || c == 'A' || c == 'R';
+            return BlockHeight(c) > 0 || c == 'T' || c == 'b' || c == 'r' || c == 'n' || c == 'E' || c == 'A' || c == 'R' || c == 'G' || c == 'C' || c == 'c'
+                   || c == 'K' || c == 'O' || c == 'U' || c == 'V' || (c >= '1' && c <= '7');
         }
 
         public bool IsSolidCell(int x, int row) { return !InBounds(x, row) || IsSolidChar(cells[x, row]); }
+
+        /// <summary>Height of a tree's canopy, for the camera rule (trees are props, not blocks).</summary>
+        const float TreeHeight = 3f;
+
+        /// <summary>
+        /// Octopath-style readability: the camera looks north from the south, so anything tall a few rows south of
+        /// where the player can walk hides them. Each block is lowered (never raised) to the tallest height the camera
+        /// sees over from every walkable square north of it in its column: a block <c>k</c> rows south may stand
+        /// <c>eye + k * tan(pitch)</c> high. So tall ruins step down toward the street (low wall, brick, ruin, tower)
+        /// and trees right below a path become bushes. Solidity is unchanged.
+        /// </summary>
+        /// <param name="pitch">Camera pitch in degrees (OverworldCamera.pitch).</param>
+        /// <param name="eye">How high on the player sprite must stay visible (world units).</param>
+        public void ApplyCameraRule(float pitch, float eye = 0.9f)
+        {
+            float slope = Mathf.Tan(pitch * Mathf.Deg2Rad);
+            for (int x = 0; x < Width; x++)
+            {
+                for (int row = 0; row < Height; row++)
+                {
+                    char c = cells[x, row];
+                    bool tree = c == 'T';
+                    if (BlockHeight(c) == 0 && !tree) continue;
+                    // The nearest walkable square straight north of this cell (rows decrease northward).
+                    float allowed = float.MaxValue;
+                    for (int k = 1; k <= 6 && row - k >= 0; k++)
+                    {
+                        if (IsSolidChar(cells[x, row - k])) continue;
+                        allowed = eye + k * slope;
+                        break;
+                    }
+                    if (allowed == float.MaxValue) continue;
+                    if (tree)
+                    {
+                        if (allowed < TreeHeight) cells[x, row] = 'b';
+                        continue;
+                    }
+                    if (BlockHeight(c) <= allowed) continue;
+                    cells[x, row] = allowed >= 5f ? 'H' : allowed >= 3f ? '#' : allowed >= 2f ? 'B' : 'L';
+                }
+            }
+        }
 
         public Vector3 CellCenter(int x, int row)
         {

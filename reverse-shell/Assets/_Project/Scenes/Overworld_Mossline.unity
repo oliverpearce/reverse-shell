@@ -121,7 +121,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &1113305907
+--- !u!1 &480146941
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -129,99 +129,12 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1113305909}
-  - component: {fileID: 1113305908}
-  m_Layer: 0
-  m_Name: Overworld
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1113305908
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1113305907}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cade2149498408c4fa37f6ad6d4a2c89, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  areaName: MOSSLINE STATION
-  areaSubtitle: The City Ruins
-  useDefaultMap: 1
-  map: 'HHHHHH####HHHHH#BBBBBBBBBBBB
-
-    HHHHHH####HHHHH#BPPP,,PPPPPB
-
-    HHHHHH####HHHHH#BPT,PPEPP,TB
-
-    HHHHHH####HHHHH#B,,PPPXPPP,B
-
-    HHHHHH####HHHHH#BPR*PPPPPbPB
-
-    HHHHHH####HHHHH#BLLLLP.PLLLB
-
-    B.T,,...b..n.r,,....*..,.,TB
-
-    B=====,,==========,,=======B
-
-    B=======,===========r======B
-
-    B.b..,.n..T,,......b...,T..B
-
-    B.S.A,,......*....n..,,..*.B
-
-    LLLLLLLLLLLLLLLLLLLLLLLLLLLL
-
-'
-  tileAtlas: {fileID: 2800000, guid: 49f9e55079b04ba4eaab55e03dd59027, type: 3}
-  playerSheet: {fileID: 0}
-  enemySheet: {fileID: 2800000, guid: eb03bb575dab4e944bf830f8b76cdfbc, type: 3}
-  npcSheet: {fileID: 2800000, guid: 12b9e64b0046624448a39c288d9ac159, type: 3}
-  characterScale: 1.5
-  npcAnimations:
-  - {fileID: 11400000, guid: 005a5cf04bb0bf84ebe71cc6ca136df5, type: 2}
-  - {fileID: 11400000, guid: 610cdfa582cb9f740bc36482e64c87c3, type: 2}
-  - {fileID: 11400000, guid: 8048a13a4902f974d87e7701719ff434, type: 2}
-  encounterAnimations: {fileID: 11400000, guid: 0658375394eb0054e841e736f08bfe1c,
-    type: 2}
-  animatedCharacterScale: 2
-  encounterSetup: {fileID: 11400000, guid: cbbb2f9b234cbae44ad7e10a51708fd2, type: 2}
-  battleScene: Battle
-  partCatalog: {fileID: 11400000, guid: f3f39c16ca81e294386a61c523cba19c, type: 2}
-  interactKey: 102
---- !u!4 &1113305909
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1113305907}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1854488343
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1854488349}
-  - component: {fileID: 1854488348}
-  - component: {fileID: 1854488347}
-  - component: {fileID: 1854488346}
-  - component: {fileID: 1854488345}
-  - component: {fileID: 1854488344}
+  - component: {fileID: 480146947}
+  - component: {fileID: 480146946}
+  - component: {fileID: 480146945}
+  - component: {fileID: 480146944}
+  - component: {fileID: 480146943}
+  - component: {fileID: 480146942}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -229,19 +142,19 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1854488344
+--- !u!114 &480146942
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1854488343}
+  m_GameObject: {fileID: 480146941}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 948f4100a11a5c24981795d21301da5c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  volumeTrigger: {fileID: 1854488349}
+  volumeTrigger: {fileID: 480146947}
   volumeLayer:
     serializedVersion: 2
     m_Bits: 1
@@ -289,27 +202,27 @@ MonoBehaviour:
   m_BeforeTransparentBundles: []
   m_BeforeStackBundles: []
   m_AfterStackBundles: []
---- !u!114 &1854488345
+--- !u!114 &480146943
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1854488343}
+  m_GameObject: {fileID: 480146941}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c606cbe4b305bfe4b9eb5fd0dd885759, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 0}
-  volume: {fileID: 1885610563}
---- !u!114 &1854488346
+  volume: {fileID: 763414364}
+--- !u!114 &480146944
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1854488343}
+  m_GameObject: {fileID: 480146941}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2437831d8d82a774f998a0c4206e3672, type: 3}
@@ -321,21 +234,21 @@ MonoBehaviour:
   lookHeight: 0.8
   fieldOfView: 28
   smoothTime: 0.15
---- !u!81 &1854488347
+--- !u!81 &480146945
 AudioListener:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1854488343}
+  m_GameObject: {fileID: 480146941}
   m_Enabled: 1
---- !u!20 &1854488348
+--- !u!20 &480146946
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1854488343}
+  m_GameObject: {fileID: 480146941}
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
@@ -372,13 +285,13 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!4 &1854488349
+--- !u!4 &480146947
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1854488343}
+  m_GameObject: {fileID: 480146941}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -386,7 +299,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1885610562
+--- !u!1 &763414363
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -394,8 +307,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1885610564}
-  - component: {fileID: 1885610563}
+  - component: {fileID: 763414365}
+  - component: {fileID: 763414364}
   m_Layer: 0
   m_Name: PostFX Volume
   m_TagString: Untagged
@@ -403,13 +316,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1885610563
+--- !u!114 &763414364
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1885610562}
+  m_GameObject: {fileID: 763414363}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8b9a305e18de0c04dbd257a21cd47087, type: 3}
@@ -420,17 +333,104 @@ MonoBehaviour:
   blendDistance: 0
   weight: 1
   priority: 0
---- !u!4 &1885610564
+--- !u!4 &763414365
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1885610562}
+  m_GameObject: {fileID: 763414363}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1747371201
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1747371203}
+  - component: {fileID: 1747371202}
+  m_Layer: 0
+  m_Name: Overworld
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1747371202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1747371201}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cade2149498408c4fa37f6ad6d4a2c89, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  areaName: MOSSLINE STATION
+  areaSubtitle: The City Ruins
+  useDefaultMap: 1
+  map: 'HHHHHH####HHHHH#BBBBBBBBBBBB
+
+    HHHHHH####HHHHH#BPPP,,PPPPPB
+
+    HHHHHH####HHHHH#BPT,PPEPP,TB
+
+    HHHHHH####HHHHH#B,,PPPXPPP,B
+
+    HHHHHH####HHHHH#BPR*PPPPPbPB
+
+    HHHHHH####HHHHH#BLLLLP.PLLLB
+
+    B.T,,...b..n.r,,....*..,.,TB
+
+    B=====,,==========,,=======B
+
+    B=======,===========r======B
+
+    B.b..,.n..T,,......b...,T..B
+
+    B.S.A,,......*....n..,,..*.B
+
+    LLLLLLLLLLLLLLLLLLLLLLLLLLLL
+
+'
+  tileAtlas: {fileID: 2800000, guid: 49f9e55079b04ba4eaab55e03dd59027, type: 3}
+  playerSheet: {fileID: 0}
+  enemySheet: {fileID: 2800000, guid: eb03bb575dab4e944bf830f8b76cdfbc, type: 3}
+  npcSheet: {fileID: 2800000, guid: 12b9e64b0046624448a39c288d9ac159, type: 3}
+  characterScale: 1.5
+  npcAnimations:
+  - {fileID: 11400000, guid: 005a5cf04bb0bf84ebe71cc6ca136df5, type: 2}
+  - {fileID: 11400000, guid: 610cdfa582cb9f740bc36482e64c87c3, type: 2}
+  - {fileID: 11400000, guid: 8048a13a4902f974d87e7701719ff434, type: 2}
+  encounterAnimations: {fileID: 11400000, guid: 0658375394eb0054e841e736f08bfe1c,
+    type: 2}
+  animatedCharacterScale: 2.5
+  encounterSetup: {fileID: 11400000, guid: cbbb2f9b234cbae44ad7e10a51708fd2, type: 2}
+  battleScene: Battle
+  partCatalog: {fileID: 11400000, guid: f3f39c16ca81e294386a61c523cba19c, type: 2}
+  interactKey: 102
+--- !u!4 &1747371203
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1747371201}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

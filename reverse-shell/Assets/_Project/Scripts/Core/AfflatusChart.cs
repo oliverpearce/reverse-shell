@@ -1,8 +1,8 @@
 namespace Combat
 {
     /// <summary>
-    /// Afflatus advantage wheel: Beast > Plant > Star > Mineral > Beast.
-    /// Spirit and Intellect are each strong against the other.
+    /// Element advantage wheel: Volt > Fire > Toxin > Earth > Volt (a surge overloads the furnace, fire purges toxin,
+    /// toxin blights the earth, earth grounds the current). Light and Void are each strong against the other.
     /// </summary>
     public static class AfflatusChart
     {
@@ -10,12 +10,12 @@ namespace Combat
         {
             switch (attacker)
             {
-                case Afflatus.Beast: return defender == Afflatus.Plant;
-                case Afflatus.Plant: return defender == Afflatus.Star;
-                case Afflatus.Star: return defender == Afflatus.Mineral;
-                case Afflatus.Mineral: return defender == Afflatus.Beast;
-                case Afflatus.Spirit: return defender == Afflatus.Intellect;
-                case Afflatus.Intellect: return defender == Afflatus.Spirit;
+                case Afflatus.Toxin: return defender == Afflatus.Earth;
+                case Afflatus.Earth: return defender == Afflatus.Volt;
+                case Afflatus.Volt: return defender == Afflatus.Fire;
+                case Afflatus.Fire: return defender == Afflatus.Toxin;
+                case Afflatus.Light: return defender == Afflatus.Void;
+                case Afflatus.Void: return defender == Afflatus.Light;
             }
             return false;
         }

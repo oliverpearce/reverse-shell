@@ -17,8 +17,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: bafede59cb9b6224bb94438da32117bb, type: 2}
   - {fileID: 11400000, guid: b36d6ba7d8f3f2c4c9f4c574bb68f675, type: 2}
   - {fileID: 11400000, guid: 931e4faa858967d43b44ae082f21ce87, type: 2}
+  - {fileID: 11400000, guid: 75bceeb20546ebd4882545b763efcfc8, type: 2}
+  backup: {fileID: 0}
   enemies:
   - {fileID: 11400000, guid: 8cb18e3bb06a9da4f9b173e3a5683359, type: 2}
   - {fileID: 11400000, guid: 146a058277a78164ba4de7f8f890506a, type: 2}
   backdrop: {fileID: 11400000, guid: 38f653c8515ba6948acbcb1ec7198940, type: 2}
   seed: 0
+  enemyLevel: 5
+  boss: 0

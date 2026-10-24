@@ -5,13 +5,16 @@ using UnityEngine.UI;
 
 namespace Combat.View
 {
-    /// <summary>A card in the hand. Click to queue it; drag to move it; hover for a large preview.</summary>
+    /// <summary>A card in the hand. Click to queue it; drag to move it; hold it to open its details (the full text and
+    /// upgrades, <see cref="CardDetailPopup"/>). Hovering only lifts it a little.</summary>
     public class CardView : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler,
-        IPointerEnterHandler, IPointerExitHandler
+        IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler, IScrollHandler
     {
-        public static readonly Vector2 Size = new Vector2(150f, 214f);
+        /// <summary>How long to hold a card to open its details.</summary>
+        const float LongPressSeconds = 0.45f;
+        /// <summary>The hand card: a 48 x 64 px pixel card at 5x (<see cref="CardArt"/>).</summary>
+        public static readonly Vector2 Size = new Vector2(CardArt.Width, CardArt.Height) * CardArt.HandPixel;
         static readonly Color Gold = new Color(1f, 0.8f, 0.3f);
-        static readonly Color PastelText = new Color(0.22f, 0.18f, 0.28f);
         static readonly Color NumberGold = new Color(1f, 0.84f, 0.38f);
 
         public CardInstance Card { get; private set; }
@@ -20,8 +23,25 @@ namespace Combat.View
 
         HandView hand;
         Coroutine moveRoutine, scaleRoutine;
-        bool dragging;
+        bool dragging, longPressed;
+        // Hold-to-open: polled in Update so hover, re-layouts and small mouse jitter can't cancel it.
+        bool pressing;
+        float pressTime;
+        Vector2 pressPosition;
         Vector3 dragOffset;
+        int shownRank;   // the rank the face shows: the card's own, or another one previewed with the mouse wheel
+
+        // Fan pose (set by HandView): where the card rests in the curved hand and its tilt. LateUpdate eases the card
+        // toward it, lifted, straightened and enlarged while hovered. Off while the card is dragged or flying away.
+        Vector2 posePosition;
+        float poseAngle;
+        bool posed, hovered;
+        /// <summary>The hovered card's size, and the height (canvas units above the hand's middle line) it rises to:
+        /// enough that the enlarged card's bottom edge stays where the resting card's was, so the pointer never slips
+        /// off it (which would flicker the hover).</summary>
+        public const float HoverScale = 1.25f;
+        public static float HoverLift { get { return Size.y * (HoverScale - 1f) / 2f; } }
+        const float PoseSpeed = 14f;
 
         public static CardView Create(Transform parent, CardInstance card, HandView hand)
         {
@@ -36,13 +56,6 @@ namespace Combat.View
             return cv;
         }
 
-        /// <summary>Dark ink on light colors, white on dark ones: text that stays readable on any card color.</summary>
-        static Color InkOn(Color background)
-        {
-            float luminance = 0.299f * background.r + 0.587f * background.g + 0.114f * background.b;
-            return luminance > 0.6f ? new Color(0.11f, 0.1f, 0.09f) : Color.white;
-        }
-
         /// <summary>Soft pastel version of the owner's color, used for Ritual cards.</summary>
         public static Color RitualPastel(Color owner)
         {
@@ -50,108 +63,208 @@ namespace Combat.View
         }
 
         /// <summary>
-        /// Builds the card's visuals into <paramref name="root"/> (sized Size * s). Used for the hand card, the hover
-        /// preview and the inspect screen, so bigger versions are crisp re-layouts rather than blurry upscales.
-        /// The small hand card (s <= 1) is just the rank in the top-left corner, the type icon in the top-right and one
-        /// huge ATTACK / BUFF / DEBUFF / HEAL / COUNTER word along the bottom. Bigger faces add the name header, owner and text.
-        /// Rank is shown as stacking stars (CardStars) or as pips, per CardSettings.RankStars.
+        /// Builds the card's visuals into <paramref name="root"/> (sized Size * s): the pixel card from
+        /// <see cref="CardArt"/> (Tools/CardForge), one card pixel = CardArt.HandPixel * s canvas units. A normal card is the owner-tinted
+        /// swirl, the frame, rank pips along the top, the type icon top-right, the card's own centre icon and its name
+        /// on the plate. A Ritual (Ult) card is its owner's full-art card with no text. Used for the hand card, the
+        /// card popup and the icon rows, so bigger versions are crisp re-layouts rather than blurry upscales.
         /// </summary>
         public static void BuildFace(RectTransform root, CardInstance card, float s)
         {
-            var owner = card.Owner.Definition.color;
-            bool ritual = card.IsRitual;
-            bool detailed = s > 1f;
-            bool stars = CardSettings.RankStars;
-            var pastel = RitualPastel(owner);
+            BuildFace(root, card, s, false);
+        }
+
+        /// <summary><paramref name="iconOnly"/>: just the card (the party menu and the inspect sheet). Otherwise a big
+        /// face (s &gt; 1, the card popup) also gets the text panel beside it.</summary>
+        public static void BuildFace(RectTransform root, CardInstance card, float s, bool iconOnly)
+        {
+            var owner = card.Owner.Definition;
+            bool detailed = s > 1f && !iconOnly;
+            float u = CardArt.HandPixel * s;   // canvas units per card pixel
             int F(float size) { return Mathf.RoundToInt(size * s); }
 
             // Transparent hit area on the root (click / drag / hover), then the face.
             var hit = root.GetComponent<Image>();
             if (hit == null) hit = root.gameObject.AddComponent<Image>();
             hit.color = new Color(0f, 0f, 0f, 0f);
-            var face = UIFactory.CreateImage(root, "Face", ritual ? pastel : UIFactory.Darken(owner, 0.62f));
-            face.rectTransform.Fill();
-            var edge = face.gameObject.AddComponent<Outline>();
-            edge.effectColor = ritual ? Color.white : UIFactory.Darken(owner, 0.1f);
-            edge.effectDistance = new Vector2(2f, -2f) * s;
 
-            float top = 0f; // where the content under the header starts
-            if (detailed)
+            var ult = card.IsRitual ? CardArt.Ult(owner) : null;
+            if (ult != null)
             {
-                // The header is the owner's color (that's how you tell whose card it is); the title picks dark or
-                // light ink so it stays readable on any color, even MC's near-white.
-                var headerColor = ritual ? Color.Lerp(pastel, owner, 0.25f) : owner;
-                var header = UIFactory.CreateImage(root, "Header", headerColor);
-                header.rectTransform.TopStrip(0f, 40f * s);
-                var title = UIFactory.CreateText(header.transform, "Title", card.Name, F(19), InkOn(headerColor),
-                    TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(F(11), F(19));
-                title.rectTransform.Fill(6f * s);
-                top = 40f * s;
+                Pixel(root, "UltArt", ult, Color.white).rectTransform.Fill();
+                UltShine.Add(root, ult, u);   // every Ult card glistens, in the hand and in every menu
             }
+            else
+            {
+                Pixel(root, "Swirl", CardArt.Swirl, owner.color).rectTransform.Fill();
+                Pixel(root, "Frame", CardArt.Frame, Color.white).rectTransform.Fill();
 
-            // Rank: stars from the top-left corner, or pips across the top.
-            if (stars)
-            {
-                int count = CardStars.CountFor(card);
-                if (count > 0) CardStars.Build(root, count, 22f * s, new Vector2(0f, 1f), new Vector2(7f * s, -top - 6f * s));
-            }
-            else if (!ritual)
-            {
-                int max = card.Definition.MaxRank;
-                float pipW = 26f * s, gap = 6f * s;
-                float total = max * pipW + (max - 1) * gap;
-                for (int i = 0; i < max; i++)
+                if (!card.IsRitual)
+                    for (int i = 0; i < card.Definition.MaxRank; i++)
+                    {
+                        var pip = Pixel(root, "Rank" + i, CardArt.Pip(i < card.Rank), Color.white);
+                        CardArt.PlacePixels(pip.rectTransform, CardArt.PipX + i * CardArt.PipStep, CardArt.PipY, CardArt.PipSize, CardArt.PipSize, u);
+                    }
+
+                var iconSprite = CardIcons.Glyph(CardIcons.TypeOf(card.Definition));
+                if (iconSprite != null)
                 {
-                    var pip = UIFactory.CreateImage(root, "Rank" + i, i < card.Rank ? Gold : new Color(0f, 0f, 0f, 0.5f));
-                    pip.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, 1f), new Vector2(-total / 2f + i * (pipW + gap), -top - 8f * s), new Vector2(pipW, 10f * s));
+                    var type = UIFactory.CreateImage(root, "TypeIcon", Color.white);
+                    type.sprite = iconSprite;
+                    type.preserveAspect = true;
+                    var r = CardArt.TypeIcon;
+                    CardArt.PlacePixels(type.rectTransform, r.x, r.y, r.width, r.height, u);
+                }
+
+                // The card's own centre icon; cards CardForge hasn't drawn yet show their type icon big instead.
+                var art = CardArt.Icon(card.Definition);
+                var centre = Pixel(root, "Art", art != null ? art : iconSprite, Color.white);
+                centre.preserveAspect = true;
+                CardArt.PlacePixels(centre.rectTransform, CardArt.ArtX, CardArt.ArtY, CardArt.ArtSize, CardArt.ArtSize, u);
+
+                var plate = CardArt.NamePlate;
+                // As big as the plate allows (best fit, one line).
+                var name = UIFactory.CreateText(root, "Name", card.Name.ToUpperInvariant(), F(26), InkStyle.Paper, TextAnchor.MiddleCenter).BestFit(F(8), F(26));
+                CardArt.PlacePixels(name.rectTransform, plate.x, plate.y - 1, plate.width, plate.height + 2, u);
+            }
+
+            if (detailed) DetailPanel(root, card, s);
+        }
+
+        /// <summary>A point-filtered pixel-art Image (the card pieces).</summary>
+        static Image Pixel(Transform parent, string name, Sprite sprite, Color color)
+        {
+            var img = UIFactory.CreateImage(parent, name, color);
+            img.sprite = sprite;
+            if (sprite == null) img.color = new Color(0f, 0f, 0f, 0f);
+            return img;
+        }
+
+        /// <summary>
+        /// The card popup's text, on an ink panel to the right of the card: name, kind and rank, the effect text (every
+        /// number bigger and gold) and the status chips it applies.
+        /// </summary>
+        static void DetailPanel(RectTransform root, CardInstance card, float s)
+        {
+            int F(float size) { return Mathf.RoundToInt(size * s); }
+            var panel = InkStyle.Panel(root, "Text", InkStyle.InkPanel);
+            panel.rectTransform.Place(new Vector2(1f, 0.5f), new Vector2(0f, 0.5f), new Vector2(14f * s, 0f), new Vector2(Size.x * 1.2f, Size.y * 0.92f) * s);
+            InkStyle.Frame(panel.rectTransform, InkStyle.Rule, 2f);
+            var prt = panel.rectTransform;
+
+            var title = UIFactory.CreateText(prt, "Title", card.Name, F(22), InkStyle.Paper, TextAnchor.UpperLeft).BestFit(F(12), F(22));
+            title.rectTransform.TopStrip(10f * s, 32f * s, 12f * s);
+            string rank = card.IsRitual ? "Ult" : "Rank " + UIFactory.Roman(card.Rank);
+            var kind = UIFactory.CreateText(prt, "Kind", UnitView.KindLabel(card.Definition.kind).ToUpperInvariant() + "   " + rank, F(13),
+                UnitView.KindColor(card.Definition.kind), TextAnchor.UpperLeft);
+            kind.rectTransform.TopStrip(44f * s, 20f * s, 12f * s);
+            var rule = InkStyle.Line(prt, "Rule", InkStyle.Rule);
+            rule.rectTransform.TopStrip(68f * s, 2f, 12f * s);
+
+            // The real numbers with the owner's current stats (before the target's DEF), in big gold, at the bottom.
+            var live = LiveNumbers(card, F(30));
+            float liveH = live.Count * 40f;
+            if (live.Count > 0)
+            {
+                var numbers = UIFactory.CreateText(prt, "Numbers", string.Join("\n", live.ToArray()), F(17), InkStyle.Paper, TextAnchor.LowerLeft);
+                numbers.supportRichText = true;
+                numbers.rectTransform.anchorMin = Vector2.zero;
+                numbers.rectTransform.anchorMax = new Vector2(1f, 0f);
+                numbers.rectTransform.pivot = new Vector2(0.5f, 0f);
+                numbers.rectTransform.offsetMin = new Vector2(12f, 8f) * s;
+                numbers.rectTransform.offsetMax = new Vector2(-12f, 8f + liveH) * s;
+                liveH += 8f;
+            }
+
+            float chipRow = StatusChips(prt, card, s, 2f + liveH);
+            var middle = UIFactory.CreateRect("Middle", prt);
+            middle.anchorMin = Vector2.zero;
+            middle.anchorMax = Vector2.one;
+            middle.offsetMin = new Vector2(12f, 8f + liveH + chipRow) * s;
+            middle.offsetMax = new Vector2(-12f, -78f) * s;
+            var desc = UIFactory.CreateText(middle, "Description", "", F(15), new Color(0.92f, 0.92f, 0.95f), TextAnchor.UpperLeft);
+            desc.font = UIFactory.BodyFont;
+            desc.lineSpacing = 1.05f;
+            desc.rectTransform.Fill();
+            string text = card.Describe();
+            UIFactory.FitRich(desc, size => UIFactory.EmphasizeNumbers(text, Mathf.RoundToInt(size * 1.3f), NumberGold), F(8), F(15));
+        }
+
+        /// <summary>
+        /// "DAMAGE 312" / "HEAL 240" lines worked out from the owner's current ATK and bonuses, the same way the battle
+        /// does (CombatMath), but before the target's DEF, element and crits. Multi-hit attacks also show each hit.
+        /// </summary>
+        static System.Collections.Generic.List<string> LiveNumbers(CardInstance card, int numberSize)
+        {
+            var lines = new System.Collections.Generic.List<string>();
+            var rank = card.RankData;
+            var unit = card.Owner;
+            if (rank == null || unit == null) return lines;
+            string gold = "<color=#" + ColorUtility.ToHtmlStringRGB(NumberGold) + ">";
+            float atk = unit.GetStat(StatType.Attack);
+            float might = Mathf.Max(0f, 1f + unit.GetStat(StatType.DamageBonus)
+                                        + unit.GetStat(card.IsRitual ? StatType.RitualMight : StatType.IncantationMight));
+            foreach (var effect in rank.effects)
+            {
+                var damage = effect as DamageEffect;
+                if (damage != null)
+                {
+                    int total = Mathf.RoundToInt(atk * damage.multiplier * might);
+                    int hits = Mathf.Max(1, damage.hits);
+                    string each = hits > 1 ? "  (" + hits + " x " + Mathf.RoundToInt((float)total / hits) + ")" : "";
+                    lines.Add("DAMAGE  " + gold + "<size=" + UIFactory.Px(numberSize) + ">" + total + "</size></color>" + each);
+                    continue;
+                }
+                var heal = effect as HealEffect;
+                if (heal != null)
+                {
+                    int amount = Mathf.RoundToInt(atk * heal.multiplier * (1f + unit.GetStat(StatType.HealingBonus)));
+                    lines.Add("HEAL  " + gold + "<size=" + UIFactory.Px(numberSize) + ">" + amount + "</size></color>");
                 }
             }
+            return lines;
+        }
 
-            // Type icon (Attack / Debuff / Buff / Counter / Heal / Ultimate) in the top-right corner, from the CardIcons atlas.
-            float iconSize = 34f * s;
-            var iconSprite = CardIcons.Glyph(CardIcons.TypeOf(card.Definition));
-            if (iconSprite != null)
+        /// <summary>
+        /// One chip per status the card's rank applies, left to right just above the kind band: the status icon with
+        /// its turns in the corner ("x2" stacks over it when more than one). Returns the height used (unscaled), 0 if none.
+        /// </summary>
+        static float StatusChips(RectTransform root, CardInstance card, float s, float band)
+        {
+            var rank = card.RankData;
+            if (rank == null) return 0f;
+            const float chip = 30f, gap = 8f;
+            float x = 12f;
+            foreach (var effect in rank.effects)
             {
-                var icon = UIFactory.CreateImage(root, "TypeIcon", Color.white);
-                icon.sprite = iconSprite;
-                icon.preserveAspect = true;
-                icon.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-5f * s, -top - 5f * s), new Vector2(iconSize, iconSize));
+                var apply = effect as ApplyStatusEffect;
+                if (apply == null || apply.status == null) continue;
+                var holder = UIFactory.CreateRect(apply.status.DisplayName, root).Place(Vector2.zero, Vector2.zero, new Vector2(x, band + 6f) * s, new Vector2(chip, chip) * s);
+                var sprite = CardIcons.Status(apply.status);
+                if (sprite != null)
+                {
+                    var icon = UIFactory.CreateImage(holder, "Icon", Color.white);
+                    icon.sprite = sprite;
+                    icon.preserveAspect = true;
+                    icon.rectTransform.Fill();
+                }
+                else
+                {
+                    var plate = UIFactory.CreateImage(holder, "Plate", UIFactory.Darken(apply.status.color, 0.35f));
+                    plate.rectTransform.Fill();
+                    UIFactory.CreateText(holder, "Label", apply.status.shortLabel, Mathf.RoundToInt(11f * s), Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).rectTransform.Fill();
+                }
+                // Hover the chip for what the status does (the box says how long it lasts).
+                var hitArea = holder.gameObject.AddComponent<Image>();
+                hitArea.color = new Color(0f, 0f, 0f, 0f);
+                StatusTooltip.Attach(holder.gameObject, new StatusSnapshot(apply.status, apply.duration, apply.stacks), true);
+                StatusChip.AddArrows(holder, apply.status, apply.stacks, s * 0.6f);
+                var turns = UIFactory.CreateText(holder, "Turns", apply.duration.ToString(), Mathf.RoundToInt(14f * s), InkStyle.Paper, TextAnchor.LowerRight, FontStyle.Bold);
+                turns.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
+                turns.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(5f, -5f) * s, new Vector2(44f, 20f) * s);
+                x += chip + gap;
             }
-
-            // Reverse 1999-style: the bottom of the card is one huge word saying what it does.
-            const float band = 58f;
-            var kindColor = UnitView.KindColor(card.Definition.kind);
-            var bandImg = UIFactory.CreateImage(root, "KindBand", ritual ? Color.Lerp(kindColor, Color.white, 0.35f) : UIFactory.Darken(kindColor, 0.3f));
-            var brt = bandImg.rectTransform;
-            brt.anchorMin = Vector2.zero;
-            brt.anchorMax = new Vector2(1f, 0f);
-            brt.pivot = new Vector2(0.5f, 0f);
-            brt.offsetMin = Vector2.zero;
-            brt.offsetMax = new Vector2(0f, band * s);
-            var word = UIFactory.CreateText(bandImg.transform, "Kind", UnitView.KindLabel(card.Definition.kind).ToUpperInvariant(), F(40),
-                ritual ? PastelText : Color.white, TextAnchor.MiddleCenter, FontStyle.BoldAndItalic).BestFit(F(14), F(40));
-            word.font = UIFactory.DisplayFont; // Anton: punchy, Persona-style
-            word.fontStyle = FontStyle.Normal;
-            word.rectTransform.Fill(6f * s);
-            if (!ritual) word.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.6f);
-
-            if (detailed)
-            {
-                var middle = UIFactory.CreateRect("Middle", root);
-                middle.anchorMin = Vector2.zero;
-                middle.anchorMax = Vector2.one;
-                middle.offsetMin = new Vector2(12f, band + 8f) * s;
-                middle.offsetMax = new Vector2(-12f, -top - 42f * s); // under the stars and the type icon
-                var descColor = ritual ? PastelText : new Color(0.92f, 0.92f, 0.95f);
-                // Every number / percentage is bigger, bold and gold so the values pop.
-                var desc = UIFactory.CreateText(middle, "Description", "", F(17), descColor, TextAnchor.UpperLeft);
-                desc.font = UIFactory.BodyFont;
-                desc.lineSpacing = 1.05f;
-                desc.rectTransform.Fill();
-                string text = card.Describe();
-                var numberColor = ritual ? new Color(0.55f, 0.25f, 0.6f) : NumberGold;
-                UIFactory.FitRich(desc, size => UIFactory.EmphasizeNumbers(text, Mathf.RoundToInt(size * 1.35f), numberColor), F(10), F(17));
-            }
+            return x > 12f ? chip + 6f : 0f;
         }
 
         /// <summary>Rebuilds this card's face (e.g. after the rank display setting changes).</summary>
@@ -164,19 +277,44 @@ namespace Combat.View
                 Destroy(child);
             }
             mergeGlow = null;
+            shownRank = Card.Rank;
             BuildFace(Rect, Card, 1f);
         }
 
-        public void AnimateTo(Vector2 anchored, float duration)
+        /// <summary>Moves the card (eased) to a spot in the fan with a tilt.</summary>
+        public void SetPose(Vector2 anchored, float angle)
         {
             if (moveRoutine != null) StopCoroutine(moveRoutine);
-            moveRoutine = StartCoroutine(Tween.MoveAnchored(Rect, anchored, duration));
+            moveRoutine = null;
+            posePosition = anchored;
+            poseAngle = angle;
+            posed = true;
+        }
+
+        public bool Hovered { get { return hovered; } }
+
+        void LateUpdate()
+        {
+            if (!posed || dragging) return;
+            float k = 1f - Mathf.Exp(-PoseSpeed * Time.unscaledDeltaTime);
+            var target = hovered ? new Vector2(posePosition.x, HoverLift) : posePosition;
+            Rect.anchoredPosition = Vector2.Lerp(Rect.anchoredPosition, target, k);
+            float angle = Mathf.LerpAngle(Rect.localEulerAngles.z, hovered ? 0f : poseAngle, k);
+            Rect.localRotation = Quaternion.Euler(0f, 0f, angle);
+            if (scaleRoutine == null)
+                Rect.localScale = Vector3.Lerp(Rect.localScale, Vector3.one * (hovered ? HoverScale : 1f), k);
         }
 
         public void ScaleTo(float scale, float duration)
         {
             if (scaleRoutine != null) StopCoroutine(scaleRoutine);
-            scaleRoutine = StartCoroutine(Tween.Scale(Rect, Vector3.one * scale, duration, Tween.OutBack));
+            scaleRoutine = StartCoroutine(ScaleRoutine(scale, duration));
+        }
+
+        IEnumerator ScaleRoutine(float scale, float duration)
+        {
+            yield return Tween.Scale(Rect, Vector3.one * scale, duration, Tween.OutBack);
+            scaleRoutine = null;   // the fan pose takes the scale back
         }
 
         GameObject mergeGlow;
@@ -218,6 +356,7 @@ namespace Combat.View
         {
             StopAllCoroutines();
             moveRoutine = scaleRoutine = null;
+            posed = false;
         }
 
         public IEnumerator FlyAndVanish(Vector3 worldTarget, float duration)
@@ -226,6 +365,7 @@ namespace Combat.View
             StopAnimations();
             Group.alpha = 1f;
             Group.blocksRaycasts = false;
+            SetHovered(false);
             StartCoroutine(Tween.Scale(Rect, Vector3.one * 0.45f, duration));
             StartCoroutine(Tween.Fade(Group, 0f, duration));
             yield return Tween.MoveWorld(Rect, worldTarget, duration);
@@ -240,19 +380,67 @@ namespace Combat.View
         public void OnPointerClick(PointerEventData eventData)
         {
             if (eventData.button != PointerEventData.InputButton.Left) return;
+            if (longPressed)
+            {
+                longPressed = false;   // the hold opened the details; releasing doesn't also queue the card
+                return;
+            }
             hand.HidePreview(this);
             hand.View.OnCardClicked(Card);
         }
 
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            if (eventData.button != PointerEventData.InputButton.Left) return;
+            longPressed = false;
+            pressing = true;
+            pressTime = 0f;
+            pressPosition = eventData.position;
+            // A drag only starts past the hold slop, so a slightly shaky hold still opens the card.
+            if (EventSystem.current != null) EventSystem.current.pixelDragThreshold = Mathf.RoundToInt(HoldSlop);
+        }
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            pressing = false;
+        }
+
+        /// <summary>How far (screen px) the mouse may wander during a hold before it counts as a drag instead.</summary>
+        static float HoldSlop { get { return Mathf.Max(12f, Screen.height * 0.03f); } }
+
+        void Update()
+        {
+            if (!pressing) return;
+            if (!Input.GetMouseButton(0) || dragging || ((Vector2)Input.mousePosition - pressPosition).magnitude > HoldSlop)
+            {
+                pressing = false;
+                return;
+            }
+            pressTime += Time.unscaledDeltaTime;
+            if (pressTime < LongPressSeconds) return;
+            pressing = false;
+            longPressed = true;
+            hand.View.OpenCardDetail(this);
+        }
+
         public void OnBeginDrag(PointerEventData eventData)
         {
+            // Once the hold has opened the card, releasing / moving doesn't drag it.
+            if (longPressed)
+            {
+                eventData.pointerDrag = null;
+                return;
+            }
+            pressing = false;
             if (!hand.View.InputEnabled || !hand.View.Controller.CanAct) return; // moving costs 1 AP
             hand.HidePreview(this);
             dragging = true;
+            SetHovered(false);
             if (moveRoutine != null) StopCoroutine(moveRoutine);
             dragOffset = Rect.position - (Vector3)eventData.position;
             Group.blocksRaycasts = false;
             Rect.SetAsLastSibling();
+            Rect.localRotation = Quaternion.identity;
             ScaleTo(1.1f, 0.12f);
             hand.BeginDrag(this);
         }
@@ -274,14 +462,51 @@ namespace Combat.View
             hand.OnCardDropped(this);
         }
 
+        /// <summary>Slay the Spire-style hover: the card rises out of the fan, straight and bigger, in front of the others
+        /// (its neighbours lean aside). The full text is in the long-press details.</summary>
         public void OnPointerEnter(PointerEventData eventData)
         {
-            if (!dragging && hand.View.InputEnabled) hand.ShowPreview(this);
+            if (!dragging && !eventData.dragging) SetHovered(true);
+        }
+
+        void SetHovered(bool on)
+        {
+            if (hovered == on) return;
+            hovered = on;
+            if (on) Rect.SetAsLastSibling();
+            hand.OnCardHover(this, on);
+        }
+
+        /// <summary>Wheel over a hand card: preview its other ranks in place (down = higher). The real card doesn't change,
+        /// and moving off it shows its own rank again.</summary>
+        public void OnScroll(PointerEventData eventData)
+        {
+            int max = Card.IsRitual ? 1 : Card.Definition.MaxRank;
+            if (max <= 1 || dragging) return;
+            if (shownRank == 0) shownRank = Card.Rank;
+            int next = Mathf.Clamp(shownRank + (eventData.scrollDelta.y < 0 ? 1 : -1), 1, max);
+            if (next == shownRank) return;
+            ShowRank(next);
+        }
+
+        void ShowRank(int rank)
+        {
+            shownRank = rank;
+            for (int i = Rect.childCount - 1; i >= 0; i--)
+            {
+                var child = Rect.GetChild(i).gameObject;
+                if (child == mergeGlow) continue;
+                child.SetActive(false);
+                Destroy(child);
+            }
+            BuildFace(Rect, rank == Card.Rank ? Card : new CardInstance(Card.Definition, Card.Owner, rank), 1f);
+            if (mergeGlow != null) mergeGlow.transform.SetAsLastSibling();
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            hand.HidePreview(this);
+            if (shownRank != 0 && shownRank != Card.Rank) ShowRank(Card.Rank);
+            if (!dragging) SetHovered(false);
         }
     }
 }

@@ -28,7 +28,31 @@ namespace Combat
             Id = ++nextId;
             Definition = definition;
             Team = team;
-            Level = 1;
+            Level = definition is EnemyDefinition ? DefaultEnemyLevel : 1;
+            HP = MaxHP;
+        }
+
+        /// <summary>Enemy definitions hold their stats at this level.</summary>
+        public const int DefaultEnemyLevel = 5;
+        public const int MaxEnemyLevel = 99;
+        /// <summary>Enemy stat growth per level (relative to <see cref="DefaultEnemyLevel"/>).</summary>
+        public const float EnemyGrowth = 0.06f;
+        public const float BossHP = 3f, BossAttack = 1.25f;
+
+        /// <summary>A boss: 3x HP, 1.25x ATK (and the battle draws it bigger with a BOSS tag).</summary>
+        public bool IsBoss { get; private set; }
+
+        /// <summary>An enemy's stat multiplier at a level: 1 at Lv 5, smaller below, larger above.</summary>
+        public static float EnemyScale(int level)
+        {
+            return (1f + EnemyGrowth * (Mathf.Clamp(level, 1, MaxEnemyLevel) - 1)) / (1f + EnemyGrowth * (DefaultEnemyLevel - 1));
+        }
+
+        /// <summary>Sets an enemy's level (1-99) and boss flag, and refills its HP.</summary>
+        public void SetEnemyLevel(int level, bool boss)
+        {
+            Level = Mathf.Clamp(level, 1, MaxEnemyLevel);
+            IsBoss = boss;
             HP = MaxHP;
         }
 
@@ -57,11 +81,32 @@ namespace Combat
         }
 
         /// <summary>Fits a loadout's cards and Parts. HP is refilled to the (possibly new) max; set HP afterwards to carry damage.</summary>
+        Afflatus? elementOverride;
+        CardDefinition ultimateOverride;
+
+        /// <summary>This unit's element in battle: its active resonance, else its definition's.</summary>
+        public Afflatus Afflatus { get { return elementOverride ?? Definition.afflatus; } }
+
+        /// <summary>The Ult card it can spawn: its active resonance's, else its definition's ritual.</summary>
+        public CardDefinition Ultimate
+        {
+            get
+            {
+                if (ultimateOverride != null) return ultimateOverride;
+                if (Character != null) return Character.ritual;
+                return Enemy != null ? Enemy.ritual : null;
+            }
+        }
+
         public void ApplyLoadout(Loadout loadout)
         {
             Parts.Clear();
             incantations = null;
+            elementOverride = null;
+            ultimateOverride = null;
             if (loadout == null) return;
+            elementOverride = loadout.Element;
+            ultimateOverride = loadout.Ultimate;
             foreach (var part in loadout.Parts) if (part != null) Parts.Add(part);
             if (loadout.Cards != null && loadout.Cards.Exists(c => c != null)) incantations = loadout.Cards.FindAll(c => c != null);
             HP = MaxHP;
@@ -85,6 +130,7 @@ namespace Combat
             }
             foreach (var part in Parts)
             {
+                if (!part.AppliesTo(Afflatus)) continue;
                 foreach (var mod in part.modifiers)
                 {
                     if (mod.stat != stat) continue;
@@ -95,6 +141,12 @@ namespace Combat
             float baseValue = Definition.stats.Get(stat);
             var character = Character;
             if (character != null && Leveling.Grows(stat)) baseValue *= Leveling.StatScale(Level, character.growthPerLevel);
+            if (Enemy != null)
+            {
+                if (Leveling.Grows(stat)) baseValue *= EnemyScale(Level);
+                if (IsBoss && stat == StatType.MaxHP) baseValue *= BossHP;
+                if (IsBoss && stat == StatType.Attack) baseValue *= BossAttack;
+            }
             return (baseValue + flat) * (1f + percent);
         }
 

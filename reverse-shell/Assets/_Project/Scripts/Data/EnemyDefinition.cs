@@ -12,6 +12,9 @@ namespace Combat
 
         [Tooltip("XP each party member earns when this enemy is beaten.")]
         [Min(0)] public int xpReward = 50;
+
+        [Tooltip("Ult: replaces the round's skill once the enemy's Ult points are full (it gains them by acting, like the party).")]
+        public CardDefinition ritual;
     }
 
     [Serializable]

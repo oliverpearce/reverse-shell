@@ -1,0 +1,252 @@
+using System.Collections.Generic;
+using Game.World;
+using NUnit.Framework;
+using UnityEngine;
+
+namespace Combat.Tests
+{
+    public class StoryTests
+    {
+        [SetUp]
+        public void SetUp() { SaveGame.Restore(null); }
+
+        [TearDown]
+        public void TearDown() { SaveGame.Restore(null); }
+
+        [Test]
+        public void Objective_FollowsTheFlags()
+        {
+            Assert.AreEqual("", Chapter1.CurrentObjective(), "nothing before waking");
+            StoryState.Set(Chapter1.Awake);
+            StringAssert.Contains("Explore", Chapter1.CurrentObjective());
+            StoryState.Set(Chapter1.Scanner);
+            StringAssert.Contains("scanner", Chapter1.CurrentObjective());
+            StoryState.Set(Chapter1.CollectorMet);
+            StringAssert.Contains("Collector", Chapter1.CurrentObjective());
+            StoryState.Set(Chapter1.CollectorBeaten);
+            StringAssert.Contains("Scan", Chapter1.CurrentObjective());
+            StoryState.Set(Chapter1.Route);
+            StoryState.Set(Chapter1.Tunnel);
+            StoryState.Set(Chapter1.DragonSeen);
+            StringAssert.Contains("guardian", Chapter1.CurrentObjective());
+            StoryState.Set(Chapter1.DragonBeaten);
+            StringAssert.Contains("Soul Card", Chapter1.CurrentObjective());
+            StoryState.Set(Chapter1.ResonanceVolt);
+            StoryState.Set(Chapter1.Complete);
+            StringAssert.Contains("complete", Chapter1.CurrentObjective());
+        }
+
+        [Test]
+        public void Allows_ChecksRequiredAndBlockedFlags()
+        {
+            StoryState.Set("a");
+            Assert.IsTrue(StoryState.Allows(new[] { "a" }, null));
+            Assert.IsFalse(StoryState.Allows(new[] { "a", "b" }, null));
+            Assert.IsFalse(StoryState.Allows(null, new[] { "a" }));
+            Assert.IsTrue(StoryState.Allows(null, null));
+        }
+
+        [Test]
+        public void SaveRoundTrip_KeepsFlagsNameAndResonance()
+        {
+            StoryState.Set(Chapter1.Scanner);
+            StoryState.SetName("Wren");
+            WorldSession.UnlockResonance(Afflatus.Volt);
+            WorldSession.SetResonance(Afflatus.Volt);
+            WorldSession.CurrentArea = WorldAreas.Tunnel;
+            var json = JsonUtility.ToJson(SaveGame.Capture());
+
+            SaveGame.Restore(null);
+            Assert.IsFalse(StoryState.Has(Chapter1.Scanner));
+
+            SaveGame.Restore(JsonUtility.FromJson<SaveGame.Data>(json));
+            Assert.IsTrue(StoryState.Has(Chapter1.Scanner));
+            Assert.AreEqual("Wren", StoryState.PlayerName);
+            Assert.IsTrue(WorldSession.UnlockedResonances.Contains(Afflatus.Volt));
+            Assert.AreEqual(Afflatus.Volt, WorldSession.ActiveResonance);
+            Assert.AreEqual(WorldAreas.Tunnel, WorldSession.CurrentArea);
+        }
+
+        [Test]
+        public void ChosenName_ReplacesTheProtagonistsDisplayName()
+        {
+            var mc = TestFactory.Character(StoryState.ProtagonistAsset);
+            StoryState.SetName("Wren");
+            Assert.AreEqual("Wren", mc.DisplayName);
+            StoryState.SetName("");
+            Assert.AreEqual(StoryState.ProtagonistAsset, mc.DisplayName);
+        }
+
+        static CharacterDefinition Protagonist(out CardDefinition physical, out CardDefinition electric, out CardDefinition ult)
+        {
+            physical = TestFactory.Card("Strike");
+            electric = TestFactory.Card("Arc");
+            ult = TestFactory.Card("Thunder", 5f, ritual: true);
+            var mc = TestFactory.Character("Hero", Afflatus.Volt, 100f, null, physical);
+            mc.resonances = new List<ResonanceKit>
+            {
+                new ResonanceKit { element = Afflatus.None, cards = new List<CardDefinition> { physical } },
+                new ResonanceKit { element = Afflatus.Volt, cards = new List<CardDefinition> { electric }, ultimate = ult },
+            };
+            return mc;
+        }
+
+        [Test]
+        public void Resonance_StartsPhysical_ElectricNeedsUnlocking_AndSwapsCardsElementAndUlt()
+        {
+            CardDefinition physical, electric, ult;
+            var mc = Protagonist(out physical, out electric, out ult);
+
+            Assert.AreEqual(new[] { Afflatus.None }, WorldSession.AvailableResonances(mc).ToArray());
+            WorldSession.SetResonance(Afflatus.Volt);   // not unlocked yet: still Physical
+            Assert.AreEqual(Afflatus.None, WorldSession.ElementOf(mc));
+            CollectionAssert.AreEqual(new[] { physical }, WorldSession.DeckOf(mc));
+
+            WorldSession.UnlockResonance(Afflatus.Volt);
+            Assert.AreEqual(Afflatus.Volt, WorldSession.ElementOf(mc));
+            CollectionAssert.AreEqual(new[] { electric }, WorldSession.DeckOf(mc));
+            Assert.AreSame(ult, WorldSession.UltimateOf(mc));
+
+            var unit = new BattleUnit(mc, Team.Player);
+            unit.ApplyLoadout(WorldSession.LoadoutsFor(new[] { mc })[mc]);
+            Assert.AreEqual(Afflatus.Volt, unit.Afflatus);
+            Assert.AreSame(ult, unit.Ultimate);
+        }
+
+        [Test]
+        public void Physical_IsNeutralAgainstEveryElement()
+        {
+            foreach (Afflatus other in System.Enum.GetValues(typeof(Afflatus)))
+            {
+                Assert.AreEqual(AfflatusRelation.Neutral, AfflatusChart.Relation(Afflatus.None, other));
+                Assert.AreEqual(AfflatusRelation.Neutral, AfflatusChart.Relation(other, Afflatus.None));
+            }
+        }
+
+        [Test]
+        public void Stunned_StopsAUnitActing()
+        {
+            var stunned = ScriptableObject.CreateInstance<StatusDefinition>();
+            stunned.preventsAction = true;
+            var unit = new BattleUnit(TestFactory.Enemy("E"), Team.Enemy);
+            Assert.IsFalse(unit.IsStunned);
+            unit.Statuses.Add(new StatusInstance(stunned, null, 1, 1));
+            Assert.IsTrue(unit.IsStunned);
+        }
+
+        [Test]
+        public void PositionAndAccessPoint_SurviveASave_AndContinuePutsYouBack()
+        {
+            WorldSession.CurrentArea = WorldAreas.Tunnel;
+            WorldSession.PlayerSpot = new WorldSession.Spot { area = WorldAreas.Tunnel, position = new Vector3(5f, 0f, -9f), facing = 1 };
+            WorldSession.LastAccessPoint = new WorldSession.Spot { area = WorldAreas.City, position = new Vector3(20f, 0f, -15f), facing = 3 };
+            var json = JsonUtility.ToJson(SaveGame.Capture());
+            SaveGame.Restore(null);
+            WorldSession.HasReturnPoint = false;
+            Assert.IsNull(WorldSession.LastAccessPoint);
+            SaveGame.Restore(JsonUtility.FromJson<SaveGame.Data>(json));
+            Assert.AreEqual(WorldAreas.Tunnel, WorldSession.CurrentArea);
+            Assert.IsTrue(WorldSession.HasReturnPoint, "Continue starts where you saved");
+            Assert.AreEqual(new Vector3(5f, 0f, -9f), WorldSession.ReturnPosition);
+            Assert.AreEqual(1, WorldSession.ReturnFacing);
+            Assert.AreEqual(WorldAreas.City, WorldSession.LastAccessPoint.area);
+            Assert.AreEqual(new Vector3(20f, 0f, -15f), WorldSession.LastAccessPoint.position);
+        }
+
+        [Test]
+        public void ASaveMadeWhileTravelling_StartsAtTheAreaSpawn()
+        {
+            WorldSession.CurrentArea = WorldAreas.Chamber;
+            WorldSession.PlayerSpot = null;
+            var json = JsonUtility.ToJson(SaveGame.Capture());
+            WorldSession.HasReturnPoint = false;
+            SaveGame.Restore(JsonUtility.FromJson<SaveGame.Data>(json));
+            Assert.IsFalse(WorldSession.HasReturnPoint);
+        }
+
+        [Test]
+        public void RespawnPatrols_ClearsBeatenMachines()
+        {
+            WorldSession.DefeatedEncounters.Add("a");
+            WorldSession.DefeatedEncounters.Add("b");
+            Assert.AreEqual(2, WorldSession.RespawnPatrols());
+            Assert.AreEqual(0, WorldSession.DefeatedEncounters.Count);
+        }
+
+        [Test]
+        public void StoryText_FillsIns()
+        {
+            Assert.AreEqual("You got the Ult Chip.", StoryText.Fill("You got the {item}.", "item", "Ult Chip"));
+            Assert.AreEqual("{gold}x{/c}", StoryText.Fill("{gold}x{/c}", "item", "y"), "markup is left alone");
+        }
+
+        [Test]
+        public void TrainingReturnPoint_SurvivesASave()
+        {
+            WorldSession.CurrentArea = WorldAreas.Training;
+            WorldSession.HasTrainingReturn = true;
+            WorldSession.TrainingReturnArea = WorldAreas.Tunnel;
+            WorldSession.TrainingReturnPosition = new Vector3(3f, 0f, -7f);
+            WorldSession.TrainingReturnFacing = 2;
+            var json = JsonUtility.ToJson(SaveGame.Capture());
+            SaveGame.Restore(null);
+            Assert.IsFalse(WorldSession.HasTrainingReturn);
+            Assert.IsFalse(WorldSession.InTraining);
+            SaveGame.Restore(JsonUtility.FromJson<SaveGame.Data>(json));
+            Assert.IsTrue(WorldSession.InTraining);
+            Assert.IsTrue(WorldSession.HasTrainingReturn);
+            Assert.AreEqual(WorldAreas.Tunnel, WorldSession.TrainingReturnArea);
+            Assert.AreEqual(new Vector3(3f, 0f, -7f), WorldSession.TrainingReturnPosition);
+            Assert.AreEqual(2, WorldSession.TrainingReturnFacing);
+        }
+
+        [Test]
+        public void StoryText_ParsesBlocksSpeakersAndComments()
+        {
+            var blocks = new Dictionary<string, List<StoryText.Entry>>();
+            StoryText.Parse("# a comment\n[intro]\nNarration here.\nCollector | Stop there.\n\n[other]\nOne\n", blocks);
+            Assert.AreEqual(2, blocks.Count);
+            Assert.AreEqual(2, blocks["intro"].Count);
+            Assert.AreEqual("", blocks["intro"][0].Speaker);
+            Assert.AreEqual("Narration here.", blocks["intro"][0].Text);
+            Assert.AreEqual("Collector", blocks["intro"][1].Speaker);
+            Assert.AreEqual("Stop there.", blocks["intro"][1].Text);
+        }
+
+        [Test]
+        public void StoryText_HasEveryKeyTheGameUses()
+        {
+            StoryText.Reload();
+            string[] keys =
+            {
+                "prologue.recording", "prologue.tagline", "prologue.procedure", "prologue.name", "prologue.name.question",
+                "awakening", "pod", "memory.1", "memory.2", "memory.3", "memory.after",
+                "record.city.4", "record.city.5", "record.city.6", "record.city.7", "record.tunnel.4", "npc.small_machine",
+                "scanner.pickup", "scan.jammed", "scan.trace", "scan.none.hint", "scan.none", "route.open",
+                "collector.intro", "collector.question", "collector.options", "collector.answer.1", "collector.answer.2",
+                "collector.final", "collector.again", "collector.win", "guardian.intro", "guardian.again", "guardian.win",
+                "pedestal.empty", "pedestal.blocked", "absorb", "absorb.banner", "absorb.core", "ending", "endcard",
+                // World.txt
+                "objective.explore", "objective.scanner", "objective.collector", "objective.scan", "objective.route",
+                "objective.tunnel", "objective.guardian", "objective.card", "objective.leave", "objective.complete",
+                "battle.fled", "battle.lost", "access.rest", "access.respawn", "item.found", "chest.empty",
+                "beacon.none", "beacon.ask", "beacon.options", "beacon.sent", "training.joins", "training.joins.many",
+                "training.trader", "training.scout", "training.wanderer",
+            };
+            foreach (var key in keys) Assert.IsTrue(StoryText.Has(key), "Resources/Story is missing [" + key + "]");
+            Assert.AreEqual(2, StoryText.Texts("collector.options").Length, "the Collector's question has two answers");
+        }
+
+        [Test]
+        public void DialoguePager_SplitsLongLinesAndCarriesColours()
+        {
+            var pages = DialoguePager.Split("{gold}one two three four five six{/c}", plain => plain.Length <= 14);
+            Assert.Greater(pages.Count, 1);
+            foreach (var page in pages)
+            {
+                StringAssert.StartsWith("{gold}", page);
+                Assert.LessOrEqual(DialoguePager.Plain(page).Length, 14);
+            }
+        }
+    }
+}

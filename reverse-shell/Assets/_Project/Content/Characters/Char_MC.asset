@@ -45,4 +45,15 @@ MonoBehaviour:
   statBarReference: 1
   channels: 000000000100000002000000030000000400000005000000
   neutralGlow: 1
-  glowColor: {r: 1, g: 1, b: 1, a: 1}
+  glowColor: {r: 1, g: 0.55, b: 0.18, a: 1}
+  resonances:
+  - element: 6
+    cards:
+    - {fileID: 11400000, guid: 8d2593e3280362746b61a936dfcbe482, type: 2}
+    - {fileID: 11400000, guid: bc3bb12f95760db4eaa7e9a14060a401, type: 2}
+    ultimate: {fileID: 11400000, guid: 34edb817f953b444c9bf24763d8463b1, type: 2}
+  - element: 0
+    cards:
+    - {fileID: 11400000, guid: fb4fad4b5f1bf5d448e9c27537c525e1, type: 2}
+    - {fileID: 11400000, guid: 41d244cb454635045ad1825efa3df6ec, type: 2}
+    ultimate: {fileID: 11400000, guid: 103e33dbfb3db5942862bb4290c2c13c, type: 2}

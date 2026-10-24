@@ -35,9 +35,71 @@ namespace Combat.Tests
             var battle = Start();
 
             Assert.AreEqual(BattlePhase.Planning, battle.State.Phase);
-            Assert.AreEqual(CombatConfig.Default.handSize, battle.State.Hand.IncantationCount);
-            Assert.AreEqual(CombatConfig.Default.actionPointsPerRound, battle.State.ActionPoints);
+            // A solo hero: 1 AP, so the hand holds 1 + 4 = 5 cards.
+            Assert.AreEqual(1, battle.State.ActionPoints);
+            Assert.AreEqual(5, battle.State.Hand.IncantationCount);
             Assert.IsTrue(battle.Events.OfType<CardsMergedEvent>().Any(), "same-card draws should have merged");
+        }
+
+        CharacterDefinition Member(string name)
+        {
+            return TestFactory.Character(name, incantations: new[] { TestFactory.Card(name + "Strike") });
+        }
+
+        [Test]
+        public void ActionPoints_MatchLivingActiveUnits_AndHandHoldsApPlusFour()
+        {
+            var party = new[] { Member("A"), Member("B"), Member("C") };
+            var battle = new BattleController(party, new[] { dummy }, CombatConfig.Default, Seed);
+            battle.StartBattle();
+            Assert.AreEqual(3, battle.State.ActionPoints, "3 units alive = 3 AP");
+            Assert.AreEqual(7, battle.State.Hand.Capacity, "3 AP + 4 = 7 cards");
+        }
+
+        [Test]
+        public void FourMembers_ThreeActiveOneBackup_BackupStepsInWhenOneFalls()
+        {
+            var party = new[] { Member("A"), Member("B"), Member("C"), Member("D") };
+            var battle = new BattleController(party, new[] { dummy }, CombatConfig.Default, Seed);
+            battle.StartBattle();
+            Assert.AreEqual(3, battle.State.Party.Count);
+            Assert.AreEqual(1, battle.State.Backup.Count);
+            Assert.AreEqual(4, battle.State.Roster.Count);
+
+            var fallen = battle.State.Party[0];
+            var backup = battle.State.Backup[0];
+            battle.DealDamage(battle.State.Enemies[0], fallen, 100000f, false);
+
+            Assert.IsFalse(fallen.IsAlive);
+            Assert.AreSame(backup, battle.State.Party[0], "the backup takes the fallen member's place");
+            Assert.AreEqual(0, battle.State.Backup.Count);
+            Assert.IsTrue(battle.Events.OfType<UnitEnteredEvent>().Any(e => e.Unit == backup && e.Replaces == fallen));
+            Assert.IsFalse(battle.State.Hand.Snapshot().Any(c => c.Owner == fallen), "the fallen member's cards leave the hand");
+            Assert.AreNotEqual(BattlePhase.Defeat, battle.State.Phase);
+        }
+
+        [Test]
+        public void SoloUnitFalling_WithNoBackup_IsDefeat()
+        {
+            var battle = Start();
+            battle.DealDamage(battle.State.Enemies[0], battle.State.Party[0], 100000f, false);
+            Assert.AreEqual(BattlePhase.Defeat, battle.State.Phase);
+        }
+
+        [Test]
+        public void MoveCard_CostsAP_LocksASlot_AndUndoGivesItBack()
+        {
+            var party = new[] { Member("A"), Member("B"), Member("C") };
+            var battle = new BattleController(party, new[] { dummy }, CombatConfig.Default, Seed);
+            battle.StartBattle();
+            var hand = battle.State.Hand;
+            int last = hand.Count - 1;
+            Assert.IsTrue(battle.MoveCard(hand[last], 0));
+            Assert.AreEqual(2, battle.State.ActionPoints);
+            Assert.AreEqual(1, battle.State.MovesThisRound, "the move uses up an action slot");
+            Assert.IsTrue(battle.Undo());
+            Assert.AreEqual(3, battle.State.ActionPoints);
+            Assert.AreEqual(0, battle.State.MovesThisRound);
         }
 
         [Test]
@@ -126,12 +188,13 @@ namespace Combat.Tests
             var battle = Start();
             var hand = battle.State.Hand;
 
-            for (int i = 0; i < CombatConfig.Default.actionPointsPerRound; i++)
+            int ap = battle.State.MaxActionPoints;
+            for (int i = 0; i < ap; i++)
                 Assert.IsTrue(battle.QueueCard(hand[0]));
 
             Assert.AreEqual(0, battle.State.ActionPoints);
             Assert.IsFalse(battle.QueueCard(hand[0]));
-            Assert.AreEqual(CombatConfig.Default.actionPointsPerRound, battle.State.Queue.Count);
+            Assert.AreEqual(ap, battle.State.Queue.Count);
         }
 
         [Test]

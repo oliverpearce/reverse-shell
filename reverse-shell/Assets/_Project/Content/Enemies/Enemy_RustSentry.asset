@@ -39,3 +39,4 @@ MonoBehaviour:
     rank: 1
     weight: 0.5
   xpReward: 120
+  ritual: {fileID: 11400000, guid: 0f77c530dcce411e933dabbecd4b6034, type: 2}

@@ -17,31 +17,31 @@ MonoBehaviour:
   clips:
   - name: idle
     sheet: {fileID: 2800000, guid: 241b708e6bd491a4c95b4bc1269b54fd, type: 3}
-    fps: 2.5
+    fps: 6
     loop: 1
     firstFrame: 0
     frameCount: 0
   - name: walk
     sheet: {fileID: 2800000, guid: a4a8fcb6e048c984fa571256e7bae0ff, type: 3}
-    fps: 10
+    fps: 12.5
     loop: 1
     firstFrame: 1
     frameCount: 0
   - name: slash
     sheet: {fileID: 2800000, guid: 87039e03bfb000542a453c40736dd7ed, type: 3}
-    fps: 14
+    fps: 22
     loop: 0
     firstFrame: 0
     frameCount: 0
   - name: spellcast
     sheet: {fileID: 2800000, guid: 33b184c4374496049b689ef596f48d7b, type: 3}
-    fps: 12
+    fps: 20
     loop: 0
     firstFrame: 0
     frameCount: 0
   - name: hurt
     sheet: {fileID: 2800000, guid: d7b06da106ab68648b34a54365c188ee, type: 3}
-    fps: 10
+    fps: 15
     loop: 0
     firstFrame: 0
     frameCount: 0

@@ -19,7 +19,7 @@ namespace Combat.Tests
             return card;
         }
 
-        public static CharacterDefinition Character(string name, Afflatus afflatus = Afflatus.Star, float attack = 100f,
+        public static CharacterDefinition Character(string name, Afflatus afflatus = Afflatus.Volt, float attack = 100f,
             CardDefinition ritual = null, params CardDefinition[] incantations)
         {
             var c = ScriptableObject.CreateInstance<CharacterDefinition>();
@@ -32,7 +32,7 @@ namespace Combat.Tests
             return c;
         }
 
-        public static EnemyDefinition Enemy(string name, int hp = 100000, Afflatus afflatus = Afflatus.Spirit,
+        public static EnemyDefinition Enemy(string name, int hp = 100000, Afflatus afflatus = Afflatus.Light,
             float defense = 0f, params EnemySkill[] skills)
         {
             var e = ScriptableObject.CreateInstance<EnemyDefinition>();

@@ -1,24 +1,31 @@
 """
-IconForge / card icons: paints the card-type icon atlas (our own art, drawn from simple shapes; no third-party assets).
+IconForge / card icons: builds the game's icon atlas. Most icons now come from Clockwork Raven's "Raven Fantasy Icons"
+(free version, personal use; Assets/_Project/Art/ThirdParty/RavenFantasyIcons/32x32/fb<n>.png), picked by the user;
+the card faces, frames and the remaining UI bits are drawn here from simple shapes.
 
     python Tools/IconForge/card_icons.py [--preview out.png]
 
-Writes Assets/_Project/Resources/UI/CardIcons.png: a 6 x 6 grid of 128 px cells. Shapes are drawn smooth
-(4x supersampling), then turned into chunky pixel art (a 32 x 32 grid per cell, plum outline, edge lighting) to
-match the chibi sprites (pixelate).
+Writes Assets/_Project/Resources/UI/CardIcons.png: an 8 x 8 grid of 128 px cells (Raven icons are 32 px, scaled 4x
+with hard pixels; 2x on the intent cards). Shapes are drawn smooth
+(4x supersampling). The glyphs and intent cards stay smooth; the UI bits in row 5 are turned into chunky pixel
+art (pixelate).
 The layout is mirrored by Combat.View.CardIcons (keep the two in sync):
 
     columns (types):  0 Attack   1 Debuff   2 Buff   3 Counter   4 Heal   5 Ultimate
     row 0  glyph masks, white: tint them in code (any color)
-    row 1  glyphs in their own color
+    row 1  glyphs in their own color (the Raven icons as drawn)
     row 2  mini intent cards, rank I   (cream)
     row 3  mini intent cards, rank II  (silver)
     row 4  mini intent cards, rank III (gold)      (the Ultimate column is the same dark arch card in rows 2-4)
     row 5  UI bits: 0 empty diamond frame, 1 Ult pip (empty), 2 Ult pip (full), 3 star, 4 filled diamond, 5 card back
+    row 6  element orbs: 0 Star  1 Mineral  2 Beast  3 Plant (Earth)  4 Spirit  5 Intellect (Virus)
+    row 7  0 CHIP  1 CORE  2 Poison  3 ATK Up  4 ATK Down  5 Physical DEF Down  6 Regen
 
-Flat symbols on small printed cards, with white / silver / gold faces for the ranks. The symbols are our own:
-a katana (Attack), hexagons with chevrons down / up (Debuff / Buff), a cog with a reflecting arrow
-(Counter), a seedling with a plus (Heal) and a radiant core star (Ultimate).
+Flat symbols on small printed cards, with white / silver / gold faces for the ranks. PLACEHOLDER designs in the
+spirit of Reverse: 1999's card icons (our own drawings, not its assets; to be redesigned): each sits in a fine
+double-ring seal and is drawn smooth (not pixelated): a slender sword with a slash arc (Attack), arrows down / up
+(Debuff / Buff), a shield with a returning arc (Counter), a four-petal cross (Heal) and a compass-star sigil
+(Ultimate).
 """
 import math
 import os
@@ -29,7 +36,14 @@ ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 sys.path.insert(0, os.path.join(ROOT, 'Tools', 'SpriteForge'))
 from pngtool import write_png  # noqa: E402
 
-CELL, COLS, ROWS, SS = 128, 6, 6, 4
+CELL, COLS, ROWS, SS = 128, 8, 8, 4
+RAVEN = os.path.join(ROOT, 'Assets', '_Project', 'Art', 'ThirdParty', 'RavenFantasyIcons', '32x32')
+
+# The user's picks from the Raven pack (icon numbers: fb<n>.png). Incantation Might Up has no icon yet.
+TYPE_ICONS = [672, 884, 865, 665, 661, 776]        # Attack, Debuff, Buff, Counter, Heal, Ultimate
+PIP_ICON, STAR_ICON = 2186, 984
+ELEMENT_ICONS = [2129, 2134, 2130, 2132, 2131, 2133]   # Star, Mineral, Beast, Earth, Spirit, Virus (orbs)
+EXTRA_ICONS = [2115, 2139, 673, 641, 642, 645, 968, 877]    # CHIP, CORE, Poison, ATK Up, ATK Down, DEF Down, Regen, IM Up
 OUT = os.path.join(ROOT, 'Assets', '_Project', 'Resources', 'UI', 'CardIcons.png')
 N = CELL * SS
 
@@ -130,102 +144,134 @@ def chevron(m, cy, up, w=26, h=16, t=9, value=1):
             (64 + w, cy - d * h / 2 - d * t), (64, cy + d * h / 2 - d * t), (64 - w, cy - d * h / 2 - d * t)], value)
 
 
+def seal(m):
+    """The shared frame (Reverse: 1999-style): a fine double ring every glyph sits in."""
+    ring(m, 64, 64, 61, 57.5)
+    ring(m, 64, 64, 54, 52.5)
+
+
 def glyph_attack(m):
-    """A katana, drawn diagonally and bold enough to read small: a gently curved blade with a cut edge line, a
-    round guard (tsuba) and a wrapped grip with diamond gaps."""
-    def spine(t):
-        bow = 6 * math.sin(t * math.pi)
-        return 44 + 70 * t - bow * 0.7, 84 - 72 * t - bow * 0.7
-    back, edge = [], []
-    for i in range(21):
-        t = i / 20
-        x, y = spine(t)
-        w = 11 * (1 - t) + 2.0
-        back.append((x - w * 0.7, y - w * 0.7))
-        edge.append((x + w * 0.7, y + w * 0.7))
-    m.poly(back + [(118, 8)] + edge[::-1])
-    for i in range(12):   # the edge line (hamon), cut into the blade
-        a0, a1 = spine(0.1 + i / 18), spine(0.1 + (i + 1) / 18)
-        m.band(a0[0] + 3, a0[1] + 3, a1[0] + 3, a1[1] + 3, 2.4, 0)
-    m.circle(41, 87, 16)        # tsuba
-    m.circle(41, 87, 5.5, 0)
-    m.band(36, 92, 10, 118, 16)  # grip
-    for k in range(3):
-        cx, cy = 29 - k * 8, 99 + k * 8
-        m.poly([(cx, cy - 4.5), (cx + 4.5, cy), (cx, cy + 4.5), (cx - 4.5, cy)], 0)
+    """A slender upright sword: a long double-edged blade with a centre groove, a diamond crossguard with swept
+    tips, a short grip and a round pommel, crossed by a thin slash arc."""
+    seal(m)
+    m.poly([(64, 12), (71, 26), (69.5, 80), (58.5, 80), (57, 26)])     # blade
+    m.band(64, 24, 64, 76, 1.6, 0)                                       # groove
+    m.poly([(36, 80), (44, 76), (64, 82), (84, 76), (92, 80), (84, 86), (64, 88), (44, 86)])   # crossguard
+    m.rect(60, 88, 68, 104)                                              # grip
+    m.circle(64, 109, 6)                                                 # pommel
+    for i in range(14):                                                  # slash arc behind the blade
+        a0, a1 = math.radians(200 + i * 10), math.radians(200 + (i + 1) * 10)
+        r = 40
+        w = 1.2 + 3.2 * math.sin(i / 13.0 * math.pi)
+        m.band(64 + math.cos(a0) * r, 70 + math.sin(a0) * r * 0.55, 64 + math.cos(a1) * r, 70 + math.sin(a1) * r * 0.55, w)
+
+
+def arrow(m, up):
+    """A tall narrow arrow with a solid head and two bars across the shaft."""
+    d = -1 if up else 1
+    tip, base = 64 + d * 38, 64 - d * 2
+    m.poly([(64, tip), (84, base), (70, base), (70, 64 - d * 34), (58, 64 - d * 34), (58, base), (44, base)])
+    for k in (14, 24):
+        m.rect(52, 64 - d * k - 2, 76, 64 - d * k + 2)
 
 
 def glyph_debuff(m):
-    """A hexagon outline with two chevrons pointing down."""
-    hexagon(m, 58)
-    hexagon(m, 48, 0)
-    chevron(m, 52, False)
-    chevron(m, 78, False)
+    """An arrow pointing down."""
+    seal(m)
+    arrow(m, False)
 
 
 def glyph_buff(m):
-    """A hexagon outline with two chevrons pointing up (the mirror of Debuff)."""
-    hexagon(m, 58)
-    hexagon(m, 48, 0)
-    chevron(m, 52, True)
-    chevron(m, 78, True)
+    """An arrow pointing up (the mirror of Debuff)."""
+    seal(m)
+    arrow(m, True)
 
 
 def glyph_counter(m):
-    """A cog with a reflecting arrow through its hub: hits come back."""
-    for i in range(10):
-        a = math.radians(i * 36)
-        x, y = 64 + math.cos(a) * 50, 64 + math.sin(a) * 50
-        m.band(64 + math.cos(a) * 36, 64 + math.sin(a) * 36, x, y, 15)
-    m.circle(64, 64, 44)
-    m.circle(64, 64, 32, 0)
-    # A bent arrow: in from the left, turning back out to the upper left.
-    m.band(40, 72, 68, 72, 9)
-    m.band(68, 72, 68, 50, 9)
-    m.band(68, 50, 52, 50, 9)
-    m.poly([(36, 50), (54, 38), (54, 62)])
+    """A heater shield with a hollow centre and a returning arc arrow across it: hits come back."""
+    seal(m)
+    shield = [(64, 20), (92, 30), (90, 62), (80, 84), (64, 100), (48, 84), (38, 62), (36, 30)]
+    m.poly(shield)
+    m.poly([(64, 28), (84, 35), (82.5, 61), (75, 79), (64, 90), (53, 79), (45.5, 61), (44, 35)], 0)
+    m.poly([(64, 36), (76, 41), (75, 60), (64, 78), (53, 60), (52, 41)])
+    for i in range(12):                    # the returning arc around the lower left
+        a0, a1 = math.radians(100 + i * 12), math.radians(100 + (i + 1) * 12)
+        m.band(64 + math.cos(a0) * 44, 64 + math.sin(a0) * 44, 64 + math.cos(a1) * 44, 64 + math.sin(a1) * 44, 4)
+    m.poly([(18, 54), (28, 44), (32, 60)])
 
 
 def glyph_heal(m):
-    """A seedling: a curved stem with two leaves, and a small plus beside it."""
-    for i in range(10):
-        t0, t1 = i / 10, (i + 1) / 10
-        m.band(56 + 6 * math.sin(t0 * 3), 118 - 64 * t0, 56 + 6 * math.sin(t1 * 3), 118 - 64 * t1, 7)
-    def leaf(x0, y0, x1, y1, bulge):
-        dx, dy = x1 - x0, y1 - y0
-        L = math.hypot(dx, dy)
-        nx, ny = -dy / L, dx / L
+    """A rounded cross built from four petals around a small ring."""
+    seal(m)
+    for a in range(4):
+        t = math.radians(a * 90)
+        cx, cy = 64 + math.cos(t) * 22, 64 + math.sin(t) * 22
         pts = []
-        for i in range(17):
-            t = i / 16
-            b = math.sin(t * math.pi) * bulge
-            pts.append((x0 + dx * t + nx * b, y0 + dy * t + ny * b))
-        for i in range(17):
-            t = 1 - i / 16
-            b = math.sin(t * math.pi) * bulge * 0.35
-            pts.append((x0 + dx * t - nx * b, y0 + dy * t - ny * b))
+        for i in range(24):
+            u = i / 24.0 * 2 * math.pi
+            px_, py_ = math.cos(u) * 20, math.sin(u) * 9
+            pts.append((cx + px_ * math.cos(t) - py_ * math.sin(t), cy + px_ * math.sin(t) + py_ * math.cos(t)))
         m.poly(pts)
-    leaf(60, 62, 18, 34, 16)
-    leaf(60, 56, 106, 20, -18)
-    m.rect(90, 70, 100, 104)
-    m.rect(78, 82, 112, 92)
+    ring(m, 64, 64, 11, 6)
+    m.circle(64, 64, 3)
 
 
 def glyph_ultimate(m):
-    """A radiant core: an eight-point star inside a ring."""
-    ring(m, 64, 64, 60, 51)
+    """A ritual sigil: a four-point compass star with long vertical points over an inner ring, a hollow eye at
+    the centre and small ticks on the seal."""
+    seal(m)
+    for k in range(12):
+        a = math.radians(k * 30)
+        m.band(64 + math.cos(a) * 46, 64 + math.sin(a) * 46, 64 + math.cos(a) * 50, 64 + math.sin(a) * 50, 2.4)
+    ring(m, 64, 64, 34, 31)
     pts = []
-    for k in range(16):
-        r = 46 if k % 2 == 0 else 15
-        if k % 4 == 2:
-            r = 30
-        a = -math.pi / 2 + k * math.pi / 8
+    for k in range(8):
+        a = -math.pi / 2 + k * math.pi / 4
+        r = (44 if k % 4 == 0 else 34) if k % 2 == 0 else 10
         pts.append((64 + math.cos(a) * r, 64 + math.sin(a) * r))
     m.poly(pts)
-    m.circle(64, 64, 8, 0)
+    m.poly([(46, 64), (64, 54), (82, 64), (64, 74)], 0)
+    m.circle(64, 64, 5)
 
 
 GLYPHS = [glyph_attack, glyph_debuff, glyph_buff, glyph_counter, glyph_heal, glyph_ultimate]
+
+
+# ---------------------------------------------------------------------------------------------------- Raven icons
+
+def raven(n):
+    """A Raven icon as a 32 x 32 grid of float (r, g, b, a)."""
+    from pngtool import read_png
+    w, h, px = read_png(os.path.join(RAVEN, 'fb%d.png' % n))
+    return [[tuple(c / 255.0 for c in px[y][x]) if x < w and y < h else (0.0, 0.0, 0.0, 0.0) for x in range(32)]
+            for y in range(32)]
+
+
+def place_raven(cell, icon, k, cx=64, cy=64, recolor=None):
+    """Draws the icon into the cell at k x scale (hard pixels), centred on (cx, cy), over what is there."""
+    ox, oy = int(cx - 16 * k), int(cy - 16 * k)
+    for y in range(32 * k):
+        for x in range(32 * k):
+            r, g, b, a = icon[y // k][x // k]
+            if a <= 0 or not (0 <= ox + x < CELL and 0 <= oy + y < CELL):
+                continue
+            if recolor:
+                r, g, b = recolor((r, g, b))
+            dr, dg, db, da = cell[oy + y][ox + x]
+            oa = a + da * (1 - a)
+            cell[oy + y][ox + x] = ((r * a + dr * da * (1 - a)) / oa, (g * a + dg * da * (1 - a)) / oa,
+                                    (b * a + db * da * (1 - a)) / oa, oa)
+    return cell
+
+
+def raven_cell(n, k=4, recolor=None):
+    return place_raven(blank(), raven(n), k, recolor=recolor)
+
+
+def dimmed(c):
+    """The empty Ult pip: the full pip greyed and darkened."""
+    v = (c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11) * 0.55
+    return (v, v, v * 1.05)
 
 
 # ---------------------------------------------------------------------------------------------------- compositing
@@ -281,7 +327,7 @@ def mini_card(t, rank):
         face.rect(x0 + 3, y0 + 44, x1 - 3, y1 - 11)
         comp(cell, rim.coverage(), TYPE_COLORS[5])
         comp(cell, face.coverage(), lambda y: lerp(hx('#22303A'), hx('#0F1418'), y / CELL))
-        comp(cell, glyph_cov(5, 0.66, 64, 74), TYPE_COLORS[5])
+        place_raven(cell, raven(TYPE_ICONS[5]), 2, 64, 78)
         return cell
     face_color, border = RANK_FACES[rank]
     outer, face, frame = Mask(), Mask(), Mask()
@@ -292,7 +338,7 @@ def mini_card(t, rank):
     comp(cell, outer.coverage(), border)
     comp(cell, face.coverage(), face_color)
     comp(cell, frame.coverage(), lerp(border, (1, 1, 1), 0.35))
-    comp(cell, glyph_cov(t, 0.72, 64, 60), TYPE_COLORS[t])
+    place_raven(cell, raven(TYPE_ICONS[t]), 2, 64, 60)
     # A thin baseline under the glyph, like a printed card.
     base = Mask()
     base.rect(44, 104, 84, 105.5)
@@ -398,16 +444,22 @@ def build():
                 arow[col * CELL + x] = (int(r * 255 + 0.5), int(g * 255 + 0.5), int(b * 255 + 0.5), int(a * 255 + 0.5))
 
     for t in range(6):
-        cov = glyph_cov(t, 0.92)
-        white, colored = blank(), blank()
-        comp(white, cov, (1.0, 1.0, 1.0))
-        comp(colored, cov, TYPE_COLORS[t])
-        put(t, 0, pixelate(white))
-        put(t, 1, pixelate(colored))
+        put(t, 0, raven_cell(TYPE_ICONS[t], recolor=lambda c: (1.0, 1.0, 1.0)))
+        put(t, 1, raven_cell(TYPE_ICONS[t]))
         for rank in range(3):
-            put(t, 2 + rank, pixelate(mini_card(t, rank)))
-        put(t, 5, pixelate(misc(t)))
+            put(t, 2 + rank, mini_card(t, rank))
+        if t == 1:
+            put(t, 5, raven_cell(PIP_ICON, recolor=dimmed))
+        elif t == 2:
+            put(t, 5, raven_cell(PIP_ICON))
+        elif t == 3:
+            put(t, 5, raven_cell(STAR_ICON))
+        else:
+            put(t, 5, pixelate(misc(t)))
+        put(t, 6, raven_cell(ELEMENT_ICONS[t]))
         print('  type', t, 'done')
+    for i, n in enumerate(EXTRA_ICONS):
+        put(i, 7, raven_cell(n))
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     write_png(OUT, CELL * COLS, CELL * ROWS, atlas)
     print('wrote', os.path.relpath(OUT, ROOT))

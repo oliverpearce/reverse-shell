@@ -23,6 +23,9 @@ namespace Combat.View
 
         public string Current { get; private set; }
 
+        /// <summary>Animate on unscaled time (for menus shown while the game is paused).</summary>
+        public bool UnscaledTime;
+
         public void Init(SpriteAnimationSet animationSet, Facing face, params Image[] images)
         {
             set = animationSet;
@@ -64,7 +67,7 @@ namespace Combat.View
         void Update()
         {
             if (frames == null || finished) return;
-            time += Time.deltaTime;
+            time += UnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
             int index = Mathf.FloorToInt(time * Mathf.Max(0.01f, clip.fps));
 
             if (index >= frames.Length)

@@ -4,30 +4,18 @@ using UnityEngine.UI;
 
 namespace Combat.View
 {
-    /// <summary>Display settings for cards, saved in PlayerPrefs.</summary>
+    /// <summary>Display settings for cards.</summary>
     public static class CardSettings
     {
-        const string RankStyleKey = "cards.rankStars";
-
-        /// <summary>Raised when a setting changes so open card faces can rebuild.</summary>
-        public static event Action Changed;
-
-        /// <summary>True: rank is shown as stars in the card's top-left corner. False: as rank pips.</summary>
-        public static bool RankStars
-        {
-            get { return PlayerPrefs.GetInt(RankStyleKey, 1) == 1; }
-            set
-            {
-                PlayerPrefs.SetInt(RankStyleKey, value ? 1 : 0);
-                PlayerPrefs.Save();
-                if (Changed != null) Changed();
-            }
-        }
+        /// <summary>Rank is always shown as stars in the card's top-left corner (the stars / pips option was removed
+        /// from the pause menu; the pip layout code is kept).</summary>
+        public static bool RankStars { get { return true; } }
     }
 
     /// <summary>
     /// Card rank as stacking stars: rank I has none, rank II one star, rank III two, and Ritual (ult) cards three.
-    /// The star is drawn in code as a smooth, anti-aliased gold star with a dark rim.
+    /// The star is the icon atlas's star (CardIcons.Star, from the Raven pack); without the atlas it is drawn in code
+    /// as a smooth, anti-aliased gold star with a dark rim.
     /// </summary>
     public static class CardStars
     {
@@ -46,10 +34,11 @@ namespace Combat.View
             float gap = size * 0.08f;
             var row = UIFactory.CreateRect("Stars", parent).Place(anchor, new Vector2(0f, 1f), position,
                 new Vector2(Mathf.Max(0, count) * (size + gap), size));
+            var atlasStar = CardIcons.Star;   // the Raven star (drawn in its own colors); the code star as a fallback
             for (int i = 0; i < count; i++)
             {
-                var img = UIFactory.CreateImage(row, "Star", StarGold);
-                img.sprite = Sprite();
+                var img = UIFactory.CreateImage(row, "Star", atlasStar != null ? Color.white : StarGold);
+                img.sprite = atlasStar != null ? atlasStar : Sprite();
                 img.raycastTarget = false;
                 img.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(i * (size + gap), 0f), new Vector2(size, size));
             }

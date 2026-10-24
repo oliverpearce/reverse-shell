@@ -8,23 +8,20 @@ using UnityEngine.UI;
 namespace Game.World
 {
     /// <summary>
-    /// Conversation box in the style of UNBEATABLE's white labels, with Celeste-style text:
-    /// a tilted white label with a hard black drop shadow, a black speaker tag (Anton, the speaker's accent
-    /// color underneath), an optional portrait, animated text (<see cref="DynamicText"/>), a bobbing "next"
-    /// arrow and per-character voice blips. Everything animates on unscaled time.
+    /// Conversation box, one default look for every character (Reverse: 1999 style, <see cref="InkStyle"/>): a dark
+    /// ink panel with a gold hairline frame and a thin bar in the speaker's accent colour, the speaker's name in gold
+    /// serif with a short accent underline, animated text (<see cref="DynamicText"/>) in paper white, a bobbing gold
+    /// "next" diamond and per-character voice blips. No portraits. Everything animates on unscaled time.
     ///
     /// Advance(): finishes the current line if it's still typing, otherwise moves on (closing after the last).
     /// </summary>
     public class DialogueBox : MonoBehaviour
     {
-        static readonly Color Paper = new Color(0.98f, 0.98f, 0.96f);
-        static readonly Color Ink = new Color(0.06f, 0.06f, 0.07f);
-        const float Tilt = -1.6f;
+        static readonly Color Panel = new Color(0.075f, 0.07f, 0.065f, 0.94f);
         const float BoxW = 1320f, BoxH = 236f;
 
         RectTransform root, label, portraitFrame, nextArrow;
         Image accentBar, tagAccent;
-        string posterFor;
         Text speakerText, bodyText;
         DynamicText dynamic;
         CanvasGroup group;
@@ -43,7 +40,7 @@ namespace Game.World
         readonly List<Image> choiceBacks = new List<Image>();
         readonly List<Text> choiceTexts = new List<Text>();
         int lastBlipCount;
-        float openT, labelPop, portraitBounce;
+        float openT, labelPop;
         bool closing;
 
         public bool IsOpen { get { return gameObject.activeSelf && !closing; } }
@@ -63,48 +60,45 @@ namespace Game.World
             group = rt.gameObject.AddComponent<CanvasGroup>();
             group.blocksRaycasts = false;
 
-            // Hard drop shadow, then the white label.
-            var shadow = UIFactory.CreateImage(rt, "Shadow", Ink);
-            shadow.rectTransform.Fill();
-            shadow.rectTransform.anchoredPosition = new Vector2(14f, -14f);
-            var paper = UIFactory.CreateImage(rt, "Label", Paper);
+            // The ink panel with a gold hairline frame.
+            var paper = UIFactory.CreateImage(rt, "Panel", Panel);
             paper.rectTransform.Fill();
+            InkStyle.Frame(paper.rectTransform, UIFactory.WithAlpha(InkStyle.Gold, 0.55f), 1f, 6f);
 
-            accentBar = UIFactory.CreateImage(paper.transform, "Accent", Ink);
+            accentBar = UIFactory.CreateImage(paper.transform, "Accent", InkStyle.Gold);
             accentBar.rectTransform.anchorMin = Vector2.zero;
             accentBar.rectTransform.anchorMax = new Vector2(0f, 1f);
             accentBar.rectTransform.pivot = new Vector2(0f, 0.5f);
             accentBar.rectTransform.offsetMin = Vector2.zero;
-            accentBar.rectTransform.offsetMax = new Vector2(16f, 0f);
+            accentBar.rectTransform.offsetMax = new Vector2(5f, 0f);
 
-            // Portrait (left): a compact holographic profile poster, tilted and sticking up out of the box.
-            portraitFrame = UIFactory.CreateRect("Portrait", rt).Place(new Vector2(0f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(152f, 34f), new Vector2(232f, 286f));
-            portraitFrame.localRotation = Quaternion.Euler(0f, 0f, 3.5f);
+            // No portraits any more (kept as an always-hidden frame so line data with a portrait still works).
+            portraitFrame = UIFactory.CreateRect("Portrait", rt);
+            portraitFrame.gameObject.SetActive(false);
 
-            bodyText = UIFactory.CreateText(paper.transform, "Text", "", 34, Ink, TextAnchor.UpperLeft);
+            bodyText = UIFactory.CreateText(paper.transform, "Text", "", 40, InkStyle.Paper, TextAnchor.UpperLeft);
             bodyText.font = UIFactory.MediumFont;
             bodyText.lineSpacing = 1.1f;
             bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
             bodyText.verticalOverflow = VerticalWrapMode.Overflow;
             dynamic = bodyText.gameObject.AddComponent<DynamicText>();
 
-            // Speaker tag: a black label stuck over the top-left corner.
-            label = UIFactory.CreateImage(rt, "SpeakerTag", Ink).rectTransform;
-            label.pivot = new Vector2(0f, 0f);
+            // Speaker: the name in gold serif inside the top-left of the panel, with a short underline in their accent.
+            label = UIFactory.CreateImage(rt, "Speaker", new Color(0f, 0f, 0f, 0f)).rectTransform;
+            label.pivot = new Vector2(0f, 1f);
             label.anchorMin = label.anchorMax = new Vector2(0f, 1f);
-            label.localRotation = Quaternion.Euler(0f, 0f, 3f);
-            speakerText = UIFactory.CreateText(label, "Name", "", 40, Color.white, TextAnchor.MiddleCenter);
-            speakerText.font = UIFactory.DisplayFont;
+            speakerText = UIFactory.CreateText(label, "Name", "", 44, InkStyle.GoldBright, TextAnchor.MiddleLeft);
+            speakerText.font = UIFactory.SerifFont;
             speakerText.rectTransform.Fill();
-            tagAccent = UIFactory.CreateImage(label, "TagAccent", Color.white);
+            tagAccent = UIFactory.CreateImage(label, "Underline", Color.white);
             tagAccent.rectTransform.anchorMin = Vector2.zero;
             tagAccent.rectTransform.anchorMax = new Vector2(1f, 0f);
             tagAccent.rectTransform.pivot = new Vector2(0.5f, 1f);
-            tagAccent.rectTransform.offsetMin = new Vector2(0f, -8f);
+            tagAccent.rectTransform.offsetMin = new Vector2(0f, -2f);
             tagAccent.rectTransform.offsetMax = new Vector2(0f, 0f);
 
-            // "Next" arrow: a small black diamond bobbing in the bottom-right corner.
-            nextArrow = UIFactory.CreateImage(paper.transform, "Next", Ink).rectTransform;
+            // "Next": a small gold diamond bobbing in the bottom-right corner.
+            nextArrow = UIFactory.CreateImage(paper.transform, "Next", InkStyle.Gold).rectTransform;
             nextArrow.Place(new Vector2(1f, 0f), new Vector2(0.5f, 0.5f), new Vector2(-40f, 34f), new Vector2(20f, 20f));
             nextArrow.localRotation = Quaternion.Euler(0f, 0f, 45f);
 
@@ -137,8 +131,15 @@ namespace Game.World
             pickedChoice = -1;
             if (choiceRoot != null) choiceRoot.gameObject.SetActive(false);
             queue.Clear();
-            foreach (var l in lines) if (l != null) queue.Add(l);
-            posterFor = null;
+            // Long lines become several boxes (DialoguePager), so nothing runs off the bottom of the box.
+            gameObject.SetActive(true);
+            foreach (var l in lines)
+            {
+                if (l == null) continue;
+                SizeTextArea(!string.IsNullOrEmpty(l.Speaker));
+                foreach (var page in DialoguePager.Split(l.Text, Fits))
+                    queue.Add(new DialogueLine(l.Speaker, page, l.Voice, l.Portrait));
+            }
             onDone = done;
             if (queue.Count == 0)
             {
@@ -177,6 +178,26 @@ namespace Game.World
             ShowLine(false);
         }
 
+        /// <summary>The text area inside the box (smaller under a speaker name).</summary>
+        void SizeTextArea(bool hasSpeaker)
+        {
+            var trt = bodyText.rectTransform;
+            trt.anchorMin = Vector2.zero;
+            trt.anchorMax = Vector2.one;
+            trt.offsetMin = new Vector2(48f, 30f);
+            trt.offsetMax = new Vector2(-70f, hasSpeaker ? -76f : -30f);
+        }
+
+        /// <summary>Whether plain text fits the box's text area at the current size.</summary>
+        bool Fits(string plain)
+        {
+            var rect = bodyText.rectTransform.rect;
+            if (rect.width <= 1f || rect.height <= 1f) return true;
+            var settings = bodyText.GetGenerationSettings(new Vector2(rect.width, 0f));
+            float needed = bodyText.cachedTextGeneratorForLayout.GetPreferredHeight(plain, settings) / bodyText.pixelsPerUnit;
+            return needed <= rect.height + 0.5f;
+        }
+
         void BuildChoices()
         {
             if (choiceRoot == null)
@@ -193,19 +214,17 @@ namespace Game.World
             choiceRoot.sizeDelta = new Vector2(width, choices.Length * (rowH + 10f));
             for (int i = 0; i < choices.Length; i++)
             {
-                // Stacked labels, the last one on the bottom, each with its own hard shadow.
+                // Stacked ink rows (the last one on the bottom) with a gold hairline.
                 float y = (choices.Length - 1 - i) * (rowH + 10f);
-                var shadow = UIFactory.CreateImage(choiceRoot, "Shadow", Ink);
-                shadow.rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(8f, y - 8f), new Vector2(width, rowH));
-                var back = UIFactory.CreateImage(choiceRoot, choices[i], Paper);
+                var back = UIFactory.CreateImage(choiceRoot, choices[i], Panel);
                 back.rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, y), new Vector2(width, rowH));
-                var label = UIFactory.CreateText(back.transform, "Label", choices[i].ToUpperInvariant(), 34, Ink, TextAnchor.MiddleCenter);
-                label.font = UIFactory.DisplayFont;
+                InkStyle.Frame(back.rectTransform, UIFactory.WithAlpha(InkStyle.Gold, 0.55f), 1f);
+                var label = UIFactory.CreateText(back.transform, "Label", choices[i], 38, InkStyle.Paper, TextAnchor.MiddleCenter);
+                label.font = UIFactory.SerifFont;
                 label.rectTransform.Fill();
                 choiceBacks.Add(back);
                 choiceTexts.Add(label);
             }
-            choiceRoot.localRotation = Quaternion.Euler(0f, 0f, 2.5f);
             choiceRoot.gameObject.SetActive(false);
         }
 
@@ -229,8 +248,8 @@ namespace Game.World
             for (int i = 0; i < choiceBacks.Count; i++)
             {
                 bool on = i == choiceIndex;
-                choiceBacks[i].color = on ? Ink : Paper;
-                choiceTexts[i].color = on ? Paper : Ink;
+                choiceBacks[i].color = on ? UIFactory.WithAlpha(InkStyle.Gold, 0.35f) : Panel;
+                choiceTexts[i].color = on ? InkStyle.GoldBright : InkStyle.Paper;
                 choiceBacks[i].rectTransform.localScale = Vector3.one * (on ? 1.05f : 1f);
             }
         }
@@ -242,28 +261,14 @@ namespace Game.World
 
             accentBar.color = line.Voice.Accent;
             tagAccent.color = line.Voice.Accent;
-            speakerText.text = (line.Speaker ?? "").ToUpperInvariant();
-            label.gameObject.SetActive(!string.IsNullOrEmpty(line.Speaker));
-            float width = Mathf.Max(140f, speakerText.preferredWidth + 56f);
-            label.sizeDelta = new Vector2(width, 64f);
-            label.anchoredPosition = new Vector2(36f, -18f);
+            speakerText.text = line.Speaker ?? "";
+            bool hasSpeaker = !string.IsNullOrEmpty(line.Speaker);
+            label.gameObject.SetActive(hasSpeaker);
+            label.sizeDelta = new Vector2(Mathf.Max(80f, speakerText.preferredWidth + 4f), 48f);
+            label.anchoredPosition = new Vector2(48f, -16f);
             if (newSpeaker) labelPop = 0f;
 
-            bool hasPortrait = line.Portrait != null;
-            portraitFrame.gameObject.SetActive(hasPortrait);
-            if (hasPortrait && posterFor != line.Speaker)
-            {
-                posterFor = line.Speaker;
-                for (int i = portraitFrame.childCount - 1; i >= 0; i--) Destroy(portraitFrame.GetChild(i).gameObject);
-                var portrait = ProfilePoster.Build(portraitFrame, new PosterInfo { Name = line.Speaker, Accent = line.Voice.Accent }, true);
-                portrait.sprite = line.Portrait;
-                portrait.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, -112f), new Vector2(320f, 320f)); // 64px frame at 5x: head and shoulders
-            }
-            var trt = bodyText.rectTransform;
-            trt.anchorMin = Vector2.zero;
-            trt.anchorMax = Vector2.one;
-            trt.offsetMin = new Vector2(hasPortrait ? 300f : 56f, 30f);
-            trt.offsetMax = new Vector2(-70f, -58f);
+            SizeTextArea(hasSpeaker);
 
             dynamic.SetLine(DialogueMarkup.Parse(line.Text, line.Voice.Speed));
             lastBlipCount = 0;
@@ -276,17 +281,18 @@ namespace Game.World
             float dt = Time.unscaledDeltaTime;
             openT = Mathf.Min(1f, openT + dt / 0.24f);
             labelPop = Mathf.Min(1f, labelPop + dt / 0.18f);
-            portraitBounce = Mathf.MoveTowards(portraitBounce, 0f, dt * 6f);
 
             if (!closing)
             {
-                float e = BackOut(openT);
-                root.anchoredPosition = new Vector2(0f, Mathf.LerpUnclamped(-60f, 70f, e));
-                root.localRotation = Quaternion.Euler(0f, 0f, Mathf.LerpUnclamped(-7f, Tilt, e));
-                group.alpha = Mathf.Clamp01(openT * 2f);
+                // A gentle rise and fade in (no tilt, no bounce).
+                float e = 1f - (1f - openT) * (1f - openT) * (1f - openT);
+                root.anchoredPosition = new Vector2(0f, Mathf.Lerp(30f, 70f, e));
+                group.alpha = e;
             }
-            label.localScale = Vector3.one * BackOut(labelPop);
-            portraitFrame.localScale = Vector3.one * (1f + 0.05f * portraitBounce);
+            label.localScale = Vector3.one;
+            var nameColor = speakerText.color;
+            nameColor.a = Mathf.Clamp01(labelPop);
+            speakerText.color = nameColor;
 
             bool done = dynamic.FullyRevealed;
             nextArrow.gameObject.SetActive(done && !closing && choices == null);
@@ -302,7 +308,6 @@ namespace Game.World
                     if (!char.IsLetterOrDigit(s[i]) || i % 2 != 0) continue;
                     voice.pitch = queue[index].Voice.Pitch * UnityEngine.Random.Range(0.94f, 1.06f);
                     voice.Play();
-                    portraitBounce = 1f;
                     break;
                 }
                 lastBlipCount = dynamic.RevealedCount;
@@ -336,13 +341,6 @@ namespace Game.World
             onChoice = null;
             choices = null;
             if (chosen != null && pick >= 0) chosen(pick);
-        }
-
-        static float BackOut(float t)
-        {
-            const float c1 = 1.70158f, c3 = c1 + 1f;
-            float x = t - 1f;
-            return 1f + c3 * x * x * x + c1 * x * x;
         }
 
         /// <summary>A short, soft square-wave blip; each speaker plays it at their own pitch.</summary>
