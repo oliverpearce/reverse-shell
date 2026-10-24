@@ -129,6 +129,15 @@ namespace Game.World
             row = Height - 1 - Mathf.FloorToInt(p.z);
         }
 
+        /// <summary>How tall the terrain is at a world point: a block's height, a tree's canopy, else 0.</summary>
+        public float TopAt(Vector3 p)
+        {
+            int x, row;
+            WorldToCell(p, out x, out row);
+            if (!InBounds(x, row)) return 0f;
+            return cells[x, row] == 'T' ? TreeHeight : HeightAt(x, row);
+        }
+
         public bool IsSolidAt(Vector3 p)
         {
             int x, row;

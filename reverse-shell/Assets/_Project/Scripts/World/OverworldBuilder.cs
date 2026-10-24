@@ -104,7 +104,13 @@ namespace Game.World
         CharacterMenu menu;
         FormationScreen formation;
         PauseCards pauseCards;
+        ResonanceScreen resonance;
+        ItemsScreen items;
         EnemyLevelPanel chestPanel;
+        ScannerHud scannerHud;
+
+        /// <summary>Seconds between scans (Q), so the pulse can't be spammed.</summary>
+        const float ScanCooldown = 4f;
         TitleScreen title;
         WorldAreas.Area area;
 
@@ -185,8 +191,12 @@ namespace Game.World
             UI = OverworldUI.Create(transform);
             menu = CharacterMenu.Create((RectTransform)UI.transform, this);
             formation = FormationScreen.Create((RectTransform)UI.transform, this);
-            pauseCards = PauseCards.Create((RectTransform)UI.transform, this, menu, formation);
+            resonance = ResonanceScreen.Create((RectTransform)UI.transform, this);
+            items = ItemsScreen.Create((RectTransform)UI.transform, this);
+            pauseCards = PauseCards.Create((RectTransform)UI.transform, this, menu, formation, resonance, items);
             chestPanel = EnemyLevelPanel.Create((RectTransform)UI.transform);
+            scannerHud = ScannerHud.Create((RectTransform)UI.transform);
+            scannerHud.transform.SetSiblingIndex(0);   // under every menu
             // The first area of the session opens under the title screen (New Game / Continue / Load ...).
             if (!WorldSession.TitleDone) title = TitleScreen.Create((RectTransform)UI.transform, Party);
             RefreshPartyHud();
@@ -219,13 +229,17 @@ namespace Game.World
         public Camera Cam { get { return cam; } }
         public Vector3 PlayerPosition { get { return player != null ? player.transform.position : Vector3.zero; } }
 
+        /// <summary>The player's sprite (the Esc menu sits it down on its mat).</summary>
+        public CharacterSprite PlayerSprite { get { return player != null ? player.Sprite : null; } }
+
         /// <summary>True while anything (a conversation, a menu, a fade) has the player's attention.</summary>
         public bool Busy
         {
             get
             {
                 return cutscene || transitioning || UI == null || UI.DialogueOpen || (menu != null && menu.IsOpen) || (title != null && title.IsOpen)
-                       || (pauseCards != null && pauseCards.IsOpen) || (formation != null && formation.IsOpen) || (chestPanel != null && chestPanel.IsOpen);
+                       || (pauseCards != null && pauseCards.IsOpen) || (formation != null && formation.IsOpen) || (chestPanel != null && chestPanel.IsOpen)
+                       || (resonance != null && resonance.IsOpen) || (items != null && items.IsOpen);
             }
         }
 
@@ -425,7 +439,15 @@ namespace Game.World
                 }
                 WorldSession.ArrivedFrom = null;
             }
-            else if (WorldSession.HasReturnPoint) start = WorldSession.ReturnPosition;
+            else if (WorldSession.HasReturnPoint)
+            {
+                // Only a spot on this map (a stale one from another area would drop you outside the world).
+                int rx, rrow;
+                Map.WorldToCell(WorldSession.ReturnPosition, out rx, out rrow);
+                if (rx >= 0 && rrow >= 0 && rx < Map.Width && rrow < Map.Height && !Map.IsSolidCell(rx, rrow))
+                    start = WorldSession.ReturnPosition;
+                else Debug.LogWarning("OverworldBuilder: the return spot isn't on this map; starting at the area's start.");
+            }
             SpawnPlayerAt(start, WorldSession.HasReturnPoint ? WorldSession.ReturnFacing : CharacterSprite.Down);
         }
 
@@ -795,7 +817,7 @@ namespace Game.World
             {
                 if (member == null) continue;
                 lines.Add(new OverworldUI.PartyLine(member.DisplayName, WorldSession.ProgressOf(member).Level,
-                    WorldSession.HPOf(member), WorldSession.MaxHPOf(member), member.color));
+                    WorldSession.HPOf(member), WorldSession.MaxHPOf(member), WorldSession.ColorOf(member)));
             }
             UI.SetParty(lines);
         }
@@ -854,8 +876,11 @@ namespace Game.World
 
             bool menuOpen = (menu != null && menu.IsOpen) || (title != null && title.IsOpen) || (pauseCards != null && pauseCards.IsOpen)
                             || (formation != null && formation.IsOpen)
+                            || (resonance != null && resonance.IsOpen)
+                            || (items != null && items.IsOpen)
                             || (chestPanel != null && chestPanel.IsOpen);
             player.Frozen = cutscene || UI.DialogueOpen || menuOpen;
+            scannerHud.SetVisible(StoryState.Has(Chapter1.Scanner) && !UI.DialogueOpen && !menuOpen && !cutscene);
             if (menuOpen)
             {
                 focused = null;
@@ -867,6 +892,8 @@ namespace Game.World
                 && pauseCards != null && pauseCards.LastToggleFrame != Time.frameCount
                 && chestPanel != null && chestPanel.LastToggleFrame != Time.frameCount
                 && formation != null && formation.LastToggleFrame != Time.frameCount
+                && resonance != null && resonance.LastToggleFrame != Time.frameCount
+                && items != null && items.LastToggleFrame != Time.frameCount
                 && !UI.Dialogue.gameObject.activeSelf && !cutscene && !transitioning)
             {
                 UI.HidePrompt();
@@ -891,7 +918,15 @@ namespace Game.World
                 playerCell = nowCell;
                 if (!first && !Busy) ChapterOneDirector.OnEnterCell(this, nowCell, Map.At(px, prow));
             }
-            if (Input.GetKeyDown(KeyCode.Q) && !Busy) ChapterOneDirector.Scan(this);
+            if (Input.GetKeyDown(KeyCode.Q) && !Busy && StoryState.Has(Chapter1.Scanner))
+            {
+                if (!scannerHud.Ready) scannerHud.Deny();
+                else
+                {
+                    scannerHud.StartCooldown(ScanCooldown);
+                    ChapterOneDirector.Scan(this);
+                }
+            }
 
             focused = null;
             if (!transitioning)

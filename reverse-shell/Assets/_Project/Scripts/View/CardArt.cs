@@ -65,6 +65,20 @@ namespace Combat.View
             return s;
         }
 
+        /// <summary>An Ult card's full art: its own (Ult_&lt;card asset&gt;, e.g. a resonance's Ult), else its owner's.</summary>
+        public static Sprite Ult(CardDefinition card, UnitDefinition owner)
+        {
+            if (card != null)
+            {
+                Sprite s;
+                string key = "card:" + card.name;
+                if (!ults.TryGetValue(key, out s))
+                    ults[key] = s = Whole("Cards/Ult_" + card.name);
+                if (s != null) return s;
+            }
+            return Ult(owner);
+        }
+
         static void LoadIcons()
         {
             icons = new Dictionary<string, Sprite>();

@@ -45,3 +45,9 @@ MonoBehaviour:
     loop: 0
     firstFrame: 0
     frameCount: 0
+  - name: sit
+    sheet: {fileID: 2800000, guid: 119fe012228d5924ea7911783b7175c9, type: 3}
+    fps: 12
+    loop: 0
+    firstFrame: 0
+    frameCount: 0

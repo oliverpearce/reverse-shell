@@ -40,9 +40,10 @@ namespace Combat.View
             var def = status.Definition;
 
             string turns = status.Remaining == 1 ? "1 turn" : status.Remaining + " turns";
-            string level = StatusChip.Arrows(def, status.Stacks);
-            if (level.Length > 0 && status.Stacks >= def.maxStacks) level += "  MAX";
-            string body = string.IsNullOrEmpty(def.description) ? "" : def.description;
+            // What it does in total right now (two stacks of +15% ATK read "ATK +30%"), else the written description.
+            string total = StatusChip.TotalEffect(def, status.Stacks);
+            string level = def.maxStacks > 1 && status.Stacks >= def.maxStacks ? "MAX" : "";
+            string body = total.Length > 0 ? total : string.IsNullOrEmpty(def.description) ? "" : def.description;
 
             var box = InkStyle.Panel(root, "StatusTooltip", InkStyle.InkPanel).rectTransform;
             InkStyle.Frame(box, UIFactory.WithAlpha(def.color, 0.8f), 2f);
@@ -114,9 +115,96 @@ namespace Combat.View
             var turns = UIFactory.CreateText(chip, "Turns", s.Remaining.ToString(), Mathf.RoundToInt(22f * k), InkStyle.Paper, TextAnchor.LowerRight, FontStyle.Bold);
             turns.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
             turns.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(6f, -6f) * k, new Vector2(60f, 28f) * k);
-            AddArrows(chip, s.Definition, s.Stacks, k);
+            AddAmount(chip, s.Definition, s.Stacks, k);
             StatusTooltip.Attach(hit.gameObject, s);
             return chip;
+        }
+
+        /// <summary>The status's total effect as a short number for the chip's corner: "+30%" for two stacks of +15%
+        /// ATK, "-6%" for two stacks of 3% poison. Empty when it has no number (Stunned).</summary>
+        public static string Amount(StatusDefinition def, int stacks)
+        {
+            if (def == null) return "";
+            stacks = Mathf.Max(1, stacks);
+            if (def.modifiers != null && def.modifiers.Count > 0) return Signed(def.modifiers[0], stacks, true);
+            if (def.damagePerRoundPercentMaxHP > 0f) return "-" + Pct(def.damagePerRoundPercentMaxHP * stacks);
+            if (def.healPerRoundPercentMaxHP > 0f) return "+" + Pct(def.healPerRoundPercentMaxHP * stacks);
+            return "";
+        }
+
+        /// <summary>The whole effect in words, totalled over the stacks: "ATK +30%", "Lose 6% max HP each turn".</summary>
+        public static string TotalEffect(StatusDefinition def, int stacks)
+        {
+            if (def == null) return "";
+            stacks = Mathf.Max(1, stacks);
+            var lines = new System.Collections.Generic.List<string>();
+            if (def.modifiers != null)
+                foreach (var m in def.modifiers) lines.Add(StatName(m.stat) + " " + Signed(m, stacks, false));
+            if (def.damagePerRoundPercentMaxHP > 0f) lines.Add("Lose " + Pct(def.damagePerRoundPercentMaxHP * stacks) + " max HP each turn");
+            if (def.healPerRoundPercentMaxHP > 0f) lines.Add("Recover " + Pct(def.healPerRoundPercentMaxHP * stacks) + " max HP each turn");
+            if (def.preventsAction) lines.Add("Can't act");
+            return string.Join("\n", lines.ToArray());
+        }
+
+        static string Pct(float fraction) { return Mathf.RoundToInt(fraction * 100f) + "%"; }
+
+        /// <summary>A modifier's total as "+30%" (percent and fraction stats) or "+40" (flat amounts).</summary>
+        static string Signed(StatModifier m, int stacks, bool compact)
+        {
+            float v = m.value * stacks;
+            string sign = v >= 0f ? "+" : "-";
+            v = Mathf.Abs(v);
+            bool percent = m.kind == ModifierKind.Percent || IsFraction(m.stat);
+            if (m.stat == StatType.StartingMoxie) percent = false;
+            return sign + (percent ? Pct(v) : Mathf.RoundToInt(v).ToString());
+        }
+
+        /// <summary>Stats stored as fractions (0.12 = 12%), shown as percentages even when the modifier is flat.</summary>
+        static bool IsFraction(StatType stat)
+        {
+            switch (stat)
+            {
+                case StatType.CritRate:
+                case StatType.CritDamage:
+                case StatType.DamageBonus:
+                case StatType.DamageTaken:
+                case StatType.IncantationMight:
+                case StatType.RitualMight:
+                case StatType.HealingBonus:
+                    return true;
+            }
+            return false;
+        }
+
+        static string StatName(StatType stat)
+        {
+            switch (stat)
+            {
+                case StatType.MaxHP: return "Max HP";
+                case StatType.Attack: return "ATK";
+                case StatType.PhysicalDefense: return "PHYS DEF";
+                case StatType.SpecialDefense: return "SPEC DEF";
+                case StatType.CritRate: return "CRIT";
+                case StatType.CritDamage: return "CRIT DMG";
+                case StatType.DamageBonus: return "DMG";
+                case StatType.DamageTaken: return "DMG taken";
+                case StatType.IncantationMight: return "Card DMG";
+                case StatType.RitualMight: return "Ult DMG";
+                case StatType.HealingBonus: return "Healing";
+                case StatType.StartingMoxie: return "Starting Ult";
+            }
+            return stat.ToString();
+        }
+
+        /// <summary>The total amount in a chip's top-left corner, green for buffs and red for debuffs.</summary>
+        public static void AddAmount(RectTransform chip, StatusDefinition def, int stacks, float k)
+        {
+            string amount = Amount(def, stacks);
+            if (amount.Length == 0) return;
+            var t = UIFactory.CreateText(chip, "Amount", amount, Mathf.RoundToInt(20f * k), ArrowColor(def), TextAnchor.UpperLeft, FontStyle.Bold);
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
+            t.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(-8f, 10f) * k, new Vector2(90f, 28f) * k);
         }
 
         /// <summary>

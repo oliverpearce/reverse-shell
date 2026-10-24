@@ -10,10 +10,62 @@ namespace Combat.View
     /// and gold for numbers. Straight edges only: no slants, tilts, halftone or burst rays.
     /// Shared by the battle HUD, pause menu, result screen, overworld HUD and the character menu.
     /// </summary>
+    /// <summary>
+    /// Draws a frame's four corner brackets (two arms each) and keeps the arms at most a third of the side, so small
+    /// frames (a key badge) still read as brackets and large ones don't grow lines along their sides.
+    /// </summary>
+    public class CornerBrackets : MonoBehaviour
+    {
+        const float MinThickness = 3f;
+        readonly RectTransform[] arms = new RectTransform[8];
+        float thickness, arm;
+        Vector2 lastSize = new Vector2(-1f, -1f);
+
+        public void Init(Color color, float thick, float armLength)
+        {
+            // At least 3 canvas units, so both arms (the vertical ones too) still cover a whole pixel at 4:3.
+            thickness = Mathf.Max(MinThickness, thick);
+            arm = armLength;
+            var rt = (RectTransform)transform;
+            for (int i = 0; i < 4; i++)
+            {
+                var corner = new Vector2(i % 2, i / 2);
+                for (int k = 0; k < 2; k++)
+                {
+                    var img = UIFactory.CreateImage(rt, k == 0 ? "BracketH" : "BracketV", color);
+                    var a = img.rectTransform;
+                    a.anchorMin = a.anchorMax = corner;
+                    a.pivot = corner;              // grows inward from the corner
+                    a.anchoredPosition = Vector2.zero;
+                    arms[i * 2 + k] = a;
+                }
+            }
+            Apply();
+        }
+
+        void OnRectTransformDimensionsChange() { if (arms[0] != null) Apply(); }
+
+        void Apply()
+        {
+            var size = ((RectTransform)transform).rect.size;
+            if (size == lastSize) return;
+            lastSize = size;
+            float h = size.x > 0f ? Mathf.Min(arm, size.x / 3f) : arm;
+            float v = size.y > 0f ? Mathf.Min(arm, size.y / 3f) : arm;
+            for (int i = 0; i < 4; i++)
+            {
+                arms[i * 2].sizeDelta = new Vector2(h, thickness);
+                arms[i * 2 + 1].sizeDelta = new Vector2(thickness, v);
+            }
+        }
+    }
+
     public static class InkStyle
     {
         public static readonly Color Ink = new Color(0.106f, 0.102f, 0.094f);              // #1B1A18
         public static readonly Color InkPanel = new Color(0.106f, 0.102f, 0.094f, 0.88f);
+        /// <summary>A hovered / selected plate: the ink panel lifted to a lighter grey (menus grow it a little too).</summary>
+        public static readonly Color HoverGray = new Color(0.34f, 0.33f, 0.315f, 0.95f);
         public static readonly Color Smoke = new Color(0.07f, 0.065f, 0.06f, 0.72f);
         public static readonly Color Paper = new Color(0.925f, 0.898f, 0.827f);           // #ECE5D3
         public static readonly Color PaperDim = new Color(0.925f, 0.898f, 0.827f, 0.62f);
@@ -33,43 +85,26 @@ namespace Combat.View
             return UIFactory.CreateImage(parent, name, color, raycast);
         }
 
-        /// <summary>A hairline rectangle inside <paramref name="rt"/>, inset by <paramref name="inset"/>.</summary>
+        /// <summary>
+        /// The frame around a panel, card or selection, inside <paramref name="rt"/> and inset by
+        /// <paramref name="inset"/>: only its four corners, drawn as brackets (no lines along the sides). Each bracket
+        /// arm is <see cref="BracketArm"/> long (longer for thick frames) but never more than a third of the side.
+        /// </summary>
         public static RectTransform Frame(RectTransform rt, Color color, float thickness = 2f, float inset = 0f)
         {
             var frame = UIFactory.CreateRect("Frame", rt).Fill(inset);
-            Edge(frame, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -thickness), Vector2.zero, color);
-            Edge(frame, new Vector2(0f, 0f), new Vector2(1f, 0f), Vector2.zero, new Vector2(0f, thickness), color);
-            Edge(frame, new Vector2(0f, 0f), new Vector2(0f, 1f), Vector2.zero, new Vector2(thickness, 0f), color);
-            Edge(frame, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(-thickness, 0f), Vector2.zero, color);
+            frame.gameObject.AddComponent<CornerBrackets>().Init(color, thickness, Mathf.Max(BracketArm, thickness * 7f));
             return frame;
         }
 
-        static void Edge(RectTransform parent, Vector2 min, Vector2 max, Vector2 offMin, Vector2 offMax, Color color)
-        {
-            var img = UIFactory.CreateImage(parent, "Edge", color);
-            img.rectTransform.anchorMin = min;
-            img.rectTransform.anchorMax = max;
-            img.rectTransform.offsetMin = offMin;
-            img.rectTransform.offsetMax = offMax;
-        }
+        /// <summary>A bracket arm's length for a 2 px frame.</summary>
+        public const float BracketArm = 22f;
 
-        /// <summary>The hero frame: an outer gold hairline, a fainter inner one, and small L ticks at the corners.</summary>
+        /// <summary>The hero frame: one set of corner brackets, a little bolder than a plain frame
+        /// (<paramref name="gap"/> is kept for callers; there is no inner frame any more).</summary>
         public static void HeroFrame(RectTransform rt, Color color, float gap = 8f)
         {
-            Frame(rt, color, 2f);
-            Frame(rt, UIFactory.WithAlpha(color, color.a * 0.45f), 1f, gap);
-            const float tick = 18f, t = 2f;
-            for (int i = 0; i < 4; i++)
-            {
-                var corner = new Vector2(i % 2, i / 2);
-                var dir = new Vector2(corner.x > 0f ? -1f : 1f, corner.y > 0f ? -1f : 1f);
-                var h = UIFactory.CreateImage(rt, "Tick", color);
-                h.rectTransform.Place(corner, corner, new Vector2(-dir.x * 6f, -dir.y * 6f), new Vector2(tick, t));
-                h.rectTransform.pivot = new Vector2(dir.x > 0f ? 0f : 1f, 0.5f);
-                var v = UIFactory.CreateImage(rt, "Tick", color);
-                v.rectTransform.Place(corner, corner, new Vector2(-dir.x * 6f, -dir.y * 6f), new Vector2(t, tick));
-                v.rectTransform.pivot = new Vector2(0.5f, dir.y > 0f ? 0f : 1f);
-            }
+            Frame(rt, color, 4f);
         }
 
         /// <summary>A thin horizontal rule.</summary>

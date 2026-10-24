@@ -6,7 +6,7 @@ amber glow). Enemies face left in game, which the game does by mirroring (their 
 sheets (120 x 80 frames in a row, facing right) are in reference/FreeKnight/. Also MC's character-card portrait
 (portrait(): the idle pose at 3x in the 96 x 144 card).
 
-    python Tools/ChibiForge/knight_model.py [--sheet out.png]
+    python Tools/ChibiForge/knight_model.py [--sheet out.png] [--only clip,clip]
 
 Reskin (a fixed colour map per character, SKINS): the steel armour becomes plating (white for MC); the gold /
 leather (gloves, belt, boots) becomes dark mech joints with glowing highlights; the red scarf becomes a glowing collar;
@@ -18,6 +18,8 @@ clip, so nothing jitters): feet on the ground row, body centred. Wide sword swin
     slash 10      _AttackComboNoMovement
     spellcast 12  idle frame 0 with an orange orb growing in front of the hands (the pack has no cast)
     hurt 11       _Hit, then _DeathNoMovement (ends lying down)
+    sit 5         kneeling on one knee (the Esc menu, beside the mat): the pack has no kneel, so kneel() lowers the
+                  idle pose's upper body and draws new legs in the character's plating (front knee up, back knee down)
 Directions: right as drawn, left mirrored; there are no front / back views, so down uses right and up uses left.
 """
 import math
@@ -207,7 +209,64 @@ def frames_for(name):
         cast.append(crop(idle[0], ox, oy, (lambda rr: lambda fr: orb(fr, F // 2 + 9, 40, rr, hi))(r) if r else None))
     sheets['spellcast'] = rows(cast)
     sheets['hurt'] = [clip([reskin(f, name) for f in strip('_Hit') + strip('_DeathNoMovement')])]
+    stand = crop(idle[0], ox, oy)
+    sheets['sit'] = rows([stand, kneel(stand, name, 0.5), kneel(stand, name, 1.0), kneel(stand, name, 1.0), kneel(stand, name, 1.0)])
     return sheets
+
+
+# The kneel (64 px frame, facing right). The idle pose's legs start at HIP; the upper body drops KNEEL_DROP px at full
+# depth. Leg paths are (x, y) points in the frame, interpolated from standing (t = 0) to kneeling (t = 1).
+HIP = 50
+KNEEL_DROP = 6
+BACK_LEG = [((29, 50), (29, 56)), ((28, 56), (28, 60)), ((27, 61), (22, 60))]    # hip, knee (down), toe (behind)
+FRONT_LEG = [((37, 50), (36, 56)), ((38, 56), (41, 53)), ((38, 61), (42, 60)), ((40, 61), (45, 61))]   # hip, knee (up), heel, toe
+
+
+def _stroke(layer, pts, r, c):
+    for i in range(len(pts) - 1):
+        (x0, y0), (x1, y1) = pts[i], pts[i + 1]
+        n = max(1, int(math.hypot(x1 - x0, y1 - y0) * 3))
+        for k in range(n + 1):
+            t = k / n
+            cx, cy = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+            for y in range(int(cy - r - 1), int(cy + r + 2)):
+                for x in range(int(cx - r - 1), int(cx + r + 2)):
+                    if 0 <= x < F and 0 <= y < F and (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
+                        layer[y][x] = c
+
+
+def _leg(layer, path, t, light, mid, dark, joint):
+    """One leg: a dark underside, the plate on top, a lit top edge on the thigh and a joint at the knee."""
+    pts = [(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t) for a, b in path]
+    _stroke(layer, pts, 2.1, dark)
+    _stroke(layer, [(x, y - 0.6) for x, y in pts], 1.5, mid)
+    _stroke(layer, [(x, y - 1.2) for x, y in pts[:2]], 0.7, light)
+    kx, ky = pts[1]
+    layer[int(round(ky))][int(round(kx))] = joint
+
+
+def kneel(stand, name, t):
+    """The standing frame lowered into a one-knee kneel (t: 0 standing .. 1 kneeling). New legs go under the upper
+    body, then everything is outlined."""
+    sk = SKINS[name]['map']
+    light, mid, dark = sk[STEEL[0]], sk[STEEL[1]], sk[STEEL[2]]
+    joint = sk[GOLD[1]]
+    drop = int(round(KNEEL_DROP * t))
+    out = [[None] * F for _ in range(F)]
+    _leg(out, BACK_LEG, t, mid, dark, sk[GOLD[2]], joint)           # the far leg, a shade darker
+    _leg(out, FRONT_LEG, t, light, mid, dark, joint)
+    # Outline the legs (where they meet empty space).
+    edge = [(x, y) for y in range(F) for x in range(F) if out[y][x] is None and any(
+        0 <= x + dx < F and 0 <= y + dy < F and out[y + dy][x + dx] is not None for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))]
+    for x, y in edge:
+        out[y][x] = OUTLINE
+    # The upper body (everything above the hips), lowered, over the legs.
+    for y in range(HIP):
+        for x in range(F):
+            c = stand[y][x]
+            if c is not None and 0 <= y + drop < F:
+                out[y + drop][x] = c
+    return out
 
 
 PORTRAIT_SCALE = 3
@@ -241,10 +300,12 @@ def to_rgba(fr):
     return [[(c[0], c[1], c[2], 255) if c is not None else (0, 0, 0, 0) for c in row] for row in fr]
 
 
-def build(name):
+def build(name, only=None):
     out_dir = os.path.join(cf.CHARS, name)
     os.makedirs(out_dir, exist_ok=True)
     for anim, rows_ in frames_for(name).items():
+        if only and anim not in only:
+            continue
         cols = len(rows_[0])
         img = [[(0, 0, 0, 0)] * (F * cols) for _ in range(F * len(rows_))]
         for r, frames in enumerate(rows_):
@@ -285,5 +346,6 @@ if __name__ == '__main__':
     if '--sheet' in args:
         contact(args[args.index('--sheet') + 1])
     else:
+        only = args[args.index('--only') + 1].split(',') if '--only' in args else None
         for n in NAMES:
-            build(n)
+            build(n, only)

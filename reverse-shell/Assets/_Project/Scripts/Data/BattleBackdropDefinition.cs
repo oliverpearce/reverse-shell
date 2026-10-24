@@ -35,7 +35,7 @@ namespace Combat
 
         [Header("Layout")]
         [Tooltip("Where the street meets the buildings, as a fraction of screen height from the top.")]
-        [Range(0.2f, 0.7f)] public float streetLine = 0.42f;
+        [Range(0.2f, 0.7f)] public float streetLine = 0.52f;
         [Tooltip("How bright the building facades are painted.")]
         [Range(0.2f, 1f)] public float facadeBrightness = 0.9f;
 

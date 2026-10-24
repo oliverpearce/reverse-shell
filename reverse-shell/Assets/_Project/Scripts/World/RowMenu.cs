@@ -126,8 +126,9 @@ namespace Game.World
             {
                 bool on = r == index;
                 bool usable = Usable(r);
-                labels[r].color = !usable ? UIFactory.WithAlpha(InkStyle.PaperDim, 0.7f) : on ? InkStyle.Ink : InkStyle.Paper;
-                plates[r].color = on ? InkStyle.Gold : usable ? InkStyle.InkPanel : UIFactory.WithAlpha(InkStyle.InkPanel, 0.5f);
+                // The selected row is a hover: a lighter grey plate that grows a little (GrowSelected), no gold.
+                labels[r].color = !usable ? UIFactory.WithAlpha(InkStyle.PaperDim, 0.7f) : InkStyle.Paper;
+                plates[r].color = on ? InkStyle.HoverGray : usable ? InkStyle.InkPanel : UIFactory.WithAlpha(InkStyle.InkPanel, 0.5f);
             }
             string text = rows[index].Help;
             help.text = text ?? "";
@@ -153,12 +154,28 @@ namespace Game.World
             if (Usable(index)) rows[index].Action();
         }
 
+        const float SelectedScale = 1.04f;
+
+        /// <summary>The selected row grows a little (eased; unscaled, so it works over a paused world).</summary>
+        void GrowSelected()
+        {
+            float k = 1f - Mathf.Exp(-16f * Time.unscaledDeltaTime);
+            for (int r = 0; r < plates.Count; r++)
+            {
+                if (plates[r] == null) continue;
+                float target = r == index && Usable(r) ? SelectedScale : 1f;
+                var rt = plates[r].rectTransform;
+                rt.localScale = Vector3.Lerp(rt.localScale, Vector3.one * target, k);
+            }
+        }
+
         void Update()
         {
+            GrowSelected();
             if (Time.frameCount == openedFrame) return;
-            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)) Move(-1);
-            if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) Move(1);
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.F))
+            if (UIKeys.Pressed(KeyCode.UpArrow) || UIKeys.Pressed(KeyCode.W)) Move(-1);
+            if (UIKeys.Pressed(KeyCode.DownArrow) || UIKeys.Pressed(KeyCode.S)) Move(1);
+            if (UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.Space) || UIKeys.Pressed(KeyCode.F))
                 Run();
             else if (Input.GetKeyDown(KeyCode.Escape) && back != null) back();
         }

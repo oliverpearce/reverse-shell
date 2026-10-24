@@ -2,6 +2,168 @@
 
 # Chapter One demo (start here)
 
+**Esc menu as physical cards (newest):** `PauseCards` now plays out a scene.
+- **Zoom:** like the battle's hold-to-inspect, the view zooms in quickly (1.5x, OutCubic, 0.28 s;
+  `OverworldCamera.zoom` / `aimOffset` / `Direct`) while the party HUD and objective fade (`OverworldUI.SetHudAlpha`).
+  The player ends up on the left (`PlayerViewX` = 0.2; `Frame()` works out the aim for the screen shape), turns
+  right and kneels on one knee (the `sit` clip).
+- **Mats:** where the mat goes depends on the ground (`BlockedRight` samples the footprint).
+  - **Open to the right:** the player is framed on the left, facing right. The ground mat rolls out north to south on
+    their right over 0.5 s (`PauseMat.Create(..., northToSouth)`, `WorldRoll`, `MatGap`). Then the big UI mat rolls
+    across the screen, always left to right, from where the ground mat lands on screen to the right edge.
+  - **A block to the right:** the player is framed top-centre (`AimSouth`), facing down. The ground mat rolls out west
+    to east just south of them, then the UI mat rolls across the full width left to right.
+  - The UI cloth texture is as wide as needed to keep pixels square.
+- **Cards:** dealt onto the mat with a small bounce, overlapping slightly (`Gap` -36), each with a stable sprawl.
+  "PAUSED" is top-left.
+- **Input:** Settings is hovered by default (no Resume card). A/D, the arrows or the mouse move the hover; the hovered card straightens
+  and rises. Esc during the opening skips to the end.
+- **Close:** Esc / Resume plays it backwards: cards lift off, the UI mat rolls back up to the left, then the
+  ground mat, then the player stands (unkneels), then zoom out. Party / Units / Resonance keep the view zoomed and the kneel, and roll the mats out again on the
+  way back (`Open(card)`). The Training warps reset at once (`HideNow(true)`).
+- **Kneel:** the Fantasy Knight pack has no kneel, so `knight_model.kneel()` draws one: the idle pose's upper body
+  lowered 6 px over new legs in the character's plating (front knee up, back knee down; `FRONT_LEG` / `BACK_LEG`
+  paths). It's written as `sit.png` (`--only sit`), so the existing `sit` clips (`EnsureSitClips`) pick it up.
+
+**Planning + demo (newest):** every planning document lives in `reverse-shell/Planning/` (git-ignored):
+`ROADMAP.md` (Track A: itch.io web demo; Track B: creator tools, stages 0-7, with statuses), `ITCH_DEMO_CHECKLIST.md`
+and the old `GAME_PLAN.md` (moved there). The title screen's subtitle is "Demo" (`TitleScreen.Subtitle`).
+
+**Card icons:** every non-Ult card's centre icon is now the user's pick from Raven Fantasy Icons
+(`RAVEN_PICKS` in `Tools/CardForge/card_forge.py`; the files are copied into `Art/ThirdParty/RavenFantasyIcons/32x32`,
+listed in its LICENSE-NOTE), with the cards' plum outline added. Cards without a drawing of their own (Bite, Coil Up,
+Grapple Hook, Poison Strike, Spark, Static Coil, Suppressing Shot, Tail Lash, Thunder Breath) are added to the atlas
+from the picks. Renames: **Piston Slam → Golden Hammer**. **Pounce → Poison Strike**, which now also poisons
+(1 stack, 2 turns).
+- **Card asset names now match what the game shows** (the `.meta` files were renamed with them, so references
+  hold): `Card_Enemy_GoldenHammer`, `Card_Enemy_PoisonStrike`, `Card_Enemy_Reinforce`, `Card_MC_PrismBurst`,
+  `Card_Blue_AegisDawn`, `Card_HealBot_VerdantBloom`, `Card_Lucy_ZeroDay`, `Card_Enemy_Reclaim`,
+  `Card_Enemy_StormHeart`, `Card_Enemy_Meltdown`, `Card_Enemy_ToxicSwarm`. The generator and CardForge use the new
+  names, and the variables follow them (`goldenHammer`, `poisonStrike`, `reinforce`).
+- **No duplicate icons:** Bulwark is fb2151 (blue tower shield) and Reinforce is fb1921 (breastplate). No Raven icon
+  is used twice across cards, card types and statuses (fb665 stays the Counter type icon only).
+
+**Battle + Esc polish:**
+- **Go button:** an ordinary ink button with corner brackets (not gold). `GoButtonFx`: hovering slides gold chevrons
+  out; pressing (click, or Enter when no enemy is ringed, through `HudView.PressGo`) punches and flashes it.
+- **Horizon:** `BattleBackdropDefinition.streetLine` is 0.52 (was 0.42), so more sky and buildings show. The Stage is
+  centred on the street line (its pivot stays at the screen centre for the inspect zoom), so units always stand on the
+  street (`StageY` = 12 above it).
+- **Status icons:** 76 px (were 52). The corner shows the total effect over all stacks (`StatusChip.Amount`: two
+  stacks of +15% ATK show "+30%"), and the hover box says it in words (`TotalEffect`: "ATK +30%", "Lose 6% max HP
+  each turn"). Card chips show the amount too.
+- **Esc menu:** the big mat always spans the whole screen, and the cards are bigger (`CardScale` 1.3, fitted; mat 560
+  tall). The Resonance card glitters (`View/CardSparkles`: stars and glints, reusable on any card).
+- **Icon picks:** done; see Card icons above.
+
+**Items:**
+- **Esc cards:** Quit, Save, Settings, Party, Units, **Items**, Resonance (`OpenNext` indices 3-6). The Items icon
+  (`Menu_Items`, a drawstring pouch) is drawn by CardForge in cell 29.
+- **`ItemsScreen`:** every Part you own (spare or fitted) on a teal velvet mat (`PauseMat.ClothStyle.Velvet`) that
+  rolls out. Each item's icon floats and bobs (the cushions and empty spots were dropped at the user's request).
+  Hover or arrows select one: a soft gold glow fades in behind it, it rises, grows 15% and gets corner brackets, and
+  the panel under the mat shows its name, CHIP/CORE, how many, who has it fitted, and the description.
+- **Units page:** item descriptions are hidden until that slot is selected (`itemDescs`, toggled in `SetFocus`). They
+  then show as an ink tooltip just above the item slots.
+
+**Readable text:**
+- **Minimum size:** `UIFactory.MinFontSize` (18 in layout units, about 29 px of monogram) is enforced by `CreateText`,
+  `BestFit`, `FitRich` and `Size()`. Anything smaller is raised to it. The only exception is the pixel cards' own
+  name plates (`BestFitCardPlate`), which are part of the card art.
+- **Units item picker** (`CharacterMenu.OpenPicker`): a wider box, one row per option with the name at 34 and its
+  description underneath at 26 in gold, wrapping instead of shrinking (`PickerOption`).
+
+**Party screen + controls:**
+- **Backup rule:** a backup only while all three fighting slots are filled (`WorldSession.BackupAllowed`). `Assign`
+  refuses a backup that would leave a gap, and `EnsureFormation` moves the backup into any empty fighting slot.
+- **Backup slot:** greyed out while closed, with "Replaces a fallen party member in combat" under it. The
+  "Choose up to 3..." subtitle is gone.
+- **Single corners:** empty slots have one set of corner brackets, and `HeroFrame` is a single, bolder set too.
+- **Readability:** "Members" sits above the mat in paper text. Member names show only while a card is held (0.3 s;
+  that release isn't a click) or highlighted with the keyboard, as an ink tag above the card.
+- **Resonance chart:** `View/ResonanceChartView` (built from `AfflatusChart.Beats`, so it always matches the rules)
+  sits bottom-right on the Party screen (full size) and Prepare for Battle (0.8x): the wheel in one line and
+  Light <> Void. Physical is left out.
+- **Last fighter:** `WorldSession.CanClear` hides Remove for the only active member (and `ClearSlot` refuses).
+- **Back to the Esc menu:** returning from Party / Units / Resonance shows the mats already out and the cards already
+  dealt (no replay). The current leader is put straight into the kneel (`PlayPose("sit", instant: true)`), even if the
+  leader changed, and the ground mat stays out while those screens are open.
+- **Controls setting:** title, battle and Esc Settings offer Controls: Both / Mouse / Keyboard (`GameSettings.Controls`,
+  saved in PlayerPrefs). Menus read keys through `UIKeys.Pressed`, which is silent in Mouse mode. `ControlInputModule`
+  ignores the mouse and hides the cursor in Keyboard mode. Walking, F, Q and Esc always work.
+
+**Play + Esc camera:**
+- **Play from the title:** `Editor/World/PlayFromTitle.cs` sets `EditorSceneManager.playModeStartScene` to
+  `Overworld_Mossline`, so Play always boots to the title screen whatever scene is open. Toggle it with
+  Reverse Shell > Play From Title.
+- **Esc near walls:** `PauseCards.ViewBlocked` samples the line from the player to where the zoomed camera would go,
+  against the map's heights (`OverworldMap.TopAt`). If terrain is in the way, the camera stays put (`steady`: no zoom,
+  no shift); you still kneel, the HUD fades, and the mats roll out as usual.
+- **Next (planned, staged):** Level Designer, chapter and area assets, story events without code, Card / Enemy /
+  Part editors, art import, all UI text in files, Afflatus renamed to Resonance, plain-heading comments. See
+  `~/.claude/plans/can-you-add-a-prancy-sprout.md`.
+
+**Title + menus:**
+- **Title background:** `FallingCards` rains only Soul Cards: every `Resources/Cards/Ult_*.png`, each tinted toward a
+  random colour (`Tints`) and keeping its shine. Four pixel sparkle effects play on a brighter layer above the dimmed
+  cards: Twinkle (four-point stars blooming on a card, riding with it), Trail (glints left behind a falling card),
+  Burst (an eight-ray pop at a card corner) and Glitter (diamonds drifting down the screen, flickering).
+- **Brackets:** arms are at least 3 canvas units thick (`CornerBrackets.MinThickness`), so the vertical arms don't
+  disappear at 4:3.
+- **Selection is a hover now:** title rows, `RowMenu` pages (Save / Settings / Quit) and every `InkStyle.Button`
+  (`ButtonHover`), including the combat pause menu, show the selected or hovered item as a lighter grey plate
+  (`InkStyle.HoverGray`) that grows a little. There's no gold plate any more, and the combat menu's Resume / Back
+  aren't gold.
+
+**UI round:**
+- **Corner brackets:** `InkStyle.Frame` now draws only corner brackets (`CornerBrackets`; arms 22 px, longer for
+  thick frames, at most a third of a side), so every panel, card and selection frame has brackets instead of lines.
+  Button hover borders (`ButtonHover`) and the battle queue chips (`HudView`) use it too.
+- **Esc cards:** Quit, Save, Settings (hovered by default), Party, Units, Resonance. There is no Resume card (Esc
+  resumes). Quit asks "Are you sure?" (`ConfirmQuit`).
+- **Party / Prepare for Battle:** Space no longer starts a fight (only the Start button does). The Members strip lies
+  on a grey mat with a pearl trim (`PauseMat.ClothTexture(w, pearl: true)`, `RollTexture(true)`) that rolls out from
+  a scroll in the bottom-left. Click the scroll or the mat (or press Down / Enter) to unroll it; click again to roll it
+  up. It stays open or closed across rebuilds.
+
+**Prepare for Battle: enemy cards.** In `FormationScreen`'s pre-fight mode, hovering or clicking an enemy row shows
+a panel beside the list with that enemy's skill cards (at their rank) and its Ult, at the fight's level
+(`ShowEnemyCards`). It stays while the pointer is over the row or the panel. Clicking a card opens `CardDetailPopup`.
+
+**Party drag and drop:** `FormationScreen` cards can be dragged. A strip member dropped onto a slot goes there; a
+slot dropped onto another slot swaps the two; a slot dropped anywhere else is emptied (never the last active member).
+The hovered slot gets a gold frame. **Scanner HUD:** the cooldown is just the clock wipe now (no numbers).
+
+**Training Mode from the title (debug shortcut, for now):** the title's main menu has a **Training Mode** row, and its
+Settings page has **Enter Training Mode**. Both call `WorldSession.StartTraining()`. That loads the latest save (or
+starts a new game in slot 1 when there's none), then starts in the Training Center. Leave Training Mode returns to
+where that save left off (for a new game, the city's start, where the opening plays). Remove the two rows in
+`TitleScreen` for the demo.
+
+**Newest (resonance card + scanner HUD):**
+- **Resonance is its own Esc card** (`PauseCards`, between Units and Settings), shown only after Chapter One
+  (`ch1.complete`) or in Training Mode (`WorldSession.ResonanceMenuUnlocked`). Hidden cards drop out of the row, and a
+  row too wide for 4:3 shrinks (`MaxRowWidth`). It opens `ResonanceScreen`, which shows only the resonances you have
+  (Physical, plus Electric once absorbed or always in Training Mode, which lends every kit: `AvailableResonances`). The
+  row centres and shrinks as more unlock. Locked ones aren't shown (the user's choice, 2026-10-24; `Ui_Lock` is still in
+  the atlas). Below the row are the shown resonance's cards and Ult; click or hold one to open `CardDetailPopup`. The
+  active one has a gold frame. The old resonance buttons on the Units page are gone.
+- **Resonance Ult art:** `CardArt.Ult(card, owner)` tries `Ult_<card asset>` before the owner's card, so Electric's
+  Thunderheart has its own full art (`Ult_Card_MC_Thunderheart.png`: yellow swirl and lightning, from `ULT_CARDS` in
+  CardForge). It's used in the hand, the queue, the menus and the formation portrait (`WorldSession.UltimateOf`).
+- **Fix:** Training Mode from the title used to drop you at the save's city coordinates inside the Training Center
+  (an empty world). `StartTraining` now clears the return point, and `SpawnPlayer` ignores any return spot that isn't on
+  the current map.
+- **Resonance colour:** **Electric is yellow** now (`AfflatusInfo.Color(Volt)`; Light moved to pale white to stay
+  apart). The active resonance tints the protagonist's card swirls, queue chips, cast flashes, battle glow, party-HUD
+  line and Units-page cards (`BattleUnit.Color`, `WorldSession.ColorOf`, `AfflatusInfo.ResonanceColor`; Physical keeps
+  the character's own colour). The sprites themselves aren't recoloured. The Electric Dragon's own colour is still blue.
+- **Scanner HUD:** `ScannerHud` sits bottom-left once `ch1.scanner` is set. It shows the binoculars (`Ui_Binoculars`)
+  with a Q key badge. A scan starts a 4 s cooldown (`OverworldBuilder.ScanCooldown`), shown as a clock wipe with the
+  seconds left and a flash when ready. Q pressed too early shakes it. It's hidden during dialogue and menus.
+- New icons `Menu_Resonance`, `Ui_Lock` and `Ui_Binoculars` are drawn by `Tools/CardForge` (appended to `CardArt.png`,
+  cells 26-28). Tests: `StoryTests` (Training Mode lends Electric + menu unlock, resonance colour).
+
 **Canon:** `GAME_BIBLE.md` v0.3 is the source of truth; its §13 lists what is only a draft (Collector, record and memory
 texts, the ending mystery, the Electric kit and enemy numbers) and the code-name mapping (Electric = `Volt`, Physical =
 `Afflatus.None`). The protagonist is player-named (asset `Char_MC`) and alone. Heal Bot, Lucy, Blue and the Training
@@ -29,8 +191,8 @@ missing one shows `[missing: key]` in game.
 
 **How to play:** Title → New Game → pick a slot → the opening recording (Enter/Space/click advances, Esc skips) → name
 the protagonist (type, Enter) → wake in the city's walled courtyard. WASD/arrows move, **F** interacts, **Q** scans
-(once you have the scanner), **Esc** opens the pause cards (Quit, Save, Resume, Party, Units), **F8** opens the story
-debug panel (editor / development builds).
+(once you have the scanner; 4 s cooldown), **Esc** opens the pause cards (Quit, Save, Resume, Party, Units, Resonance,
+Settings), **F8** opens the story debug panel (editor / development builds).
 
 **The chapter, beat by beat** (flags in `World/Story/Chapter1.cs`; the objective shows top-right):
 1. Opening (`PrologueSequence`): the hopeful public-information recording ending on EVERLASTING, the transfer stalling at
@@ -48,7 +210,7 @@ debug panel (editor / development builds).
 6. **The Humming Hall** (chamber): crossing the line in the middle wakes the guardian (`ch1.dragon.seen`), then the
    **Electric Dragon** boss fight (Lv 7, boss) (`ch1.dragon.beaten`).
 7. The pedestal's blank Soul Card binds to the Core: **Electric resonance** unlocked (`ch1.resonance.volt`), switchable
-   for free in Units → Resonance (Electric swaps the innate cards for Arc Edge / Static Field and the Ult for
+   for free in Esc → Resonance (Electric swaps the innate cards for Arc Edge / Static Field and the Ult for
    Thunderheart). Then the ending (a second signature matching your own, moving) and the "End of Chapter One" card
    (`ch1.complete`). Free roam continues.
 
@@ -275,7 +437,7 @@ resonance switching is not built (the bible leaves its cost open).
 > **Crew-menu stats (latest):** Persona 5-style rows on a white slab in the top right: a big condensed label and value, "MAX" when full, and a long red bar with the Parts bonus in gold.
 > **Art style (latest):** everything is **chibi pixel art** in the style of the user's reference: big heads, a bold plum outline, 4-tone ramps. The party are androids with faces, hair, armour and element-coloured glowing lines. See `Tools/ChibiForge`. Older notes below that describe LPC sprites, helmets or visors are out of date.
 
-Read this first when resuming. See also [GAME_PLAN.md](GAME_PLAN.md) (roadmap) and [GAME_BIBLE.md](GAME_BIBLE.md) (vision).
+Read this first when resuming. See also `Planning/ROADMAP.md` and `Planning/GAME_PLAN.md` (roadmaps; the Planning folder is git-ignored) and [GAME_BIBLE.md](GAME_BIBLE.md) (vision).
 
 ## Project at a glance
 - **Engine:** Unity **2019.4.14f1**, C# 7.3 only (no switch expressions or records). Project folder: `reverse-shell/`.

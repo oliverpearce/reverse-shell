@@ -54,6 +54,21 @@ namespace Combat.Tests
         }
 
         [Test]
+        public void Backup_OnlyWithAFullParty_AndStepsUpIntoAGap()
+        {
+            WorldSession.EnsureFormation(roster);                    // A B C + D backup
+            Assert.IsTrue(WorldSession.ClearSlot(1, roster));        // B leaves: D steps up into the gap
+            Assert.AreEqual("D", WorldSession.Formation[1]);
+            Assert.AreEqual("", WorldSession.Formation[WorldSession.BackupSlot]);
+            Assert.IsTrue(WorldSession.BackupAllowed);
+
+            WorldSession.ClearSlot(2, roster);                       // only two fighting now
+            Assert.IsFalse(WorldSession.BackupAllowed);
+            WorldSession.Assign(WorldSession.BackupSlot, roster[1], roster);   // B can't be the backup
+            Assert.AreEqual("", WorldSession.Formation[WorldSession.BackupSlot]);
+        }
+
+        [Test]
         public void Recruits_FillEmptySlots()
         {
             WorldSession.Members.Add("A");

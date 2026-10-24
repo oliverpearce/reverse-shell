@@ -22,6 +22,7 @@ namespace Combat.View
         RectTransform resultContent;
         GameObject resultButton;
         Button goButton, queueButton;
+        GoButtonFx goFx;
         Coroutine bannerRoutine;
         Text resultButtonLabel;
         List<CardInstance> queued = new List<CardInstance>();
@@ -63,9 +64,11 @@ namespace Combat.View
             queueButton.transition = Selectable.Transition.None;
             queueButton.onClick.AddListener(view.OnReturnAll);
 
-            // Go: a straight ink plate with gold hairlines, the gold one.
-            goButton = InkStyle.Button(root, "Go", "Go", view.OnGo, true, 60);
+            // Go: an ink plate with corner brackets like every other button; hovering slides gold chevrons out, pressing
+            // (click or Enter) punches and flashes it (GoButtonFx).
+            goButton = InkStyle.Button(root, "Go", "Go", view.OnGo, false, 60);
             goButton.GetComponent<RectTransform>().Place(bottomRight, bottomRight, new Vector2(-24f, 92f), new Vector2(260f, 92f));
+            goFx = GoButtonFx.Add(goButton);
 
             // Banner (top-center): ink band, serif.
             bannerBg = UIFactory.CreateImage(root, "Banner", PanelDark);
@@ -158,14 +161,12 @@ namespace Combat.View
 
             foreach (var card in queued)
             {
-                var owner = card.Owner.Definition.color;
+                var owner = card.Owner.Color;
                 var chip = UIFactory.CreateImage(QueueRow, card.Name, card.IsRitual ? CardView.RitualPastel(owner) : UIFactory.Darken(owner, 0.35f));
                 chip.rectTransform.sizeDelta = chipSize;
-                var outline = chip.gameObject.AddComponent<Outline>();
-                outline.effectColor = Gold;
-                outline.effectDistance = new Vector2(2f, -2f);
+                InkStyle.Frame(chip.rectTransform, Gold, 2f, -2f);
                 // The card's own pixel icon (or the Ult art) instead of words.
-                var art = card.IsRitual ? CardArt.Ult(card.Owner.Definition) : CardArt.Icon(card.Definition);
+                var art = card.IsRitual ? CardArt.Ult(card.Definition, card.Owner.Definition) : CardArt.Icon(card.Definition);
                 if (art == null) art = CardIcons.Glyph(CardIcons.TypeOf(card.Definition));
                 var icon = UIFactory.CreateImage(chip.transform, "Icon", Color.white);
                 icon.sprite = art;
@@ -180,9 +181,7 @@ namespace Combat.View
             {
                 var locked = UIFactory.CreateImage(QueueRow, "Moved" + i, new Color(0.12f, 0.11f, 0.1f, 0.92f));
                 locked.rectTransform.sizeDelta = chipSize;
-                var lockedEdge = locked.gameObject.AddComponent<Outline>();
-                lockedEdge.effectColor = UIFactory.WithAlpha(InkStyle.PaperDim, 0.7f);
-                lockedEdge.effectDistance = new Vector2(2f, -2f);
+                InkStyle.Frame(locked.rectTransform, UIFactory.WithAlpha(InkStyle.PaperDim, 0.7f), 2f, -2f);
                 var text = UIFactory.CreateText(locked.transform, "Label", "CARD\nMOVED", 16, InkStyle.PaperDim, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(9, 16);
                 text.lineSpacing = 0.85f;
                 text.rectTransform.Fill(4f);
@@ -192,14 +191,19 @@ namespace Combat.View
             {
                 var slot = UIFactory.CreateImage(QueueRow, "EmptySlot" + i, new Color(1f, 0.8f, 0.3f, 0.06f));
                 slot.rectTransform.sizeDelta = chipSize;
-                var outline = slot.gameObject.AddComponent<Outline>();
-                outline.effectColor = UIFactory.WithAlpha(Gold, 0.8f);
-                outline.effectDistance = new Vector2(2f, -2f);
+                InkStyle.Frame(slot.rectTransform, UIFactory.WithAlpha(Gold, 0.8f), 2f, -2f);
             }
         }
 
         /// <summary>The battle log was removed (damage numbers and the banner say what happened); kept as a no-op so
         /// callers don't change.</summary>
+        /// <summary>Go from the keyboard (Enter): the same press flourish as a click.</summary>
+        public void PressGo()
+        {
+            if (goButton == null || !goButton.interactable) return;
+            goButton.onClick.Invoke();
+        }
+
         public void Log(string line)
         {
         }

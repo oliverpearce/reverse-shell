@@ -95,7 +95,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 1f } },
                 new CardEffect[] { new DamageEffect { multiplier = 1.5f } },
                 new CardEffect[] { new DamageEffect { multiplier = 2.4f } });
-            var mcUlt = Card("Card_MC_Ritual", "Prism Burst", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
+            var mcUlt = Card("Card_MC_PrismBurst", "Prism Burst", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
                 new CardEffect[]
                 {
                     new DamageEffect { multiplier = 6f, hits = 2 },
@@ -129,7 +129,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new ApplyStatusEffect { status = regen, duration = 2 } },
                 new CardEffect[] { new ApplyStatusEffect { status = regen, duration = 3 } },
                 new CardEffect[] { new ApplyStatusEffect { status = regen, duration = 4 } });
-            var healUlt = Card("Card_HealBot_Ritual", "Verdant Bloom", CardKind.Heal, TargetMode.AllAllies, true, seqRitual,
+            var healUlt = Card("Card_HealBot_VerdantBloom", "Verdant Bloom", CardKind.Heal, TargetMode.AllAllies, true, seqRitual,
                 new CardEffect[]
                 {
                     new HealEffect { target = EffectTarget.CardTargets, multiplier = 2.5f },
@@ -154,7 +154,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 0.5f, hits = 3 }, new ApplyStatusEffect { status = poison, duration = 2 } },
                 new CardEffect[] { new DamageEffect { multiplier = 0.75f, hits = 3 }, new ApplyStatusEffect { status = poison, duration = 2 } },
                 new CardEffect[] { new DamageEffect { multiplier = 1.2f, hits = 3 }, new ApplyStatusEffect { status = poison, stacks = 2, duration = 3 } });
-            var lucyUlt = Card("Card_Lucy_Ritual", "Zero Day", CardKind.Attack, TargetMode.AllEnemies, true, seqRitual,
+            var lucyUlt = Card("Card_Lucy_ZeroDay", "Zero Day", CardKind.Attack, TargetMode.AllEnemies, true, seqRitual,
                 new CardEffect[]
                 {
                     new DamageEffect { multiplier = 3f },
@@ -189,11 +189,11 @@ namespace Combat.EditorTools
             Save(catalog, PartCatalogPath);
 
             // ---------------------------------------------------------------- Enemies (machine lifeforms)
-            var slam = Card("Card_Enemy_PistonSlam", "Piston Slam", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
+            var goldenHammer = Card("Card_Enemy_GoldenHammer", "Golden Hammer", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
                 new CardEffect[] { new DamageEffect { multiplier = 1.6f } });
             var barrage = Card("Card_Enemy_MissileVolley", "Missile Volley", CardKind.Attack, TargetMode.AllEnemies, false, seqSweep,
                 new CardEffect[] { new DamageEffect { multiplier = 0.8f, hits = 2 } });
-            var harden = Card("Card_Enemy_ReinforcePlating", "Reinforce", CardKind.Buff, TargetMode.Self, false, seqSupport,
+            var reinforce = Card("Card_Enemy_Reinforce", "Reinforce", CardKind.Buff, TargetMode.Self, false, seqSupport,
                 new CardEffect[] { new ApplyStatusEffect { status = atkUp, duration = 3 } });
             var bite = Card("Card_Enemy_CorrodedBlade", "Corroded Blade", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
                 new CardEffect[] { new DamageEffect { multiplier = 1.3f }, new ApplyStatusEffect { status = poison, duration = 2 } });
@@ -203,9 +203,9 @@ namespace Combat.EditorTools
             // Tuned as an introductory fight: roughly 6-8 rounds, enemies deal ~350 HP/round into ~7000 party HP.
             var sentry = Enemy("Enemy_RustSentry", "Rust Sentry", new Color(0.66f, 0.46f, 0.3f), Afflatus.Fire, DamageType.Physical,
                 4200, 150f, 140f, 110f, AnimSet("RustSentry"),
-                new EnemySkill { card = slam, weight = 2f },
+                new EnemySkill { card = goldenHammer, weight = 2f },
                 new EnemySkill { card = barrage, weight = 1f },
-                new EnemySkill { card = harden, weight = 0.5f });
+                new EnemySkill { card = reinforce, weight = 0.5f });
             sentry.xpReward = 120;
             var stalker = Enemy("Enemy_ScrapStalker", "Scrap Stalker", new Color(0.5f, 0.58f, 0.32f), Afflatus.Toxin, DamageType.Special,
                 2600, 135f, 90f, 90f, AnimSet("ScrapStalker"),
@@ -277,7 +277,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new ApplyStatusEffect { status = defUp, stacks = 1, duration = 2 } },
                 new CardEffect[] { new ApplyStatusEffect { status = defUp, stacks = 1, duration = 3 } },
                 new CardEffect[] { new ApplyStatusEffect { status = defUp, stacks = 2, duration = 3 } });
-            var aegis = Card("Card_Blue_Ritual", "Aegis Dawn", CardKind.Heal, TargetMode.AllAllies, true, null,
+            var aegis = Card("Card_Blue_AegisDawn", "Aegis Dawn", CardKind.Heal, TargetMode.AllAllies, true, null,
                 new CardEffect[] { new HealEffect { target = EffectTarget.CardTargets, multiplier = 1.4f },
                                    new ApplyStatusEffect { status = defUp, stacks = 2, duration = 2 } });
 
@@ -342,10 +342,12 @@ namespace Combat.EditorTools
             var red = AssetDatabase.LoadAssetAtPath<SpriteAnimationSet>(Root + "/Animations/Anim_RustSentry.asset");
             var bite = Card("Card_Enemy_Bite", "Bite", CardKind.Attack, TargetMode.SingleEnemy, false, null,
                 new CardEffect[] { new DamageEffect { multiplier = 1.0f } });
-            var pounce = Card("Card_Enemy_Pounce", "Pounce", CardKind.Attack, TargetMode.SingleEnemy, false, null,
-                new CardEffect[] { new DamageEffect { multiplier = 1.5f } });
+            // Poison Strike (it was Pounce): a hit that also poisons.
+            var poison = AssetDatabase.LoadAssetAtPath<StatusDefinition>(Root + "/Statuses/Status_Poison.asset");
+            var poisonStrike = Card("Card_Enemy_PoisonStrike", "Poison Strike", CardKind.Attack, TargetMode.SingleEnemy, false, null,
+                new CardEffect[] { new DamageEffect { multiplier = 1.5f }, new ApplyStatusEffect { status = poison, duration = 2 } });
             var hound = Enemy("Enemy_ScrapHound", "Scrap Hound", new Color(0.78f, 0.42f, 0.28f), Afflatus.Fire, DamageType.Physical,
-                2400, 150f, 100f, 95f, red, new EnemySkill { card = bite, weight = 2f }, new EnemySkill { card = pounce, weight = 1f });
+                2400, 150f, 100f, 95f, red, new EnemySkill { card = bite, weight = 2f }, new EnemySkill { card = poisonStrike, weight = 1f });
             hound.xpReward = 50;
 
             var spark = Card("Card_Enemy_Spark", "Spark", CardKind.Attack, TargetMode.SingleEnemy, false, null,
@@ -360,7 +362,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 1.2f } });
             var suppress = Card("Card_Enemy_SuppressingShot", "Suppressing Shot", CardKind.Debuff, TargetMode.SingleEnemy, false, null,
                 new CardEffect[] { new DamageEffect { multiplier = 0.9f }, new ApplyStatusEffect { status = defDown, duration = 2 } });
-            var reclaim = Card("Card_Enemy_Collector_Ult", "Reclaim", CardKind.Attack, TargetMode.SingleEnemy, true, null,
+            var reclaim = Card("Card_Enemy_Reclaim", "Reclaim", CardKind.Attack, TargetMode.SingleEnemy, true, null,
                 new CardEffect[] { new DamageEffect { multiplier = 2.6f } });
             var collector = Enemy("Enemy_Collector", "Collector", new Color(0.62f, 0.66f, 0.72f), Afflatus.None, DamageType.Physical,
                 4400, 185f, 140f, 130f, red, new EnemySkill { card = grapple, weight = 2f }, new EnemySkill { card = suppress, weight = 1f });
@@ -373,7 +375,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 1.5f } });
             var coil = Card("Card_Enemy_StaticCoil", "Static Coil", CardKind.Debuff, TargetMode.SingleEnemy, false, null,
                 new CardEffect[] { new DamageEffect { multiplier = 0.7f }, new ApplyStatusEffect { status = stunned, duration = 1, chance = 0.35f } });
-            var storm = Card("Card_Enemy_Dragon_Ult", "Storm Heart", CardKind.Attack, TargetMode.AllEnemies, true, null,
+            var storm = Card("Card_Enemy_StormHeart", "Storm Heart", CardKind.Attack, TargetMode.AllEnemies, true, null,
                 new CardEffect[] { new DamageEffect { multiplier = 1.8f, hits = 3 } });
             var dragon = Enemy("Enemy_ElectricDragon", "Electric Dragon", new Color(0.45f, 0.75f, 1f), Afflatus.Volt, DamageType.Special,
                 2700, 170f, 150f, 160f, red, new EnemySkill { card = breath, weight = 1.5f }, new EnemySkill { card = tail, weight = 1.5f },
@@ -547,6 +549,7 @@ namespace Combat.EditorTools
             AddClip(set, folder, "slash", 22f, false, 0);
             AddClip(set, folder, "spellcast", 20f, false, 0);
             AddClip(set, folder, "hurt", 15f, false, 0);
+            AddClip(set, folder, "sit", 12f, false, 0);   // the Esc menu: sitting down on the mat (holds the last frame)
             if (set.clips.Count == 0)
             {
                 Debug.LogWarning("No sprite sheets in " + CharacterArt + folder + " - run Tools/ChibiForge/chibi_forge.py. Using placeholder.");
@@ -565,6 +568,27 @@ namespace Combat.EditorTools
                 if (cycle > 0) walk.fps = cycle / 0.8f;
             }
             return Save(set, Root + "/Animations/Anim_" + folder + ".asset");
+        }
+
+        /// <summary>Adds the sit clip to every existing Anim_*.asset that has a sit.png but no sit clip (sets made before
+        /// it existed). Returns how many were updated.</summary>
+        public static int EnsureSitClips()
+        {
+            int updated = 0;
+            foreach (var guid in AssetDatabase.FindAssets("t:SpriteAnimationSet", new[] { Root + "/Animations" }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var set = AssetDatabase.LoadAssetAtPath<SpriteAnimationSet>(path);
+                if (set == null || set.Has("sit")) continue;
+                string folder = System.IO.Path.GetFileNameWithoutExtension(path).Replace("Anim_", "");
+                int before = set.clips.Count;
+                AddClip(set, folder, "sit", 12f, false, 0);
+                if (set.clips.Count == before) continue;
+                EditorUtility.SetDirty(set);
+                updated++;
+            }
+            if (updated > 0) AssetDatabase.SaveAssets();
+            return updated;
         }
 
         static void AddClip(SpriteAnimationSet set, string folder, string clip, float fps, bool loop, int firstFrame)

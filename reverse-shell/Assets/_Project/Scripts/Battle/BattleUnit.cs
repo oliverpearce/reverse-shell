@@ -87,6 +87,9 @@ namespace Combat
         /// <summary>This unit's element in battle: its active resonance, else its definition's.</summary>
         public Afflatus Afflatus { get { return elementOverride ?? Definition.afflatus; } }
 
+        /// <summary>This unit's colour (card swirls, queue chips, flashes): its resonance's, else its definition's.</summary>
+        public Color Color { get { return AfflatusInfo.ResonanceColor(Definition.color, elementOverride); } }
+
         /// <summary>The Ult card it can spawn: its active resonance's, else its definition's ritual.</summary>
         public CardDefinition Ultimate
         {

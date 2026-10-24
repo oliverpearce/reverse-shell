@@ -88,7 +88,7 @@ namespace Combat.View
             if (hit == null) hit = root.gameObject.AddComponent<Image>();
             hit.color = new Color(0f, 0f, 0f, 0f);
 
-            var ult = card.IsRitual ? CardArt.Ult(owner) : null;
+            var ult = card.IsRitual ? CardArt.Ult(card.Definition, owner) : null;
             if (ult != null)
             {
                 Pixel(root, "UltArt", ult, Color.white).rectTransform.Fill();
@@ -96,7 +96,7 @@ namespace Combat.View
             }
             else
             {
-                Pixel(root, "Swirl", CardArt.Swirl, owner.color).rectTransform.Fill();
+                Pixel(root, "Swirl", CardArt.Swirl, card.Owner.Color).rectTransform.Fill();
                 Pixel(root, "Frame", CardArt.Frame, Color.white).rectTransform.Fill();
 
                 if (!card.IsRitual)
@@ -124,7 +124,7 @@ namespace Combat.View
 
                 var plate = CardArt.NamePlate;
                 // As big as the plate allows (best fit, one line).
-                var name = UIFactory.CreateText(root, "Name", card.Name.ToUpperInvariant(), F(26), InkStyle.Paper, TextAnchor.MiddleCenter).BestFit(F(8), F(26));
+                var name = UIFactory.CreateText(root, "Name", card.Name.ToUpperInvariant(), F(26), InkStyle.Paper, TextAnchor.MiddleCenter).BestFitCardPlate(F(8), F(26));
                 CardArt.PlacePixels(name.rectTransform, plate.x, plate.y - 1, plate.width, plate.height + 2, u);
             }
 
@@ -258,7 +258,7 @@ namespace Combat.View
                 var hitArea = holder.gameObject.AddComponent<Image>();
                 hitArea.color = new Color(0f, 0f, 0f, 0f);
                 StatusTooltip.Attach(holder.gameObject, new StatusSnapshot(apply.status, apply.duration, apply.stacks), true);
-                StatusChip.AddArrows(holder, apply.status, apply.stacks, s * 0.6f);
+                StatusChip.AddAmount(holder, apply.status, apply.stacks, s * 0.6f);
                 var turns = UIFactory.CreateText(holder, "Turns", apply.duration.ToString(), Mathf.RoundToInt(14f * s), InkStyle.Paper, TextAnchor.LowerRight, FontStyle.Bold);
                 turns.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
                 turns.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(5f, -5f) * s, new Vector2(44f, 20f) * s);

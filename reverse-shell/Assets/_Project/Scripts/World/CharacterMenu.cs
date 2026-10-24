@@ -48,6 +48,8 @@ namespace Game.World
         readonly List<System.Action> pickerActions = new List<System.Action>();
         readonly List<Image> pickerRows = new List<Image>();
         int pickerIndex;
+        // Each item slot's description: hidden until that slot is selected (index = slot, null when empty).
+        readonly List<GameObject> itemDescs = new List<GameObject>();
 
         public bool IsOpen { get { return gameObject.activeSelf; } }
 
@@ -133,12 +135,12 @@ namespace Game.World
         void HandleInput()
         {
             if (CardDetailPopup.IsOpen) return;   // the open card takes Esc / clicks first
-            bool cancel = Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Backspace);
-            bool confirm = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.F) || Input.GetKeyDown(KeyCode.Space);
-            bool left = Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A);
-            bool right = Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D);
-            bool up = Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W);
-            bool down = Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S);
+            bool cancel = Input.GetKeyDown(KeyCode.Escape) || UIKeys.Pressed(KeyCode.Backspace);
+            bool confirm = UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.F) || UIKeys.Pressed(KeyCode.Space);
+            bool left = UIKeys.Pressed(KeyCode.LeftArrow) || UIKeys.Pressed(KeyCode.A);
+            bool right = UIKeys.Pressed(KeyCode.RightArrow) || UIKeys.Pressed(KeyCode.D);
+            bool up = UIKeys.Pressed(KeyCode.UpArrow) || UIKeys.Pressed(KeyCode.W);
+            bool down = UIKeys.Pressed(KeyCode.DownArrow) || UIKeys.Pressed(KeyCode.S);
 
             if (picker != null)
             {
@@ -156,7 +158,7 @@ namespace Game.World
             if (party.Count == 0) return;
             if (left) Select(Mod(selected - 1, party.Count));
             if (right) Select(Mod(selected + 1, party.Count));
-            if (Input.GetKeyDown(KeyCode.L)) MakeLeader();
+            if (UIKeys.Pressed(KeyCode.L)) MakeLeader();
             if (focusTargets.Count > 0)
             {
                 if (up) SetFocus((focus - 1 + focusTargets.Count) % focusTargets.Count);
@@ -274,6 +276,7 @@ namespace Game.World
             ClosePicker();
             if (detail != null) Destroy(detail.gameObject);
             focusTargets.Clear();
+            itemDescs.Clear();
             focusFrame = null;
             var member = Member;
             if (member == null) return;
@@ -289,7 +292,6 @@ namespace Game.World
             y = BuildHealth(member, y - 14f);
             y = BuildStats(member, progress, y - 22f);
             y = BuildItems(member, y - 26f);
-            y = BuildResonance(member, y - 22f);
             BuildCardRow(member, progress, y - 30f);
             SetFocus(Mathf.Clamp(focus, 0, Mathf.Max(0, focusTargets.Count - 1)));
         }
@@ -335,35 +337,6 @@ namespace Game.World
             var xpLine = UIFactory.CreateImage(detail, "Xp", InkStyle.GoldBright);
             xpLine.rectTransform.Place(center, tl, new Vector2(InfoX + 96f, y + 1f), new Vector2((Right - InfoX - 96f) * Mathf.Clamp01(xp), 3f));
             return y - 3f;
-        }
-
-        /// <summary>
-        /// The protagonist's resonances (bible §3): one button per unlocked resonance, the active one gold. Switching is
-        /// free outside combat and swaps the innate cards, element and Ult shown below. Other members show nothing.
-        /// </summary>
-        float BuildResonance(CharacterDefinition member, float y)
-        {
-            var available = WorldSession.AvailableResonances(member);
-            if (available.Count == 0) return y;
-            var center = new Vector2(0.5f, 0.5f);
-            var tl = new Vector2(0f, 1f);
-            float x0 = InfoX + 96f;
-            var head = InkStyle.Label(detail, "ResonanceLabel", "Resonance", 30, InkStyle.Gold, TextAnchor.MiddleLeft);
-            head.rectTransform.Place(center, tl, new Vector2(x0, y), new Vector2(260f, 64f));
-            var active = WorldSession.ElementOf(member);
-            for (int i = 0; i < available.Count; i++)
-            {
-                var element = available[i];
-                bool on = element == active;
-                var b = InkStyle.Button(detail, "Res" + element, AfflatusInfo.Display(element), () =>
-                {
-                    WorldSession.SetResonance(element);
-                    SaveGame.Save();
-                    Rebuild();
-                }, on, 34);
-                b.GetComponent<RectTransform>().Place(center, tl, new Vector2(x0 + 270f + i * 230f, y - 2f), new Vector2(210f, 60f));
-            }
-            return y - 68f;
         }
 
         /// <summary>HP: the label left and the numbers right on one line, over a thin bar.</summary>
@@ -450,11 +423,20 @@ namespace Game.World
                 var partName = InkStyle.Title(row, "Name", part != null ? part.DisplayName : "Empty", 36,
                     part != null ? InkStyle.Paper : InkStyle.PaperDim, TextAnchor.UpperLeft).BestFit(18, 36);
                 partName.rectTransform.Place(tl, tl, new Vector2(96f, -42f), new Vector2(w - 112f, 38f));
+                GameObject descObject = null;
                 if (part != null)
                 {
-                    var desc = UIFactory.CreateText(row, "Desc", part.description, 24, InkStyle.GoldBright, TextAnchor.UpperLeft).BestFit(14, 24);
-                    desc.rectTransform.Place(tl, tl, new Vector2(96f, -80f), new Vector2(w - 112f, 26f));
+                    // Only shown while this slot is selected (SetFocus): an ink tooltip just above the item slots, as
+                    // wide as both, so the page stays uncluttered.
+                    var tip = InkStyle.Panel(row, "DescTip", new Color(0.05f, 0.045f, 0.04f, 0.97f));
+                    tip.rectTransform.Place(tl, new Vector2(0f, 0f), new Vector2(-s * (w + gap), 10f), new Vector2(w * 2f + gap, 76f));
+                    InkStyle.Frame(tip.rectTransform, InkStyle.Gold, 2f);
+                    var desc = UIFactory.CreateText(tip.rectTransform, "Desc", part.description, 24, InkStyle.GoldBright, TextAnchor.MiddleLeft);
+                    desc.rectTransform.Fill(16f);
+                    descObject = tip.gameObject;
+                    descObject.SetActive(false);
                 }
+                itemDescs.Add(descObject);
                 int index = s;
                 Clickable(row, () => { SetFocus(index); Activate(index); });
                 focusTargets.Add(row);
@@ -515,7 +497,9 @@ namespace Game.World
         static BattleUnit UnitFor(CharacterDefinition member, MemberProgress progress, bool withParts)
         {
             var unit = new BattleUnit(member, Team.Player);
-            unit.ApplyLoadout(new Loadout { Cards = WorldSession.DeckOf(member), Parts = withParts ? WorldSession.PartsOf(member) : new List<PartDefinition>() });
+            var loadout = WorldSession.LoadoutsFor(new[] { member })[member];   // the active resonance's cards, Ult and colour
+            if (!withParts) loadout.Parts = new List<PartDefinition>();
+            unit.ApplyLoadout(loadout);
             unit.SetLevel(progress.Level);
             return unit;
         }
@@ -546,6 +530,8 @@ namespace Game.World
             if (focusFrame != null) Destroy(focusFrame.gameObject);
             focusFrame = UIFactory.CreateRect("Focus", focusTargets[focus]).Fill(-6f);
             InkStyle.Frame(focusFrame, InkStyle.GoldBright, 3f);
+            for (int i = 0; i < itemDescs.Count; i++)
+                if (itemDescs[i] != null) itemDescs[i].SetActive(i == focus);
         }
 
         void Activate(int index)
@@ -562,14 +548,28 @@ namespace Game.World
             }
         }
 
+        /// <summary>One row of the item picker: a name, an optional description under it, and what choosing it does.</summary>
+        class PickerOption
+        {
+            public string Title, Detail;
+            public System.Action Action;
+
+            public PickerOption(string title, string detail, System.Action action)
+            {
+                Title = title;
+                Detail = detail;
+                Action = action;
+            }
+        }
+
         void OpenPartPicker(CharacterDefinition member, PartSlot slot)
         {
-            var options = new List<KeyValuePair<string, System.Action>>();
+            var options = new List<PickerOption>();
             var fitted = WorldSession.PartIn(member, slot);
             if (WorldSession.IsBound(fitted))
             {
                 // Your own Core: it holds the Soul Card, nothing replaces it.
-                options.Add(new KeyValuePair<string, System.Action>(fitted.DisplayName + "    <color=#E6C784>" + fitted.description + "</color>", ClosePicker));
+                options.Add(new PickerOption(fitted.DisplayName, fitted.description, ClosePicker));
                 OpenPicker(SlotLabel(slot), options);
                 return;
             }
@@ -580,7 +580,7 @@ namespace Game.World
                     int count = WorldSession.CountOf(part);
                     if (count <= 0) continue;
                     var captured = part;
-                    options.Add(new KeyValuePair<string, System.Action>(part.DisplayName + "  ×" + count + "    <color=#E6C784>" + part.description + "</color>", () =>
+                    options.Add(new PickerOption(part.DisplayName + "  ×" + count, part.description, () =>
                     {
                         WorldSession.Equip(member, captured);
                         SaveGame.Save();
@@ -588,41 +588,59 @@ namespace Game.World
                     }));
                 }
             if (WorldSession.PartIn(member, slot) != null)
-                options.Add(new KeyValuePair<string, System.Action>("Remove", () =>
+                options.Add(new PickerOption("Remove", null, () =>
                 {
                     WorldSession.Unequip(member, slot);
                     SaveGame.Save();
                     BuildDetail();
                 }));
-            if (options.Count == 0) options.Add(new KeyValuePair<string, System.Action>("No spare items", ClosePicker));
+            if (options.Count == 0) options.Add(new PickerOption("No spare items", null, ClosePicker));
             OpenPicker(SlotLabel(slot), options);
         }
 
         /// <summary>A small modal list over the page: Up/Down + Enter or click; Esc or a click outside closes it.</summary>
-        void OpenPicker(string title, List<KeyValuePair<string, System.Action>> options)
+        /// <summary>The item picker: a big box over the page, one row per option with the name large and its
+        /// description under it (wrapping, never shrunk), so it reads easily at 4:3.</summary>
+        void OpenPicker(string title, List<PickerOption> options)
         {
             ClosePicker();
-            const float rowH = 70f, width = 820f;
-            picker = UIFactory.CreateImage(page, "Picker", new Color(0f, 0f, 0f, 0.55f), true).rectTransform;
+            const float titleH = 52f, detailLine = 42f, gap = 12f, width = 1180f, pad = 22f;
+            const int detailChars = 52;   // about how many detail characters fit on one line at this width
+            picker = UIFactory.CreateImage(page, "Picker", new Color(0f, 0f, 0f, 0.6f), true).rectTransform;
             picker.Fill();
             Clickable(picker, ClosePicker);
-            float height = 100f + options.Count * (rowH + 10f) + 20f;
+            var heights = new List<float>();
+            float height = 110f;
+            foreach (var o in options)
+            {
+                int lines = string.IsNullOrEmpty(o.Detail) ? 0 : Mathf.CeilToInt(o.Detail.Length / (float)detailChars);
+                float h = pad * 2f + titleH + lines * detailLine;
+                heights.Add(h);
+                height += h + gap;
+            }
             var box = InkStyle.Panel(picker, "Box", new Color(0.09f, 0.085f, 0.08f, 0.98f), true).rectTransform;
             box.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(width, height));
             InkStyle.HeroFrame(box, InkStyle.Gold, 8f);
 
-            var head = InkStyle.Label(box, "Title", title, 32, InkStyle.Gold, TextAnchor.MiddleLeft);
-            head.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(34f, -24f), new Vector2(width - 68f, 50f));
+            var tl = new Vector2(0f, 1f);
+            var head = InkStyle.Label(box, "Title", title, 40, InkStyle.Gold, TextAnchor.MiddleLeft);
+            head.rectTransform.Place(tl, tl, new Vector2(34f, -24f), new Vector2(width - 68f, 60f));
             pickerActions.Clear();
             pickerRows.Clear();
+            float y = -100f;
             for (int i = 0; i < options.Count; i++)
             {
                 var row = InkStyle.Panel(box, "Option" + i, new Color(1f, 1f, 1f, 0.05f), true);
-                row.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(28f, -90f - i * (rowH + 10f)), new Vector2(width - 56f, rowH));
-                var t = UIFactory.CreateText(row.transform, "Text", options[i].Key, 30, InkStyle.Paper, TextAnchor.MiddleLeft, FontStyle.Bold).BestFit(14, 30);
-                t.supportRichText = true;
-                t.rectTransform.Fill(20f);
-                var action = options[i].Value;
+                row.rectTransform.Place(tl, tl, new Vector2(28f, y), new Vector2(width - 56f, heights[i]));
+                y -= heights[i] + gap;
+                var name = UIFactory.CreateText(row.transform, "Name", options[i].Title, 34, InkStyle.Paper, TextAnchor.UpperLeft);
+                name.rectTransform.Place(tl, tl, new Vector2(pad, -pad), new Vector2(width - 56f - pad * 2f, titleH));
+                if (!string.IsNullOrEmpty(options[i].Detail))
+                {
+                    var detail = UIFactory.CreateText(row.transform, "Detail", options[i].Detail, 26, new Color(0.9f, 0.78f, 0.52f), TextAnchor.UpperLeft);
+                    detail.rectTransform.Place(tl, tl, new Vector2(pad, -pad - titleH), new Vector2(width - 56f - pad * 2f, heights[i] - pad * 2f - titleH));
+                }
+                var action = options[i].Action;
                 int index = i;
                 Clickable(row.rectTransform, () => { pickerIndex = index; action(); });
                 pickerActions.Add(action);

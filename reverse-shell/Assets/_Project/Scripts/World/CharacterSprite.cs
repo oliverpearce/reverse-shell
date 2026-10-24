@@ -81,6 +81,27 @@ namespace Game.World
             running = isRunning;
         }
 
+        // A held pose (the Esc menu's "sit"): the clip plays once on unscaled time and stays on its last frame.
+        string pose;
+        float poseTime;
+
+        /// <summary>Plays <paramref name="clip"/> once and holds its last frame until <see cref="ClearPose"/>
+        /// (<paramref name="instant"/>: straight to the last frame). A set without that clip (or a plain sheet) squashes
+        /// the standing frame down a little instead.</summary>
+        public void PlayPose(string clip, bool instant = false)
+        {
+            pose = clip;
+            poseTime = instant ? 999f : 0f;
+        }
+
+        public void ClearPose()
+        {
+            pose = null;
+            animTime = 0f;
+        }
+
+        public bool HasPose { get { return pose != null; } }
+
         void LateUpdate()
         {
             if (cam == null) cam = Camera.main;
@@ -95,6 +116,7 @@ namespace Game.World
             }
 
             animTime += Time.deltaTime * (running ? 1.6f : 1f);
+            if (pose != null && AnimatePose()) return;
             if (animations != null)
             {
                 AnimateFromSet();
@@ -109,6 +131,26 @@ namespace Game.World
         }
 
         static readonly Combat.Facing[] FacingByIndex = { Combat.Facing.Down, Combat.Facing.Left, Combat.Facing.Right, Combat.Facing.Up };
+
+        /// <summary>The held pose; false if there is nothing to show (then the usual idle runs).</summary>
+        bool AnimatePose()
+        {
+            poseTime += Time.unscaledDeltaTime;
+            var clip = animations != null ? animations.Find(pose) : null;
+            var set = clip != null ? animations.Frames(pose, FacingByIndex[Facing], true) : null;
+            if (set != null && set.Length > 0)
+            {
+                Renderer.sprite = set[Mathf.Min(set.Length - 1, (int)(poseTime * Mathf.Max(1f, clip.fps)))];
+                Renderer.transform.localPosition = spriteBase;
+                return true;
+            }
+            // No drawn pose: keep the standing frame and sink it a little (squashed from the feet).
+            if (animations != null) AnimateFromSet();
+            float sink = Mathf.Lerp(1f, 0.8f, Mathf.Clamp01(poseTime / 0.25f));
+            var s = Renderer.transform.localScale;
+            Renderer.transform.localScale = new Vector3(s.x * (2f - sink) * 0.98f, s.y * sink, s.z);
+            return true;
+        }
 
         void AnimateFromSet()
         {

@@ -20,15 +20,24 @@ namespace Combat
         {
             switch (afflatus)
             {
-                case Afflatus.Volt: return new Color(0.45f, 0.78f, 1f);     // electric blue
+                case Afflatus.Volt: return new Color(1f, 0.84f, 0.18f);     // electric yellow
                 case Afflatus.Fire: return new Color(1f, 0.55f, 0.25f);     // orange
                 case Afflatus.Toxin: return new Color(0.78f, 0.95f, 0.2f);  // acid chartreuse
                 case Afflatus.Earth: return new Color(0.5f, 0.92f, 0.45f);  // moss green (Heal Bot)
-                case Afflatus.Light: return new Color(1f, 0.92f, 0.6f);     // warm gold-white
+                case Afflatus.Light: return new Color(1f, 0.97f, 0.9f);     // pale white (kept apart from Electric's yellow)
                 case Afflatus.Void: return new Color(0.78f, 0.45f, 1f);     // violet (Lucy)
                 case Afflatus.None: return new Color(0.78f, 0.76f, 0.72f);  // Physical: plain steel
             }
             return UnityEngine.Color.white;
+        }
+
+        /// <summary>
+        /// A unit's colour (card swirls, HUD lines, flashes) under a resonance: the element's colour, or the unit's own
+        /// colour with no resonance or the Physical one.
+        /// </summary>
+        public static Color ResonanceColor(Color own, Afflatus? resonance)
+        {
+            return resonance.HasValue && resonance.Value != Afflatus.None ? Color(resonance.Value) : own;
         }
 
         /// <summary>

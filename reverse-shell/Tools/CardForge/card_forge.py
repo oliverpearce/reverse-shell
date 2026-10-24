@@ -524,7 +524,7 @@ def icon_network_link():
     return c
 
 
-def icon_piston_slam():
+def icon_golden_hammer():
     c = Canvas(CELL, CELL)
     # cylinder at the top, rod, a heavy plate slamming down
     c.rect(9, 2, 22, 10, STEEL[3])
@@ -740,6 +740,129 @@ MENU_ICONS = [
     ('Menu_Settings', icon_menu_settings),
 ]
 
+def icon_menu_resonance():
+    c = Canvas(CELL, CELL)
+    cx, cy = 15.5, 15.5
+    # the Core: a faceted crystal, Physical steel on the left and Electric amber on the right
+    c.poly([(cx, 4), (cx + 9, cy), (cx, 27), (cx - 9, cy)], STEEL[3])
+    c.poly([(cx, 6), (cx - 7, cy), (cx, 25)], STEEL[1])
+    c.poly([(cx, 6), (cx + 7, cy), (cx, 25)], AMBER[1])
+    c.poly([(cx, 6), (cx - 7, cy), (cx - 2, cy - 1)], STEEL[0])
+    c.poly([(cx, 6), (cx + 7, cy), (cx + 2, cy - 1)], AMBER[0])
+    c.outline()
+    # an orbit of element sparks around it
+    for k, col in enumerate((AMBER[1], RED[1], GREEN[1], VIOLET[1], CYAN[1], STEEL[0])):
+        a = math.radians(-90 + k * 60)
+        x, y = 16 + math.cos(a) * 13.5, 16 + math.sin(a) * 13.5
+        c.disc(x, y, 1.6, col)
+    return c
+
+
+def icon_ui_lock():
+    c = Canvas(CELL, CELL)
+    for k in range(0, 181, 4):                    # the shackle
+        a = math.radians(180 + k)
+        for r in (6.5, 7.5, 8.5):
+            c.put(15.5 + r * math.cos(a), 14 + r * math.sin(a), STEEL[2])
+    c.rect(7, 13, 8, 15, STEEL[2])
+    c.rect(23, 13, 24, 15, STEEL[2])
+    c.rect(5, 15, 26, 28, GOLD[3])                 # the body
+    c.rect(6, 16, 25, 27, GOLD[2])
+    c.rect(6, 16, 25, 18, GOLD[1])
+    c.rect(6, 16, 7, 27, GOLD[1])
+    c.disc(15.5, 21, 2.2, hx('#1A1218'))           # keyhole
+    c.rect(15, 22, 16, 25, hx('#1A1218'))
+    c.put(7, 17, GOLD[0])
+    c.outline()
+    return c
+
+
+def icon_ui_binoculars():
+    c = Canvas(CELL, CELL)
+    for x in (9, 22):                              # two barrels, wide lenses at the bottom
+        c.rect(x - 3, 6, x + 3, 15, STEEL[3])
+        c.rect(x - 2, 7, x + 2, 15, STEEL[2])
+        c.disc(x, 21, 6.5, STEEL[3])
+        c.disc(x, 21, 5.5, hx('#3A3450'))
+        c.disc(x, 21, 4.0, CYAN[2])               # the lens, with the scanner's cyan glint
+        c.disc(x - 1, 20, 2.2, CYAN[1])
+        c.put(x - 2, 19, CYAN[0])
+        c.rect(x - 3, 6, x + 3, 7, STEEL[1])      # eyepiece rims
+    c.rect(12, 9, 19, 12, STEEL[2])                # the bridge and focus wheel
+    c.rect(14, 8, 17, 13, GOLD[2])
+    c.rect(14, 9, 17, 9, GOLD[1])
+    c.outline()
+    return c
+
+
+def icon_menu_items():
+    c = Canvas(CELL, CELL)
+    # a drawstring pouch: teal velvet body, gathered neck, gold cord, a chip peeking out
+    c.disc(16, 20, 9.5, CYAN[3])
+    c.disc(16, 20, 8.5, CYAN[2])
+    c.disc(13.5, 18, 5.0, CYAN[1])
+    c.put(12, 16, CYAN[0])
+    c.poly([(11, 11), (21, 11), (19, 13), (13, 13)], CYAN[2])        # the gathered neck
+    c.rect(11, 12, 21, 13, GOLD[2])                                 # the cord
+    c.rect(12, 12, 20, 12, GOLD[1])
+    c.disc(22, 14, 1.4, GOLD[1])                                    # its knot
+    c.poly([(13, 5), (20, 4), (21, 10), (14, 11)], STEEL[2])        # a chip peeking out
+    c.poly([(14, 6), (19, 5), (20, 9), (15, 10)], STEEL[1])
+    c.rect(16, 7, 17, 8, CYAN[0])
+    c.outline()
+    return c
+
+
+# UI pieces outside the cards: the Esc menu's Resonance and Items cards, the lock on locked resonances and the
+# scanner's HUD icon.
+UI_ICONS = [
+    ('Menu_Resonance', icon_menu_resonance),
+    ('Ui_Lock', icon_ui_lock),
+    ('Ui_Binoculars', icon_ui_binoculars),
+    ('Menu_Items', icon_menu_items),
+]
+
+# The user's picks from Raven Fantasy Icons (Clockwork Raven, free version; the 32 px files live in
+# Art/ThirdParty/RavenFantasyIcons/32x32/fb<n>.png): a card listed here uses that icon as-is (32 px fills the art window)
+# instead of the drawing above. Cards with no drawing of their own are added to the atlas from here too.
+RAVEN_DIR = os.path.join(ROOT, 'Assets', '_Project', 'Art', 'ThirdParty', 'RavenFantasyIcons', '32x32')
+RAVEN_PICKS = {
+    'Card_MC_EdgeStrike': 724, 'Card_MC_CrossSlash': 155, 'Card_MC_SyncField': 1047, 'Card_MC_ArcEdge': 731,
+    'Card_MC_StaticField': 1039,
+    'Card_HealBot_BrambleLash': 1067, 'Card_HealBot_Overgrowth': 1110, 'Card_HealBot_SapMend': 1073,
+    'Card_Lucy_VirusSpike': 741, 'Card_Lucy_Corrupt': 1117, 'Card_Lucy_Worm': 342,
+    'Card_Blue_ShieldBash': 1811, 'Card_Blue_Bulwark': 2151,
+    'Card_Enemy_CorrodedBlade': 722, 'Card_Enemy_MissileVolley': 1017, 'Card_Enemy_NetworkLink': 905,
+    'Card_Enemy_GoldenHammer': 1044,
+    'Card_Enemy_Reinforce': 1921, 'Card_Enemy_Bite': 799, 'Card_Enemy_CoilUp': 824,
+    'Card_Enemy_GrappleHook': 393,
+    'Card_Enemy_PoisonStrike': 835,
+    'Card_Enemy_Spark': 1025, 'Card_Enemy_StaticCoil': 1027, 'Card_Enemy_SuppressingShot': 1034,
+    'Card_Enemy_TailLash': 1057, 'Card_Enemy_ThunderBreath': 832,
+}
+
+
+def raven_icon(n):
+    """A picked Raven icon as a 32 x 32 Canvas: its own colours, plus the cards' 1 px plum outline around it so pale
+    icons still read on pale card swirls."""
+    from pngtool import read_png
+    w, h, px = read_png(os.path.join(RAVEN_DIR, 'fb%d.png' % n))
+    c = Canvas(CELL, CELL)
+    for y in range(min(h, CELL)):
+        for x in range(min(w, CELL)):
+            p = px[y][x]
+            if p[3] > 0:
+                c.px[y][x] = tuple(p)
+    c.outline()
+    return c
+
+
+def raven_only_icons(existing):
+    """Picked cards that have no drawing of their own, as (name, None) atlas entries."""
+    names = set(n for n, _ in existing)
+    return [(name, None) for name in sorted(RAVEN_PICKS) if name not in names]
+
+
 ICONS = [
     ('Card_MC_EdgeStrike', icon_edge_strike),
     ('Card_MC_CrossSlash', icon_cross_slash),
@@ -753,8 +876,8 @@ ICONS = [
     ('Card_Enemy_CorrodedBlade', icon_corroded_blade),
     ('Card_Enemy_MissileVolley', icon_missile_volley),
     ('Card_Enemy_NetworkLink', icon_network_link),
-    ('Card_Enemy_PistonSlam', icon_piston_slam),
-    ('Card_Enemy_ReinforcePlating', icon_reinforce),
+    ('Card_Enemy_GoldenHammer', icon_golden_hammer),
+    ('Card_Enemy_Reinforce', icon_reinforce),
 ]
 
 # Enemies with an Ult: their full-art card uses the front-facing idle frame of their battle sprite (Art/Characters),
@@ -798,6 +921,21 @@ ULT_OWNERS = [
     ('Char_Lucy', 'Lucy', (0.72, 0.45, 0.95)),
     ('Char_Blue', 'Blue', (0.45, 0.65, 1.0)),
 ]
+
+
+# Resonance Ults with their own full art (CardArt.Ult tries "Ult_<card asset>" before the owner's card):
+# (card asset, sprite folder, swirl colour = AfflatusInfo.Color of the element, extra decoration)
+ULT_CARDS = [
+    ('Card_MC_Thunderheart', 'MC', (1.0, 0.84, 0.18), 'bolts'),   # Electric: yellow, lightning down both sides
+]
+
+
+def add_bolts(card):
+    """Lightning crackling down both edges of an Ult card, inside the rim."""
+    bolt(card, [(7, 6), (10, 13), (6, 19), (10, 27), (6, 34), (9, 41)], AMBER)
+    bolt(card, [(40, 22), (37, 29), (41, 36), (37, 44), (41, 51), (38, 58)], AMBER)
+    for (x, y) in ((12, 9), (35, 26), (11, 38), (36, 54)):
+        card.put(x, y, AMBER[0])
 
 
 def tint(grey, color):
@@ -877,12 +1015,14 @@ def main():
     save(pips, 'CardPips.png')
 
     cols = 4
-    rows_n = (len(ICONS) + len(MENU_ICONS) + len(BLUE_ICONS) + len(CH1_ICONS) + cols - 1) // cols
+    entries = ICONS + MENU_ICONS + BLUE_ICONS + CH1_ICONS + UI_ICONS
+    entries = entries + raven_only_icons(entries)
+    rows_n = (len(entries) + cols - 1) // cols
     atlas = Canvas(cols * CELL, rows_n * CELL)
     icons = {}
     lines = []
-    for i, (name, fn) in enumerate(ICONS + MENU_ICONS + BLUE_ICONS + CH1_ICONS):
-        icon = fn()
+    for i, (name, fn) in enumerate(entries):
+        icon = raven_icon(RAVEN_PICKS[name]) if name in RAVEN_PICKS else fn()
         icons[name] = icon
         atlas.paste(icon, (i % cols) * CELL, (i // cols) * CELL)
         lines.append('%d %s' % (i, name))
@@ -896,6 +1036,12 @@ def main():
         # The crew share one in-game model in different colours, so their Ult cards use that battle sprite (the same
         # 2x bust as the enemies) rather than the old card reference art.
         u = make_ult(char, color, sprite_art(char))
+        save(u, 'Ult_%s.png' % asset)
+        ults.append(u)
+    for asset, char, color, extra in ULT_CARDS:
+        u = make_ult(char, color, sprite_art(char))
+        if extra == 'bolts':
+            add_bolts(u)
         save(u, 'Ult_%s.png' % asset)
         ults.append(u)
     for asset, folder, color in ULT_ENEMIES:
@@ -915,7 +1061,7 @@ def main():
         owners['Blue'] = (0.45, 0.65, 1.0)
         owners['Status'] = (0.45, 0.65, 1.0)
         owners['MC'] = (0.92, 0.92, 0.95)
-        for name, _ in ICONS + MENU_ICONS + BLUE_ICONS + CH1_ICONS:
+        for name, _ in entries:
             owner = name.split('_')[1]
             cards.append(build_normal(swirl, frame, pips, icons[name], owners.get(owner, owners['Enemy']), 2, 3))
         cards += ults

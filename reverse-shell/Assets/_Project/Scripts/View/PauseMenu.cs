@@ -54,10 +54,10 @@ namespace Combat.View
             var rule = InkStyle.Line(card.transform, "Rule", InkStyle.Gold);
             rule.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -178f), new Vector2(420f, 2f));
 
-            // Buttons stacked down the card; Resume is the gold one.
+            // Buttons stacked down the card; hovering one grows it and lifts it to a lighter grey (ButtonHover).
             mainPage = UIFactory.CreateRect("Buttons", card.transform).Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(580f, 440f));
             float y = 0f;
-            MenuButton(mainPage, "Resume", true, view.TogglePause, ref y);
+            MenuButton(mainPage, "Resume", false, view.TogglePause, ref y);
             MenuButton(mainPage, "Settings", false, () => ShowSettings(true), ref y);
             MenuButton(mainPage, "Restart Fight", false, view.RestartFight, ref y);
             MenuButton(mainPage, "Leave Fight", false, view.LeaveFight, ref y);
@@ -80,7 +80,7 @@ namespace Combat.View
                 optionLabels.Add(label);
                 InkStyle.HelpBadge((RectTransform)b.transform, () => ShowHelp(opt.Help), () => ShowHelp(null));
             }
-            MenuButton(settingsPage, "Back", true, () => ShowSettings(false), ref y);
+            MenuButton(settingsPage, "Back", false, () => ShowSettings(false), ref y);
             settingsPage.gameObject.SetActive(false);
 
             var hint = UIFactory.CreateText(dim.transform, "Hint", "Esc  Resume", 30, InkStyle.Paper, TextAnchor.LowerCenter);

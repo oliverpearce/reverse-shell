@@ -174,7 +174,10 @@ namespace Combat.View
             // 64 px frames at exactly 6x keep pixels crisp (a boss is drawn at 9x); the feet sit ~2 px above the frame bottom.
             float size = unit.IsBoss ? SpriteSize * 1.5f : SpriteSize;
             var images = new List<Image>();
-            var glowColor = Color.Lerp(unit.Character != null ? AfflatusInfo.GlowFor(unit.Character) : unit.Definition.color, Color.white, 0.45f);
+            // A resonance (the protagonist's Electric) glows in its element; Physical keeps the character's own glow.
+            Afflatus? resonance = unit.Character != null && unit.Character.resonances.Count > 0 && unit.Afflatus != Afflatus.None
+                ? unit.Afflatus : (Afflatus?)null;
+            var glowColor = Color.Lerp(unit.Character != null ? AfflatusInfo.GlowFor(unit.Character, resonance) : unit.Definition.color, Color.white, 0.45f);
             glowColor.a = 0.16f;
             foreach (var o in new[] { new Vector2(-6f, 0f), new Vector2(6f, 0f), new Vector2(0f, 6f), new Vector2(0f, -6f),
                                       new Vector2(-4.5f, 4.5f), new Vector2(4.5f, 4.5f), new Vector2(-4.5f, -4.5f), new Vector2(4.5f, -4.5f) })
@@ -370,7 +373,7 @@ namespace Combat.View
         const float HpSlant = 9f;
 
         /// <summary>Status icon size under the unit (canvas units).</summary>
-        const float StatusSize = 52f;
+        const float StatusSize = 76f;   // big enough to read the total amount in its corner
 
         public void SetStatuses(List<StatusSnapshot> statuses)
         {

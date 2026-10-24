@@ -14,7 +14,8 @@ namespace Combat.View
         static readonly Color Background = new Color(0.07f, 0.065f, 0.09f);
         static readonly Color Gold = new Color(1f, 0.8f, 0.3f);
         const float UnitSpacing = 280f; // room for the 4x battle sprites
-        const float StageY = 120f;
+        /// <summary>Units stand this far above the backdrop's street line (the Stage is centred on it).</summary>
+        const float StageY = 12f;
         // A 4:3 view shows only ~1740 of the 2400-wide layout (Shrink matching crops the width), so the party sits
         // close enough in that the leftmost member's bars and type diamond stay on screen.
         const float PartyCenterX = -420f;
@@ -77,7 +78,15 @@ namespace Combat.View
             if (backdrop != null) backdropLayer = (RectTransform)BattleBackdrop.Create(root, backdrop).transform;
             else backdropLayer = UIFactory.CreateImage(root, "Background", Background).rectTransform.Fill();
 
+            // The Stage is the screen's size but centred on the backdrop's street line, so units always stand on the street
+            // wherever it's painted (BattleBackdropDefinition.streetLine, a fraction from the top). Its pivot stays at the
+            // screen centre, so the inspect zoom scales it together with the backdrop.
+            float street = backdrop != null ? backdrop.streetLine : 0.42f;
             Stage = UIFactory.CreateRect("Stage", root).Fill();
+            Stage.anchorMin = new Vector2(0f, 0.5f - street);
+            Stage.anchorMax = new Vector2(1f, 1.5f - street);
+            Stage.offsetMin = Stage.offsetMax = Vector2.zero;
+            Stage.pivot = new Vector2(0.5f, street);
             var state = controller.State;
             int cap = state.Config.moxieCap;
             for (int i = 0; i < state.Party.Count; i++)
@@ -235,7 +244,7 @@ namespace Combat.View
         void HandleTargetKeys()
         {
             if (IsPaused || CardDetailPopup.IsOpen) return;   // an open card takes the keys
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (UIKeys.Pressed(KeyCode.Space))
             {
                 if (inspect != null) inspect.Close();
                 else if (focused != null) focused.Inspect();
@@ -243,17 +252,19 @@ namespace Combat.View
             }
             if (inspect != null) return;
 
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            if (UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter))
             {
-                if (focused != null && focused.Unit.Team == Team.Enemy && InputEnabled) Controller.SelectEnemy(focused.Unit);
+                // Enter on a ringed enemy targets it; otherwise it's Go (with the button's press flourish).
+                if (focused != null && focused.Unit.Team == Team.Enemy) { if (InputEnabled) Controller.SelectEnemy(focused.Unit); }
+                else if (InputEnabled) hud.PressGo();
                 return;
             }
 
             int step = 0;
             bool switchSide = false;
-            if (Input.GetKeyDown(KeyCode.RightArrow)) step = 1;
-            else if (Input.GetKeyDown(KeyCode.LeftArrow)) step = -1;
-            else if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.DownArrow)) switchSide = true;
+            if (UIKeys.Pressed(KeyCode.RightArrow)) step = 1;
+            else if (UIKeys.Pressed(KeyCode.LeftArrow)) step = -1;
+            else if (UIKeys.Pressed(KeyCode.UpArrow) || UIKeys.Pressed(KeyCode.DownArrow)) switchSide = true;
             else return;
 
             var order = new List<UnitView>();
@@ -413,7 +424,7 @@ namespace Combat.View
             cv.Rect.localScale = Vector3.zero;
             cv.ScaleTo(1f, 0.35f);
             hand.Layout(e.HandAfter, 0.35f);
-            hud.ShowBanner(e.Card.Owner.Name + "'s Ritual is ready!", CardView.RitualPastel(e.Card.Owner.Definition.color), 0.6f);
+            hud.ShowBanner(e.Card.Owner.Name + "'s Ritual is ready!", CardView.RitualPastel(e.Card.Owner.Color), 0.6f);
             hud.Log(e.Card.Owner.Name + "'s Ritual is ready!");
             yield return Tween.Wait(0.4f);
         }
@@ -452,7 +463,7 @@ namespace Combat.View
                 if (tv != null) targets.Add(tv);
             }
 
-            var color = e.Card.IsRitual ? CardView.RitualPastel(e.Caster.Definition.color) : e.Caster.Definition.color;
+            var color = e.Card.IsRitual ? CardView.RitualPastel(e.Caster.Color) : e.Caster.Color;
             string title = e.Card.IsRitual ? "« " + e.Card.Name + " »" : e.Card.Name + " " + UIFactory.Roman(e.Card.Rank);
             hud.ShowBanner(title, color, e.Card.IsRitual ? 0.9f : 0.5f);
             hud.Log(e.Caster.Name + " uses " + title);
@@ -549,7 +560,7 @@ namespace Combat.View
             yield return Tween.MoveWorld(rt, above, ChannelFly, Tween.InOutQuad);
 
             // Channel: the caster flashes in its colour and the card bobs gently.
-            StartCoroutine(caster.Flash(card.Owner.Definition.color, ChannelHold));
+            StartCoroutine(caster.Flash(card.Owner.Color, ChannelHold));
             float bob = 10f * transform.lossyScale.y;
             yield return Tween.Run(ChannelHold, p => { if (rt != null) rt.position = above + new Vector3(0f, Mathf.Sin(p * Mathf.PI * 2f) * bob, 0f); });
 
@@ -573,7 +584,7 @@ namespace Combat.View
             var uv = Get(e.Unit);
             var group = uv.gameObject.AddComponent<CanvasGroup>();
             group.alpha = 0f;
-            hud.ShowBanner(e.Unit.Name + " steps in!", e.Unit.Definition.color, 0.8f);
+            hud.ShowBanner(e.Unit.Name + " steps in!", e.Unit.Color, 0.8f);
             FxLibrary.PlayAt(FxLayer, BattleFx.Buff, uv.Center);
             yield return Tween.Fade(group, 1f, 0.35f);
             yield return Tween.Wait(0.3f);

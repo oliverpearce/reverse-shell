@@ -27,6 +27,8 @@ namespace Combat.EditorTools
                     UnityEngine.Debug.Log("Created Chapter One's content v" + SampleContentGenerator.ChapterOneVersion
                         + " (resonance kits, enemies, Resources/Bestiary.asset).");
                 }
+                int sits = SampleContentGenerator.EnsureSitClips();
+                if (sits > 0) UnityEngine.Debug.Log("Added the sit clip (the Esc menu's mat) to " + sits + " animation sets.");
             };
         }
     }

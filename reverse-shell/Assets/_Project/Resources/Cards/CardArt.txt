@@ -11,8 +11,8 @@
 9 Card_Enemy_CorrodedBlade
 10 Card_Enemy_MissileVolley
 11 Card_Enemy_NetworkLink
-12 Card_Enemy_PistonSlam
-13 Card_Enemy_ReinforcePlating
+12 Card_Enemy_GoldenHammer
+13 Card_Enemy_Reinforce
 14 Menu_Units
 15 Menu_Resume
 16 Menu_Save
@@ -25,3 +25,16 @@
 23 Card_MC_ArcEdge
 24 Card_MC_StaticField
 25 Status_Stunned
+26 Menu_Resonance
+27 Ui_Lock
+28 Ui_Binoculars
+29 Menu_Items
+30 Card_Enemy_Bite
+31 Card_Enemy_CoilUp
+32 Card_Enemy_GrappleHook
+33 Card_Enemy_PoisonStrike
+34 Card_Enemy_Spark
+35 Card_Enemy_StaticCoil
+36 Card_Enemy_SuppressingShot
+37 Card_Enemy_TailLash
+38 Card_Enemy_ThunderBreath

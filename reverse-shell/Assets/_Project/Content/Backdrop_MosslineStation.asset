@@ -24,7 +24,7 @@ MonoBehaviour:
   - {r: 0.21, g: 0.42, b: 0.2, a: 1}
   - {r: 0.33, g: 0.57, b: 0.25, a: 1}
   - {r: 0.55, g: 0.75, b: 0.34, a: 1}
-  streetLine: 0.42
+  streetLine: 0.52
   facadeBrightness: 0.9
   driftingLeaves: 1
   driftIntensity: 1

@@ -64,7 +64,8 @@ namespace Game.World
         public static readonly string[] Formation = { "", "", "", "" };
 
         /// <summary>Drops anyone not in the party, removes duplicates, and fills an empty formation from the joined
-        /// members in order. There is always at least one active member while anyone has joined.</summary>
+        /// members in order. There is always at least one active member while anyone has joined, and a backup only
+        /// while all three active slots are filled (otherwise the backup steps into the first empty one).</summary>
         public static void EnsureFormation(IList<CharacterDefinition> roster)
         {
             var joined = Joined(roster);
@@ -77,12 +78,25 @@ namespace Game.World
             }
             if (seen.Count == 0)
                 for (int i = 0; i < joined.Count && i < FormationSlots; i++) Formation[i] = joined[i].name;
-            if (FirstActive() < 0)
+            if (!string.IsNullOrEmpty(Formation[BackupSlot]))
+                for (int i = 0; i < ActiveSlots; i++)
+                    if (string.IsNullOrEmpty(Formation[i]))
+                    {
+                        // A gap in the party: the backup fills it.
+                        Formation[i] = Formation[BackupSlot];
+                        Formation[BackupSlot] = "";
+                        break;
+                    }
+            if (FirstActive() < 0 && joined.Count > 0) Formation[0] = joined[0].name;
+        }
+
+        /// <summary>The backup slot is open only when all three active slots are filled.</summary>
+        public static bool BackupAllowed
+        {
+            get
             {
-                // No one active: bring the backup forward.
-                Formation[0] = Formation[BackupSlot];
-                Formation[BackupSlot] = "";
-                if (Formation[0].Length == 0 && joined.Count > 0) Formation[0] = joined[0].name;
+                for (int i = 0; i < ActiveSlots; i++) if (string.IsNullOrEmpty(Formation[i])) return false;
+                return true;
             }
         }
 
@@ -130,22 +144,31 @@ namespace Game.World
         public static void Assign(int slot, CharacterDefinition member, IList<CharacterDefinition> roster)
         {
             if (member == null || slot < 0 || slot >= FormationSlots) return;
-            int from = System.Array.IndexOf(Formation, member.name);
-            if (from >= 0) Formation[from] = Formation[slot];
-            Formation[slot] = member.name;
+            var next = (string[])Formation.Clone();
+            int from = System.Array.IndexOf(next, member.name);
+            if (from >= 0) next[from] = next[slot];
+            next[slot] = member.name;
+            // Refused: a backup while an active slot would be empty.
+            if (!string.IsNullOrEmpty(next[BackupSlot]))
+                for (int i = 0; i < ActiveSlots; i++) if (string.IsNullOrEmpty(next[i])) return;
+            for (int i = 0; i < FormationSlots; i++) Formation[i] = next[i];
             EnsureFormation(roster);
+        }
+
+        /// <summary>Can <paramref name="slot"/> be emptied? Not if it's empty, or holds the only fighter.</summary>
+        public static bool CanClear(int slot)
+        {
+            if (slot < 0 || slot >= FormationSlots || string.IsNullOrEmpty(Formation[slot])) return false;
+            if (slot >= ActiveSlots) return true;
+            int active = 0;
+            for (int i = 0; i < ActiveSlots; i++) if (!string.IsNullOrEmpty(Formation[i])) active++;
+            return active > 1;
         }
 
         /// <summary>Empties a slot. Refused (false) when it would leave no active member.</summary>
         public static bool ClearSlot(int slot, IList<CharacterDefinition> roster)
         {
-            if (slot < 0 || slot >= FormationSlots || string.IsNullOrEmpty(Formation[slot])) return false;
-            if (slot < ActiveSlots)
-            {
-                int active = 0;
-                for (int i = 0; i < ActiveSlots; i++) if (!string.IsNullOrEmpty(Formation[i])) active++;
-                if (active <= 1) return false;
-            }
+            if (!CanClear(slot)) return false;
             Formation[slot] = "";
             EnsureFormation(roster);
             return true;
@@ -259,6 +282,31 @@ namespace Game.World
             TitleDone = true;
         }
 
+        /// <summary>
+        /// The title screen's Training Mode (a debug shortcut): plays the latest save (or a new game in slot 1 when
+        /// there is none) but starts in the Training Center. Leave Training Mode then goes to where that save left off
+        /// (a new game: the city's start, where the opening plays). The caller reloads the area afterwards.
+        /// </summary>
+        public static void StartTraining()
+        {
+            int latest = SaveGame.LatestSlot();
+            StartSlot(latest > 0 ? latest : 1, latest <= 0);
+            if (InTraining) return;   // the save was already in the Training Center
+            var spot = PlayerSpot;
+            HasTrainingReturn = spot != null && spot.area == CurrentArea;
+            TrainingReturnArea = CurrentArea;
+            if (HasTrainingReturn)
+            {
+                TrainingReturnPosition = spot.position;
+                TrainingReturnFacing = spot.facing;
+            }
+            CurrentArea = WorldAreas.Training;
+            // The Training Center places you at its start: the save's spot (Load's ReturnTo) is in the other area.
+            PlayerSpot = null;
+            HasReturnPoint = false;
+            ArrivedFrom = null;
+        }
+
         public static MemberProgress ProgressOf(CharacterDefinition member)
         {
             MemberProgress progress;
@@ -303,7 +351,13 @@ namespace Game.World
 
         public static void UnlockResonance(Afflatus element) { UnlockedResonances.Add(element); }
 
-        /// <summary>The resonances <paramref name="member"/> can switch to now, in kit order (empty = no kits).</summary>
+        /// <summary>The Esc menu's Resonance card: after Chapter One, and always in Training Mode.</summary>
+        public static bool ResonanceMenuUnlocked { get { return InTraining || StoryState.Has(Chapter1.Complete); } }
+
+        /// <summary>
+        /// The resonances <paramref name="member"/> can switch to now, in kit order (empty = no kits). Training Mode
+        /// lends every kit, so they can be tried before the story unlocks them.
+        /// </summary>
         public static List<Afflatus> AvailableResonances(CharacterDefinition member)
         {
             var list = new List<Afflatus>();
@@ -311,9 +365,17 @@ namespace Game.World
             for (int i = 0; i < member.resonances.Count; i++)
             {
                 var kit = member.resonances[i];
-                if (kit != null && (i == 0 || UnlockedResonances.Contains(kit.element))) list.Add(kit.element);
+                if (kit != null && (i == 0 || InTraining || UnlockedResonances.Contains(kit.element))) list.Add(kit.element);
             }
             return list;
+        }
+
+        /// <summary>A member's colour (cards, the party HUD): their active resonance's, else their own.</summary>
+        public static Color ColorOf(CharacterDefinition member)
+        {
+            if (member == null) return Color.white;
+            var kit = ActiveKit(member);
+            return AfflatusInfo.ResonanceColor(member.color, kit != null ? kit.element : (Afflatus?)null);
         }
 
         /// <summary>The kit in use: the active resonance if unlocked, else the first. Null for members without kits.</summary>

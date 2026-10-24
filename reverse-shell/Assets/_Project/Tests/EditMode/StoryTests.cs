@@ -114,6 +114,42 @@ namespace Combat.Tests
         }
 
         [Test]
+        public void TrainingMode_LendsElectric_AndUnlocksTheResonanceMenu()
+        {
+            CardDefinition physical, electric, ult;
+            var mc = Protagonist(out physical, out electric, out ult);
+            WorldSession.CurrentArea = WorldAreas.City;
+            Assert.IsFalse(WorldSession.ResonanceMenuUnlocked);
+
+            WorldSession.CurrentArea = WorldAreas.Training;
+            Assert.IsTrue(WorldSession.ResonanceMenuUnlocked);
+            Assert.AreEqual(new[] { Afflatus.None, Afflatus.Volt }, WorldSession.AvailableResonances(mc).ToArray());
+
+            WorldSession.CurrentArea = WorldAreas.City;
+            StoryState.Set(Chapter1.Complete);
+            Assert.IsTrue(WorldSession.ResonanceMenuUnlocked);
+        }
+
+        [Test]
+        public void Resonance_SetsTheColour_ElectricYellow_PhysicalOwn()
+        {
+            CardDefinition physical, electric, ult;
+            var mc = Protagonist(out physical, out electric, out ult);
+            mc.color = Color.white;
+            Assert.AreEqual(Color.white, WorldSession.ColorOf(mc));
+
+            WorldSession.UnlockResonance(Afflatus.Volt);
+            WorldSession.SetResonance(Afflatus.Volt);
+            var yellow = AfflatusInfo.Color(Afflatus.Volt);
+            Assert.Greater(yellow.r, yellow.b + 0.5f, "Electric reads as yellow");
+            Assert.AreEqual(yellow, WorldSession.ColorOf(mc));
+
+            var unit = new BattleUnit(mc, Team.Player);
+            unit.ApplyLoadout(WorldSession.LoadoutsFor(new[] { mc })[mc]);
+            Assert.AreEqual(yellow, unit.Color);
+        }
+
+        [Test]
         public void Physical_IsNeutralAgainstEveryElement()
         {
             foreach (Afflatus other in System.Enum.GetValues(typeof(Afflatus)))

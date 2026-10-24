@@ -25,8 +25,18 @@ namespace Combat.View
         /// <summary>A layout font size in the game's old units, as the actual monogram size.</summary>
         public static int Px(int size) { return Mathf.Max(1, Mathf.RoundToInt(size * FontScale)); }
 
-        /// <summary>A rich-text size tag ("&lt;size=N&gt;") scaled like every other font size.</summary>
-        public static string Size(int size) { return "<size=" + Px(size) + ">"; }
+        /// <summary>
+        /// The smallest text the game draws, in the same units as every size here (about 29 px of monogram): anything
+        /// asked for smaller is raised to it, so all text stays readable at 4:3. Enforced by <see cref="CreateText"/>,
+        /// <see cref="BestFit"/>, <see cref="FitRich"/> and <see cref="Size"/>. Only the pixel cards' name plates
+        /// (<see cref="BestFitCardPlate"/>) may go below it, since the plate is part of the card art.
+        /// </summary>
+        public const int MinFontSize = 18;
+
+        static int Readable(int size) { return Mathf.Max(size, MinFontSize); }
+
+        /// <summary>A rich-text size tag ("&lt;size=N&gt;") scaled like every other font size (never below the minimum).</summary>
+        public static string Size(int size) { return "<size=" + Px(Readable(size)) + ">"; }
 
         /// <summary>monogram-extended: the game's only font.</summary>
         public static Font PixelFont
@@ -87,6 +97,8 @@ namespace Combat.View
             t.horizontalOverflow = HorizontalWrapMode.Wrap;
             t.verticalOverflow = VerticalWrapMode.Overflow;
             float height = t.rectTransform.rect.height, width = t.rectTransform.rect.width;
+            min = Readable(min);
+            max = Mathf.Max(min, max);
             for (int size = max; size >= min; size--)
             {
                 t.fontSize = Px(size);
@@ -157,7 +169,7 @@ namespace Combat.View
             t.font = Font;
             t.fontStyle = FontStyle.Normal;
             t.text = text;
-            t.fontSize = Px(size);
+            t.fontSize = Px(Readable(size));
             t.color = color;
             t.alignment = anchor;
             t.raycastTarget = false;
@@ -166,11 +178,21 @@ namespace Combat.View
             return t;
         }
 
+        /// <summary>Shrinks the text to fit its rect, between <paramref name="min"/> and <paramref name="max"/> (never below
+        /// the minimum readable size).</summary>
         public static Text BestFit(this Text t, int min, int max)
+        {
+            min = Readable(min);
+            return BestFitCardPlate(t, min, Mathf.Max(min, max));
+        }
+
+        /// <summary>Like <see cref="BestFit"/> without the minimum: only for a pixel card's own name plate, which is part
+        /// of the card art (its full name is readable in the card popup).</summary>
+        public static Text BestFitCardPlate(this Text t, int min, int max)
         {
             t.resizeTextForBestFit = true;
             t.resizeTextMinSize = Px(min);
-            t.resizeTextMaxSize = Px(max);
+            t.resizeTextMaxSize = Px(Mathf.Max(min, max));
             t.verticalOverflow = VerticalWrapMode.Truncate;
             return t;
         }

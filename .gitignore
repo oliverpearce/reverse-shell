@@ -45,6 +45,8 @@ Thumbs.db
 desktop.ini
 
 # Tool caches and outputs
+.venv/
+venv/
 __pycache__/
 *.pyc
 reverse-shell/Tools/SpriteForge/.lpc_cache/
@@ -61,3 +63,6 @@ reverse-shell/[Cc]rashes/
 *~
 .vscode/
 .idea/
+
+# Planning documents (roadmaps, checklists, plans) stay local
+reverse-shell/Planning/

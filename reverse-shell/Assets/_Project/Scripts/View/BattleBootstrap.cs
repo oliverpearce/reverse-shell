@@ -117,7 +117,7 @@ namespace Combat.View
         static void EnsureEventSystem()
         {
             if (FindObjectOfType<EventSystem>() != null) return;
-            new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+            new GameObject("EventSystem", typeof(EventSystem), typeof(ControlInputModule));
         }
     }
 }

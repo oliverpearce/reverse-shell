@@ -12,7 +12,7 @@ namespace Game.World
     /// <summary>
     /// The title screen, shown over the first area when the game starts (Reverse: 1999 look, <see cref="InkStyle"/>):
     /// the game's name in big serif over an ink wash, and a short menu: Continue (the latest save), New Game, Load,
-    /// Settings, Quit. New Game and Load pick one of <see cref="SaveGame.SlotCount"/> save slots (each shows its leader,
+    /// Training Mode (a debug shortcut, also under Settings), Settings, Quit. New Game and Load pick one of <see cref="SaveGame.SlotCount"/> save slots (each shows its leader,
     /// level and when it was saved; overwriting asks first). Choosing a game reloads the area through the ink fade.
     /// Up/Down + Enter or the mouse; Esc goes back a page. The world is paused while it's open. The menu uses the same
     /// ink plates with gold hairlines as the pause menu (the selected one is the gold plate), over the party's cards
@@ -22,7 +22,7 @@ namespace Game.World
     {
         /// <summary>The game's name (a working title; change it here).</summary>
         public const string GameTitle = "REVERSE SHELL";
-        public const string Subtitle = "Chapter 1";
+        public const string Subtitle = "Demo";
 
         RectTransform menu;
         readonly List<Text> rows = new List<Text>();
@@ -92,6 +92,7 @@ namespace Game.World
             Row("Continue", () => Begin(latest, false), latest > 0);
             Row("New Game", () => ShowSlots(true), true);
             Row("Load", () => ShowSlots(false), latest > 0);
+            Row("Training Mode", StartTraining, true);   // debug shortcut, for now
             Row("Settings", ShowSettings, true);
             Row("Quit", Quit, true);
             Select(latest > 0 ? 0 : 1);
@@ -138,8 +139,21 @@ namespace Game.World
                     rows[row].text = opt.Label();
                 }, true, opt.Help);
             }
+            Row("Enter Training Mode", StartTraining, true, TrainingHelp);   // debug shortcut, for now
             Row("Back", ShowMain, true);
             Select(0);
+        }
+
+        const string TrainingHelp = "Go straight to the Training Center with your latest save: practice fights at any " +
+                                    "enemy level, and the whole test crew. Leave Training Mode (Esc, Settings) takes you back.";
+
+        /// <summary>Training Mode: the latest save (or a new game), starting in the Training Center.</summary>
+        void StartTraining()
+        {
+            WorldSession.StartTraining();
+            Time.timeScale = 1f;
+            enabled = false;   // no more input; the fade reloads the area without the title
+            ScreenFade.LoadScene(SceneManager.GetActiveScene().name);
         }
 
         void Begin(int slot, bool newGame)
@@ -186,7 +200,7 @@ namespace Game.World
         void Row(string label, Action action, bool isEnabled, string helpText = null)
         {
             int i = rows.Count;
-            // An ink plate with a gold hairline (like the pause menu's buttons); the selected row turns into the gold plate.
+            // An ink plate with corner brackets; the selected row is a hover: a lighter grey plate that grows a little.
             var plate = UIFactory.CreateImage(menu, "Row" + i, InkStyle.InkPanel, true);
             plate.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -i * RowStep), new Vector2(RowWidth, RowHeight));
             var frame = InkStyle.Frame(plate.rectTransform, InkStyle.Rule, 2f);
@@ -220,10 +234,10 @@ namespace Game.World
             for (int r = 0; r < rows.Count; r++)
             {
                 bool on = r == index && enabledRows[r];
-                rows[r].color = !enabledRows[r] ? InkStyle.PaperDim * new Color(1f, 1f, 1f, 0.6f) : on ? InkStyle.Ink : InkStyle.Paper;
-                plates[r].color = on ? InkStyle.Gold : !enabledRows[r] ? UIFactory.WithAlpha(InkStyle.InkPanel, 0.5f) : InkStyle.InkPanel;
+                rows[r].color = !enabledRows[r] ? InkStyle.PaperDim * new Color(1f, 1f, 1f, 0.6f) : InkStyle.Paper;
+                plates[r].color = on ? InkStyle.HoverGray : !enabledRows[r] ? UIFactory.WithAlpha(InkStyle.InkPanel, 0.5f) : InkStyle.InkPanel;
                 foreach (var edge in frames[r].GetComponentsInChildren<Image>())
-                    edge.color = on ? InkStyle.GoldBright : InkStyle.Rule;
+                    edge.color = on ? InkStyle.Paper : InkStyle.Rule;
             }
             ShowHelp(helps.Count > index ? helps[index] : null);
         }
@@ -242,12 +256,28 @@ namespace Game.World
             }
         }
 
+        const float SelectedScale = 1.04f;
+
+        /// <summary>The selected row grows a little (eased; unscaled, so it works over a paused world).</summary>
+        void GrowSelected()
+        {
+            float k = 1f - Mathf.Exp(-16f * Time.unscaledDeltaTime);
+            for (int r = 0; r < plates.Count; r++)
+            {
+                if (plates[r] == null) continue;
+                float target = r == index && enabledRows[r] ? SelectedScale : 1f;
+                var rt = plates[r].rectTransform;
+                rt.localScale = Vector3.Lerp(rt.localScale, Vector3.one * target, k);
+            }
+        }
+
         void Update()
         {
+            GrowSelected();
             if (Time.frameCount == openedFrame || ScreenFade.Busy) return;
-            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)) Move(-1);
-            if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) Move(1);
-            bool confirm = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.F);
+            if (UIKeys.Pressed(KeyCode.UpArrow) || UIKeys.Pressed(KeyCode.W)) Move(-1);
+            if (UIKeys.Pressed(KeyCode.DownArrow) || UIKeys.Pressed(KeyCode.S)) Move(1);
+            bool confirm = UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.Space) || UIKeys.Pressed(KeyCode.F);
             if (confirm && index < actions.Count && enabledRows[index]) actions[index]();
             else if (Input.GetKeyDown(KeyCode.Escape) && back != null) back();
         }

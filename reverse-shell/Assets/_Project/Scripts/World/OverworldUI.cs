@@ -49,7 +49,7 @@ namespace Game.World
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Shrink;
             go.AddComponent<GraphicRaycaster>(); // the party menu takes mouse clicks
             if (Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>() == null)
-                new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.EventSystems.StandaloneInputModule));
+                new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(ControlInputModule));
             var ui = go.AddComponent<OverworldUI>();
             ui.Build();
             return ui;
@@ -59,6 +59,19 @@ namespace Game.World
         Text objectiveText;
 
         /// <summary>The current story objective, top-right ("" hides it).</summary>
+        /// <summary>Fades the party list and the objective (the Esc menu hides them while it zooms in, like the battle
+        /// inspect hides the battle HUD). 1 = shown.</summary>
+        public void SetHudAlpha(float alpha)
+        {
+            foreach (var rt in new[] { partyPanel, objectivePanel })
+            {
+                if (rt == null) continue;
+                var group = rt.GetComponent<CanvasGroup>();
+                if (group == null) group = rt.gameObject.AddComponent<CanvasGroup>();
+                group.alpha = alpha;
+            }
+        }
+
         public void SetObjective(string text)
         {
             if (objectivePanel == null) return;
