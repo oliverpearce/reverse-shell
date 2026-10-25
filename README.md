@@ -1,6 +1,6 @@
 <div align="center">
 
-<a href="https://silvered.itch.io/reverse-shell-demo"><img src="itch/banner-960x240.png" alt="Reverse Shell: it's all in the [soul] of the cards!" width="960"></a>
+<a href="https://silvered.itch.io/reverse-shell-demo"><img src=".github/readme/banner.png" alt="Reverse Shell: it's all in the [soul] of the cards!" width="960"></a>
 
 <br>
 
@@ -25,20 +25,20 @@ Long ago, people found a way to live forever. The **Reverse Shell** process reco
 **Soul Card** and places it in a mechanical body built to outlast anything. *Any environment. No hunger. No death.
 No fear.*
 
-<p align="center"><img src="itch/helper-images/story-everlasting.png" alt="The public information recording: EVERLASTING" width="720"></p>
+<p align="center"><img src=".github/readme/story-everlasting.png" alt="The public information recording: EVERLASTING" width="720"></p>
 
 You wake alone beside a cracked capsule. You're a machine with a human's name that you can barely remember. Explore
 the ruins, meet the machines that outlived their makers, and face the guardian (who will not remain that sprite LOL)
 at the heart of Mossline.
 
-<p align="center"><img src="itch/helper-images/story-awakening.png" alt="Waking up beside the cracked capsule" width="720"></p>
+<p align="center"><img src=".github/readme/story-awakening.png" alt="Waking up beside the cracked capsule" width="720"></p>
 
 <p align="center"><b><a href="https://silvered.itch.io/reverse-shell-demo">▶ Play the free Chapter One demo in your browser</a></b><br>
 <sub>this is like all subject to change btw :3</sub></p>
 
 <img src=".github/readme/h-cards.png" alt="Every card is a decision" width="960">
 
-<p align="center"><img src="itch/helper-images/combat-battle.png" alt="A battle on the overgrown street" width="720"></p>
+<p align="center"><img src=".github/readme/combat-battle.png" alt="A battle on the overgrown street" width="720"></p>
 
 - **Plan, then press Go.** Each fighter standing gives you 1 AP, or Action Point. Playing a card or rearranging a
   card in your hand both cost 1 AP.
@@ -48,9 +48,9 @@ at the heart of Mossline.
 
 <table>
   <tr>
-    <td width="33%"><img src="itch/helper-images/combat-card-merge.png" alt="Merging two cards"></td>
-    <td width="33%"><img src="itch/helper-images/combat-turn-playing-out.png" alt="A turn playing out"></td>
-    <td width="33%"><img src="itch/helper-images/combat-card-detail.png" alt="Holding a card to read it"></td>
+    <td width="33%"><img src=".github/readme/combat-card-merge.png" alt="Merging two cards"></td>
+    <td width="33%"><img src=".github/readme/combat-turn-playing-out.png" alt="A turn playing out"></td>
+    <td width="33%"><img src=".github/readme/combat-card-detail.png" alt="Holding a card to read it"></td>
   </tr>
   <tr>
     <td align="center"><sub>Drag to merge</sub></td>
@@ -71,15 +71,15 @@ at the heart of Mossline.
 
 <table>
   <tr>
-    <td width="50%"><img src="itch/screenshots/01-title-screen.png" alt="Title screen"></td>
-    <td width="50%"><img src="itch/screenshots/02-overgrown-plaza.png" alt="The overgrown plaza"></td>
+    <td width="50%"><img src=".github/readme/01-title-screen.png" alt="Title screen"></td>
+    <td width="50%"><img src=".github/readme/02-overgrown-plaza.png" alt="The overgrown plaza"></td>
   </tr>
   <tr>
-    <td><img src="itch/screenshots/03-pause-menu.png" alt="The pause menu as cards"></td>
-    <td><img src="itch/screenshots/04-pre-combat.png" alt="Prepare for Battle"></td>
+    <td><img src=".github/readme/03-pause-menu.png" alt="The pause menu as cards"></td>
+    <td><img src=".github/readme/04-pre-combat.png" alt="Prepare for Battle"></td>
   </tr>
   <tr>
-    <td colspan="2" align="center"><img src="itch/screenshots/05-unit-inspect.png" alt="Inspecting a unit" width="60%"></td>
+    <td colspan="2" align="center"><img src=".github/readme/05-unit-inspect.png" alt="Inspecting a unit" width="60%"></td>
   </tr>
 </table>
 
@@ -113,11 +113,9 @@ The full list is in **Settings → Tutorials**.
 | Path | What's there |
 |---|---|
 | `reverse-shell/Assets/_Project/Scripts/` | Combat, the overworld, story and UI code |
-| `reverse-shell/Assets/_Project/Resources/Story/` | The script: `Chapter1.txt`, `World.txt`, `Guide.txt` (plain text, edit freely) |
+| `reverse-shell/Assets/_Project/Resources/Story/` | The script: `Chapter1.txt`, `World.txt`, `Guide.txt` (plain text, loaded at runtime) |
 | `reverse-shell/Assets/_Project/Art/` | Characters, portraits, tiles and third-party art (each with a `CREDITS.md`) |
 | `reverse-shell/Tools/` | Python generators: CardForge, ChibiForge, IconForge, MapForge, PortraitForge, TileForge… |
-| `reverse-shell/GAME_BIBLE.md` | World, story and design source of truth |
-| `itch/` | The itch.io store page kit: description, cover, banner, screenshots |
 
 </details>
 

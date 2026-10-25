@@ -64,8 +64,17 @@ reverse-shell/[Cc]rashes/
 .vscode/
 .idea/
 
-# Planning documents (roadmaps, checklists, plans) stay local
+# Planning and internal documents stay on this computer (the repo is a code backup)
 reverse-shell/Planning/
+reverse-shell/GAME_BIBLE.md
+reverse-shell/HANDOFF.md
+itch/
+
+# Secrets, just in case
+.env
+.env.*
+*.pem
+*.key
 
 # Web builds and their zips (100+ MB; they go to itch.io, not the repo)
 builds/
