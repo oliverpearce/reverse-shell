@@ -87,11 +87,8 @@ at the heart of Mossline.
 
 | Key | Does |
 |---|---|
-| **Click the game once** | gives it keyboard focus (in the browser) |
 | **WASD / arrows** | walk (hold **Shift** to run) |
 | **F** | talk, open, interact |
-| **Q** | scan (once you have the scanner) |
-| **Esc** or **P** | menu (in browser fullscreen, Esc leaves fullscreen, so use **P**) |
 | **Click** a card | play it (1 AP) |
 | **Drag** a card | move it, or merge it (1 AP) |
 | **Hold** a card or unit | read it |
@@ -121,8 +118,7 @@ The full list is in **Settings → Tutorials**.
 
 <img src=".github/readme/h-credits.png" alt="Credits" width="960">
 
-Made by **Oliver Pearce**. A free, non-commercial fan game inspired by *Reverse: 1999* (not affiliated with
-Bluepoch).
+Made by **Oliver Pearce**. 
 
 - **Icons:** [Raven Fantasy Icons](https://clockworkraven.itch.io/raven-fantasy-icons) by Clockwork Raven Studios
 - **Character sprites:** Fantasy Knight by aamatniekss
