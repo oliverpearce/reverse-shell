@@ -19,7 +19,7 @@ namespace Game.World
     ///                       across the screen (left to right) from where the ground mat starts to the right edge.
     ///   a block to the right the player ends up top-centre; the mat rolls out on the ground just south of them, west to
     ///                       east, then the big mat rolls across the screen left to right.
-    /// The ground mat takes <see cref="WorldRoll"/> seconds before the big mat starts. Then the menu cards (the same
+    /// The big mat starts <see cref="MatDelay"/> seconds into the ground mat's roll. Then the menu cards (the same
     /// pixel cards as battle, Tools/CardForge) are dealt onto it, slightly sprawled and overlapping in a rough
     /// horizontal line: Quit, Save, Settings (hovered when it opens), Party, Units, Items, Resonance. There is no Resume card:
     /// Esc resumes. Quit asks first.
@@ -27,9 +27,10 @@ namespace Game.World
     /// Space / a click plays it; Esc resumes, which plays it all backwards (cards lift off, the big mat rolls back up
     /// the way it came, then the ground mat, then the player stands and the view eases back out). Esc during the opening skips to the cards.
     /// Party opens the formation, Units the character details, Resonance the protagonist's elements
-    /// (<see cref="ResonanceScreen"/>; only after Chapter One or in Training Mode); the view stays zoomed (the player
+    /// (<see cref="ResonanceScreen"/>; only after Chapter One or in Sandbox Mode); the view stays zoomed (the player
     /// kneeling) meanwhile, and on the way back the mats roll out and the cards are dealt again. Save asks which slot to
-    /// save to; Settings has Fullscreen and Enter / Leave Training Mode (a <see cref="RowMenu"/> over the cards). Quit
+    /// save to; Settings has Fullscreen, Input, Graphics, Tutorials (the guide, <see cref="GuideBook"/>) and Enter / Leave Sandbox
+    /// Mode (a <see cref="RowMenu"/> over the cards). Quit
     /// saves and goes back to the title screen.
     /// </summary>
     public class PauseCards : MonoBehaviour
@@ -42,6 +43,8 @@ namespace Game.World
 
         // The opening, in seconds (unscaled). The zoom matches the battle inspect's 1.5x (camera distance / 1.5).
         const float ZoomIn = 1f / 1.5f, ZoomTime = 0.28f, WorldRoll = 0.5f, MatRoll = 0.45f, DealStep = 0.05f, DealTime = 0.28f;
+        /// <summary>The big mat starts rolling this long after the ground mat does (they overlap).</summary>
+        const float MatDelay = 0.2f;
         /// <summary>Where the player ends up across the screen (0 = left edge), like a party unit in the battle inspect.</summary>
         const float PlayerViewX = 0.2f;
         /// <summary>The ground mat's near edge, in world units from the player (right of them, or south of them when a
@@ -396,23 +399,20 @@ namespace Game.World
             SetZoom(1f);
 
             // The mat rolls out on the ground: to the player's right, north to south, or (a block there) just south of
-            // them, west to east...
+            // them, west to east. MatDelay into that, the big mat starts rolling across the screen (always left to
+            // right), so the two overlap.
             if (worldMat != null) Destroy(worldMat.gameObject);
             worldMat = sprite != null ? CreateWorldMat(sprite) : null;
-            for (float t = 0f; t < WorldRoll && !skip; t += Time.unscaledDeltaTime)
+            float rollTotal = Mathf.Max(WorldRoll, MatDelay + MatRoll);
+            for (float t = 0f; t < rollTotal && !skip; t += Time.unscaledDeltaTime)
             {
                 if (worldMat != null) worldMat.Set(Ease(t / WorldRoll));
+                float m = Mathf.Clamp01((t - MatDelay) / MatRoll);
+                SetMat(Ease(m));
+                chrome.alpha = m;
                 yield return null;
             }
             if (worldMat != null) worldMat.Set(1f);
-
-            // ...then the big mat rolls across the screen, always left to right.
-            for (float t = 0f; t < MatRoll && !skip; t += Time.unscaledDeltaTime)
-            {
-                SetMat(Ease(t / MatRoll));
-                chrome.alpha = t / MatRoll;
-                yield return null;
-            }
             SetMat(1f);
             chrome.alpha = 1f;
 
@@ -594,7 +594,7 @@ namespace Game.World
             if (busy)
             {
                 // Esc during the opening skips straight to the dealt cards.
-                if (Input.GetKeyDown(KeyCode.Escape)) skip = true;
+                if (UIKeys.Back) skip = true;
                 return;
             }
             if (pages.IsOpen || pages.ClosedFrame == Time.frameCount) return;   // a page is over the cards
@@ -602,7 +602,7 @@ namespace Game.World
             if (UIKeys.Pressed(KeyCode.RightArrow) || UIKeys.Pressed(KeyCode.D)) Step(1);
             if (UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.Space) || UIKeys.Pressed(KeyCode.F))
                 Play();
-            else if (Input.GetKeyDown(KeyCode.Escape)) Close();
+            else if (UIKeys.Back) Close();
         }
 
         void LateUpdate()
@@ -638,9 +638,13 @@ namespace Game.World
             for (int slot = 1; slot <= SaveGame.SlotCount; slot++)
             {
                 int captured = slot;
+                string heading, detail, corner;
+                SaveGame.SlotCard(slot, true, out heading, out detail, out corner);
                 rows.Add(new RowMenu.Row
                 {
-                    Label = SaveGame.SlotLabel(slot, true),
+                    Label = heading,
+                    Detail = detail,
+                    Corner = corner,
                     Action = () =>
                     {
                         if (captured != SaveGame.Slot && SaveGame.Exists(captured)) ConfirmOverwrite(captured);
@@ -675,7 +679,7 @@ namespace Game.World
 
         void ShowSettings(int select = 0)
         {
-            bool inTraining = WorldSession.InTraining;
+            bool inSandbox = WorldSession.InSandbox;
             var rows = new List<RowMenu.Row>
             {
                 new RowMenu.Row
@@ -692,17 +696,29 @@ namespace Game.World
                 },
                 new RowMenu.Row
                 {
-                    Label = inTraining ? "Leave Training Mode" : "Enter Training Mode",
+                    Label = GameSettings.GraphicsLabel,
+                    Action = () => { GameSettings.ToggleGraphics(); ShowSettings(2); },
+                    Help = GameSettings.GraphicsHelp,
+                },
+                new RowMenu.Row
+                {
+                    Label = GameSettings.GuideLabel,
+                    Action = () => GuideBook.Open(pages.transform),
+                    Help = GameSettings.GuideHelp,
+                },
+                new RowMenu.Row
+                {
+                    Label = inSandbox ? "Leave Sandbox Mode" : "Enter Sandbox Mode",
                     Action = () =>
                     {
                         HideNow(true);   // the area reloads
-                        if (inTraining) world.LeaveTraining();
-                        else world.EnterTraining();
+                        if (inSandbox) world.LeaveSandbox();
+                        else world.EnterSandbox();
                     },
-                    Help = inTraining
-                        ? "Go back to exactly where you were before you entered the Training Center."
-                        : "Go to the Training Center: practice fights with any enemy level, and the whole test crew. " +
-                          "Leave Training Mode (here) brings you back to where you are now.",
+                    Help = inSandbox
+                        ? "Go back to exactly where you were before you entered the Sandbox."
+                        : "Go to the Sandbox: practice fights with any enemy level, and the whole test crew. " +
+                          "Leave Sandbox Mode (here) brings you back to where you are now.",
                 },
                 new RowMenu.Row { Label = "Back", Action = pages.Hide },
             };

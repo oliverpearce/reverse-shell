@@ -145,16 +145,20 @@ namespace Combat.View
             return sb.ToString();
         }
 
+        /// <summary>Close buttons' size (square).</summary>
+        public const float CloseSize = 104f;
+
         /// <summary>
-        /// A straight button: an ink plate with a gold hairline and serif label (primary = gold plate, ink label),
-        /// plus the shared hover effect. Buttons never keep keyboard focus.
+        /// A straight button with the Go button's look: the translucent ink plate with a hairline and the label, plus
+        /// the shared hover effect. Buttons never keep keyboard focus.
         /// </summary>
+        /// <param name="primary">Unused: primary buttons used to be gold; every button now looks like Go.</param>
         public static Button Button(Transform parent, string name, string label, UnityAction onClick, bool primary, int fontSize = 40)
         {
             var root = UIFactory.CreateRect(name, parent);
-            var plate = UIFactory.CreateImage(root, "Plate", primary ? Gold : InkPanel, true);
+            var plate = UIFactory.CreateImage(root, "Plate", InkPanel, true);
             plate.rectTransform.Fill();
-            Frame(plate.rectTransform, primary ? GoldBright : Rule, 2f);
+            Frame(plate.rectTransform, Rule, 2f);
             var button = root.gameObject.AddComponent<Button>();
             button.targetGraphic = plate;
             var colors = button.colors;
@@ -168,7 +172,7 @@ namespace Combat.View
             {
                 if (UnityEngine.EventSystems.EventSystem.current != null) UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
             });
-            var text = UIFactory.CreateText(root, "Label", label, fontSize, primary ? Ink : Paper, TextAnchor.MiddleCenter);
+            var text = UIFactory.CreateText(root, "Label", label, fontSize, Paper, TextAnchor.MiddleCenter);
             text.font = UIFactory.SerifFont;
             text.rectTransform.Fill(8f);
             root.gameObject.AddComponent<ButtonHover>();
@@ -176,19 +180,17 @@ namespace Combat.View
         }
 
         /// <summary>
-        /// A square close button with a drawn cross (two crossed bars, so it sits dead centre in any font), gold on hover.
+        /// A square close button with the close X icon (CardIcons.Close), dead centre.
         /// </summary>
         public static Button CloseButton(Transform parent, UnityAction onClick)
         {
             var button = Button(parent, "Close", "", onClick, false);
             var label = button.transform.Find("Label");
             if (label != null) Object.Destroy(label.gameObject);
-            foreach (float angle in new[] { 45f, -45f })
-            {
-                var bar = UIFactory.CreateImage(button.transform, "Bar", Paper);
-                bar.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(46f, 7f));
-                bar.rectTransform.localRotation = Quaternion.Euler(0f, 0f, angle);
-            }
+            var icon = UIFactory.CreateImage(button.transform, "Icon", Color.white);
+            icon.sprite = CardIcons.Close;
+            icon.preserveAspect = true;
+            icon.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(64f, 64f));
             return button;
         }
 

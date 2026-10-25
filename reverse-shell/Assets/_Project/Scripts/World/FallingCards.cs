@@ -23,6 +23,9 @@ namespace Game.World
         const float Dim = 0.38f;                 // card opacity behind the menu
         const float SparkleAlpha = 0.85f;        // the sparkles' layer (not dimmed with the cards)
         const float SparklePixel = 4f;           // canvas units per sparkle pixel
+
+        /// <summary>With Graphics: Fast, glitter and trail sparkles come this many times less often (each is a UI object).</summary>
+        static float Sparse { get { return GameSettings.FastGraphics ? 3f : 1f; } }
         static readonly float[] Scales = { 0.6f, 0.8f, 1f };   // 3x, 4x, 5x card pixels
 
         /// <summary>The Soul Cards' colours (each card is tinted part-way toward one).</summary>
@@ -73,6 +76,9 @@ namespace Game.World
         public static FallingCards Create(RectTransform parent, IEnumerable<CharacterDefinition> party)
         {
             var rt = UIFactory.CreateRect("FallingCards", parent).Fill();
+            // Their own canvases: the cards move and the sparkles come and go every frame, which would otherwise
+            // rebuild the whole title-screen canvas each frame.
+            rt.gameObject.AddComponent<Canvas>();
             var group = rt.gameObject.AddComponent<CanvasGroup>();
             group.alpha = Dim;
             group.blocksRaycasts = false;
@@ -81,6 +87,7 @@ namespace Game.World
             falling.area = rt;
 
             falling.sparkleLayer = UIFactory.CreateRect("Sparkles", parent).Fill();
+            falling.sparkleLayer.gameObject.AddComponent<Canvas>();
             var sg = falling.sparkleLayer.gameObject.AddComponent<CanvasGroup>();
             sg.alpha = SparkleAlpha;
             sg.blocksRaycasts = false;
@@ -189,7 +196,7 @@ namespace Game.World
 
             // Glitter drifts down the whole screen.
             glitterTimer += dt;
-            if (glitterTimer >= 0.14f)
+            if (glitterTimer >= 0.14f * Sparse)
             {
                 glitterTimer = 0f;
                 var size = AreaSize();
@@ -215,7 +222,7 @@ namespace Game.World
             if (now >= f.NextTrail)
             {
                 // Left hanging above the card (behind it, as it falls), across its width.
-                f.NextTrail = now + Random.Range(0.06f, 0.12f) / Mathf.Max(0.6f, f.Scale);
+                f.NextTrail = now + Random.Range(0.06f, 0.12f) * Sparse / Mathf.Max(0.6f, f.Scale);
                 var at = f.Rect.anchoredPosition + new Vector2(Random.Range(-0.45f, 0.45f) * size.x, size.y * 0.5f + Random.Range(0f, 20f));
                 Add(Kind.Trail, at, tint, Random.Range(0.6f, 1.1f), new Vector2(Random.Range(-6f, 6f), Random.Range(4f, 14f)));
             }

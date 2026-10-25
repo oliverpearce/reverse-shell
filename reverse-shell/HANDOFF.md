@@ -2,6 +2,29 @@
 
 # Chapter One demo (start here)
 
+**Web demo, Track A (newest, 2026-10-24):**
+- **Training Mode is now Sandbox Mode everywhere:** the UI, story keys (`sandbox.*` in World.txt), code
+  (`WorldAreas.Sandbox`, `WorldSession.InSandbox` / `StartSandbox` / `Sandbox*` fields, `EnterSandbox` / `LeaveSandbox`)
+  and docs. The area is called SANDBOX (subtitle Mossline Station). Old saves still load: `WorldAreas.Migrate` maps
+  the old id `training` to `sandbox` (`SaveGame.MigrateAreas`). The chest level and return point in older saves are
+  dropped, because their JSON fields were renamed. Sandbox Mode stays on the title for the demo.
+- **End card:** a gold line, "That's it for now, but please explore Sandbox Mode! (Esc, then Settings)"
+  (`[endcard]` line 4; the hint moved to line 5).
+- **Esc or P:** `UIKeys.Back` (Esc, or P unless a text field has focus) replaces every `GetKeyDown(Escape)`. In
+  browser fullscreen Esc only leaves fullscreen, so P opens the menu. The key hints say "Esc / P".
+- **Web saves:** `WebSync.Flush()` (with `Plugins/WebGL/WebSync.jslib`, `FS.syncfs`) runs after every save or
+  delete, so a page reload keeps the save. It does nothing outside WebGL.
+- **Reverse Shell / Web Build Setup** (`Editor/World/WebBuildSetup.cs`) adds every `Shader.Find` shader to Always
+  Included Shaders (WebGL builds also do this themselves, through `IPreprocessBuildWithReport`). It also sets the
+  WebGL player settings: 960x540, 256 MB, Gzip, explicitly thrown exceptions, Run In Background off.
+- **Title screen:**
+  - Quit is hidden in web builds, and the Fullscreen help explains the browser rules.
+  - **Credits** page (`CreditsText`, `MadeBy`).
+  - **How to Play** page (`ControlsText`). It shows once before the first game on a computer (`ControlsFirst`,
+    PlayerPrefs `seen.controls`) and is always under Settings.
+  - Version label bottom-right (`TitleScreen.Version`, "Demo v0.1"; raise it for each build you hand out).
+  - Rows are 84 apart from `MenuTop` 110, and the settings help panel sits under the last row.
+
 **Esc menu as physical cards (newest):** `PauseCards` now plays out a scene.
 - **Zoom:** like the battle's hold-to-inspect, the view zooms in quickly (1.5x, OutCubic, 0.28 s;
   `OverworldCamera.zoom` / `aimOffset` / `Direct`) while the party HUD and objective fade (`OverworldUI.SetHudAlpha`).
@@ -20,7 +43,7 @@
   and rises. Esc during the opening skips to the end.
 - **Close:** Esc / Resume plays it backwards: cards lift off, the UI mat rolls back up to the left, then the
   ground mat, then the player stands (unkneels), then zoom out. Party / Units / Resonance keep the view zoomed and the kneel, and roll the mats out again on the
-  way back (`Open(card)`). The Training warps reset at once (`HideNow(true)`).
+  way back (`Open(card)`). The Sandbox warps reset at once (`HideNow(true)`).
 - **Kneel:** the Fantasy Knight pack has no kneel, so `knight_model.kneel()` draws one: the idle pose's upper body
   lowered 6 px over new legs in the character's plating (front knee up, back knee down; `FRONT_LEG` / `BACK_LEG`
   paths). It's written as `sit.png` (`--only sit`), so the existing `sit` clips (`EnsureSitClips`) pick it up.
@@ -134,25 +157,24 @@ a panel beside the list with that enemy's skill cards (at their rank) and its Ul
 slot dropped onto another slot swaps the two; a slot dropped anywhere else is emptied (never the last active member).
 The hovered slot gets a gold frame. **Scanner HUD:** the cooldown is just the clock wipe now (no numbers).
 
-**Training Mode from the title (debug shortcut, for now):** the title's main menu has a **Training Mode** row, and its
-Settings page has **Enter Training Mode**. Both call `WorldSession.StartTraining()`. That loads the latest save (or
-starts a new game in slot 1 when there's none), then starts in the Training Center. Leave Training Mode returns to
-where that save left off (for a new game, the city's start, where the opening plays). Remove the two rows in
-`TitleScreen` for the demo.
+**Sandbox Mode from the title (kept for the demo, so players can go straight there):** the title's main menu has a **Sandbox Mode** row, and its
+Settings page has **Enter Sandbox Mode**. Both call `WorldSession.StartSandbox()`. That loads the latest save (or
+starts a new game in slot 1 when there's none), then starts in the Sandbox. Leave Sandbox Mode returns to
+where that save left off (for a new game, the city's start, where the opening plays).
 
 **Newest (resonance card + scanner HUD):**
 - **Resonance is its own Esc card** (`PauseCards`, between Units and Settings), shown only after Chapter One
-  (`ch1.complete`) or in Training Mode (`WorldSession.ResonanceMenuUnlocked`). Hidden cards drop out of the row, and a
+  (`ch1.complete`) or in Sandbox Mode (`WorldSession.ResonanceMenuUnlocked`). Hidden cards drop out of the row, and a
   row too wide for 4:3 shrinks (`MaxRowWidth`). It opens `ResonanceScreen`, which shows only the resonances you have
-  (Physical, plus Electric once absorbed or always in Training Mode, which lends every kit: `AvailableResonances`). The
+  (Physical, plus Electric once absorbed or always in Sandbox Mode, which lends every kit: `AvailableResonances`). The
   row centres and shrinks as more unlock. Locked ones aren't shown (the user's choice, 2026-10-24; `Ui_Lock` is still in
   the atlas). Below the row are the shown resonance's cards and Ult; click or hold one to open `CardDetailPopup`. The
   active one has a gold frame. The old resonance buttons on the Units page are gone.
 - **Resonance Ult art:** `CardArt.Ult(card, owner)` tries `Ult_<card asset>` before the owner's card, so Electric's
   Thunderheart has its own full art (`Ult_Card_MC_Thunderheart.png`: yellow swirl and lightning, from `ULT_CARDS` in
   CardForge). It's used in the hand, the queue, the menus and the formation portrait (`WorldSession.UltimateOf`).
-- **Fix:** Training Mode from the title used to drop you at the save's city coordinates inside the Training Center
-  (an empty world). `StartTraining` now clears the return point, and `SpawnPlayer` ignores any return spot that isn't on
+- **Fix:** Sandbox Mode from the title used to drop you at the save's city coordinates inside the Sandbox
+  (an empty world). `StartSandbox` now clears the return point, and `SpawnPlayer` ignores any return spot that isn't on
   the current map.
 - **Resonance colour:** **Electric is yellow** now (`AfflatusInfo.Color(Volt)`; Light moved to pale white to stay
   apart). The active resonance tints the protagonist's card swirls, queue chips, cast flashes, battle glow, party-HUD
@@ -162,13 +184,13 @@ where that save left off (for a new game, the city's start, where the opening pl
   with a Q key badge. A scan starts a 4 s cooldown (`OverworldBuilder.ScanCooldown`), shown as a clock wipe with the
   seconds left and a flash when ready. Q pressed too early shakes it. It's hidden during dialogue and menus.
 - New icons `Menu_Resonance`, `Ui_Lock` and `Ui_Binoculars` are drawn by `Tools/CardForge` (appended to `CardArt.png`,
-  cells 26-28). Tests: `StoryTests` (Training Mode lends Electric + menu unlock, resonance colour).
+  cells 26-28). Tests: `StoryTests` (Sandbox Mode lends Electric + menu unlock, resonance colour).
 
 **Canon:** `GAME_BIBLE.md` v0.3 is the source of truth; its §13 lists what is only a draft (Collector, record and memory
 texts, the ending mystery, the Electric kit and enemy numbers) and the code-name mapping (Electric = `Volt`, Physical =
-`Afflatus.None`). The protagonist is player-named (asset `Char_MC`) and alone. Heal Bot, Lucy, Blue and the Training
-Center are debug-only: Esc → **Settings → Enter Training Mode** takes you to the Training Center (the crew joins
-there), and the same row, now **Leave Training Mode**, puts you back exactly where you were (saved, so it survives a
+`Afflatus.None`). The protagonist is player-named (asset `Char_MC`) and alone. Heal Bot, Lucy, Blue and the Sandbox
+are Sandbox-only: Esc → **Settings → Enter Sandbox Mode** takes you to the Sandbox (the crew joins
+there), and the same row, now **Leave Sandbox Mode**, puts you back exactly where you were (saved, so it survives a
 Continue). Esc → **Save** asks which slot to save to (saving to another slot makes it this game's slot; overwriting a
 different occupied slot asks first). Both pages are a `RowMenu` over the Esc cards.
 
@@ -181,7 +203,7 @@ bump that constant after changing the chapter's numbers. Then press Play in `Sce
 
 **Story text:** every word the game says lives in `Assets/_Project/Resources/Story/` (`StoryText` reads every .txt
 there): `Chapter1.txt` is the chapter's script, `World.txt` everything else (objectives, Access Points, chests and
-rewards, battle outcomes, the Summon Beacon, the Training Center people). Text can be pasted in from the bible or any
+rewards, battle outcomes, the Summon Beacon, the Sandbox people). Text can be pasted in from the bible or any
 document without touching code. Some blocks take fill-ins such as `{item}` (listed above them in the file). `[key]` starts a block, `Speaker | text` is one
 box spoken by Speaker (Scanner, Collector and Memory get their own voices, anyone else the narrator's), a bare line is
 narration, `#` is a comment, `{name}` is the protagonist's name. Lines too long for the dialogue box are split into
@@ -315,12 +337,12 @@ resonance switching is not built (the bible leaves its cost open).
 >   - Nameplates are just the HP bar and Ult pips; the name shows on hover or focus. The element / class line and the element orb are gone.
 >   - Status effects are small icons with turns left (the short label when there's no icon).
 >   - Hand cards now show the card name (serif) between the rank / icon and the kind word.
-> - **Formation, Blue, targeting, enemy levels (2026-10-23):** `WorldSession.Formation` (saved): slots 0-2 active (slot 0 leads/walks), slot 3 backup; `FormationActive/Backup`, `Assign` (swaps), `ClearSlot` (never leaves no active), recruits fill empty slots. `FormationScreen` edits it with Ult-art slot cards + a member strip: from the Esc cards (**Party**, X/Esc back) and as the **pre-fight** screen before every encounter (enemies with level/BOSS on the left, Start/Space). `OverworldBuilder.BuildSetup` makes the fight (active + backup, enemy count, training level) for both preview and battle. Esc cards are now Quit/Save/Resume/Party/**Units** (Units = the old character detail menu, retitled). **Blue**: Light Guardian backup (Shield Bash, Bulwark, Ult Aegis Dawn; new Status_DefUp), sprites from knight_model `Blue`, assets made by `SampleContentGenerator.EnsureBlue` (auto-run once by `BlueContentBootstrap`), added to Battle_Sample's roster; joins in the Training Center. **Targeting**: queueing a single-enemy card locks `CardInstance.Target` to the enemy under the cursor. **Enemy levels**: enemy stats are their Lv 5 values scaled by `BattleUnit.EnemyScale` (1-99); boss = 3x HP, 1.25x ATK, 9x sprite, BOSS tag; XP scales too. `BattleSetup.enemyLevel/boss/backup`. The Training Center chest (`C`, `EnemyLevelPanel`) sets presets Enemy Lv 5 / Boss Lv 20 / Custom Lv 30 and ±1/±10 up to 99 (saved).
+> - **Formation, Blue, targeting, enemy levels (2026-10-23):** `WorldSession.Formation` (saved): slots 0-2 active (slot 0 leads/walks), slot 3 backup; `FormationActive/Backup`, `Assign` (swaps), `ClearSlot` (never leaves no active), recruits fill empty slots. `FormationScreen` edits it with Ult-art slot cards + a member strip: from the Esc cards (**Party**, X/Esc back) and as the **pre-fight** screen before every encounter (enemies with level/BOSS on the left, Start/Space). `OverworldBuilder.BuildSetup` makes the fight (active + backup, enemy count, sandbox level) for both preview and battle. Esc cards are now Quit/Save/Resume/Party/**Units** (Units = the old character detail menu, retitled). **Blue**: Light Guardian backup (Shield Bash, Bulwark, Ult Aegis Dawn; new Status_DefUp), sprites from knight_model `Blue`, assets made by `SampleContentGenerator.EnsureBlue` (auto-run once by `BlueContentBootstrap`), added to Battle_Sample's roster; joins in the Sandbox. **Targeting**: queueing a single-enemy card locks `CardInstance.Target` to the enemy under the cursor. **Enemy levels**: enemy stats are their Lv 5 values scaled by `BattleUnit.EnemyScale` (1-99); boss = 3x HP, 1.25x ATK, 9x sprite, BOSS tag; XP scales too. `BattleSetup.enemyLevel/boss/backup`. The Sandbox chest (`C`, `EnemyLevelPanel`) sets presets Enemy Lv 5 / Boss Lv 20 / Custom Lv 30 and ±1/±10 up to 99 (saved).
 > - **AP / hand / party rules (2026-10-23):** `BattleState`: `Party` = up to 3 active (`MaxActive`), `Backup` = 1 reserve (`MaxBackup`), `Roster` = everyone (loadouts, levels, results use it). Each turn AP = living active units (+ bonus), hand cap = AP + 4 (`HandBonus`); `CombatConfig.handSize`/`actionPointsPerRound` are no longer used. A fallen member's cards leave the hand/queue and the backup takes their slot (`UnitEnteredEvent`, `BattleView.PlayUnitEntered`); defeat only when no one is active and no backup is left. Moves cost 1 AP and count in `MovesThisRound` (undo restores it); the queue shows each as a locked "CARD MOVED" slot. Merges after a play/move/draw are free and chain (`ResolveMerges`). Overworld: Access Points have a purple stand square (`HealPurple`) and prompt "[F] Heal"; the party menu has an X (top-right) and, opened from the Esc cards, returns to them on close.
 > - **Results screen (2026-10-23):** `ResultScreen.Play` (started by `HudView.ShowResult`) animates: RESULTS/DEFEAT header between gold rules, +XP, member rows sliding in with slanted XP bars that fill from `BattleResult.Before` (new: pre-XP progress) to the new XP, wrapping per level with a LEVEL UP! tag, the alert effect and an Lv punch; then per levelled member a gold diamond LEVEL UP / N burst and a stat panel (HP, ATK, PHYS DEF, SPEC DEF counting up with gold "+N ▲", base stats without Parts); the Continue / Fight Again button appears last.
-> - **Party & pause (2026-10-23):** `WorldSession.Members` (saved as `members`; empty = everyone, for old saves): a new game is just MC (Lv 1); entering the Training Center recruits the rest of the roster (`RecruitAll`, with a "joins your party!" message) and they stay. `OverworldBuilder.Party`/battles use `WorldSession.Joined`; encounters field at most as many machines as party members. Overworld **Esc** opens `PauseCards`: pixel cards Quit / Save / **Resume** (default) / Party (icons from CardForge `MENU_ICONS`); Party opens the CharacterMenu, Save flashes SAVED!, Quit saves and returns to the title. Overworld text is bigger (party HUD, prompt, area subtitle, dialogue), and prompts are just "[F] Talk" (NPCs) or "[F] Interact".
-> - **Camera rule (2026-10-23):** `OverworldMap.ApplyCameraRule(pitch)` runs on every area at build: a block k rows south of a walkable square in its column is lowered to at most `0.9 + k*tan(pitch)` (H 5 / # 3 / B 2 / L 1), and trees within ~2 rows become bushes, so nothing hides the player (Octopath-style: tall architecture behind, low things in front). Solidity is unchanged. City start: the Training Center warp is immediately left of the spawn; a paved path leads east to a rune stone (`G`, `WorldFx.RuneStone`, a TalkInteractable with a prompt override) that says "YOUR NAME IS MC". CardSettings.Changed (never raised) was removed.
-> - **Areas (2026-10-23):** one overworld scene builds the area named by `WorldSession.CurrentArea` (saved as `area`), defined in `WorldAreas`: **city** = The City Ruins, a 64x42 open NieR-style ruined city (main map; new games start here; generated layout, reachability checked) and **training** = Training Center (the old Mossline Station map, practice fights + summon beacon). `W` on a map is a glowing cyan warp pad (`WorldFx.WarpPad`, `WarpInteractable`): interact to travel; `OverworldBuilder.TravelTo` saves and reloads as the other area, arriving beside its warp. Encounter ids are per area (training keeps the old scene-only prefix for old saves). **Settings** are one shared list (`GameSettings.Options`: label, toggle, help) shown by the title screen and the battle pause menu, each row with a "?" (`InkStyle.HelpBadge`) whose help shows in `InkStyle.HelpPanel`. (Superseded: the old Training Mode toggle that skipped the title is gone; see Esc → Settings above.) Battle HUD: the turn counter is back top-left ("TURN 3", one line). Overworld party HUD: the level sits on the name line, big and gold.
+> - **Party & pause (2026-10-23):** `WorldSession.Members` (saved as `members`; empty = everyone, for old saves): a new game is just MC (Lv 1); entering the Sandbox recruits the rest of the roster (`RecruitAll`, with a "joins your party!" message) and they stay. `OverworldBuilder.Party`/battles use `WorldSession.Joined`; encounters field at most as many machines as party members. Overworld **Esc** opens `PauseCards`: pixel cards Quit / Save / **Resume** (default) / Party (icons from CardForge `MENU_ICONS`); Party opens the CharacterMenu, Save flashes SAVED!, Quit saves and returns to the title. Overworld text is bigger (party HUD, prompt, area subtitle, dialogue), and prompts are just "[F] Talk" (NPCs) or "[F] Interact".
+> - **Camera rule (2026-10-23):** `OverworldMap.ApplyCameraRule(pitch)` runs on every area at build: a block k rows south of a walkable square in its column is lowered to at most `0.9 + k*tan(pitch)` (H 5 / # 3 / B 2 / L 1), and trees within ~2 rows become bushes, so nothing hides the player (Octopath-style: tall architecture behind, low things in front). Solidity is unchanged. City start: the Sandbox warp is immediately left of the spawn; a paved path leads east to a rune stone (`G`, `WorldFx.RuneStone`, a TalkInteractable with a prompt override) that says "YOUR NAME IS MC". CardSettings.Changed (never raised) was removed.
+> - **Areas (2026-10-23):** one overworld scene builds the area named by `WorldSession.CurrentArea` (saved as `area`), defined in `WorldAreas`: **city** = The City Ruins, a 64x42 open NieR-style ruined city (main map; new games start here; generated layout, reachability checked) and **sandbox** = Sandbox (the old Mossline Station map, practice fights + summon beacon). `W` on a map is a glowing cyan warp pad (`WorldFx.WarpPad`, `WarpInteractable`): interact to travel; `OverworldBuilder.TravelTo` saves and reloads as the other area, arriving beside its warp. Encounter ids are per area (sandbox keeps the old scene-only prefix for old saves). **Settings** are one shared list (`GameSettings.Options`: label, toggle, help) shown by the title screen and the battle pause menu, each row with a "?" (`InkStyle.HelpBadge`) whose help shows in `InkStyle.HelpPanel`. (Superseded: the old Sandbox Mode toggle that skipped the title is gone; see Esc → Settings above.) Battle HUD: the turn counter is back top-left ("TURN 3", one line). Overworld party HUD: the level sits on the name line, big and gold.
 > - **Polish (2026-10-23, later):** Ult cards (party and enemy) are a 2x bust of the battle sprite (CardForge `sprite_art`), so the crew's cards match their shared model. `UltShine` (replaces UltGlow): light bands sweep across Ult cards every 2.6 s plus twinkling pixel sparkles, masked to the card art; also on every channelled card. Ult pips are 26 px on a dark strip, solid dark when empty, pulsing orange/gold when ready (inspect: 34 px). End-of-turn ticks: a pause, an "End of Turn" banner, then each tick on its own beat. IM Up's icon is Raven fb877 (violet rising arrow, user's pick; atlas RowExtra 7).
 > - **Statuses (2026-10-23):** 52 px icons under units and 64 px by the HP bar on the inspect screen, both `StatusChip.Create`; hover shows `StatusTooltip` (name, description, turns/stacks, big text). **Beats:** `BattleView.PlayStatuses` lands newly gained statuses `StatusDelay` after the hit (buff/debuff FX + the name floating up); end-of-turn ticks start after `TickLead` and play one by one (`TickHold`), labelled with the status (e.g. Poison).
 > - **Fanned hand (2026-10-23):** Slay the Spire-style. `HandView` squeezes the spacing (`SpacingFor`, up to 0.82 card widths) so any hand fits between the left edge and the Go button, tilts cards outward (`SlotAngle`, 4 deg per card, max 14) on a gentle arc (`ArcDrop`). Cards ease to their pose in `CardView.LateUpdate` (`SetPose` replaced `AnimateTo`). Hover: the card straightens, grows to 1.25x and comes to the front, risen just enough that its bottom edge stays put (no hover flicker); neighbours lean aside (`HoverPush`).

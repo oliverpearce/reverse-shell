@@ -12,9 +12,10 @@ namespace Game.World
     /// <summary>
     /// The title screen, shown over the first area when the game starts (Reverse: 1999 look, <see cref="InkStyle"/>):
     /// the game's name in big serif over an ink wash, and a short menu: Continue (the latest save), New Game, Load,
-    /// Training Mode (a debug shortcut, also under Settings), Settings, Quit. New Game and Load pick one of <see cref="SaveGame.SlotCount"/> save slots (each shows its leader,
+    /// Sandbox Mode (also under Settings), Settings, Credits, Quit (not in a browser). New Game and Load pick one of <see cref="SaveGame.SlotCount"/> save slots (each shows its leader,
     /// level and when it was saved; overwriting asks first). Choosing a game reloads the area through the ink fade.
-    /// Up/Down + Enter or the mouse; Esc goes back a page. The world is paused while it's open. The menu uses the same
+    /// Settings → Tutorials opens the guide (<see cref="GuideBook"/>: the keys and the battle tutorials). The version shows
+    /// bottom-right, so feedback says which build it's about. Up/Down + Enter or the mouse; Esc / P goes back a page. The world is paused while it's open. The menu uses the same
     /// ink plates with gold hairlines as the pause menu (the selected one is the gold plate), over the party's cards
     /// drifting down in the background (<see cref="FallingCards"/>).
     /// </summary>
@@ -23,6 +24,10 @@ namespace Game.World
         /// <summary>The game's name (a working title; change it here).</summary>
         public const string GameTitle = "REVERSE SHELL";
         public const string Subtitle = "Demo";
+        /// <summary>Shown bottom-right on the title screen. Raise it with every build you hand out.</summary>
+        public const string Version = "Demo v0.2";
+        /// <summary>Who made the game (the Credits page's first line).</summary>
+        public const string MadeBy = "Oliver Pearce";
 
         RectTransform menu;
         readonly List<Text> rows = new List<Text>();
@@ -35,6 +40,7 @@ namespace Game.World
         int index;
         Action back;
         int openedFrame;
+        float rowTop;   // where this page's rows start below the menu's top (under an info panel)
 
         public bool IsOpen { get { return gameObject.activeSelf; } }
 
@@ -72,12 +78,15 @@ namespace Game.World
             var sub = InkStyle.Label(root, "Subtitle", Subtitle, 30, InkStyle.Gold, TextAnchor.MiddleCenter);
             sub.rectTransform.Place(center, center, new Vector2(0f, 160f), new Vector2(600f, 44f));
 
-            menu = UIFactory.CreateRect("Menu", root).Place(center, new Vector2(0.5f, 1f), new Vector2(0f, 96f), new Vector2(RowWidth, 520f));
+            menu = UIFactory.CreateRect("Menu", root).Place(center, new Vector2(0.5f, 1f), new Vector2(0f, MenuTop), new Vector2(RowWidth, 600f));
 
-            // Under the settings list: what the selected (or "?"-hovered) setting does.
-            help = InkStyle.HelpPanel(root, new Vector2(0f, 96f - 3f * RowStep - 12f), new Vector2(RowWidth, 170f));
+            // Under the settings list: what the selected (or "?"-hovered) setting does (moved under the last row).
+            help = InkStyle.HelpPanel(root, new Vector2(0f, MenuTop), new Vector2(RowWidth, 150f));
 
-            var keys = UIFactory.CreateText(root, "Keys", "<color=#C2A061>↑ ↓</color>  Select      <color=#C2A061>Enter</color>  Confirm      <color=#C2A061>Esc</color>  Back",
+            var version = UIFactory.CreateText(root, "Version", Version, 24, InkStyle.PaperDim, TextAnchor.LowerRight);
+            version.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-30f, 24f), new Vector2(400f, 40f));
+
+            var keys = UIFactory.CreateText(root, "Keys", "<color=#C2A061>↑ ↓</color>  Select      <color=#C2A061>Enter</color>  Confirm      <color=#C2A061>Esc / P</color>  Back",
                 28, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
             keys.supportRichText = true;
             keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(1600f, 44f));
@@ -92,9 +101,10 @@ namespace Game.World
             Row("Continue", () => Begin(latest, false), latest > 0);
             Row("New Game", () => ShowSlots(true), true);
             Row("Load", () => ShowSlots(false), latest > 0);
-            Row("Training Mode", StartTraining, true);   // debug shortcut, for now
+            Row("Sandbox Mode", StartSandbox, true);
             Row("Settings", ShowSettings, true);
-            Row("Quit", Quit, true);
+            Row("Credits", ShowCredits, true);
+            if (Application.platform != RuntimePlatform.WebGLPlayer) Row("Quit", Quit, true);   // a browser tab can't quit
             Select(latest > 0 ? 0 : 1);
         }
 
@@ -139,18 +149,53 @@ namespace Game.World
                     rows[row].text = opt.Label();
                 }, true, opt.Help);
             }
-            Row("Enter Training Mode", StartTraining, true, TrainingHelp);   // debug shortcut, for now
+            Row(GameSettings.GuideLabel, () => GuideBook.Open(transform), true, GameSettings.GuideHelp);
+            Row("Enter Sandbox Mode", StartSandbox, true, SandboxHelp);
             Row("Back", ShowMain, true);
             Select(0);
         }
 
-        const string TrainingHelp = "Go straight to the Training Center with your latest save: practice fights at any " +
-                                    "enemy level, and the whole test crew. Leave Training Mode (Esc, Settings) takes you back.";
+        // ------------------------------------------------------------------ Credits
 
-        /// <summary>Training Mode: the latest save (or a new game), starting in the Training Center.</summary>
-        void StartTraining()
+        const string Key = "<color=#C2A061>", End = "</color>";
+
+        void ShowCredits()
         {
-            WorldSession.StartTraining();
+            Page(ShowMain);
+            InfoPanel(CreditsText, 440f);
+            Row("Back", ShowMain, true);
+            Select(0);
+        }
+
+        const string CreditsText =
+            "<size=40>Credits</size>\n\n" +
+            "Made by " + Key + MadeBy + End + ". A free, non-commercial fan game inspired by Reverse: 1999\n" +
+            "(not affiliated with Bluepoch).\n\n" +
+            Key + "Icons" + End + "   Raven Fantasy Icons by Clockwork Raven Studios\n" +
+            Key + "Character sprites" + End + "   Fantasy Knight by aamatniekss\n" +
+            Key + "Effects" + End + "   Super Pixel Effects Gigapack by Will Tice / unTied Games\n" +
+            Key + "Font" + End + "   monogram by datagoblin\n\n" +
+            "Thank you for playing!";
+
+        /// <summary>A page's text panel at the menu's top; the page's rows go under it.</summary>
+        void InfoPanel(string text, float height)
+        {
+            var panel = InkStyle.Panel(menu, "Info", InkStyle.InkPanel);
+            panel.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(RowWidth + 200f, height));
+            InkStyle.Frame(panel.rectTransform, InkStyle.Rule, 2f);
+            var t = UIFactory.CreateText(panel.transform, "Text", text, 28, InkStyle.Paper, TextAnchor.UpperLeft);
+            t.supportRichText = true;
+            t.rectTransform.Fill(24f);
+            rowTop = height + 16f;
+        }
+
+        const string SandboxHelp = "Go straight to the Sandbox with your latest save: practice fights at any " +
+                                    "enemy level, and the whole test crew. Leave Sandbox Mode (Esc, Settings) takes you back.";
+
+        /// <summary>Sandbox Mode: the latest save (or a new game), starting in the Sandbox.</summary>
+        void StartSandbox()
+        {
+            WorldSession.StartSandbox();
             Time.timeScale = 1f;
             enabled = false;   // no more input; the fade reloads the area without the title
             ScreenFade.LoadScene(SceneManager.GetActiveScene().name);
@@ -185,6 +230,7 @@ namespace Game.World
             actions.Clear();
             enabledRows.Clear();
             helps.Clear();
+            rowTop = 0f;
             ShowHelp(null);
             back = onBack;
         }
@@ -193,7 +239,9 @@ namespace Game.World
         {
             if (help == null) return;
             help.text = text ?? "";
-            help.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(text));
+            var panel = (RectTransform)help.transform.parent;
+            panel.anchoredPosition = new Vector2(0f, MenuTop - rowTop - rows.Count * RowStep - 12f);
+            panel.gameObject.SetActive(!string.IsNullOrEmpty(text));
         }
 
         /// <param name="helpText">A settings row's explanation: adds the "?" badge and shows it when selected.</param>
@@ -202,7 +250,7 @@ namespace Game.World
             int i = rows.Count;
             // An ink plate with corner brackets; the selected row is a hover: a lighter grey plate that grows a little.
             var plate = UIFactory.CreateImage(menu, "Row" + i, InkStyle.InkPanel, true);
-            plate.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -i * RowStep), new Vector2(RowWidth, RowHeight));
+            plate.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -rowTop - i * RowStep), new Vector2(RowWidth, RowHeight));
             var frame = InkStyle.Frame(plate.rectTransform, InkStyle.Rule, 2f);
             var t = InkStyle.Title(plate.transform, "Label", label, 40, InkStyle.Paper, TextAnchor.MiddleCenter);
             t.supportRichText = true;
@@ -225,7 +273,7 @@ namespace Game.World
             trigger.triggers.Add(click);
         }
 
-        const float RowWidth = 1100f, RowHeight = 74f, RowStep = 88f;
+        const float RowWidth = 1100f, RowHeight = 74f, RowStep = 84f, MenuTop = 110f;
 
         void Select(int i)
         {
@@ -274,12 +322,12 @@ namespace Game.World
         void Update()
         {
             GrowSelected();
-            if (Time.frameCount == openedFrame || ScreenFade.Busy) return;
+            if (Time.frameCount == openedFrame || ScreenFade.Busy || GuideBook.Blocking) return;   // the guide is over it
             if (UIKeys.Pressed(KeyCode.UpArrow) || UIKeys.Pressed(KeyCode.W)) Move(-1);
             if (UIKeys.Pressed(KeyCode.DownArrow) || UIKeys.Pressed(KeyCode.S)) Move(1);
             bool confirm = UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.Space) || UIKeys.Pressed(KeyCode.F);
             if (confirm && index < actions.Count && enabledRows[index]) actions[index]();
-            else if (Input.GetKeyDown(KeyCode.Escape) && back != null) back();
+            else if (UIKeys.Back && back != null) back();
         }
     }
 }

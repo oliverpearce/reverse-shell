@@ -839,6 +839,9 @@ RAVEN_PICKS = {
     'Card_Enemy_PoisonStrike': 835,
     'Card_Enemy_Spark': 1025, 'Card_Enemy_StaticCoil': 1027, 'Card_Enemy_SuppressingShot': 1034,
     'Card_Enemy_TailLash': 1057, 'Card_Enemy_ThunderBreath': 832,
+    # The Esc menu cards and the scanner HUD (picked 2026-10-24; Units, Resonance and the lock keep their drawings).
+    'Menu_Quit': 3, 'Menu_Save': 10, 'Menu_Settings': 2, 'Menu_Party': 14, 'Menu_Items': 1,
+    'Ui_Binoculars': 297,
 }
 
 

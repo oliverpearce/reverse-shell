@@ -29,7 +29,7 @@ namespace Game.World
 
         const float ScanRadius = 9f, RouteRadius = 6f;
 
-        static bool InStory { get { return !WorldSession.InTraining; } }
+        static bool InStory { get { return !WorldSession.InSandbox; } }
 
         /// <summary>The voice a speaker in the script talks with.</summary>
         public static DialogueVoice VoiceFor(string speaker)
@@ -302,7 +302,7 @@ namespace Game.World
             b.SetCutscene(false);
         }
 
-        /// <summary>"End of Chapter One" over the world (texts from the [endcard] block); Enter / click closes it.</summary>
+        /// <summary>"End of Chapter One" over the world, pointing to Sandbox Mode (texts from the [endcard] block); Enter / click closes it.</summary>
         static void EndCard(RectTransform canvas, System.Action closed)
         {
             var text = StoryText.Texts("endcard");
@@ -318,7 +318,9 @@ namespace Game.World
             sub.rectTransform.Place(center, center, new Vector2(0f, 20f), new Vector2(1400f, 60f));
             var thanks = UIFactory.CreateText(rt, "Thanks", Part(2), 32, InkStyle.PaperDim, TextAnchor.MiddleCenter);
             thanks.rectTransform.Place(center, center, new Vector2(0f, -80f), new Vector2(1400f, 50f));
-            var hint = UIFactory.CreateText(rt, "Hint", Part(3), 28, InkStyle.Paper, TextAnchor.MiddleCenter);
+            var sandbox = UIFactory.CreateText(rt, "Sandbox", Part(3), 32, InkStyle.GoldBright, TextAnchor.MiddleCenter);
+            sandbox.rectTransform.Place(center, center, new Vector2(0f, -150f), new Vector2(1400f, 50f));
+            var hint = UIFactory.CreateText(rt, "Hint", Part(4), 28, InkStyle.Paper, TextAnchor.MiddleCenter);
             hint.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 50f), new Vector2(900f, 44f));
             rt.gameObject.AddComponent<CloseOnConfirm>().closed = () => { Object.Destroy(rt.gameObject); closed(); };
         }

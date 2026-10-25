@@ -1,0 +1,13 @@
+<!--
+  Keeps engine classes that web (WebGL) builds would otherwise strip ("Strip Engine Code").
+  GameObject.CreatePrimitive adds a collider (a cylinder adds a CapsuleCollider) even though WorldArt.Primitive
+  only uses the mesh; without these, the Esc menu logged "class 'CapsuleCollider' doesn't exist".
+-->
+<linker>
+  <assembly fullname="UnityEngine.PhysicsModule">
+    <type fullname="UnityEngine.BoxCollider" preserve="all" />
+    <type fullname="UnityEngine.CapsuleCollider" preserve="all" />
+    <type fullname="UnityEngine.SphereCollider" preserve="all" />
+    <type fullname="UnityEngine.MeshCollider" preserve="all" />
+  </assembly>
+</linker>

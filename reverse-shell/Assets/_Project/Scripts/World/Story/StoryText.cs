@@ -7,7 +7,7 @@ namespace Game.World
     /// <summary>
     /// Every word the game says, kept in plain text files so it can be pasted in from the bible or any document: every
     /// .txt in Resources/Story (Chapter1.txt = the chapter's script, World.txt = everything else: objectives, Access
-    /// Points, chests, battle outcomes, the Training Center). Keys are shared across files. Format (also at the top of
+    /// Points, chests, battle outcomes, the Sandbox). Keys are shared across files. Format (also at the top of
     /// each file):
     ///   # comment
     ///   [key]                      starts a block

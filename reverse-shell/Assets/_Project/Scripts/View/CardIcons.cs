@@ -7,14 +7,15 @@ namespace Combat.View
     /// in Clockwork Raven's "Raven Fantasy Icons"; keep the layout in sync). Six card types (Attack, Debuff, Buff,
     /// Counter, Heal, Ultimate) as white masks, in their own colors and as small intent cards in three ranks (cream I,
     /// silver II, gold III); UI bits (the empty unit-type diamond, Ult pips, a star, a filled diamond, a card back);
-    /// element orbs; and Part / status icons. Sprites are cut from the atlas once and cached.
+    /// element orbs; Part / status icons; and the button icons (Go, close, pause). Sprites are cut from the atlas once
+    /// and cached.
     /// </summary>
     public static class CardIcons
     {
         public enum Type { Attack = 0, Debuff = 1, Buff = 2, Counter = 3, Heal = 4, Ultimate = 5 }
 
-        const int Cell = 128, Cols = 8, Rows = 8;
-        const int RowWhite = 0, RowColored = 1, RowIntent = 2, RowMisc = 5, RowElement = 6, RowExtra = 7;
+        const int Cell = 128, Cols = 8, Rows = 9;
+        const int RowWhite = 0, RowColored = 1, RowIntent = 2, RowMisc = 5, RowElement = 6, RowExtra = 7, RowMore = 8;
 
         static Texture2D atlas;
         static Sprite[,] sprites;
@@ -60,6 +61,11 @@ namespace Combat.View
         public static Sprite Diamond { get { return Get(RowMisc, 4); } }
         public static Sprite CardBack { get { return Get(RowMisc, 5); } }
 
+        /// <summary>Button icons (Raven picks): the Go chevrons, the close X and the pause sign.</summary>
+        public static Sprite GoChevron { get { return Get(RowMore, 2); } }
+        public static Sprite Close { get { return Get(RowMore, 3); } }
+        public static Sprite Pause { get { return Get(RowMore, 4); } }
+
         /// <summary>The element's orb (Volt, Fire, Toxin, Earth, Light, Void), shown beside a unit's bars. The orbs are still the six picked for the old elements (ELEMENT_ICONS in Tools/IconForge/card_icons.py).</summary>
         public static Sprite Element(Afflatus afflatus)
         {
@@ -86,8 +92,8 @@ namespace Combat.View
                 case "Status_PhysicalDefDown": return Get(RowExtra, 5);
                 case "Status_Regen": return Get(RowExtra, 6);
                 case "Status_IncantationMightUp": return Get(RowExtra, 7);
-                case "Status_DefUp": return CardArt.Icon("Status_DefUp");   // drawn by Tools/CardForge
-                case "Status_Stunned": return CardArt.Icon("Status_Stunned");
+                case "Status_DefUp": return Get(RowMore, 0);
+                case "Status_Stunned": return Get(RowMore, 1);
                 default: return null;
             }
         }

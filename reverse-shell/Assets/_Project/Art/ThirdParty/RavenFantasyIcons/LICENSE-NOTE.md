@@ -25,14 +25,17 @@
 | Element orbs (Star, Mineral, Beast, Earth, Spirit, Virus) | fb2129, fb2134, fb2130, fb2132, fb2131, fb2133 |
 | CHIP | fb2115 |
 | CORE | fb2139 |
-| Poison | fb673 |
-| ATK Up | fb641 |
-| ATK Down | fb642 |
-| Physical DEF Down | fb645 |
+| Poison | fb1086 |
+| ATK Up | fb1098 |
+| ATK Down | fb1102 |
+| Physical DEF Down | fb1103 |
+| DEF Up | fb1099 |
+| Stunned | fb1075 |
 | Regen | fb968 |
 | Incantation Might Up | fb877 |
-
-Incantation Might Up has no icon yet.
+| Go button chevrons (turned to point right) | fb649 |
+| Close X | fb656 |
+| Pause sign (drawn by the script in fb647's silvers, fb656's outline) | fb647, fb656 |
 
 ## Card icons
 
@@ -68,3 +71,11 @@ icon, with the cards' 1 px plum outline added. No icon is used twice (cards, car
 | Suppressing Shot | fb1034 |
 | Tail Lash | fb1057 |
 | Thunder Breath | fb832 |
+| Esc menu: Quit | fb3 |
+| Esc menu: Save | fb10 |
+| Esc menu: Settings | fb2 |
+| Esc menu: Party | fb14 |
+| Esc menu: Items | fb1 |
+| Scanner HUD (binoculars slot) | fb297 |
+
+Units, Resonance and the lock keep their CardForge drawings (the user's choice).

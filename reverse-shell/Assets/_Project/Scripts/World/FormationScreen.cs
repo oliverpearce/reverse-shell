@@ -31,6 +31,7 @@ namespace Game.World
         const float StripScale = 0.6f;         // 3x
         const float SlotGap = 30f, BackupGap = 70f, StripGap = 26f;
         const float SlotsY = 170f, StripY = -300f;
+        const float StartRight = 60f, StartBottom = 100f;   // the Start button's corner offset (bottom-right)
         // The Members mat: its left end (bottom-left of the screen), height, inner padding and roll time.
         const float MembersLeft = -840f, MembersH = 300f, MembersPad = 36f, MembersRoll = 0.35f;
 
@@ -160,8 +161,18 @@ namespace Game.World
             BuildSlots();
             BuildStrip();
             BuildButtons();
-            // Bottom-right: who beats whom, always in view (a little smaller before a fight, beside the Start button).
-            if (PreFight) ResonanceChartView.Create(page, new Vector2(215f, -345f), 0.8f);
+            // Who beats whom, always in view. Before a fight it sits right-aligned with the Start button, centred in the
+            // space between the backup note and the top of Start, as large as that space allows (up to 1.1x).
+            if (PreFight)
+            {
+                float half = page.rect.height > 0f ? page.rect.height / 2f : UIFactory.ReferenceResolution.y / 2f;
+                float noteBottom = SlotsY - CardView.Size.y * SlotScale / 2f - 112f - 60f;
+                float startTop = -half + StartBottom + HudView.GoSize.y;
+                float scale = Mathf.Clamp((noteBottom - startTop - 30f) / ResonanceChartView.Size.y, 0.6f, 1.1f);
+                float pageRight = page.rect.width > 0f ? page.rect.width / 2f : UIFactory.ReferenceResolution.x / 2f;
+                float chartX = pageRight - StartRight - ResonanceChartView.Size.x * scale / 2f;
+                ResonanceChartView.Create(page, new Vector2(chartX, (noteBottom + startTop) / 2f), scale);
+            }
             else ResonanceChartView.Create(page, new Vector2(440f, -320f));
 
             string keys = "<color=#C2A061>Drag</color>  Rearrange      <color=#C2A061>← →</color>  Move      <color=#C2A061>↑ ↓</color>  Slots / Members      <color=#C2A061>Enter</color>  Place      "
@@ -478,22 +489,16 @@ namespace Game.World
 
         void BuildButtons()
         {
-            var member = WorldSession.Find(FullRoster, WorldSession.Formation[slot]);
-            if (member != null && WorldSession.CanClear(slot))   // never offered for the last fighter
-            {
-                var remove = InkStyle.Button(page, "Remove", "Remove", RemoveSelected, false, 32);
-                var p = SlotPosition(slot);
-                remove.GetComponent<RectTransform>().Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f),
-                    new Vector2(p.x, p.y - CardView.Size.y * SlotScale / 2f - 120f), new Vector2(200f, 64f));
-            }
+            // No Remove button: Backspace (or dragging a member out) empties a slot.
             if (PreFight)
             {
-                var start = InkStyle.Button(page, "Start", "Start", () => Close(true), true, 56);
-                start.GetComponent<RectTransform>().Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-60f, 100f), new Vector2(340f, 110f));
+                // Exactly the battle's Go button (size, font, chevrons, punch).
+                var start = HudView.GoStyleButton(page, "Start", "Start", () => Close(true));
+                start.GetComponent<RectTransform>().Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-StartRight, StartBottom), HudView.GoSize);
             }
-            // The same drawn X in both modes (top-right): before a fight it backs out of the fight, like Esc.
+            // The same X in both modes (top-right): before a fight it backs out of the fight, like Esc.
             var x = InkStyle.CloseButton(page, () => Close(false));
-            x.GetComponent<RectTransform>().Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-40f, -40f), new Vector2(90f, 90f));
+            x.GetComponent<RectTransform>().Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-40f, -40f), new Vector2(InkStyle.CloseSize, InkStyle.CloseSize));
         }
 
         void Clickable(GameObject go, Action click, Action hover)
@@ -641,7 +646,7 @@ namespace Game.World
                 else { membersOpen = true; inStrip = true; Rebuild(); }
             }
             if (UIKeys.Pressed(KeyCode.Backspace) || UIKeys.Pressed(KeyCode.Delete)) RemoveSelected();
-            if (Input.GetKeyDown(KeyCode.Escape)) Close(false);   // only the Start button starts a fight
+            if (UIKeys.Back) Close(false);   // only the Start button starts a fight
         }
 
         void Move(int step, int count)

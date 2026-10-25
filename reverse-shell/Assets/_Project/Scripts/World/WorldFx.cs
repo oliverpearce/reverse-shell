@@ -107,11 +107,12 @@ namespace Game.World
             main.startSize = new ParticleSystem.MinMaxCurve(0.06f, 0.14f);
             main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
             main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.45f, 0.62f, 0.25f, 0.9f), new Color(0.95f, 0.92f, 0.7f, 0.8f));
-            main.maxParticles = 400;
+            bool fast = Combat.View.GameSettings.FastGraphics;   // fewer leaves with Graphics: Fast
+            main.maxParticles = fast ? 120 : 400;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
 
             var emission = ps.emission;
-            emission.rateOverTime = 28f;
+            emission.rateOverTime = fast ? 12f : 28f;
 
             var shape = ps.shape;
             shape.shapeType = ParticleSystemShapeType.Box;

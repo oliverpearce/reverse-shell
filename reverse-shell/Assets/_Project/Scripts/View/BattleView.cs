@@ -37,6 +37,9 @@ namespace Combat.View
         CanvasGroup handGroup, hudGroup;           // fade out when inspecting
         readonly Dictionary<BattleUnit, UnitView> unitViews = new Dictionary<BattleUnit, UnitView>();
         bool playing;
+        /// <summary>From Go until the next turn starts: the turn is playing out (battle speed applies, no lock-on).</summary>
+        bool turnPlaying;
+        BattleUnit selectedTarget;
 
         public bool IsPaused { get { return pause != null && pause.IsOpen; } }
 
@@ -135,15 +138,31 @@ namespace Combat.View
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (UIKeys.Back && !GuideBook.Blocking)   // the guide (from the pause menu) closes itself
             {
                 if (CardDetailPopup.IsOpen) { }   // the card popup closes itself on Esc
                 else if (inspect != null) inspect.Close();
                 else TogglePause();
             }
+            if (!IsPaused && UIKeys.Pressed(KeyCode.Tab)) pause.CycleSpeed();
             HandleTargetKeys();
             if (!playing && Controller.Events.Count > 0) StartCoroutine(PlayEvents());
             hud.SetInteractable(InputEnabled);
+            // The chosen battle speed only while the turn plays out; planning (and the results) run at 1x.
+            if (!IsPaused) Time.timeScale = turnPlaying ? GameSettings.BattleSpeed : 1f;
+        }
+
+        void SetTurnPlaying(bool on)
+        {
+            turnPlaying = on;
+            RefreshLockOn();
+        }
+
+        /// <summary>The red lock-on shows on the targeted enemy while planning only.</summary>
+        void RefreshLockOn()
+        {
+            foreach (var pair in unitViews)
+                if (pair.Key.Team == Team.Enemy) pair.Value.SetSelected(!turnPlaying && pair.Key == selectedTarget);
         }
 
         // ------------------------------------------------------------------ Pause & inspect
@@ -177,7 +196,7 @@ namespace Combat.View
         public void OpenInspect(UnitView unit)
         {
             if (IsPaused || inspect != null || playing || Controller.Events.Count > 0) return;
-            inspect = UnitInspectView.Open(root, unit, new[] { backdropLayer, Stage }, new[] { handGroup, hudGroup },
+            inspect =UnitInspectView.Open(root, unit, new[] { backdropLayer, Stage }, new[] { handGroup, hudGroup },
                 () => inspect = null);
             pause.transform.SetAsLastSibling();
         }
@@ -289,7 +308,9 @@ namespace Combat.View
 
         public void OnGo()
         {
-            if (InputEnabled) Controller.EndPlanning();
+            if (!InputEnabled) return;
+            Controller.EndPlanning();
+            SetTurnPlaying(true);
         }
 
         /// <summary>Clicking the queue: every queued card goes back to the hand. It unwinds this turn's whole undo stack, so
@@ -329,6 +350,7 @@ namespace Combat.View
             switch (e)
             {
                 case RoundStartedEvent round:
+                    if (turnPlaying) SetTurnPlaying(false);
                     hud.SetRound(round.Round);
                     hud.ShowBanner("Turn " + round.Round, Gold, 0.4f);
                     hud.Log("-- Turn " + round.Round + " --");
@@ -360,8 +382,8 @@ namespace Combat.View
                     if (iv != null) iv.SetIntent(intent.Intent);
                     return null;
                 case TargetSelectedEvent selected:
-                    foreach (var pair in unitViews)
-                        if (pair.Key.Team == Team.Enemy) pair.Value.SetSelected(pair.Key == selected.Target);
+                    selectedTarget = selected.Target;
+                    RefreshLockOn();
                     return null;
                 case CardCastEvent cast:
                     return PlayCast(cast);
@@ -380,6 +402,7 @@ namespace Combat.View
                     hud.Log(log.Message);
                     return null;
                 case BattleEndedEvent ended:
+                    SetTurnPlaying(false);
                     hud.ShowResult(ended.Victory, bootstrap.Result);
                     return null;
             }
@@ -465,11 +488,20 @@ namespace Combat.View
 
             var color = e.Card.IsRitual ? CardView.RitualPastel(e.Caster.Color) : e.Caster.Color;
             string title = e.Card.IsRitual ? "« " + e.Card.Name + " »" : e.Card.Name + " " + UIFactory.Roman(e.Card.Rank);
-            hud.ShowBanner(title, color, e.Card.IsRitual ? 0.9f : 0.5f);
             hud.Log(e.Caster.Name + " uses " + title);
             if (caster != null && e.Caster.Team == Team.Enemy) caster.SetIntent(null);
             ritualHits = e.Card.IsRitual;
-            if (e.Card.IsRitual && caster != null) FxLibrary.PlayAt(FxLayer, BattleFx.UltCharge, caster.Center);
+
+            if (e.Card.IsRitual)
+            {
+                // A Soul Card: its name gets its own title animation while the Ult charges.
+                if (caster != null) FxLibrary.PlayAt(FxLayer, BattleFx.UltCharge, caster.Center);
+                var titleLayer = UIFactory.CreateRect("UltTitle", root).Fill();
+                pause.transform.SetAsLastSibling();
+                yield return StartCoroutine(UltTitle.Play(titleLayer, e.Card.Name, color));
+                Destroy(titleLayer.gameObject);
+            }
+            else hud.ShowBanner(title, color, 0.5f);
             if (caster != null) yield return StartCoroutine(ChannelCard(e.Card, caster, from));
 
             var def = e.Card.Definition;
@@ -522,17 +554,8 @@ namespace Combat.View
             bool anyDebuff = gained.Exists(g => g.Definition.isDebuff), anyBuff = gained.Exists(g => !g.Definition.isDebuff);
             if (anyDebuff) FxLibrary.PlayAt(FxLayer, BattleFx.Debuff, uv.Center);
             if (anyBuff) FxLibrary.PlayAt(FxLayer, BattleFx.Buff, uv.Center);
-            foreach (var g in gained) SpawnDamageNumber(uv, g.Definition.DisplayName, g.Definition.color, 58);
+            foreach (var g in gained) SpawnHeadText(uv, g.Definition.DisplayName, g.Definition.color, 64);
             yield return Tween.Wait(StatusHold);
-        }
-
-        /// <summary>The name of the status dealing a unit's end-of-turn damage (Poison), for the tick's label.</summary>
-        static string TickSource(UnitView uv)
-        {
-            if (uv.Statuses != null)
-                foreach (var s in uv.Statuses)
-                    if (s.Definition != null && s.Definition.damagePerRoundPercentMaxHP > 0f) return s.Definition.DisplayName;
-            return "";
         }
 
         Vector3 AboveHead(UnitView unit)
@@ -611,12 +634,7 @@ namespace Combat.View
             Color color = Color.white;
             int size = 72;
             string text = e.Amount.ToString();
-            if (e.IsTick)
-            {
-                color = TickColor;
-                string source = TickSource(tv);
-                if (source.Length > 0) text = UIFactory.Size(30) + source + "</size>\n" + text;
-            }
+            if (e.IsTick) color = TickColor;   // just the purple number, no status name
             else if (e.Relation == AfflatusRelation.Advantage) color = new Color(1f, 0.85f, 0.35f);
             else if (e.Relation == AfflatusRelation.Disadvantage) color = new Color(0.7f, 0.7f, 0.75f);
             if (e.Crit)
@@ -660,9 +678,23 @@ namespace Combat.View
         /// <summary>Big number that pops in just above the unit's HP bar, holds, then drifts up and fades.</summary>
         public void SpawnDamageNumber(UnitView unit, string text, Color color, int size)
         {
-            int active;
-            activeNumbers.TryGetValue(unit, out active);
-            activeNumbers[unit] = active + 1;
+            SpawnFloatingText(unit, unit.DamageAnchor, activeNumbers, text, color, size, 18f);
+        }
+
+        // Status names showing per unit, stacked the same way.
+        readonly Dictionary<UnitView, int> activeHeadTexts = new Dictionary<UnitView, int>();
+
+        /// <summary>A status name popping in above the unit's head (above an enemy's intent card), then floating away.</summary>
+        public void SpawnHeadText(UnitView unit, string text, Color color, int size)
+        {
+            SpawnFloatingText(unit, unit.HeadAnchor, activeHeadTexts, text, color, size, 0f);
+        }
+
+        void SpawnFloatingText(UnitView unit, Vector3 anchor, Dictionary<UnitView, int> active, string text, Color color, int size, float jitter)
+        {
+            int count;
+            active.TryGetValue(unit, out count);
+            active[unit] = count + 1;
 
             var t = UIFactory.CreateText(FxLayer, "DamageNumber", text, size, color, TextAnchor.LowerCenter, FontStyle.Bold);
             t.supportRichText = true;
@@ -670,15 +702,15 @@ namespace Combat.View
             rt.pivot = new Vector2(0.5f, 0f);
             rt.sizeDelta = new Vector2(420f, 160f);
             float scale = transform.lossyScale.y;
-            rt.position = unit.DamageAnchor + new Vector3(Random.Range(-18f, 18f) * scale, active * 44f * scale, 0f);
+            rt.position = anchor + new Vector3(Random.Range(-jitter, jitter) * scale, count * 44f * scale, 0f);
             var outline = t.gameObject.AddComponent<Outline>();
             outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
             outline.effectDistance = new Vector2(3f, -3f);
             t.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(0f, -5f);
-            StartCoroutine(FloatAway(t, unit));
+            StartCoroutine(FloatAway(t, unit, active));
         }
 
-        IEnumerator FloatAway(Text t, UnitView unit)
+        IEnumerator FloatAway(Text t, UnitView unit, Dictionary<UnitView, int> activeNumbers)
         {
             var rt = t.rectTransform;
             Vector3 from = rt.position;

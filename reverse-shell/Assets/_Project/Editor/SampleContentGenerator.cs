@@ -258,7 +258,7 @@ namespace Combat.EditorTools
         public const string BluePath = Root + "/Characters/Char_Blue.asset";
 
         /// <summary>
-        /// Blue, the blue robot backup who joins in the Training Center: a Light support / tank. Builds the DEF Up
+        /// Blue, the blue robot backup who joins in the Sandbox: a Light support / tank. Builds the DEF Up
         /// status, Blue's cards and character from Art/Characters/Blue (Tools/ChibiForge/knight_model.py), and adds
         /// Blue to the end of Battle_Sample's roster (a 4th member fights as the backup). Safe to run again.
         /// </summary>

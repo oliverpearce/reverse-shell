@@ -114,14 +114,14 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void TrainingMode_LendsElectric_AndUnlocksTheResonanceMenu()
+        public void SandboxMode_LendsElectric_AndUnlocksTheResonanceMenu()
         {
             CardDefinition physical, electric, ult;
             var mc = Protagonist(out physical, out electric, out ult);
             WorldSession.CurrentArea = WorldAreas.City;
             Assert.IsFalse(WorldSession.ResonanceMenuUnlocked);
 
-            WorldSession.CurrentArea = WorldAreas.Training;
+            WorldSession.CurrentArea = WorldAreas.Sandbox;
             Assert.IsTrue(WorldSession.ResonanceMenuUnlocked);
             Assert.AreEqual(new[] { Afflatus.None, Afflatus.Volt }, WorldSession.AvailableResonances(mc).ToArray());
 
@@ -217,23 +217,23 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void TrainingReturnPoint_SurvivesASave()
+        public void SandboxReturnPoint_SurvivesASave()
         {
-            WorldSession.CurrentArea = WorldAreas.Training;
-            WorldSession.HasTrainingReturn = true;
-            WorldSession.TrainingReturnArea = WorldAreas.Tunnel;
-            WorldSession.TrainingReturnPosition = new Vector3(3f, 0f, -7f);
-            WorldSession.TrainingReturnFacing = 2;
+            WorldSession.CurrentArea = WorldAreas.Sandbox;
+            WorldSession.HasSandboxReturn = true;
+            WorldSession.SandboxReturnArea = WorldAreas.Tunnel;
+            WorldSession.SandboxReturnPosition = new Vector3(3f, 0f, -7f);
+            WorldSession.SandboxReturnFacing = 2;
             var json = JsonUtility.ToJson(SaveGame.Capture());
             SaveGame.Restore(null);
-            Assert.IsFalse(WorldSession.HasTrainingReturn);
-            Assert.IsFalse(WorldSession.InTraining);
+            Assert.IsFalse(WorldSession.HasSandboxReturn);
+            Assert.IsFalse(WorldSession.InSandbox);
             SaveGame.Restore(JsonUtility.FromJson<SaveGame.Data>(json));
-            Assert.IsTrue(WorldSession.InTraining);
-            Assert.IsTrue(WorldSession.HasTrainingReturn);
-            Assert.AreEqual(WorldAreas.Tunnel, WorldSession.TrainingReturnArea);
-            Assert.AreEqual(new Vector3(3f, 0f, -7f), WorldSession.TrainingReturnPosition);
-            Assert.AreEqual(2, WorldSession.TrainingReturnFacing);
+            Assert.IsTrue(WorldSession.InSandbox);
+            Assert.IsTrue(WorldSession.HasSandboxReturn);
+            Assert.AreEqual(WorldAreas.Tunnel, WorldSession.SandboxReturnArea);
+            Assert.AreEqual(new Vector3(3f, 0f, -7f), WorldSession.SandboxReturnPosition);
+            Assert.AreEqual(2, WorldSession.SandboxReturnFacing);
         }
 
         [Test]
@@ -266,8 +266,8 @@ namespace Combat.Tests
                 "objective.explore", "objective.scanner", "objective.collector", "objective.scan", "objective.route",
                 "objective.tunnel", "objective.guardian", "objective.card", "objective.leave", "objective.complete",
                 "battle.fled", "battle.lost", "access.rest", "access.respawn", "item.found", "chest.empty",
-                "beacon.none", "beacon.ask", "beacon.options", "beacon.sent", "training.joins", "training.joins.many",
-                "training.trader", "training.scout", "training.wanderer",
+                "beacon.none", "beacon.ask", "beacon.options", "beacon.sent", "sandbox.joins", "sandbox.joins.many",
+                "sandbox.trader", "sandbox.scout", "sandbox.wanderer",
             };
             foreach (var key in keys) Assert.IsTrue(StoryText.Has(key), "Resources/Story is missing [" + key + "]");
             Assert.AreEqual(2, StoryText.Texts("collector.options").Length, "the Collector's question has two answers");

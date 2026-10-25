@@ -76,7 +76,8 @@ namespace Combat.View
         }
     }
 
-    /// <summary>Steps an effect Image through its frames (unscaled time, so it also runs on paused screens), then removes it.</summary>
+    /// <summary>Steps an effect Image through its frames (unscaled time, so it also runs on paused screens, sped up
+    /// with the battle speed), then removes it.</summary>
     public class FxSprite : MonoBehaviour
     {
         Image image;
@@ -94,7 +95,7 @@ namespace Combat.View
         void Update()
         {
             if (frames == null) return;
-            time += Time.unscaledDeltaTime;
+            time += Time.unscaledDeltaTime * Mathf.Max(1f, Time.timeScale);   // keeps up with the battle speed
             int frame = Mathf.FloorToInt(time * FxLibrary.Fps);
             if (frame >= frames.Length)
             {

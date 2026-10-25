@@ -40,6 +40,9 @@ namespace Combat.View
         /// <summary>Where big damage numbers appear: just above the HP bar.</summary>
         public Vector3 DamageAnchor { get { return hpBar.TransformPoint(new Vector3(0f, hpBar.rect.yMax + 38f, 0f)); } }
 
+        /// <summary>Above the head (for enemies, above the intent card): where status names float up.</summary>
+        public Vector3 HeadAnchor { get { var n = nameText.rectTransform; return n.TransformPoint(new Vector3(0f, n.rect.yMin, 0f)); } }
+
         BattleView view;
         CanvasGroup group;
         Image portrait, sprite, flash, intentIcon;
@@ -373,16 +376,16 @@ namespace Combat.View
         const float HpSlant = 9f;
 
         /// <summary>Status icon size under the unit (canvas units).</summary>
-        const float StatusSize = 76f;   // big enough to read the total amount in its corner
+        const float StatusSize = 76f;
 
         public void SetStatuses(List<StatusSnapshot> statuses)
         {
             Statuses = new List<StatusSnapshot>(statuses);
             UIFactory.ClearChildren(statusRow);
 
-            // Big icons with the turns left; hover one for what it does (StatusChip / StatusTooltip).
+            // Big icons, no numbers; hover one for what it does and the turns left (StatusChip / StatusTooltip).
             foreach (var s in statuses)
-                StatusChip.Create(statusRow, s, StatusSize);
+                StatusChip.Create(statusRow, s, StatusSize, false);
         }
 
         /// <summary>Red lock-on: this enemy is the current target.</summary>

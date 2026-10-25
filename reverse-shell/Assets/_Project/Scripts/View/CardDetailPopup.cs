@@ -115,7 +115,7 @@ namespace Combat.View
 
         void Update()
         {
-            if (!closing && Input.GetKeyDown(KeyCode.Escape)) Close();
+            if (!closing && UIKeys.Back) Close();
         }
 
         public void Close()

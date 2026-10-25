@@ -150,9 +150,9 @@ namespace Game.World
         }
 
         // ------------------------------------------------------------------ Materials
-        // Built at runtime from built-in shaders. For player builds, add "Sprites/Diffuse",
-        // "Legacy Shaders/Particles/Additive", "Legacy Shaders/Particles/Alpha Blended" and
-        // "Legacy Shaders/Transparent/Cutout/Diffuse" to Project Settings > Graphics > Always Included Shaders.
+        // Built at runtime from built-in shaders. Player builds need them in Always Included Shaders:
+        // Reverse Shell / Web Build Setup adds them (Editor/World/WebBuildSetup.cs; WebGL builds do it
+        // themselves). Add any new Shader.Find name to its RuntimeShaders list.
 
         static readonly Dictionary<Color, Material> emissive = new Dictionary<Color, Material>();
         static readonly Dictionary<string, Material> cellMaterials = new Dictionary<string, Material>();
@@ -267,15 +267,24 @@ namespace Game.World
             return m;
         }
 
-        /// <summary>Unity primitive without its collider (we use grid collision).</summary>
+        static readonly Dictionary<PrimitiveType, Mesh> primitiveMeshes = new Dictionary<PrimitiveType, Mesh>();
+
+        /// <summary>Unity primitive without a collider (we use grid collision): just its mesh and a renderer. The mesh
+        /// comes from one CreatePrimitive per type (cached), so colliders are never made and thrown away.</summary>
         public static GameObject Primitive(PrimitiveType type, string name, Transform parent, Material material)
         {
-            var go = GameObject.CreatePrimitive(type);
-            go.name = name;
-            var col = go.GetComponent<Collider>();
-            if (col != null) Object.Destroy(col);
+            Mesh mesh;
+            if (!primitiveMeshes.TryGetValue(type, out mesh) || mesh == null)
+            {
+                var source = GameObject.CreatePrimitive(type);
+                mesh = source.GetComponent<MeshFilter>().sharedMesh;
+                Object.Destroy(source);
+                primitiveMeshes[type] = mesh;
+            }
+            var go = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
+            go.GetComponent<MeshFilter>().sharedMesh = mesh;
             go.transform.SetParent(parent, false);
-            var r = go.GetComponent<Renderer>();
+            var r = go.GetComponent<MeshRenderer>();
             r.sharedMaterial = material;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             return go;

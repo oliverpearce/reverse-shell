@@ -163,7 +163,7 @@ namespace Combat.View
 
             if (unit.Level > 0)
             {
-                var lv = UIFactory.CreateText(sheet, "Level", "Level  " + UIFactory.Size(34) + unit.Level + "</size>", 22, Muted, TextAnchor.LowerRight);
+                var lv = UIFactory.CreateText(sheet, "Level", "Level  " + UIFactory.Size(40) + unit.Level + "</size>", 26, Muted, TextAnchor.LowerRight);
                 lv.font = UIFactory.SerifFont;
                 lv.supportRichText = true;
                 lv.raycastTarget = false;
@@ -181,15 +181,15 @@ namespace Combat.View
         static float Health(RectTransform sheet, BattleUnit unit, float y)
         {
             float x = 92f, w = SheetW - 92f;
-            var label = UIFactory.CreateText(sheet, "HP", "HP", 38, TextColor, TextAnchor.MiddleLeft);
+            var label = UIFactory.CreateText(sheet, "HP", "HP", 44, TextColor, TextAnchor.MiddleLeft);
             label.font = UIFactory.SerifFont;
             label.raycastTarget = false;
-            label.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(200f, 48f));
-            var value = UIFactory.CreateText(sheet, "HPValue", unit.HP + " / " + unit.MaxHP, 34, TextColor, TextAnchor.MiddleRight);
+            label.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(200f, 54f));
+            var value = UIFactory.CreateText(sheet, "HPValue", unit.HP + " / " + unit.MaxHP, 42, TextColor, TextAnchor.MiddleRight);
             value.font = UIFactory.SerifFont;
             value.raycastTarget = false;
-            value.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + w - 400f, -y), new Vector2(400f, 48f));
-            y += 52f;
+            value.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + w - 400f, -y), new Vector2(400f, 54f));
+            y += 58f;
             // Slanted like the battle bars (Reverse: 1999 style).
             var bar = UIFactory.CreateRect("HPBar", sheet).Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(w, 10f));
             SlantBar.Create(bar, "Back", new Color(1f, 1f, 1f, 0.12f), 8f);
@@ -202,7 +202,7 @@ namespace Combat.View
         {
             var statuses = unitView.Statuses;
             if (statuses == null || statuses.Count == 0) return y;
-            const float size = 64f;
+            const float size = 92f;
             var row = UIFactory.CreateRect("Statuses", sheet).Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(92f, -y), new Vector2(SheetW - 92f, size));
             var layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.childAlignment = TextAnchor.MiddleLeft;
@@ -211,7 +211,7 @@ namespace Combat.View
             layout.childControlHeight = false;
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
-            foreach (var s in statuses) StatusChip.Create(row, s, size);
+            foreach (var s in statuses) StatusChip.Create(row, s, size, true, 1.2f);
             return y + size + 6f;
         }
 
@@ -221,9 +221,9 @@ namespace Combat.View
             bool hasUlt = unit.Ultimate != null;
             if (!hasUlt || cap <= 0) return y;
             float x = 92f;
-            var label = UIFactory.CreateText(sheet, "Ult", "ULT", 24, Muted, TextAnchor.MiddleLeft);
+            var label = UIFactory.CreateText(sheet, "Ult", "ULT", 28, Muted, TextAnchor.MiddleLeft);
             label.raycastTarget = false;
-            label.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(90f, 30f));
+            label.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(90f, 36f));
             const float pip = 34f, gap = 8f;
             bool full = unit.Moxie >= cap;
             for (int i = 0; i < cap; i++)
@@ -237,11 +237,11 @@ namespace Combat.View
             }
             if (full)
             {
-                var ready = UIFactory.CreateText(sheet, "UltReady", "READY", 20, new Color(1f, 0.55f, 0.2f), TextAnchor.MiddleLeft);
+                var ready = UIFactory.CreateText(sheet, "UltReady", "READY", 24, new Color(1f, 0.55f, 0.2f), TextAnchor.MiddleLeft);
                 ready.raycastTarget = false;
                 ready.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + 100f + cap * (pip + gap), -y), new Vector2(160f, 30f));
             }
-            return y + 40f;
+            return y + 44f;
         }
 
         /// <summary>Six stats as label / value strips in two columns (a +/-% tag when something changes one).</summary>
@@ -255,18 +255,18 @@ namespace Combat.View
                 Stat("CRIT", unit.GetStat(StatType.CritRate), s.critRate, true), Stat("SPEC DEF", unit.GetStat(StatType.SpecialDefense), s.specialDefense, false),
                 Stat("CRIT DMG", unit.GetStat(StatType.CritDamage), s.critDamage, true), Stat("SPELL DMG", spell, 0f, true, true),
             };
-            float x0 = 92f, gap = 12f, cw = (SheetW - 92f - gap) / 2f, ch = 44f;
+            float x0 = 92f, gap = 12f, cw = (SheetW - 92f - gap) / 2f, ch = 54f;
             for (int i = 0; i < rows.Length; i++)
             {
                 int col = i % 2, row = i / 2;
                 var strip = UIFactory.CreateImage(sheet, rows[i].Label, Strip);
                 strip.raycastTarget = false;
                 strip.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x0 + col * (cw + gap), -(y + row * (ch + 8f))), new Vector2(cw, ch));
-                var label = UIFactory.CreateText(strip.transform, "Label", rows[i].Label, 24, Muted, TextAnchor.MiddleLeft);
+                var label = UIFactory.CreateText(strip.transform, "Label", rows[i].Label, 30, Muted, TextAnchor.MiddleLeft);
                 label.font = UIFactory.SerifFont;
                 label.rectTransform.Fill();
                 label.rectTransform.offsetMin = new Vector2(16f, 0f);
-                var value = UIFactory.CreateText(strip.transform, "Value", rows[i].Value, 28, TextColor, TextAnchor.MiddleRight, FontStyle.Bold);
+                var value = UIFactory.CreateText(strip.transform, "Value", rows[i].Value, 36, TextColor, TextAnchor.MiddleRight, FontStyle.Bold);
                 value.supportRichText = true;
                 value.rectTransform.Fill();
                 value.rectTransform.offsetMax = new Vector2(-16f, 0f);
@@ -285,7 +285,7 @@ namespace Combat.View
             if (Mathf.Abs(diff) >= 0.005f)
             {
                 string c = ColorUtility.ToHtmlStringRGB(diff > 0 ? Good : Bad);
-                value = UIFactory.Size(18) + "<color=#" + c + ">" + (diff > 0 ? "+" : "") + Mathf.RoundToInt(diff * 100f) + "%</color></size>  " + value;
+                value = UIFactory.Size(22) + "<color=#" + c + ">" + (diff > 0 ? "+" : "") + Mathf.RoundToInt(diff * 100f) + "%</color></size>  " + value;
             }
             return new StatRow { Label = label, Value = value };
         }

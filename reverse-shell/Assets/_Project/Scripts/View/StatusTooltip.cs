@@ -91,7 +91,9 @@ namespace Combat.View
     /// </summary>
     public static class StatusChip
     {
-        public static RectTransform Create(Transform parent, StatusSnapshot s, float size)
+        /// <param name="numbers">Show the turns left and the total amount (off under units in battle: hover for them).</param>
+        /// <param name="numberScale">Extra size for those numbers (the inspect sheet makes them bigger).</param>
+        public static RectTransform Create(Transform parent, StatusSnapshot s, float size, bool numbers = true, float numberScale = 1f)
         {
             float k = size / 52f;
             var iconSprite = CardIcons.Status(s.Definition);
@@ -112,10 +114,14 @@ namespace Combat.View
                 UIFactory.CreateText(chip, "Label", s.Definition.shortLabel, Mathf.RoundToInt(20f * k), Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).rectTransform.Fill();
                 hit = plate;
             }
-            var turns = UIFactory.CreateText(chip, "Turns", s.Remaining.ToString(), Mathf.RoundToInt(22f * k), InkStyle.Paper, TextAnchor.LowerRight, FontStyle.Bold);
-            turns.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
-            turns.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(6f, -6f) * k, new Vector2(60f, 28f) * k);
-            AddAmount(chip, s.Definition, s.Stacks, k);
+            if (numbers)
+            {
+                float n = k * numberScale;
+                var turns = UIFactory.CreateText(chip, "Turns", s.Remaining.ToString(), Mathf.RoundToInt(22f * n), InkStyle.Paper, TextAnchor.LowerRight, FontStyle.Bold);
+                turns.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
+                turns.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(6f, -6f) * k, new Vector2(60f, 28f) * n);
+                AddAmount(chip, s.Definition, s.Stacks, n);
+            }
             StatusTooltip.Attach(hit.gameObject, s);
             return chip;
         }

@@ -15,7 +15,7 @@ namespace Game.World
     ///   A  access point (heals the party, solid)      R  summon beacon (respawns beaten machines, solid)
     ///   W  warp square (walkable; interact to travel to another area, see WorldAreas)
     ///   G  rune stone (solid; interact to read it)
-    ///   C  training chest (solid; sets the practice fights' enemy level, Training Center)
+    ///   C  sandbox chest (solid; sets the practice fights' enemy level, Sandbox)
     ///   c  loot chest (solid; one Part each, WorldAreas.Area.Chests)
     ///   Chapter One story tiles (ChapterOneDirector): K procedure pod, 1-3 memory fragments, 4-7 records, O the
     ///   scanner, U the Soul Card pedestal (all solid props); Z story trigger, : trace (walkable);

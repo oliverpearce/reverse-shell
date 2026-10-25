@@ -22,7 +22,7 @@ namespace Combat.View
         /// <summary>How far the hovered card's neighbours lean aside (canvas units, halving per card).</summary>
         const float HoverPush = 70f;
         /// <summary>Room kept clear on the left edge and for the Go button on the right (canvas units).</summary>
-        const float LeftMargin = 24f, RightReserve = 300f;
+        const float LeftMargin = 24f, RightReserve = 340f;
 
         CardView hoveredCard;
 

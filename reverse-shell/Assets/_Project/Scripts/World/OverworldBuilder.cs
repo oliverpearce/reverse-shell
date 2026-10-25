@@ -14,9 +14,9 @@ namespace Game.World
     /// </summary>
     public class OverworldBuilder : MonoBehaviour
     {
-        /// <summary>The Training Center map (the original Mossline Station test level). Areas live in
+        /// <summary>The Sandbox map (the original Mossline Station test level). Areas live in
         /// <see cref="WorldAreas"/>; with useDefaultMap on (the default) the current area's map is built.</summary>
-        public const string DefaultMap = WorldAreas.TrainingMap;
+        public const string DefaultMap = WorldAreas.SandboxMap;
 
         [Header("Area")]
         [Tooltip("Shown on arrival; replaced at runtime by the current area's name (WorldAreas).")]
@@ -125,6 +125,7 @@ namespace Game.World
         }
 
         PlayerController player;
+        int? titleCullingMask;   // the camera's mask while the title screen hides the world
         Camera cam;
         readonly List<Interactable> interactables = new List<Interactable>();
         Interactable focused;
@@ -151,14 +152,14 @@ namespace Game.World
             // Nothing tall just south of a walkable square, where it would hide the player (OverworldMap.ApplyCameraRule).
             var follow = cam != null ? cam.GetComponent<OverworldCamera>() : null;
             Map.ApplyCameraRule(follow != null ? follow.pitch : 38f);
-            // The Training Center brings the whole crew in (a new game is just MC until then).
-            if (area.Id == WorldAreas.Training && encounterSetup != null)
+            // The Sandbox brings the whole crew in (a new game is just MC until then).
+            if (area.Id == WorldAreas.Sandbox && encounterSetup != null)
             {
                 var joined = WorldSession.RecruitAll(encounterSetup.party);
                 if (joined.Count > 0)
                 {
                     SaveGame.Save();
-                    string key = joined.Count == 1 ? "training.joins" : "training.joins.many";
+                    string key = joined.Count == 1 ? "sandbox.joins" : "sandbox.joins.many";
                     WorldSession.PendingSpeaker = StoryText.Speaker(key);
                     WorldSession.PendingMessage = StoryText.Text(key, "who", string.Join(" and ", joined.ToArray()));
                 }
@@ -198,7 +199,20 @@ namespace Game.World
             scannerHud = ScannerHud.Create((RectTransform)UI.transform);
             scannerHud.transform.SetSiblingIndex(0);   // under every menu
             // The first area of the session opens under the title screen (New Game / Continue / Load ...).
-            if (!WorldSession.TitleDone) title = TitleScreen.Create((RectTransform)UI.transform, Party);
+            if (!WorldSession.TitleDone)
+            {
+                title = TitleScreen.Create((RectTransform)UI.transform, Party);
+                // The title's ink wash covers the world, so don't draw it meanwhile (the camera only clears).
+                if (cam != null)
+                {
+                    titleCullingMask = cam.cullingMask;
+                    cam.cullingMask = 0;
+                }
+            }
+            // Only what's near the player is drawn (the map chunks, props, characters, effects).
+            var culling = gameObject.AddComponent<NearbyCulling>();
+            culling.Center = () => player != null ? player.transform.position : transform.position;
+            culling.Keep = player != null ? player.transform : null;
             RefreshPartyHud();
             ChapterOneDirector.OnAreaBuilt(this);
             StoryState.Changed += OnStoryChanged;
@@ -217,10 +231,10 @@ namespace Game.World
             RefreshObjective();
         }
 
-        /// <summary>The objective on the HUD (none in the Training Center).</summary>
+        /// <summary>The objective on the HUD (none in the Sandbox).</summary>
         public void RefreshObjective()
         {
-            if (UI != null) UI.SetObjective(area != null && area.Id == WorldAreas.Training ? "" : Chapter1.CurrentObjective());
+            if (UI != null) UI.SetObjective(area != null && area.Id == WorldAreas.Sandbox ? "" : Chapter1.CurrentObjective());
         }
 
         // ------------------------------------------------------------------ Story hooks (ChapterOneDirector)
@@ -314,7 +328,7 @@ namespace Game.World
             {
                 cam.clearFlags = CameraClearFlags.SolidColor;
                 cam.backgroundColor = haze;
-                cam.allowHDR = true;
+                GameSettings.ApplyGraphics(cam);   // HDR only with Graphics: Pretty
             }
 
             var sun = new GameObject("Sun").AddComponent<Light>();
@@ -347,7 +361,7 @@ namespace Game.World
             {
                 cam.clearFlags = CameraClearFlags.SolidColor;
                 cam.backgroundColor = haze;
-                cam.allowHDR = true;
+                GameSettings.ApplyGraphics(cam);   // HDR only with Graphics: Pretty
             }
             var shaft = new GameObject("Daylight").AddComponent<Light>();
             shaft.transform.SetParent(transform, false);
@@ -360,6 +374,9 @@ namespace Game.World
             shaft.cookieSize = 14f;
         }
 
+        /// <summary>The world mesh is built in chunks this many cells square.</summary>
+        const int MeshChunk = 6;
+
         void BuildGeometry()
         {
             if (tileAtlas == null)
@@ -367,14 +384,20 @@ namespace Game.World
                 Debug.LogError("OverworldBuilder: assign the ruins tile atlas (Art/Tiles/ruins.png).", this);
                 return;
             }
+            // The map in square chunks, so the ones far from the player aren't drawn (NearbyCulling).
             var vines = new List<DecalSpot>();
-            var go = new GameObject("WorldMesh");
-            go.transform.SetParent(transform, false);
-            go.AddComponent<MeshFilter>().sharedMesh = WorldMeshBuilder.Build(Map, tileAtlas, vines);
-            var renderer = go.AddComponent<MeshRenderer>();
-            renderer.sharedMaterials = new[] { WorldArt.WorldMaterial(tileAtlas, 0.08f), WorldArt.WorldMaterial(tileAtlas, 0.05f) };
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-            renderer.receiveShadows = true;
+            var materials = new[] { WorldArt.WorldMaterial(tileAtlas, 0.08f), WorldArt.WorldMaterial(tileAtlas, 0.05f) };
+            for (int row = 0; row < Map.Height; row += MeshChunk)
+                for (int x = 0; x < Map.Width; x += MeshChunk)
+                {
+                    var go = new GameObject("WorldMesh " + x + "," + row);
+                    go.transform.SetParent(transform, false);
+                    go.AddComponent<MeshFilter>().sharedMesh = WorldMeshBuilder.Build(Map, tileAtlas, vines, new RectInt(x, row, MeshChunk, MeshChunk));
+                    var renderer = go.AddComponent<MeshRenderer>();
+                    renderer.sharedMaterials = materials;
+                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                    renderer.receiveShadows = true;
+                }
 
             foreach (var vine in vines) WorldFx.Vine(transform, tileAtlas, vine);
         }
@@ -459,8 +482,8 @@ namespace Game.World
             return Map.CellCenter(cell.x, cell.y);
         }
 
-        /// <summary>The Training Center chest: set the practice fights' enemy level and boss mode.</summary>
-        public void OpenTrainingChest()
+        /// <summary>The Sandbox chest: set the practice fights' enemy level and boss mode.</summary>
+        public void OpenSandboxChest()
         {
             UI.HidePrompt();
             chestPanel.Open();
@@ -502,30 +525,30 @@ namespace Game.World
             Reload();
         }
 
-        /// <summary>Settings → Enter Training Mode: remember this spot, then go to the Training Center's start.</summary>
-        public void EnterTraining()
+        /// <summary>Settings → Enter Sandbox Mode: remember this spot, then go to the Sandbox's start.</summary>
+        public void EnterSandbox()
         {
-            if (WorldSession.InTraining || player == null || !BeginTransition()) return;
-            WorldSession.HasTrainingReturn = true;
-            WorldSession.TrainingReturnArea = area.Id;
-            WorldSession.TrainingReturnPosition = player.transform.position;
-            WorldSession.TrainingReturnFacing = player.Sprite.Facing;
-            WorldSession.CurrentArea = WorldAreas.Training;
+            if (WorldSession.InSandbox || player == null || !BeginTransition()) return;
+            WorldSession.HasSandboxReturn = true;
+            WorldSession.SandboxReturnArea = area.Id;
+            WorldSession.SandboxReturnPosition = player.transform.position;
+            WorldSession.SandboxReturnFacing = player.Sprite.Facing;
+            WorldSession.CurrentArea = WorldAreas.Sandbox;
             WorldSession.ArrivedFrom = null;
             WorldSession.HasReturnPoint = false;
             Reload();
         }
 
-        /// <summary>Settings → Leave Training Mode: back to the spot you entered from (the city's start if unknown).</summary>
-        public void LeaveTraining()
+        /// <summary>Settings → Leave Sandbox Mode: back to the spot you entered from (the city's start if unknown).</summary>
+        public void LeaveSandbox()
         {
-            if (!WorldSession.InTraining || !BeginTransition()) return;
-            WorldSession.CurrentArea = WorldSession.HasTrainingReturn ? WorldSession.TrainingReturnArea : WorldAreas.City;
+            if (!WorldSession.InSandbox || !BeginTransition()) return;
+            WorldSession.CurrentArea = WorldSession.HasSandboxReturn ? WorldSession.SandboxReturnArea : WorldAreas.City;
             WorldSession.ArrivedFrom = null;
-            WorldSession.HasReturnPoint = WorldSession.HasTrainingReturn;
-            WorldSession.ReturnPosition = WorldSession.TrainingReturnPosition;
-            WorldSession.ReturnFacing = WorldSession.TrainingReturnFacing;
-            WorldSession.HasTrainingReturn = false;
+            WorldSession.HasReturnPoint = WorldSession.HasSandboxReturn;
+            WorldSession.ReturnPosition = WorldSession.SandboxReturnPosition;
+            WorldSession.ReturnFacing = WorldSession.SandboxReturnFacing;
+            WorldSession.HasSandboxReturn = false;
             Reload();
         }
 
@@ -589,11 +612,11 @@ namespace Game.World
             var cast = new[]
             {
                 // Gruff, low and unhurried.
-                Npc(1, 0, "training.trader", new DialogueVoice(0.72f, 0.85f, new Color(0.72f, 0.45f, 0.24f))),
+                Npc(1, 0, "sandbox.trader", new DialogueVoice(0.72f, 0.85f, new Color(0.72f, 0.45f, 0.24f))),
                 // Young, quick and a little starstruck.
-                Npc(1, 1, "training.scout", new DialogueVoice(1.35f, 1.5f, new Color(0.3f, 0.65f, 1f))),
+                Npc(1, 1, "sandbox.scout", new DialogueVoice(1.35f, 1.5f, new Color(0.3f, 0.65f, 1f))),
                 // Dreamy and slow, with long pauses.
-                Npc(2, 2, "training.wanderer", new DialogueVoice(1.05f, 0.6f, new Color(0.5f, 0.75f, 0.45f))),
+                Npc(2, 2, "sandbox.wanderer", new DialogueVoice(1.05f, 0.6f, new Color(0.5f, 0.75f, 0.45f))),
             };
 
             // An area can bring its own people (WorldAreas.Area.Npcs); otherwise the old Mossline cast.
@@ -660,13 +683,13 @@ namespace Game.World
             }
         }
 
-        /// <summary>Encounter ids are per area. The Training Center keeps the old scene-only prefix so older saves still match.</summary>
+        /// <summary>Encounter ids are per area. The Sandbox keeps the old scene-only prefix so older saves still match.</summary>
         string EncounterPrefix
         {
             get
             {
                 string scene = SceneManager.GetActiveScene().name;
-                return (area == null || area.Id == WorldAreas.Training ? scene : scene + "/" + area.Id) + "/encounter_";
+                return (area == null || area.Id == WorldAreas.Sandbox ? scene : scene + "/" + area.Id) + "/encounter_";
             }
         }
 
@@ -863,6 +886,11 @@ namespace Game.World
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
                 return;
             }
+            if (titleCullingMask.HasValue && (title == null || !title.IsOpen) && cam != null)
+            {
+                cam.cullingMask = titleCullingMask.Value;
+                titleCullingMask = null;
+            }
             if (player == null || UI == null) return;
             if (drift != null) drift.position = player.transform.position + new Vector3(0f, 7f, 3f);
             // Where you are, for the save (Continue puts you back here).
@@ -888,7 +916,7 @@ namespace Game.World
                 return;
             }
             // Esc: the card menu (Quit / Save / Resume / Party).
-            if (Input.GetKeyDown(KeyCode.Escape) && menu != null && menu.LastToggleFrame != Time.frameCount
+            if (UIKeys.Back && menu != null && menu.LastToggleFrame != Time.frameCount
                 && pauseCards != null && pauseCards.LastToggleFrame != Time.frameCount
                 && chestPanel != null && chestPanel.LastToggleFrame != Time.frameCount
                 && formation != null && formation.LastToggleFrame != Time.frameCount
@@ -1010,7 +1038,7 @@ namespace Game.World
 
         /// <summary>
         /// The fight an encounter starts, as the battle will run it: the formation's active members and backup, no more
-        /// machines than active members, and (in the Training Center) the chest's level and boss mode.
+        /// machines than active members, and (in the Sandbox) the chest's level and boss mode.
         /// </summary>
         public BattleSetup BuildSetup(EncounterInteractable encounter)
         {
@@ -1038,11 +1066,11 @@ namespace Game.World
             // No more machines than active members: MC alone (a new game) faces one, the full crew faces them all.
             if (setup.party.Count > 0 && setup.enemies.Count > setup.party.Count)
                 setup.enemies = setup.enemies.GetRange(0, setup.party.Count);
-            // Training Center fights use the chest's level; a boss fight is one big machine.
-            if (area != null && area.Id == WorldAreas.Training)
+            // Sandbox fights use the chest's level; a boss fight is one big machine.
+            if (area != null && area.Id == WorldAreas.Sandbox)
             {
-                setup.enemyLevel = WorldSession.TrainingEnemyLevel;
-                setup.boss = WorldSession.TrainingBoss;
+                setup.enemyLevel = WorldSession.SandboxEnemyLevel;
+                setup.boss = WorldSession.SandboxBoss;
                 if (setup.boss && setup.enemies.Count > 1) setup.enemies = setup.enemies.GetRange(0, 1);
             }
             return setup;

@@ -107,6 +107,29 @@ namespace Game.World
                    + "  ·  " + summary.Saved.ToString("d MMM, HH:mm") + "</size>";
         }
 
+        /// <summary>
+        /// A save slot as a tall row on the Save page: the heading ("Slot 2 (current)"), the detail lines (the leader's
+        /// name big with the level in gold, then the area) and the save time for the corner. An empty slot's detail
+        /// just says so.
+        /// </summary>
+        public static void SlotCard(int slot, bool markCurrent, out string heading, out string detail, out string corner)
+        {
+            var summary = Peek(slot);
+            heading = "Slot " + slot + (markCurrent && slot == Slot ? "  <color=#C2A061>(current)</color>" : "");
+            if (summary == null)
+            {
+                detail = "<color=#8A857A>Empty</color>";
+                corner = "";
+                return;
+            }
+            string who = summary.Leader;
+            if (who == WorldSession.StartingMember && !string.IsNullOrEmpty(summary.PlayerName)) who = summary.PlayerName;
+            else if (who != null && who.StartsWith("Char_")) who = who.Substring(5);
+            detail = Combat.View.UIFactory.Size(48) + who + "</size>    <color=#C2A061>Lv " + summary.Level + "</color>\n"
+                     + "<color=#B8B1A3>" + summary.AreaName + "</color>";
+            corner = summary.Saved.ToString("d MMM, HH:mm");
+        }
+
         /// <summary>The most recently written slot, or 0 when there are none.</summary>
         public static int LatestSlot()
         {
@@ -149,14 +172,14 @@ namespace Game.World
             public List<string> resonances = new List<string>();
             public string activeResonance = "";
             public string playerName = "";
-            /// <summary>The Training Center chest (0 in older saves = the default level).</summary>
-            public int trainingLevel;
-            public bool trainingBoss;
-            /// <summary>Where Leave Training Mode returns to (set when you enter the Training Center from Settings).</summary>
-            public bool hasTrainingReturn;
-            public string trainingReturnArea;
-            public Vector3 trainingReturnPosition;
-            public int trainingReturnFacing;
+            /// <summary>The Sandbox chest (0 in older saves = the default level).</summary>
+            public int sandboxLevel;
+            public bool sandboxBoss;
+            /// <summary>Where Leave Sandbox Mode returns to (set when you enter the Sandbox from Settings).</summary>
+            public bool hasSandboxReturn;
+            public string sandboxReturnArea;
+            public Vector3 sandboxReturnPosition;
+            public int sandboxReturnFacing;
             /// <summary>Where you were when this was saved, and the last Access Point you rested at (empty area = none).</summary>
             public WorldSession.Spot position;
             public WorldSession.Spot accessPoint;
@@ -183,6 +206,15 @@ namespace Game.World
             return id != null && Renamed.TryGetValue(id, out renamed) ? renamed : id;
         }
 
+        /// <summary>The Training Center was renamed the Sandbox: older saves name its old area id.</summary>
+        static void MigrateAreas(Data data)
+        {
+            data.area = WorldAreas.Migrate(data.area);
+            data.sandboxReturnArea = WorldAreas.Migrate(data.sandboxReturnArea);
+            if (data.position != null) data.position.area = WorldAreas.Migrate(data.position.area);
+            if (data.accessPoint != null) data.accessPoint.area = WorldAreas.Migrate(data.accessPoint.area);
+        }
+
         [Serializable]
         public class Member
         {
@@ -207,12 +239,12 @@ namespace Game.World
             foreach (var r in WorldSession.UnlockedResonances) data.resonances.Add(r.ToString());
             data.activeResonance = WorldSession.ActiveResonance.ToString();
             data.playerName = StoryState.PlayerName ?? "";
-            data.trainingLevel = WorldSession.TrainingEnemyLevel;
-            data.trainingBoss = WorldSession.TrainingBoss;
-            data.hasTrainingReturn = WorldSession.HasTrainingReturn;
-            data.trainingReturnArea = WorldSession.TrainingReturnArea ?? "";
-            data.trainingReturnPosition = WorldSession.TrainingReturnPosition;
-            data.trainingReturnFacing = WorldSession.TrainingReturnFacing;
+            data.sandboxLevel = WorldSession.SandboxEnemyLevel;
+            data.sandboxBoss = WorldSession.SandboxBoss;
+            data.hasSandboxReturn = WorldSession.HasSandboxReturn;
+            data.sandboxReturnArea = WorldSession.SandboxReturnArea ?? "";
+            data.sandboxReturnPosition = WorldSession.SandboxReturnPosition;
+            data.sandboxReturnFacing = WorldSession.SandboxReturnFacing;
             data.position = WorldSession.PlayerSpot != null ? WorldSession.PlayerSpot.Clone() : null;
             data.accessPoint = WorldSession.LastAccessPoint != null ? WorldSession.LastAccessPoint.Clone() : null;
             return data;
@@ -229,6 +261,7 @@ namespace Game.World
             StoryState.Clear();
             WorldSession.UnlockedResonances.Clear();
             WorldSession.ActiveResonance = Combat.Afflatus.None;
+            if (data != null) MigrateAreas(data);
             if (data != null && data.resonances != null)
                 foreach (var r in data.resonances)
                 {
@@ -242,12 +275,12 @@ namespace Game.World
             if (data != null && !string.IsNullOrEmpty(data.playerName)) StoryState.SetName(data.playerName);
             for (int i = 0; i < WorldSession.FormationSlots; i++)
                 WorldSession.Formation[i] = data != null && data.formation != null && i < data.formation.Count ? Migrate(data.formation[i] ?? "") : "";
-            WorldSession.TrainingEnemyLevel = data != null && data.trainingLevel > 0 ? data.trainingLevel : Combat.BattleUnit.DefaultEnemyLevel;
-            WorldSession.TrainingBoss = data != null && data.trainingBoss;
-            WorldSession.HasTrainingReturn = data != null && data.hasTrainingReturn;
-            WorldSession.TrainingReturnArea = data != null && !string.IsNullOrEmpty(data.trainingReturnArea) ? data.trainingReturnArea : WorldAreas.City;
-            WorldSession.TrainingReturnPosition = data != null ? data.trainingReturnPosition : Vector3.zero;
-            WorldSession.TrainingReturnFacing = data != null ? data.trainingReturnFacing : 0;
+            WorldSession.SandboxEnemyLevel = data != null && data.sandboxLevel > 0 ? data.sandboxLevel : Combat.BattleUnit.DefaultEnemyLevel;
+            WorldSession.SandboxBoss = data != null && data.sandboxBoss;
+            WorldSession.HasSandboxReturn = data != null && data.hasSandboxReturn;
+            WorldSession.SandboxReturnArea = data != null && !string.IsNullOrEmpty(data.sandboxReturnArea) ? data.sandboxReturnArea : WorldAreas.City;
+            WorldSession.SandboxReturnPosition = data != null ? data.sandboxReturnPosition : Vector3.zero;
+            WorldSession.SandboxReturnFacing = data != null ? data.sandboxReturnFacing : 0;
             WorldSession.CurrentArea = data != null && !string.IsNullOrEmpty(data.area) ? data.area : WorldAreas.City;
             WorldSession.LastAccessPoint = data != null && data.accessPoint != null && !string.IsNullOrEmpty(data.accessPoint.area)
                 ? data.accessPoint.Clone() : null;
@@ -274,6 +307,7 @@ namespace Game.World
             try
             {
                 File.WriteAllText(FilePath, JsonUtility.ToJson(Capture(), true));
+                WebSync.Flush();
             }
             catch (Exception e)
             {
@@ -302,6 +336,7 @@ namespace Game.World
         public static void Delete()
         {
             if (File.Exists(FilePath)) File.Delete(FilePath);
+            WebSync.Flush();
         }
 
         /// <summary>Deletes every slot (Tools > Overworld > Delete Save Data).</summary>
@@ -309,6 +344,7 @@ namespace Game.World
         {
             for (int i = 1; i <= SlotCount; i++)
                 if (File.Exists(SlotPath(i))) File.Delete(SlotPath(i));
+            WebSync.Flush();
         }
     }
 }

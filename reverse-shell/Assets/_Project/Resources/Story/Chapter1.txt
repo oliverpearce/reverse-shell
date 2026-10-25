@@ -186,9 +186,10 @@ Scanner | {gray}SIGNATURE MATCH.{/c}
 The readout lays a second signature over your own.{p} They match.{p} {slow}And it is moving.{/slow}
 {name} | {slow}...Who are you?{/slow}
 
-# The end card: title, subtitle, thank-you line, then the hint at the bottom.
+# The end card: title, subtitle, thank-you line, the Sandbox Mode line, then the hint at the bottom.
 [endcard]
 End of Chapter One
 The Overgrown City
 Thank you for playing the Reverse Shell demo.
+That's it for now, but please explore Sandbox Mode!  (Esc, then Settings)
 Enter  continue exploring

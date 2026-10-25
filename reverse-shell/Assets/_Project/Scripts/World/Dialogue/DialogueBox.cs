@@ -239,7 +239,7 @@ namespace Game.World
                 choiceIndex = (choiceIndex - 1 + choices.Length) % choices.Length;
             if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
                 choiceIndex = (choiceIndex + 1) % choices.Length;
-            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Backspace))
+            if (UIKeys.Back || Input.GetKeyDown(KeyCode.Backspace))
             {
                 choiceIndex = choices.Length - 1;
                 Advance();

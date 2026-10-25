@@ -1,0 +1,125 @@
+# REVERSE SHELL — the Tutorials: Settings → Tutorials, on the title screen, in the Esc menu and in the battle pause menu.
+#
+#   [controls] Topic      a topic on the Controls tab (the list on the left, in order)
+#   [battle] Topic        a topic on the Battle tab
+#   text                  the lines under it, shown as written (blank lines too)
+#   # anything            a comment, ignored
+# Colours: {gold} {red} {gray} {green} {cyan} {c=#RRGGBB} ... {/c}
+#
+# Fitting: the text is the normal size (40). At 4:3 a topic fits about 11 lines of about 40 letters, blank lines
+# included. Keep topics that short (split a long one in two); the list on the left fits about 10 topics per tab.
+
+# ------------------------------------------------------------------ Controls tab
+
+[controls] Exploring
+{gold}WASD / arrows{/c}   walk
+{gold}Shift{/c} (hold)   run
+{gold}F{/c}   talk, open, interact
+{gold}Q{/c}   scan (with the scanner)
+{gold}Esc{/c} or {gold}P{/c}   menu
+
+{gray}In browser fullscreen, Esc leaves fullscreen: use P.{/c}
+
+[controls] Menus
+{gold}Mouse{/c}   hover and click
+{gold}Arrows / WASD{/c}   move
+{gold}Enter{/c}, {gold}Space{/c} or {gold}F{/c}   choose
+{gold}Esc / P{/c} or {gold}Backspace{/c}   back
+
+{gray}Settings → Input: Mouse, Keyboard or Both.{/c}
+{gray}Settings → Graphics: Fast runs cooler.{/c}
+
+[controls] Battle: cards
+{gold}Click{/c} a card   play it (1 AP)
+{gold}Drag{/c} a card   move it (1 AP)
+{gold}Hold{/c} a card   read it
+{gold}Click the queue{/c}   undo the turn
+{gold}Go{/c} or {gold}Enter{/c}   play the turn
+{gold}Tab{/c}   battle speed
+{gold}Esc / P{/c}   pause
+
+[controls] Battle: units
+{gold}Click{/c} an enemy   target it
+{gold}Hold{/c} a unit   inspect it
+{gold}← →{/c}   ring the next unit
+{gold}↑ ↓{/c}   ring the other side
+{gold}Enter{/c}   target the ringed enemy
+{gold}Space{/c}   inspect the ringed unit
+
+# ------------------------------------------------------------------ Battle tab
+
+[battle] Your turn
+Each turn: {gold}plan{/c}, then press {gold}Go{/c}.
+
+You get {gold}1 AP{/c} per fighter standing ({gold}3{/c} with a full party).
+
+Each card played costs {gold}1 AP{/c} and waits in the {gold}queue{/c} at the top.
+
+{gold}Click the queue{/c} to take the whole turn back.
+
+[battle] Cards
+Your hand holds {gold}AP + 4{/c} cards and refills every turn.
+
+A card's colour shows whose it is. Its top-right icon shows what it does: {gold}Attack{/c}, {gold}Buff{/c}, {gold}Debuff{/c}, {gold}Heal{/c} or {gold}Counter{/c}.
+
+{gold}Hold{/c} a card to read it. Hover one to see who it hits.
+
+[battle] Merging
+Two {gold}identical{/c} cards side by side merge into one card a {gold}rank higher{/c} (top: {gold}III{/c}).
+
+Merges happen by themselves when cards are drawn or played.
+
+{gold}Drag{/c} a card to line one up ({gold}1 AP{/c}). Playing the card in between is free.
+
+Each merge: {gold}+1 Ult{/c} for its owner.
+
+[battle] Ult
+Each fighter has {gold}5 Ult pips{/c} under their HP bar.
+
+{gold}+1{/c} per card of theirs played, {gold}+1{/c} per merge.
+
+Full pips: their {gold}Ult card{/c} joins your hand ({gold}1 AP{/c}).
+
+Ult resets after every battle. Enemies have Ult too.
+
+[battle] Targets
+{gold}Click an enemy{/c} to target it (the red lock-on). Single-target cards hit your target.
+
+The small card above an enemy is its {gold}intent{/c}: its move this turn.
+
+[battle] Resonance
+Some resonances (elements) beat others:
+
+{gold}Electric{/c} > {gold}Fire{/c} > {gold}Toxin{/c}
+> {gold}Earth{/c} > {gold}Electric{/c}
+{gold}Light{/c} and {gold}Void{/c} beat each other.
+{gold}Physical{/c} is always neutral.
+
+Advantage: {green}+30% damage, +15% crit{/c}
+Disadvantage: {red}-20% damage{/c}
+
+[battle] Statuses
+The icons under a unit are its {gold}statuses{/c}.
+
+The corner number is the total of all stacks.
+
+{gold}Hover{/c} one for its name, what it does and the turns left.
+
+[battle] Inspect
+{gold}Hold{/c} a unit (or ring it and press {gold}Space{/c}) to see its HP, stats, resonance and cards.
+
+Check enemy cards before a big fight.
+
+A click, {gold}Space{/c} or {gold}Esc{/c} closes it.
+
+[battle] Party and backup
+Up to {gold}3{/c} fight. A {gold}4th{/c} waits as {gold}backup{/c} and steps in when one falls.
+
+Fewer fighters: less AP, smaller hand.
+
+Everyone down: you wake at the last {gold}Access Point{/c}. Rest there to heal.
+
+[battle] Speed and pause
+{gold}Tab{/c}: turn speed {gold}1x{/c} / {gold}2x{/c} / {gold}4x{/c}.
+
+{gold}Esc{/c} or {gold}P{/c}: pause, with Settings (and these tutorials), Restart Fight and Leave Fight.

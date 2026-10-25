@@ -39,7 +39,7 @@ namespace Combat.Tests
                 foreach (var warp in area.Warps)
                 {
                     Assert.Greater(map.FindAll(warp.Key).Count, 0, area.Id + ": warp tile " + warp.Key + " is on the map");
-                    if (area.Id == WorldAreas.Training) continue;   // the debug area is one-way
+                    if (area.Id == WorldAreas.Sandbox) continue;   // the debug area is one-way
                     var to = WorldAreas.Get(warp.Value);
                     Assert.IsTrue(to.Warps.ContainsValue(area.Id), area.Id + " -> " + warp.Value + ": a warp leads back");
                 }

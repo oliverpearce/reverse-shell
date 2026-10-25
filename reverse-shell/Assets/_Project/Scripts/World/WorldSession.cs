@@ -22,7 +22,7 @@ namespace Game.World
         public static readonly List<string> PartyOrder = new List<string>();
 
         /// <summary>
-        /// Who is in the party (asset names). A new game starts with just MC; entering the Training Center recruits the
+        /// Who is in the party (asset names). A new game starts with just MC; entering the Sandbox recruits the
         /// rest (<see cref="RecruitAll"/>). Empty = everyone (saves from before recruiting existed).
         /// </summary>
         public static readonly HashSet<string> Members = new HashSet<string>();
@@ -38,7 +38,7 @@ namespace Game.World
             return list;
         }
 
-        /// <summary>Adds everyone in <paramref name="roster"/> to the party (the Training Center does this), filling
+        /// <summary>Adds everyone in <paramref name="roster"/> to the party (the Sandbox does this), filling
         /// empty formation slots with them. Returns the names of those who weren't in it yet.</summary>
         public static List<string> RecruitAll(IList<CharacterDefinition> roster)
         {
@@ -186,9 +186,9 @@ namespace Game.World
         /// <summary>Which overworld area (<see cref="WorldAreas"/>) the scene builds. Saved; a new game starts in the city.</summary>
         public static string CurrentArea = WorldAreas.City;
 
-        /// <summary>The Training Center chest's settings: practice-fight enemy level (1-99) and boss mode. Saved.</summary>
-        public static int TrainingEnemyLevel = Combat.BattleUnit.DefaultEnemyLevel;
-        public static bool TrainingBoss;
+        /// <summary>The Sandbox chest's settings: practice-fight enemy level (1-99) and boss mode. Saved.</summary>
+        public static int SandboxEnemyLevel = Combat.BattleUnit.DefaultEnemyLevel;
+        public static bool SandboxBoss;
 
         /// <summary>A place in the world: an area and a spot in it, with the way the player faces. Saved.</summary>
         [System.Serializable]
@@ -228,14 +228,14 @@ namespace Game.World
             return n;
         }
 
-        /// <summary>In the Training Center (entered from Settings → Enter Training Mode).</summary>
-        public static bool InTraining { get { return CurrentArea == WorldAreas.Training; } }
+        /// <summary>In the Sandbox (entered from Settings → Enter Sandbox Mode).</summary>
+        public static bool InSandbox { get { return CurrentArea == WorldAreas.Sandbox; } }
 
-        /// <summary>Where Leave Training Mode puts you back: the area, spot and facing you entered from. Saved.</summary>
-        public static bool HasTrainingReturn;
-        public static string TrainingReturnArea = WorldAreas.City;
-        public static Vector3 TrainingReturnPosition;
-        public static int TrainingReturnFacing;
+        /// <summary>Where Leave Sandbox Mode puts you back: the area, spot and facing you entered from. Saved.</summary>
+        public static bool HasSandboxReturn;
+        public static string SandboxReturnArea = WorldAreas.City;
+        public static Vector3 SandboxReturnPosition;
+        public static int SandboxReturnFacing;
 
         /// <summary>The area you just warped from (null otherwise): you arrive beside the warp that leads back there.</summary>
         public static string ArrivedFrom;
@@ -283,25 +283,25 @@ namespace Game.World
         }
 
         /// <summary>
-        /// The title screen's Training Mode (a debug shortcut): plays the latest save (or a new game in slot 1 when
-        /// there is none) but starts in the Training Center. Leave Training Mode then goes to where that save left off
+        /// The title screen's Sandbox Mode: plays the latest save (or a new game in slot 1 when
+        /// there is none) but starts in the Sandbox. Leave Sandbox Mode then goes to where that save left off
         /// (a new game: the city's start, where the opening plays). The caller reloads the area afterwards.
         /// </summary>
-        public static void StartTraining()
+        public static void StartSandbox()
         {
             int latest = SaveGame.LatestSlot();
             StartSlot(latest > 0 ? latest : 1, latest <= 0);
-            if (InTraining) return;   // the save was already in the Training Center
+            if (InSandbox) return;   // the save was already in the Sandbox
             var spot = PlayerSpot;
-            HasTrainingReturn = spot != null && spot.area == CurrentArea;
-            TrainingReturnArea = CurrentArea;
-            if (HasTrainingReturn)
+            HasSandboxReturn = spot != null && spot.area == CurrentArea;
+            SandboxReturnArea = CurrentArea;
+            if (HasSandboxReturn)
             {
-                TrainingReturnPosition = spot.position;
-                TrainingReturnFacing = spot.facing;
+                SandboxReturnPosition = spot.position;
+                SandboxReturnFacing = spot.facing;
             }
-            CurrentArea = WorldAreas.Training;
-            // The Training Center places you at its start: the save's spot (Load's ReturnTo) is in the other area.
+            CurrentArea = WorldAreas.Sandbox;
+            // The Sandbox places you at its start: the save's spot (Load's ReturnTo) is in the other area.
             PlayerSpot = null;
             HasReturnPoint = false;
             ArrivedFrom = null;
@@ -351,11 +351,11 @@ namespace Game.World
 
         public static void UnlockResonance(Afflatus element) { UnlockedResonances.Add(element); }
 
-        /// <summary>The Esc menu's Resonance card: after Chapter One, and always in Training Mode.</summary>
-        public static bool ResonanceMenuUnlocked { get { return InTraining || StoryState.Has(Chapter1.Complete); } }
+        /// <summary>The Esc menu's Resonance card: after Chapter One, and always in Sandbox Mode.</summary>
+        public static bool ResonanceMenuUnlocked { get { return InSandbox || StoryState.Has(Chapter1.Complete); } }
 
         /// <summary>
-        /// The resonances <paramref name="member"/> can switch to now, in kit order (empty = no kits). Training Mode
+        /// The resonances <paramref name="member"/> can switch to now, in kit order (empty = no kits). Sandbox Mode
         /// lends every kit, so they can be tried before the story unlocks them.
         /// </summary>
         public static List<Afflatus> AvailableResonances(CharacterDefinition member)
@@ -365,7 +365,7 @@ namespace Game.World
             for (int i = 0; i < member.resonances.Count; i++)
             {
                 var kit = member.resonances[i];
-                if (kit != null && (i == 0 || InTraining || UnlockedResonances.Contains(kit.element))) list.Add(kit.element);
+                if (kit != null && (i == 0 || InSandbox || UnlockedResonances.Contains(kit.element))) list.Add(kit.element);
             }
             return list;
         }

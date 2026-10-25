@@ -312,7 +312,7 @@ This section maps the canon above onto the current code. Nothing here is story c
 - The protagonist's asset is `Char_MC`; the player's chosen name replaces "MC" everywhere it is shown.
 
 ### Legacy placeholders (debug only)
-- **Heal Bot, Lucy and Blue**, the old crew, are not part of the story. They live in the **Training Center** (the old Mossline Station test map), reached only through the **Training Mode** setting.
+- **Heal Bot, Lucy and Blue**, the old crew, are not part of the story. They live in the **Sandbox** (the old Mossline Station test map), reached only through the **Sandbox Mode** setting.
 - Older faction and district names (the Bunker, the Resistance, the Hollow Choir, Mossline Station, the Sunken Arcade…) are not canon.
 
 ### Chapter One — provisional decisions (awaiting approval)

@@ -32,10 +32,17 @@ namespace Game.World
 
         public static Mesh Build(OverworldMap map, Texture atlas, List<DecalSpot> vines)
         {
+            return Build(map, atlas, vines, new RectInt(0, 0, map.Width, map.Height));
+        }
+
+        /// <summary>One chunk of the map: the cells in <paramref name="cells"/> (x = column, y = row). The overworld is
+        /// built as chunks so the ones far from the player can be skipped (NearbyCulling).</summary>
+        public static Mesh Build(OverworldMap map, Texture atlas, List<DecalSpot> vines, RectInt cells)
+        {
             var b = new Buffers();
-            for (int row = 0; row < map.Height; row++)
+            for (int row = Mathf.Max(0, cells.yMin); row < Mathf.Min(map.Height, cells.yMax); row++)
             {
-                for (int x = 0; x < map.Width; x++)
+                for (int x = Mathf.Max(0, cells.xMin); x < Mathf.Min(map.Width, cells.xMax); x++)
                 {
                     char c = map.At(x, row);
                     int h = OverworldMap.BlockHeight(c);

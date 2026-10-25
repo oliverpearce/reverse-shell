@@ -52,7 +52,7 @@ namespace Game.World
         {
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
                 advance = true;
-            if (Input.GetKeyDown(KeyCode.Escape)) skip = true;
+            if (UIKeys.Back) skip = true;
             if (timecode != null)
             {
                 float t = Time.unscaledTime - started;
@@ -98,7 +98,7 @@ namespace Game.World
             line = UIFactory.CreateText(screen, "Line", "", 44, new Color(0.92f, 0.97f, 0.94f), TextAnchor.MiddleCenter);
             line.rectTransform.Place(center, center, new Vector2(0f, -20f), new Vector2(1240f, 360f));
             line.supportRichText = true;
-            var hint = UIFactory.CreateText(root, "Hint", "Enter  next      Esc  skip", 26, new Color(1f, 1f, 1f, 0.45f), TextAnchor.LowerCenter);
+            var hint = UIFactory.CreateText(root, "Hint", "Enter  next      Esc / P  skip", 26, new Color(1f, 1f, 1f, 0.45f), TextAnchor.LowerCenter);
             hint.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(900f, 40f));
 
             yield return FadeIn(screen.gameObject, 1.2f);

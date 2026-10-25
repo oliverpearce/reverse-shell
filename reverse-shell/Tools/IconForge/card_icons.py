@@ -19,7 +19,9 @@ The layout is mirrored by Combat.View.CardIcons (keep the two in sync):
     row 4  mini intent cards, rank III (gold)      (the Ultimate column is the same dark arch card in rows 2-4)
     row 5  UI bits: 0 empty diamond frame, 1 Ult pip (empty), 2 Ult pip (full), 3 star, 4 filled diamond, 5 card back
     row 6  element orbs: 0 Star  1 Mineral  2 Beast  3 Plant (Earth)  4 Spirit  5 Intellect (Virus)
-    row 7  0 CHIP  1 CORE  2 Poison  3 ATK Up  4 ATK Down  5 Physical DEF Down  6 Regen
+    row 7  0 CHIP  1 CORE  2 Poison  3 ATK Up  4 ATK Down  5 Physical DEF Down  6 Regen  7 Incantation Might Up
+    row 8  0 DEF Up  1 Stunned  2 Go chevrons (fb649 turned to point right)  3 close X  4 pause sign (two bars in
+           fb647's silvers with the pack's outline)
 
 Flat symbols on small printed cards, with white / silver / gold faces for the ranks. PLACEHOLDER designs in the
 spirit of Reverse: 1999's card icons (our own drawings, not its assets; to be redesigned): each sits in a fine
@@ -36,14 +38,16 @@ ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 sys.path.insert(0, os.path.join(ROOT, 'Tools', 'SpriteForge'))
 from pngtool import write_png  # noqa: E402
 
-CELL, COLS, ROWS, SS = 128, 8, 8, 4
+CELL, COLS, ROWS, SS = 128, 8, 9, 4
 RAVEN = os.path.join(ROOT, 'Assets', '_Project', 'Art', 'ThirdParty', 'RavenFantasyIcons', '32x32')
 
-# The user's picks from the Raven pack (icon numbers: fb<n>.png). Incantation Might Up has no icon yet.
+# The user's picks from the Raven pack (icon numbers: fb<n>.png).
 TYPE_ICONS = [672, 884, 865, 665, 661, 776]        # Attack, Debuff, Buff, Counter, Heal, Ultimate
 PIP_ICON, STAR_ICON = 2186, 984
 ELEMENT_ICONS = [2129, 2134, 2130, 2132, 2131, 2133]   # Star, Mineral, Beast, Earth, Spirit, Virus (orbs)
-EXTRA_ICONS = [2115, 2139, 673, 641, 642, 645, 968, 877]    # CHIP, CORE, Poison, ATK Up, ATK Down, DEF Down, Regen, IM Up
+EXTRA_ICONS = [2115, 2139, 1086, 1098, 1102, 1103, 968, 877]  # CHIP, CORE, Poison, ATK Up, ATK Down, DEF Down, Regen, IM Up
+STATUS_ICONS = [1099, 1075]                                   # DEF Up, Stunned (row 8)
+GO_ICON, CLOSE_ICON, PAUSE_COLORS, OUTLINE_FROM = 649, 656, 647, 656
 OUT = os.path.join(ROOT, 'Assets', '_Project', 'Resources', 'UI', 'CardIcons.png')
 N = CELL * SS
 
@@ -268,6 +272,27 @@ def raven_cell(n, k=4, recolor=None):
     return place_raven(blank(), raven(n), k, recolor=recolor)
 
 
+def turned(icon):
+    """The icon turned a quarter clockwise (an up arrow points right)."""
+    return [[icon[31 - x][y] for x in range(32)] for y in range(32)]
+
+
+def pause_icon():
+    """Raven has no pause sign: two upright bars in fb647's silvers (lit left edge, shaded right), outlined in the
+    darkest colour of fb656 like the rest of the pack."""
+    def lum(c): return c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11
+    silver = sorted({p for row in raven(PAUSE_COLORS) for p in row if p[3] > 0.5 and lum(p) > 0.35}, key=lum)
+    outline = min((p for row in raven(OUTLINE_FROM) for p in row if p[3] > 0.5), key=lum)
+    icon = [[(0.0, 0.0, 0.0, 0.0)] * 32 for _ in range(32)]
+    for bx in (8, 18):
+        for y in range(6, 27):
+            for x in range(bx, bx + 7):
+                edge = y in (6, 26) or x in (bx, bx + 6)
+                icon[y][x] = outline if edge else (silver[-1] if x == bx + 1 else
+                                                   silver[len(silver) // 2] if x < bx + 5 else silver[0])
+    return icon
+
+
 def dimmed(c):
     """The empty Ult pip: the full pip greyed and darkened."""
     v = (c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11) * 0.55
@@ -460,6 +485,11 @@ def build():
         print('  type', t, 'done')
     for i, n in enumerate(EXTRA_ICONS):
         put(i, 7, raven_cell(n))
+    for i, n in enumerate(STATUS_ICONS):
+        put(i, 8, raven_cell(n))
+    put(2, 8, place_raven(blank(), turned(raven(GO_ICON)), 4))
+    put(3, 8, raven_cell(CLOSE_ICON))
+    put(4, 8, place_raven(blank(), pause_icon(), 4))
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     write_png(OUT, CELL * COLS, CELL * ROWS, atlas)
     print('wrote', os.path.relpath(OUT, ROOT))

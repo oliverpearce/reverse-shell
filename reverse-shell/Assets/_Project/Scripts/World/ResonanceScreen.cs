@@ -9,7 +9,7 @@ namespace Game.World
 {
     /// <summary>
     /// The Esc menu's Resonance card (bible §3): the protagonist's resonances as pixel cards in a row, only the ones
-    /// they have (Physical, and Electric once absorbed, or always in Training Mode); the row centres and shrinks to fit
+    /// they have (Physical, and Electric once absorbed, or always in Sandbox Mode); the row centres and shrinks to fit
     /// as more unlock. Below it are the shown resonance's innate cards and Ult, in its colour; clicking or holding one
     /// opens it (<see cref="CardDetailPopup"/>: the full text). Left/Right (or the mouse) moves, Enter / F / Space / a
     /// click switches (free outside combat), Esc goes back to the Esc cards. The active resonance sits in a gold frame.
@@ -258,7 +258,7 @@ namespace Game.World
             if (UIKeys.Pressed(KeyCode.RightArrow) || UIKeys.Pressed(KeyCode.D)) Select(index + 1);
             if (UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.Space) || UIKeys.Pressed(KeyCode.F))
                 Choose();
-            else if (Input.GetKeyDown(KeyCode.Escape) || UIKeys.Pressed(KeyCode.Backspace)) Close();
+            else if (UIKeys.Back || UIKeys.Pressed(KeyCode.Backspace)) Close();
         }
 
         void LateUpdate()

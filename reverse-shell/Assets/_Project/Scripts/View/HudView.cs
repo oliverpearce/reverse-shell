@@ -12,6 +12,18 @@ namespace Combat.View
         static readonly Color PanelDark = InkStyle.InkPanel;
         static readonly Color Gold = InkStyle.Gold;
 
+        /// <summary>The Go button's size and font; the formation's Start button uses the same, so they match exactly.</summary>
+        public static readonly Vector2 GoSize = new Vector2(300f, 106f);
+        public const int GoFont = 68;
+
+        /// <summary>Builds a Go-style button: the ink plate (translucent) with the chevrons, punch and centred word.</summary>
+        public static Button GoStyleButton(Transform parent, string name, string label, UnityEngine.Events.UnityAction onClick)
+        {
+            var b = InkStyle.Button(parent, name, label, onClick, false, GoFont);
+            GoButtonFx.Add(b);
+            return b;
+        }
+
         public RectTransform QueueRow { get; private set; }
 
         BattleView view;
@@ -44,11 +56,11 @@ namespace Combat.View
             turnText.horizontalOverflow = HorizontalWrapMode.Overflow;
             turnText.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.85f);
             turnText.rectTransform.Place(topLeft, topLeft, new Vector2(32f, -24f), new Vector2(420f, 80f));
-            // Queue: a slim row of slots right above the hand (no panel, no labels): the cards you're about to play,
-            // in order, then an empty frame per AP left.
-            var bottomCenter = new Vector2(0.5f, 0f);
+            // Queue: a slim row of slots at the top, under the banner and above the units (no panel, no labels): the
+            // cards you're about to play, in order, then an empty frame per AP left.
+            var topCenter = new Vector2(0.5f, 1f);
             var queueBg = UIFactory.CreateImage(root, "Queue", new Color(0f, 0f, 0f, 0f));
-            queueBg.rectTransform.Place(bottomCenter, bottomCenter, new Vector2(-60f, 384f), new Vector2(440f, 76f));
+            queueBg.rectTransform.Place(topCenter, topCenter, new Vector2(0f, -128f), new Vector2(440f, 76f));
             QueueRow = queueBg.rectTransform;
             var layout = queueBg.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.padding = new RectOffset(4, 4, 4, 4);
@@ -66,9 +78,9 @@ namespace Combat.View
 
             // Go: an ink plate with corner brackets like every other button; hovering slides gold chevrons out, pressing
             // (click or Enter) punches and flashes it (GoButtonFx).
-            goButton = InkStyle.Button(root, "Go", "Go", view.OnGo, false, 60);
-            goButton.GetComponent<RectTransform>().Place(bottomRight, bottomRight, new Vector2(-24f, 92f), new Vector2(260f, 92f));
-            goFx = GoButtonFx.Add(goButton);
+            goButton = GoStyleButton(root, "Go", "Go", view.OnGo);
+            goButton.GetComponent<RectTransform>().Place(bottomRight, bottomRight, new Vector2(-24f, 92f), GoSize);
+            goFx = goButton.GetComponent<GoButtonFx>();
 
             // Banner (top-center): ink band, serif.
             bannerBg = UIFactory.CreateImage(root, "Banner", PanelDark);
@@ -87,9 +99,10 @@ namespace Combat.View
             InkStyle.Grain(result.rectTransform, new Color(1f, 0.95f, 0.85f, 0.035f));
             // The animated results (ResultScreen) build into this; the button shows when they finish.
             resultContent = UIFactory.CreateRect("Content", result.transform).Fill();
-            var restart = InkStyle.Button(result.transform, "Restart", "Fight Again", view.OnRestart, true, 44);
+            // Continue / Fight Again: the same button as Go (ink plate, chevrons on hover, punch on press).
+            var restart = GoStyleButton(result.transform, "Restart", "Fight Again", view.OnRestart);
             resultButtonLabel = restart.GetComponentInChildren<Text>();
-            restart.GetComponent<RectTransform>().Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(420f, 96f));
+            restart.GetComponent<RectTransform>().Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(440f, GoSize.y));
             resultButton = restart.gameObject;
             resultPanel.SetActive(false);
         }

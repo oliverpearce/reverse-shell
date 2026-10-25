@@ -71,7 +71,7 @@ SKINS = {
     # Lucy: violet-grey plating, dark joints with purple lights, a purple collar and visor
     'Lucy': skin(('#C8C0DC', '#867CA6', '#3E3452'), '#D07AFF', ('#24182E', '#140C1C'), ('#9A48D8', '#5A1E8A'),
                  '#D07AFF', ('#5A1E8A', '#9A48D8', '#D07AFF', '#F4DCFF')),
-    # Blue (the backup, Training Center): blue plating, dark joints with cyan lights, a deep blue collar, cyan visor
+    # Blue (the backup, Sandbox): blue plating, dark joints with cyan lights, a deep blue collar, cyan visor
     'Blue': skin(('#A8C8F0', '#5E86C4', '#2E4478'), '#7FE6FF', ('#1C2438', '#101624'), ('#3A6AD8', '#1E3A8A'),
                  '#7FE6FF', ('#1E3A8A', '#3A6AD8', '#7FE6FF', '#E0FBFF')),
     # Ruin survivors (NPCs): civilian colours, no glow (the visor stays dark).

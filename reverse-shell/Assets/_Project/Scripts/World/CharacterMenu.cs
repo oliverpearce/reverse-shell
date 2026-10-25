@@ -135,7 +135,7 @@ namespace Game.World
         void HandleInput()
         {
             if (CardDetailPopup.IsOpen) return;   // the open card takes Esc / clicks first
-            bool cancel = Input.GetKeyDown(KeyCode.Escape) || UIKeys.Pressed(KeyCode.Backspace);
+            bool cancel = UIKeys.Back || UIKeys.Pressed(KeyCode.Backspace);
             bool confirm = UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.F) || UIKeys.Pressed(KeyCode.Space);
             bool left = UIKeys.Pressed(KeyCode.LeftArrow) || UIKeys.Pressed(KeyCode.A);
             bool right = UIKeys.Pressed(KeyCode.RightArrow) || UIKeys.Pressed(KeyCode.D);
@@ -220,7 +220,7 @@ namespace Game.World
             // A visible X (top-right): closes the menu, back to wherever it was opened from.
             // On the root, after the page, so nothing on the page can ever cover it.
             var x = InkStyle.CloseButton(root, Close);
-            x.GetComponent<RectTransform>().Place(center, new Vector2(1f, 1f), new Vector2(Right, Top + 6f), new Vector2(84f, 84f));
+            x.GetComponent<RectTransform>().Place(center, new Vector2(1f, 1f), new Vector2(Right, Top + 6f), new Vector2(InkStyle.CloseSize, InkStyle.CloseSize));
 
             keyBar = UIFactory.CreateRect("Keys", page).Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(1600f, 44f));
             keyText = UIFactory.CreateText(keyBar, "Text", "", 28, InkStyle.PaperDim, TextAnchor.MiddleCenter, FontStyle.Bold);
@@ -228,7 +228,7 @@ namespace Game.World
             keyText.rectTransform.Fill();
             const string gold = "<color=#C2A061>";
             keyText.text = gold + "← →</color>  Member      " + gold + "↑ ↓</color>  Select      " + gold + "Enter</color>  Open      "
-                           + gold + "L</color>  Leader      " + gold + "Esc</color>  Close";
+                           + gold + "L</color>  Leader      " + gold + "Esc / P</color>  Close";
         }
 
         void Rebuild()

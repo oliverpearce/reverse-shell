@@ -8,10 +8,10 @@ using UnityEngine.UI;
 namespace Game.World
 {
     /// <summary>
-    /// The Training Center chest: sets how strong the next practice fights are. Three presets (Enemy Lv 5, Boss Lv 20,
+    /// The Sandbox chest: sets how strong the next practice fights are. Three presets (Enemy Lv 5, Boss Lv 20,
     /// Custom Lv 30) and the level itself, which can be tuned from 1 to 99 (buttons, or ←/→ for 1 and ↑/↓ for 10).
-    /// Saved in <see cref="WorldSession.TrainingEnemyLevel"/> / <see cref="WorldSession.TrainingBoss"/> and applied to
-    /// fights in the Training Center only. Enter or Esc closes it.
+    /// Saved in <see cref="WorldSession.SandboxEnemyLevel"/> / <see cref="WorldSession.SandboxBoss"/> and applied to
+    /// fights in the Sandbox only. Enter or Esc closes it.
     /// </summary>
     public class EnemyLevelPanel : MonoBehaviour
     {
@@ -45,7 +45,7 @@ namespace Game.World
             InkStyle.HeroFrame(card.rectTransform, InkStyle.Gold, 10f);
             var rt = card.rectTransform;
 
-            var title = InkStyle.Title(rt, "Title", "Training Chest", 64, InkStyle.Paper, TextAnchor.MiddleCenter);
+            var title = InkStyle.Title(rt, "Title", "Sandbox Chest", 64, InkStyle.Paper, TextAnchor.MiddleCenter);
             title.rectTransform.TopStrip(30f, 80f);
             current = UIFactory.CreateText(rt, "Current", "", 32, InkStyle.GoldBright, TextAnchor.MiddleCenter);
             current.supportRichText = true;
@@ -56,7 +56,7 @@ namespace Game.World
             {
                 int index = i;
                 var b = InkStyle.Button(rt, PresetNames[i], PresetNames[i], () => Apply(PresetLevels[index], PresetBoss[index]), false, 40);
-                b.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -190f - i * 100f), new Vector2(620f, 84f));
+                b.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -190f - i * 100f), new Vector2(660f, 92f));
                 presetPlates.Add(b.transform.Find("Plate").GetComponent<Image>());
             }
 
@@ -76,13 +76,13 @@ namespace Game.World
 
             var bossToggle = InkStyle.Button(rt, "Boss", "Boss: Off", () =>
             {
-                WorldSession.TrainingBoss = !WorldSession.TrainingBoss;
+                WorldSession.SandboxBoss = !WorldSession.SandboxBoss;
                 Refresh();
             }, false, 36);
-            bossToggle.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-170f, -690f), new Vector2(300f, 80f));
+            bossToggle.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-170f, -690f), new Vector2(320f, 92f));
             bossLabel = bossToggle.GetComponentInChildren<Text>();
             var done = InkStyle.Button(rt, "Done", "Done", Close, true, 40);
-            done.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(170f, -690f), new Vector2(300f, 80f));
+            done.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(170f, -690f), new Vector2(320f, 92f));
 
             var keys = UIFactory.CreateText(root, "Keys",
                 "<color=#C2A061>← →</color>  Level ±1      <color=#C2A061>↑ ↓</color>  Level ±10      <color=#C2A061>Enter / Esc</color>  Done",
@@ -96,26 +96,26 @@ namespace Game.World
         void Step(RectTransform parent, string label, int delta, Vector2 at)
         {
             var b = InkStyle.Button(parent, "Step" + label, label, () => Nudge(delta), false, 36);
-            b.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), at, new Vector2(110f, 80f));
+            b.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), at, new Vector2(124f, 92f));
         }
 
         void Apply(int level, bool boss)
         {
-            WorldSession.TrainingEnemyLevel = level;
-            WorldSession.TrainingBoss = boss;
+            WorldSession.SandboxEnemyLevel = level;
+            WorldSession.SandboxBoss = boss;
             Refresh();
         }
 
         void Nudge(int delta)
         {
-            WorldSession.TrainingEnemyLevel = Mathf.Clamp(WorldSession.TrainingEnemyLevel + delta, 1, BattleUnit.MaxEnemyLevel);
+            WorldSession.SandboxEnemyLevel = Mathf.Clamp(WorldSession.SandboxEnemyLevel + delta, 1, BattleUnit.MaxEnemyLevel);
             Refresh();
         }
 
         void Refresh()
         {
-            int level = WorldSession.TrainingEnemyLevel;
-            bool boss = WorldSession.TrainingBoss;
+            int level = WorldSession.SandboxEnemyLevel;
+            bool boss = WorldSession.SandboxBoss;
             levelText.text = level.ToString();
             bossLabel.text = "Boss: " + (boss ? "On" : "Off");
             current.text = "Next practice fight:  Lv " + level + (boss ? "  <color=#E05A50>BOSS</color>" : "");
@@ -149,7 +149,7 @@ namespace Game.World
             if (UIKeys.Pressed(KeyCode.RightArrow) || UIKeys.Pressed(KeyCode.D)) Nudge(1);
             if (UIKeys.Pressed(KeyCode.DownArrow) || UIKeys.Pressed(KeyCode.S)) Nudge(-10);
             if (UIKeys.Pressed(KeyCode.UpArrow) || UIKeys.Pressed(KeyCode.W)) Nudge(10);
-            if (Input.GetKeyDown(KeyCode.Escape) || UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter)) Close();
+            if (UIKeys.Back || UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter)) Close();
         }
     }
 }

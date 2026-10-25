@@ -66,3 +66,11 @@ reverse-shell/[Cc]rashes/
 
 # Planning documents (roadmaps, checklists, plans) stay local
 reverse-shell/Planning/
+
+# Web builds and their zips (100+ MB; they go to itch.io, not the repo)
+builds/
+
+# Before making the repo public, uncomment these: the licences forbid sharing the raw packs publicly
+# (Raven Fantasy Icons: see its LICENSE-NOTE.md; Super Pixel Effects: see Resources/Fx/CREDITS.md).
+# reverse-shell/Assets/_Project/Art/ThirdParty/RavenFantasyIcons/
+# reverse-shell/Assets/_Project/Art/ThirdParty/RavenFantasyIcons.meta

@@ -67,7 +67,7 @@ Access Point | {cyan}SYSTEM RESTORED.{/c}{p} Party HP: {wave}full{/wave}. Progre
 [chest.empty]
 The chest is empty.
 
-# ------------------------------------------------------------------ Summon Beacon (Training Center)
+# ------------------------------------------------------------------ Summon Beacon (Sandbox)
 # Fill-in for beacon.ask: {count} ("1 machine" / "3 machines").
 
 [beacon.none]
@@ -83,26 +83,26 @@ Cancel
 [beacon.sent]
 {red}Signal sent.{/c}{p} Something is {shake}stirring{/shake} in the plaza again.
 
-# ------------------------------------------------------------------ The Training Center
-# Fill-in for training.joins: {who} ("Heal Bot and Lucy").
+# ------------------------------------------------------------------ The Sandbox
+# Fill-in for sandbox.joins: {who} ("Heal Bot and Lucy").
 
-[training.joins]
-Training Center | {gold}{who} joins your party!{/c}
+[sandbox.joins]
+Sandbox | {gold}{who} joins your party!{/c}
 
-[training.joins.many]
-Training Center | {gold}{who} join your party!{/c}
+[sandbox.joins.many]
+Sandbox | {gold}{who} join your party!{/c}
 
-[training.trader]
+[sandbox.trader]
 Resistance Trader | Quiet morning.{p} Just birds, wind{p=0.4}... and the {shake}creak{/shake} of machines somewhere in the green.
 Resistance Trader | One of 'em planted itself in the old station plaza up north. {gray}Rusted{/c} thing, but it {shake}still swings hard{/shake}.
 Resistance Trader | Want to fight it? Stand on the {red}red square{/c}.{p} Better you than me.
 
-[training.scout]
+[sandbox.scout]
 Resistance Scout | {wave}Whoa{/wave}{p} you're {name}?! {fast}The android from the orbital Bunker? The one who came down on the last flight?!{/fast}
 Resistance Scout | Sorry, sorry.{p} I've just never met one of you up close.
 Resistance Scout | Your crew's waiting by the road. {green}Heal Bot{/c} keeps everyone running, and {c=#C98AFF}Lucy{/c}... {shake}infects{/shake} things.{p} {wave}Good company down here!{/wave}
 
-[training.wanderer]
+[sandbox.wanderer]
 Wanderer | {slow}The trees took this city slowly...{/slow}
 Wanderer | {wave}Kind of beautiful{/wave}, if you stop and look.
 Wanderer | {gray}{slow}...Do machines dream, do you think?{/slow}{/c}

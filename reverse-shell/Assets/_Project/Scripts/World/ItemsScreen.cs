@@ -12,7 +12,9 @@ namespace Game.World
     /// (<see cref="PauseMat.ClothStyle.Velvet"/>) that rolls out when it opens, each icon floating and bobbing gently.
     /// Hovering one (or moving to it with the arrows) lights it up: a soft gold glow fades in behind it, it grows a little
     /// and gets corner brackets, and the panel under the mat says what it is: name, slot, how many, who has it fitted,
-    /// and what it does. Esc / Backspace closes, back to the Esc cards.
+    /// and what it does. Enter / F / Space / a click on an item opens a picker of the party: choosing a member fits it
+    /// (their old part goes back to the spares), or takes it off if they already have it. Esc / Backspace closes, back
+    /// to the Esc cards.
     /// </summary>
     public class ItemsScreen : MonoBehaviour
     {
@@ -38,6 +40,7 @@ namespace Game.World
         int index, columns;
         int openedFrame;
         System.Action onClosed;
+        RowMenu picker;                            // who to fit the selected item on
 
         static Sprite glowSprite;
 
@@ -58,9 +61,10 @@ namespace Game.World
             var title = InkStyle.Title(rt, "Title", "Items", 64, InkStyle.Paper, TextAnchor.UpperLeft);
             title.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(60f, -40f), new Vector2(700f, 90f));
             var keys = UIFactory.CreateText(rt, "Keys",
-                "<color=#C2A061>Arrows</color>  Look      <color=#C2A061>Esc</color>  Back", 28, InkStyle.Paper, TextAnchor.MiddleCenter);
+                "<color=#C2A061>Arrows</color>  Look      <color=#C2A061>Enter</color>  Equip      <color=#C2A061>Esc</color>  Back", 28, InkStyle.Paper, TextAnchor.MiddleCenter);
             keys.supportRichText = true;
             keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1600f, 50f));
+            screen.picker = RowMenu.Create(rt);
             rt.gameObject.SetActive(false);
             return screen;
         }
@@ -82,6 +86,7 @@ namespace Game.World
         public void Close()
         {
             if (!IsOpen) return;
+            picker.Hide();
             LastToggleFrame = Time.frameCount;
             gameObject.SetActive(false);
             var then = onClosed;
@@ -195,7 +200,7 @@ namespace Game.World
             enter.callback.AddListener(_ => Select(captured));
             trigger.triggers.Add(enter);
             var click = new EventTrigger.Entry { eventID = EventTriggerType.PointerClick };
-            click.callback.AddListener(_ => Select(captured));
+            click.callback.AddListener(_ => { Select(captured); OpenPicker(); });
             trigger.triggers.Add(click);
             spots.Add(spot);
         }
@@ -239,6 +244,57 @@ namespace Game.World
             tipBody.text = part.description;
         }
 
+        // ------------------------------------------------------------------ Equip
+
+        /// <summary>
+        /// "EQUIP <item>": one row per party member saying what they have in that slot now. Choosing a member fits the
+        /// item (their old part goes back to the spares); a member who already has it takes it off instead. Members
+        /// whose slot holds the bound Core, or with no spare left to give, are greyed out.
+        /// </summary>
+        void OpenPicker()
+        {
+            if (spots.Count == 0 || reveal < 1f) return;
+            var part = spots[index].Part;
+            if (part == null) return;
+            string slotName = part.slot == PartSlot.Core ? "CORE" : "CHIP";
+            int spare = WorldSession.CountOf(part);
+            var rows = new List<RowMenu.Row>();
+            foreach (var member in world.Roster)
+            {
+                if (member == null) continue;
+                var current = WorldSession.PartIn(member, part.slot);
+                var m = member;
+                // Everything at the row's full size (no smaller secondary text): the name, then what they have now.
+                string now = "<color=#C9C2B4>" + slotName + ": " + (current != null ? current.DisplayName : "empty") + "</color>";
+                var row = new RowMenu.Row { Label = member.DisplayName + "    " + now };
+                if (current == part)
+                {
+                    row.Label = member.DisplayName + "    <color=#C2A061>Fitted: take it off</color>";
+                    row.Action = () => { WorldSession.Unequip(m, part.slot); Equipped(); };
+                }
+                else if (WorldSession.IsBound(current))
+                    row.Enabled = false;   // the protagonist's own Core never comes out
+                else if (spare > 0)
+                    row.Action = () => { WorldSession.Equip(m, part); Equipped(); };
+                else
+                    row.Enabled = false;   // every one of this item is fitted on someone else
+                rows.Add(row);
+            }
+            rows.Add(new RowMenu.Row { Label = "Back", Action = picker.Hide });
+            picker.Show("EQUIP " + part.DisplayName.ToUpperInvariant(), rows, picker.Hide);   // starts on the first usable row
+        }
+
+        /// <summary>After fitting or removing: save, close the picker and redraw the mat (counts and "Fitted" change).</summary>
+        void Equipped()
+        {
+            SaveGame.Save();
+            picker.Hide();
+            int keep = index;
+            Build();
+            Apply();
+            Select(keep);
+        }
+
         // ------------------------------------------------------------------ Input + animation
 
         void Update()
@@ -267,11 +323,17 @@ namespace Game.World
             }
 
             if (Time.frameCount == openedFrame) return;
+            if (picker.IsOpen || picker.ClosedFrame == Time.frameCount) return;   // the picker takes the keys
+            if (UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.Space) || UIKeys.Pressed(KeyCode.F))
+            {
+                OpenPicker();
+                return;
+            }
             if (UIKeys.Pressed(KeyCode.LeftArrow) || UIKeys.Pressed(KeyCode.A)) Select(index - 1);
             if (UIKeys.Pressed(KeyCode.RightArrow) || UIKeys.Pressed(KeyCode.D)) Select(index + 1);
             if (UIKeys.Pressed(KeyCode.UpArrow) || UIKeys.Pressed(KeyCode.W)) Select(index - columns);
             if (UIKeys.Pressed(KeyCode.DownArrow) || UIKeys.Pressed(KeyCode.S)) Select(index + columns);
-            if (Input.GetKeyDown(KeyCode.Escape) || UIKeys.Pressed(KeyCode.Backspace)) Close();
+            if (UIKeys.Back || UIKeys.Pressed(KeyCode.Backspace)) Close();
         }
 
         /// <summary>The mat for how far it's unrolled (eased); the items and the info fade in as it finishes.</summary>

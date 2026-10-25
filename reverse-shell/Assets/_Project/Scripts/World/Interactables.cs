@@ -183,7 +183,7 @@ namespace Game.World
         }
     }
 
-    /// <summary>The Training Center chest: opens the enemy level panel (EnemyLevelPanel).</summary>
+    /// <summary>The Sandbox chest: opens the enemy level panel (EnemyLevelPanel).</summary>
     public class ChestInteractable : Interactable
     {
         public float range = 1.35f;
@@ -198,7 +198,7 @@ namespace Game.World
 
         public override void Interact(OverworldBuilder world)
         {
-            world.OpenTrainingChest();
+            world.OpenSandboxChest();
         }
     }
 
