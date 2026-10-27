@@ -58,10 +58,10 @@ namespace Game.World
             var dim = UIFactory.CreateImage(rt, "Dim", new Color(0.05f, 0.045f, 0.04f, 0.9f), true);
             dim.rectTransform.Fill();
             InkStyle.Grain(rt, new Color(1f, 0.95f, 0.85f, 0.035f));
-            var title = InkStyle.Title(rt, "Title", "Items", 64, InkStyle.Paper, TextAnchor.UpperLeft);
+            var title = InkStyle.Title(rt, "Title", UIText.Get("items.title"), 64, InkStyle.Paper, TextAnchor.UpperLeft);
             title.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(60f, -40f), new Vector2(700f, 90f));
             var keys = UIFactory.CreateText(rt, "Keys",
-                "<color=#C2A061>Arrows</color>  Look      <color=#C2A061>Enter</color>  Equip      <color=#C2A061>Esc</color>  Back", 28, InkStyle.Paper, TextAnchor.MiddleCenter);
+                UIText.Get("items.keys"), 28, InkStyle.Paper, TextAnchor.MiddleCenter);
             keys.supportRichText = true;
             keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1600f, 50f));
             screen.picker = RowMenu.Create(rt);
@@ -228,9 +228,9 @@ namespace Game.World
         {
             if (spots.Count == 0)
             {
-                tipName.text = "No items yet";
+                tipName.text = UIText.Get("items.none");
                 tipSlot.text = "";
-                tipBody.text = "CHIPs and COREs you find will show up here.";
+                tipBody.text = UIText.Get("items.none.text");
                 return;
             }
             index = Mathf.Clamp(i, 0, spots.Count - 1);
@@ -239,8 +239,8 @@ namespace Game.World
             tipName.text = part.DisplayName;
             var fitted = FittedOn(part);
             int spare = WorldSession.CountOf(part);
-            tipSlot.text = (part.slot == PartSlot.Core ? "CORE" : "CHIP") + "   x" + (spare + fitted.Count)
-                           + (fitted.Count > 0 ? "   <color=#ECE5D3>Fitted: " + string.Join(", ", fitted.ToArray()) + "</color>" : "");
+            tipSlot.text = UIText.Get(part.slot == PartSlot.Core ? "item.core" : "item.chip") + "   x" + (spare + fitted.Count)
+                           + (fitted.Count > 0 ? "   <color=#ECE5D3>" + UIText.Get("items.fitted") + " " + string.Join(", ", fitted.ToArray()) + "</color>" : "");
             tipBody.text = part.description;
         }
 
@@ -256,7 +256,7 @@ namespace Game.World
             if (spots.Count == 0 || reveal < 1f) return;
             var part = spots[index].Part;
             if (part == null) return;
-            string slotName = part.slot == PartSlot.Core ? "CORE" : "CHIP";
+            string slotName = UIText.Get(part.slot == PartSlot.Core ? "item.core" : "item.chip");
             int spare = WorldSession.CountOf(part);
             var rows = new List<RowMenu.Row>();
             foreach (var member in world.Roster)
@@ -265,11 +265,11 @@ namespace Game.World
                 var current = WorldSession.PartIn(member, part.slot);
                 var m = member;
                 // Everything at the row's full size (no smaller secondary text): the name, then what they have now.
-                string now = "<color=#C9C2B4>" + slotName + ": " + (current != null ? current.DisplayName : "empty") + "</color>";
+                string now = "<color=#C9C2B4>" + slotName + ": " + (current != null ? current.DisplayName : UIText.Get("items.empty_slot")) + "</color>";
                 var row = new RowMenu.Row { Label = member.DisplayName + "    " + now };
                 if (current == part)
                 {
-                    row.Label = member.DisplayName + "    <color=#C2A061>Fitted: take it off</color>";
+                    row.Label = member.DisplayName + "    <color=#C2A061>" + UIText.Get("items.take_off") + "</color>";
                     row.Action = () => { WorldSession.Unequip(m, part.slot); Equipped(); };
                 }
                 else if (WorldSession.IsBound(current))
@@ -280,8 +280,8 @@ namespace Game.World
                     row.Enabled = false;   // every one of this item is fitted on someone else
                 rows.Add(row);
             }
-            rows.Add(new RowMenu.Row { Label = "Back", Action = picker.Hide });
-            picker.Show("EQUIP " + part.DisplayName.ToUpperInvariant(), rows, picker.Hide);   // starts on the first usable row
+            rows.Add(new RowMenu.Row { Label = UIText.Get("menu.back"), Action = picker.Hide });
+            picker.Show(UIText.Get("items.equip", "item", part.DisplayName.ToUpperInvariant()), rows, picker.Hide);   // starts on the first usable row
         }
 
         /// <summary>After fitting or removing: save, close the picker and redraw the mat (counts and "Fitted" change).</summary>

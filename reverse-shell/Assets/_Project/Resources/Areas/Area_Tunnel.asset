@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 960ea5e6da086f3488b88985b67bfbb3, type: 3}
+  m_Name: Area_Tunnel
+  m_EditorClassIdentifier: 
+  id: tunnel
+  displayName: THE BURIED LINE
+  subtitle: Beneath the City Ruins
+  dim: 1
+  map: 'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HH...4.HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HH.W...HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HH..S..HHHHHHHHHHHHHHH=========E====...HHHHH
+
+    HH.....HHHHHHHHHHHHHHH========:X====...HHHHH
+
+    HH.....HHHHHHHHHHHHHHH=====r========...HHHHH
+
+    HHHH...HHHHHHHHHHHHHHH...HHHHHHHHHHH.r.HHHHH
+
+    HHHH.:.HHHHHHHHHHHHHHH.:.HHHHHHHHHHH...HHHHH
+
+    HHHH...HHHHHHHHHHHHHHH...HHHHHHHHHHH...HHHHH
+
+    HHHH==========E=====r=...HHHHHHHHHHH...A..HH
+
+    HHHH======:===X=:=====...HHHHHHHHHHH.....JHH
+
+    HHHH====r=============...HHHHHHHHHHH......HH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+'
+  warps:
+  - tile: W
+    to: city
+  - tile: J
+    to: chamber
+  encounters:
+  - Enemies:
+    - Enemy_WireCrawler
+    Level: 5
+    Boss: 0
+    WinFlag: 
+    Requires: []
+    Blocks: []
+    WinMessage: 
+    WinKey: 
+    Reward: 
+  - Enemies:
+    - Enemy_WireCrawler
+    Level: 6
+    Boss: 0
+    WinFlag: 
+    Requires: []
+    Blocks: []
+    WinMessage: 
+    WinKey: 
+    Reward: 
+  npcs: []
+  chests: []

@@ -23,7 +23,10 @@ namespace Combat.View
         static readonly Color Up = new Color(1f, 0.82f, 0.32f);
         static readonly Color RowColor = new Color(0.08f, 0.075f, 0.07f, 0.9f);
         static readonly StatType[] GrowStats = { StatType.MaxHP, StatType.Attack, StatType.PhysicalDefense, StatType.SpecialDefense };
-        static readonly string[] GrowLabels = { "HP", "ATK", "PHYS DEF", "SPEC DEF" };
+        static string[] GrowLabels
+        {
+            get { return new[] { UIText.Get("stat.hp"), UIText.Get("stat.atk"), UIText.Get("stat.phys_def"), UIText.Get("stat.spec_def") }; }
+        }
 
         const float RowsX = -360f, RowW = 860f, RowH = 112f, RowGap = 18f, RowsTop = 300f;
         // Stat panels: a name strip and one line per stat; three stacked panels end above the button.
@@ -45,7 +48,7 @@ namespace Combat.View
             if (button != null) button.SetActive(false);
 
             // 1. Header
-            var header = InkStyle.Title(content, "Header", victory ? "RESULTS" : "DEFEAT", 120,
+            var header = InkStyle.Title(content, "Header", UIText.Get(victory ? "result.victory" : "result.defeat"), 120,
                 victory ? InkStyle.GoldBright : InkStyle.Crimson, TextAnchor.MiddleCenter);
             header.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.7f);
             header.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 520f), new Vector2(1400f, 150f));
@@ -62,7 +65,7 @@ namespace Combat.View
                 yield break;
             }
 
-            var xp = InkStyle.Title(content, "Xp", "+" + result.XpGained + " XP", 54, Up, TextAnchor.MiddleCenter);
+            var xp = InkStyle.Title(content, "Xp", UIText.Get("result.xp", "n", result.XpGained.ToString()), 54, Up, TextAnchor.MiddleCenter);
             xp.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 420f), new Vector2(800f, 70f));
             yield return Tween.Punch(xp.rectTransform, 0.15f, 0.2f);
 
@@ -135,18 +138,18 @@ namespace Combat.View
             row.Xp = UIFactory.CreateText(row.Rect, "XpText", XpText(before), 24, InkStyle.PaperDim, TextAnchor.LowerRight);
             row.Xp.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-24f, 10f), new Vector2(240f, 34f));
 
-            row.Tag = InkStyle.Title(row.Rect, "LevelUp", "LEVEL UP", 40, Up, TextAnchor.MiddleCenter);
+            row.Tag = InkStyle.Title(row.Rect, "LevelUp", UIText.Get("result.level_up"), 40, Up, TextAnchor.MiddleCenter);
             row.Tag.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(60f, -14f), new Vector2(300f, 52f));
             row.Tag.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
             row.Tag.gameObject.SetActive(false);
             return row;
         }
 
-        static string LvText(int level) { return "<size=" + UIFactory.Px(30) + ">Lv</size> " + level; }
+        static string LvText(int level) { return "<size=" + UIFactory.Px(30) + ">" + UIText.Get("common.lv") + "</size> " + level; }
 
         static string XpText(MemberProgress p)
         {
-            return p.Level >= Leveling.MaxLevel ? "MAX" : p.Xp + " / " + Leveling.XpToNext(p.Level) + " XP";
+            return p.Level >= Leveling.MaxLevel ? UIText.Get("common.max") : p.Xp + " / " + Leveling.XpToNext(p.Level) + " " + UIText.Get("common.xp");
         }
 
         static float Fraction(MemberProgress p)
@@ -201,7 +204,7 @@ namespace Combat.View
             var ring = UIFactory.CreateRect("Ring", root).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(470f, 470f));
             ring.localRotation = Quaternion.Euler(0f, 0f, 45f);
             InkStyle.Frame(ring, UIFactory.WithAlpha(InkStyle.Gold, 0.45f), 2f);
-            var title = InkStyle.Title(root, "Title", "LEVEL UP", 70, InkStyle.Paper, TextAnchor.MiddleCenter);
+            var title = InkStyle.Title(root, "Title", UIText.Get("result.level_up"), 70, InkStyle.Paper, TextAnchor.MiddleCenter);
             title.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
             title.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 60f), new Vector2(600f, 90f));
             var number = InkStyle.Title(root, "Level", level.ToString(), 150, InkStyle.GoldBright, TextAnchor.MiddleCenter);

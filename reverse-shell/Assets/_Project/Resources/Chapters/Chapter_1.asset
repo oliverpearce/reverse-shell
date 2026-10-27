@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a97f058c417071e4c8e2cfcbc3282a73, type: 3}
+  m_Name: Chapter_1
+  m_EditorClassIdentifier: 
+  id: chapter1
+  title: Chapter One
+  order: 1
+  startArea: {fileID: 11400000, guid: 80c8cbe30eb66ef40aae2a6bc5b4ad11, type: 2}
+  areas:
+  - {fileID: 11400000, guid: 80c8cbe30eb66ef40aae2a6bc5b4ad11, type: 2}
+  - {fileID: 11400000, guid: 42489b682267d4f47bdf1342d4fa515a, type: 2}
+  - {fileID: 11400000, guid: db2876ae638c7ba4ab6b9e871569b4b3, type: 2}
+  objectives:
+  - flag: ch1.awake
+    key: objective.explore
+  - flag: ch1.scanner
+    key: objective.scanner
+  - flag: ch1.collector.met
+    key: objective.collector
+  - flag: ch1.collector.beaten
+    key: objective.scan
+  - flag: ch1.route
+    key: objective.route
+  - flag: ch1.tunnel
+    key: objective.tunnel
+  - flag: ch1.dragon.seen
+    key: objective.guardian
+  - flag: ch1.dragon.beaten
+    key: objective.card
+  - flag: ch1.resonance.volt
+    key: objective.leave
+  - flag: ch1.complete
+    key: objective.complete

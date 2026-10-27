@@ -35,6 +35,7 @@
 | Incantation Might Up | fb877 |
 | Go button chevrons (turned to point right) | fb649 |
 | Close X | fb656 |
+| Battle queue: moved-card slot (tinted gray) | fb2061 |
 | Pause sign (drawn by the script in fb647's silvers, fb656's outline) | fb647, fb656 |
 
 ## Card icons

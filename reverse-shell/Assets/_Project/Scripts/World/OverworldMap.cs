@@ -21,6 +21,8 @@ namespace Game.World
     ///   scanner, U the Soul Card pedestal (all solid props); Z story trigger, : trace (walkable);
     ///   V the hidden route (a cracked wall until opened, then w, a warp); J a second warp tile.
     ///
+    /// The Level Designer's palette names every tile (<see cref="TileLegend"/>); add new tiles there too.
+    ///
     /// Camera rule (<see cref="ApplyCameraRule"/>, Octopath-style): nothing tall stands just south of a walkable
     /// square, where it would come between the camera and the player.
     /// </summary>

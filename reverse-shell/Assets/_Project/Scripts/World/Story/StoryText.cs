@@ -107,7 +107,8 @@ namespace Game.World
             blocks = new Dictionary<string, List<Entry>>();
             var files = Resources.LoadAll<TextAsset>(ResourceFolder);
             if (files.Length == 0) Debug.LogWarning("StoryText: no script files in Resources/" + ResourceFolder + ".");
-            foreach (var file in files) Parse(file.text, blocks);
+            foreach (var file in files)
+                if (file.name != "UI") Parse(file.text, blocks);   // UI.txt is the menus' words (UIText), not story
         }
 
         /// <summary>Parses the script format into blocks (public for tests).</summary>

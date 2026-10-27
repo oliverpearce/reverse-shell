@@ -127,26 +127,25 @@ namespace Game.World
             var chromeRect = UIFactory.CreateRect("Chrome", root).Fill();
             chrome = chromeRect.gameObject.AddComponent<CanvasGroup>();
             chrome.blocksRaycasts = false;
-            var title = InkStyle.Title(chromeRect, "Title", "PAUSED", 72, InkStyle.Paper, TextAnchor.MiddleCenter);
+            var title = InkStyle.Title(chromeRect, "Title", UIText.Get("pause.title"), 72, InkStyle.Paper, TextAnchor.MiddleCenter);
             title.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.7f);
             // Top-left (the HUD is hidden while paused), so the zoomed-in player standing top-centre stays clear.
             title.alignment = TextAnchor.MiddleLeft;
             title.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(60f, -40f), new Vector2(700f, 110f));
-            var keys = UIFactory.CreateText(chromeRect, "Keys",
-                "<color=#C2A061>← →</color>  Choose      <color=#C2A061>Enter</color>  Select      <color=#C2A061>Esc</color>  Resume",
+            var keys = UIFactory.CreateText(chromeRect, "Keys", UIText.Get("pause.keys"),
                 28, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
             keys.supportRichText = true;
             keys.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.7f);
             keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1600f, 50f));
 
             // The order matters: OpenNext takes the card's index (3 Party, 4 Units, 5 Items, 6 Resonance) to come back to it.
-            cards.Add(new Entry { Name = "Quit", Icon = "Menu_Quit", Color = new Color(0.86f, 0.36f, 0.32f), Play = ConfirmQuit });
-            cards.Add(new Entry { Name = "Save", Icon = "Menu_Save", Color = new Color(0.4f, 0.7f, 0.95f), Play = Save });
-            cards.Add(new Entry { Name = "Settings", Icon = "Menu_Settings", Color = new Color(0.62f, 0.66f, 0.72f), Play = ShowSettings });
-            cards.Add(new Entry { Name = "Party", Icon = "Menu_Party", Color = new Color(0.72f, 0.62f, 0.95f), Play = () => OpenNext(3) });
-            cards.Add(new Entry { Name = "Units", Icon = "Menu_Units", Color = new Color(0.5f, 0.82f, 0.62f), Play = () => OpenNext(4) });
-            cards.Add(new Entry { Name = "Items", Icon = "Menu_Items", Color = new Color(0.36f, 0.72f, 0.78f), Play = () => OpenNext(5) });
-            cards.Add(new Entry { Name = "Resonance", Icon = "Menu_Resonance", Color = AfflatusInfo.Color(Afflatus.Volt), Play = () => OpenNext(6),
+            cards.Add(new Entry { Name = UIText.Get("pause.card.quit"), Icon = "Menu_Quit", Color = new Color(0.86f, 0.36f, 0.32f), Play = ConfirmQuit });
+            cards.Add(new Entry { Name = UIText.Get("pause.card.save"), Icon = "Menu_Save", Color = new Color(0.4f, 0.7f, 0.95f), Play = Save });
+            cards.Add(new Entry { Name = UIText.Get("pause.card.settings"), Icon = "Menu_Settings", Color = new Color(0.62f, 0.66f, 0.72f), Play = ShowSettings });
+            cards.Add(new Entry { Name = UIText.Get("pause.card.party"), Icon = "Menu_Party", Color = new Color(0.72f, 0.62f, 0.95f), Play = () => OpenNext(3) });
+            cards.Add(new Entry { Name = UIText.Get("pause.card.units"), Icon = "Menu_Units", Color = new Color(0.5f, 0.82f, 0.62f), Play = () => OpenNext(4) });
+            cards.Add(new Entry { Name = UIText.Get("pause.card.items"), Icon = "Menu_Items", Color = new Color(0.36f, 0.72f, 0.78f), Play = () => OpenNext(5) });
+            cards.Add(new Entry { Name = UIText.Get("pause.card.resonance"), Icon = "Menu_Resonance", Color = AfflatusInfo.Color(Afflatus.Volt), Play = () => OpenNext(6),
                                   Shown = () => WorldSession.ResonanceMenuUnlocked });
 
             var size = CardView.Size * CardScale;
@@ -157,7 +156,7 @@ namespace Game.World
                 e.Rect.sizeDelta = size;
                 e.Group = e.Rect.gameObject.AddComponent<CanvasGroup>();
                 e.Label = BuildFace(e.Rect, e, CardScale);
-                if (e.Name == "Resonance") CardSparkles.Add(e.Rect, e.Color);   // the Soul Card glitters
+                if (e.Icon == "Menu_Resonance") CardSparkles.Add(e.Rect, e.Color);   // the Soul Card glitters
                 int captured = i;
                 var hit = e.Rect.gameObject.AddComponent<Image>();
                 hit.color = new Color(0f, 0f, 0f, 0f);   // on the card itself, so it sits behind the face
@@ -652,17 +651,17 @@ namespace Game.World
                     },
                 });
             }
-            rows.Add(new RowMenu.Row { Label = "Back", Action = pages.Hide });
-            pages.Show("SAVE", rows, pages.Hide, SaveGame.Slot - 1);
+            rows.Add(new RowMenu.Row { Label = UIText.Get("menu.back"), Action = pages.Hide });
+            pages.Show(UIText.Get("pause.save.title"), rows, pages.Hide, SaveGame.Slot - 1);
         }
 
         void ConfirmOverwrite(int slot)
         {
-            pages.Show("SAVE", new List<RowMenu.Row>
+            pages.Show(UIText.Get("pause.save.title"), new List<RowMenu.Row>
             {
-                new RowMenu.Row { Label = "Overwrite slot " + slot + "?", Enabled = false },
-                new RowMenu.Row { Label = "Yes, save over it", Action = () => SaveTo(slot) },
-                new RowMenu.Row { Label = "No", Action = ShowSlots },
+                new RowMenu.Row { Label = UIText.Get("pause.save.overwrite", "slot", slot.ToString()), Enabled = false },
+                new RowMenu.Row { Label = UIText.Get("pause.save.overwrite.yes"), Action = () => SaveTo(slot) },
+                new RowMenu.Row { Label = UIText.Get("menu.no"), Action = ShowSlots },
             }, ShowSlots, 2);
         }
 
@@ -672,7 +671,7 @@ namespace Game.World
             SaveGame.Slot = slot;
             SaveGame.Save();
             pages.Hide();
-            StartCoroutine(Flash(cards[1], "SAVED " + slot));
+            StartCoroutine(Flash(cards[1], UIText.Get("pause.saved", "slot", slot.ToString())));
         }
 
         // ------------------------------------------------------------------ Settings
@@ -686,7 +685,7 @@ namespace Game.World
                 {
                     Label = GameSettings.FullscreenLabel,
                     Action = () => { GameSettings.ToggleFullscreen(); ShowSettings(0); },
-                    Help = "Play in fullscreen or in a window. Changes right away.",
+                    Help = GameSettings.FullscreenHelp,
                 },
                 new RowMenu.Row
                 {
@@ -708,21 +707,18 @@ namespace Game.World
                 },
                 new RowMenu.Row
                 {
-                    Label = inSandbox ? "Leave Sandbox Mode" : "Enter Sandbox Mode",
+                    Label = UIText.Get(inSandbox ? "pause.sandbox.leave" : "pause.sandbox.enter"),
                     Action = () =>
                     {
                         HideNow(true);   // the area reloads
                         if (inSandbox) world.LeaveSandbox();
                         else world.EnterSandbox();
                     },
-                    Help = inSandbox
-                        ? "Go back to exactly where you were before you entered the Sandbox."
-                        : "Go to the Sandbox: practice fights with any enemy level, and the whole test crew. " +
-                          "Leave Sandbox Mode (here) brings you back to where you are now.",
+                    Help = UIText.Get(inSandbox ? "pause.sandbox.leave.help" : "pause.sandbox.enter.help"),
                 },
-                new RowMenu.Row { Label = "Back", Action = pages.Hide },
+                new RowMenu.Row { Label = UIText.Get("menu.back"), Action = pages.Hide },
             };
-            pages.Show("SETTINGS", rows, pages.Hide, select);
+            pages.Show(UIText.Get("pause.settings.title"), rows, pages.Hide, select);
         }
 
         void ShowSettings() { ShowSettings(0); }
@@ -758,11 +754,11 @@ namespace Game.World
         /// <summary>Quit asks first; Yes saves and goes back to the title screen.</summary>
         void ConfirmQuit()
         {
-            pages.Show("QUIT", new List<RowMenu.Row>
+            pages.Show(UIText.Get("pause.quit.title"), new List<RowMenu.Row>
             {
-                new RowMenu.Row { Label = "Are you sure?", Enabled = false },
-                new RowMenu.Row { Label = "Yes, quit to the title screen", Action = Quit },
-                new RowMenu.Row { Label = "No", Action = pages.Hide },
+                new RowMenu.Row { Label = UIText.Get("pause.quit.sure"), Enabled = false },
+                new RowMenu.Row { Label = UIText.Get("pause.quit.yes"), Action = Quit },
+                new RowMenu.Row { Label = UIText.Get("menu.no"), Action = pages.Hide },
             }, pages.Hide, 2);
         }
 

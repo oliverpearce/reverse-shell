@@ -58,12 +58,12 @@ namespace Game.World
             var dim = UIFactory.CreateImage(rt, "Dim", new Color(0.05f, 0.045f, 0.04f, 0.9f), true);
             dim.rectTransform.Fill();
             InkStyle.Grain(rt, new Color(1f, 0.95f, 0.85f, 0.035f));
-            var title = InkStyle.Title(rt, "Title", "RESONANCE", 72, InkStyle.Paper, TextAnchor.MiddleCenter);
+            var title = InkStyle.Title(rt, "Title", UIText.Get("resonance.title"), 72, InkStyle.Paper, TextAnchor.MiddleCenter);
             title.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 110f));
             screen.row = UIFactory.CreateRect("Row", rt).Fill();
             screen.preview = UIFactory.CreateRect("Preview", rt).Fill();
             var keys = UIFactory.CreateText(rt, "Keys",
-                "<color=#C2A061>← →</color>  Choose      <color=#C2A061>Enter</color>  Resonate      <color=#C2A061>Esc</color>  Back",
+                UIText.Get("resonance.keys"),
                 28, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
             keys.supportRichText = true;
             keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1600f, 50f));
@@ -165,7 +165,7 @@ namespace Game.World
             }
 
             var plate = CardArt.NamePlate;
-            string label = e.Open ? AfflatusInfo.Display(e.Element).ToUpperInvariant() : "LOCKED";
+            string label = e.Open ? AfflatusInfo.Display(e.Element).ToUpperInvariant() : UIText.Get("resonance.locked");
             var name = UIFactory.CreateText(e.Rect, "Name", label, Mathf.RoundToInt(26 * s), e.Open ? InkStyle.Paper : InkStyle.Muted, TextAnchor.MiddleCenter)
                 .BestFitCardPlate(Mathf.RoundToInt(8 * s), Mathf.RoundToInt(26 * s));
             CardArt.PlacePixels(name.rectTransform, plate.x, plate.y - 1, plate.width, plate.height + 2, u);

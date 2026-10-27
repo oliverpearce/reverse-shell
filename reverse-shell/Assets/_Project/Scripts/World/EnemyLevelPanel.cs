@@ -19,7 +19,10 @@ namespace Game.World
         readonly List<Image> presetPlates = new List<Image>();
         int openedFrame;
 
-        static readonly string[] PresetNames = { "Enemy  Lv 5", "Boss  Lv 20", "Custom  Lv 30" };
+        static string[] PresetNames
+        {
+            get { return new[] { UIText.Get("chest.preset.enemy"), UIText.Get("chest.preset.boss"), UIText.Get("chest.preset.custom") }; }
+        }
         static readonly int[] PresetLevels = { 5, 20, 30 };
         static readonly bool[] PresetBoss = { false, true, false };
 
@@ -45,7 +48,7 @@ namespace Game.World
             InkStyle.HeroFrame(card.rectTransform, InkStyle.Gold, 10f);
             var rt = card.rectTransform;
 
-            var title = InkStyle.Title(rt, "Title", "Sandbox Chest", 64, InkStyle.Paper, TextAnchor.MiddleCenter);
+            var title = InkStyle.Title(rt, "Title", UIText.Get("chest.title"), 64, InkStyle.Paper, TextAnchor.MiddleCenter);
             title.rectTransform.TopStrip(30f, 80f);
             current = UIFactory.CreateText(rt, "Current", "", 32, InkStyle.GoldBright, TextAnchor.MiddleCenter);
             current.supportRichText = true;
@@ -61,7 +64,7 @@ namespace Game.World
             }
 
             // Fine-tune the level: -10 -1 [ N ] +1 +10, and boss on/off.
-            var label = InkStyle.Label(rt, "LevelLabel", "Enemy Level", 28, InkStyle.Gold, TextAnchor.MiddleCenter);
+            var label = InkStyle.Label(rt, "LevelLabel", UIText.Get("chest.level"), 28, InkStyle.Gold, TextAnchor.MiddleCenter);
             label.rectTransform.TopStrip(500f, 40f);
             float y = -560f;
             Step(rt, "-10", -10, new Vector2(-300f, y));
@@ -74,18 +77,18 @@ namespace Game.World
             Step(rt, "+1", 1, new Vector2(170f, y));
             Step(rt, "+10", 10, new Vector2(300f, y));
 
-            var bossToggle = InkStyle.Button(rt, "Boss", "Boss: Off", () =>
+            var bossToggle = InkStyle.Button(rt, "Boss", BossLabel(false), () =>
             {
                 WorldSession.SandboxBoss = !WorldSession.SandboxBoss;
                 Refresh();
             }, false, 36);
             bossToggle.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-170f, -690f), new Vector2(320f, 92f));
             bossLabel = bossToggle.GetComponentInChildren<Text>();
-            var done = InkStyle.Button(rt, "Done", "Done", Close, true, 40);
+            var done = InkStyle.Button(rt, "Done", UIText.Get("chest.done"), Close, true, 40);
             done.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(170f, -690f), new Vector2(320f, 92f));
 
             var keys = UIFactory.CreateText(root, "Keys",
-                "<color=#C2A061>← →</color>  Level ±1      <color=#C2A061>↑ ↓</color>  Level ±10      <color=#C2A061>Enter / Esc</color>  Done",
+                UIText.Get("chest.keys"),
                 28, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
             keys.supportRichText = true;
             keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1600f, 50f));
@@ -117,8 +120,8 @@ namespace Game.World
             int level = WorldSession.SandboxEnemyLevel;
             bool boss = WorldSession.SandboxBoss;
             levelText.text = level.ToString();
-            bossLabel.text = "Boss: " + (boss ? "On" : "Off");
-            current.text = "Next practice fight:  Lv " + level + (boss ? "  <color=#E05A50>BOSS</color>" : "");
+            bossLabel.text = BossLabel(boss);
+            current.text = UIText.Get("chest.next", "level", level.ToString()) + (boss ? "  <color=#E05A50>" + UIText.Get("common.boss") + "</color>" : "");
             for (int i = 0; i < presetPlates.Count; i++)
             {
                 bool on = PresetLevels[i] == level && PresetBoss[i] == boss;
@@ -150,6 +153,11 @@ namespace Game.World
             if (UIKeys.Pressed(KeyCode.DownArrow) || UIKeys.Pressed(KeyCode.S)) Nudge(-10);
             if (UIKeys.Pressed(KeyCode.UpArrow) || UIKeys.Pressed(KeyCode.W)) Nudge(10);
             if (UIKeys.Back || UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter)) Close();
+        }
+
+        static string BossLabel(bool boss)
+        {
+            return UIText.Get("chest.boss", "value", UIText.Get(boss ? "settings.on" : "settings.off"));
         }
     }
 }

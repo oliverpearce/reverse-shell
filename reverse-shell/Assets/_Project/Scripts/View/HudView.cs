@@ -16,15 +16,20 @@ namespace Combat.View
         public static readonly Vector2 GoSize = new Vector2(300f, 106f);
         public const int GoFont = 68;
 
-        /// <summary>Builds a Go-style button: the ink plate (translucent) with the chevrons, punch and centred word.</summary>
+        /// <summary>A Go-sized button with the chevrons (every InkStyle button has the hover glow and the punch).</summary>
         public static Button GoStyleButton(Transform parent, string name, string label, UnityEngine.Events.UnityAction onClick)
         {
-            var b = InkStyle.Button(parent, name, label, onClick, false, GoFont);
-            GoButtonFx.Add(b);
-            return b;
+            return InkStyle.Button(parent, name, label, onClick, false, GoFont, true);
         }
 
         public RectTransform QueueRow { get; private set; }
+
+        /// <summary>One queue slot, the strip's inner padding and the gap between slots.</summary>
+        static readonly Vector2 ChipSize = new Vector2(120f, 84f);
+        const float QueuePad = 8f, QueueGap = 10f, MaxQueueWidth = 760f;
+        static readonly Color MovedGray = new Color(0.2f, 0.2f, 0.2f, 0.95f);
+        static readonly Color MovedRim = new Color(0.55f, 0.55f, 0.55f, 0.8f);
+        static readonly Color MovedIcon = new Color(0.62f, 0.62f, 0.62f, 1f);
 
         BattleView view;
         Text bannerText, turnText;
@@ -56,15 +61,19 @@ namespace Combat.View
             turnText.horizontalOverflow = HorizontalWrapMode.Overflow;
             turnText.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.85f);
             turnText.rectTransform.Place(topLeft, topLeft, new Vector2(32f, -24f), new Vector2(420f, 80f));
-            // Queue: a slim row of slots at the top, under the banner and above the units (no panel, no labels): the
-            // cards you're about to play, in order, then an empty frame per AP left.
+            // Queue: a row of slots top-centre on an ink strip with a gold hairline, under the banner and above the
+            // units: the cards you're about to play, in order, then a bright gold slot per AP left. The strip sizes
+            // itself to its slots (RebuildQueue).
             var topCenter = new Vector2(0.5f, 1f);
-            var queueBg = UIFactory.CreateImage(root, "Queue", new Color(0f, 0f, 0f, 0f));
-            queueBg.rectTransform.Place(topCenter, topCenter, new Vector2(0f, -128f), new Vector2(440f, 76f));
+            var queueBg = UIFactory.CreateImage(root, "Queue", UIFactory.WithAlpha(InkStyle.InkPanel, 0.88f));
+            queueBg.rectTransform.Place(topCenter, topCenter, new Vector2(0f, -124f), new Vector2(440f, ChipSize.y + QueuePad * 2f));
+            InkStyle.Frame(queueBg.rectTransform, InkStyle.Rule, 2f);
             QueueRow = queueBg.rectTransform;
+            queueGroup = queueBg.gameObject.AddComponent<CanvasGroup>();
+            queueGroup.alpha = QueueAlpha;
             var layout = queueBg.gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.padding = new RectOffset(4, 4, 4, 4);
-            layout.spacing = 8f;
+            layout.padding = new RectOffset((int)QueuePad, (int)QueuePad, (int)QueuePad, (int)QueuePad);
+            layout.spacing = QueueGap;
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = false;
             layout.childControlHeight = false;
@@ -78,7 +87,7 @@ namespace Combat.View
 
             // Go: an ink plate with corner brackets like every other button; hovering slides gold chevrons out, pressing
             // (click or Enter) punches and flashes it (GoButtonFx).
-            goButton = GoStyleButton(root, "Go", "Go", view.OnGo);
+            goButton = GoStyleButton(root, "Go", UIText.Get("battle.go"), view.OnGo);
             goButton.GetComponent<RectTransform>().Place(bottomRight, bottomRight, new Vector2(-24f, 92f), GoSize);
             goFx = goButton.GetComponent<GoButtonFx>();
 
@@ -100,7 +109,7 @@ namespace Combat.View
             // The animated results (ResultScreen) build into this; the button shows when they finish.
             resultContent = UIFactory.CreateRect("Content", result.transform).Fill();
             // Continue / Fight Again: the same button as Go (ink plate, chevrons on hover, punch on press).
-            var restart = GoStyleButton(result.transform, "Restart", "Fight Again", view.OnRestart);
+            var restart = GoStyleButton(result.transform, "Restart", UIText.Get("battle.fight_again"), view.OnRestart);
             resultButtonLabel = restart.GetComponentInChildren<Text>();
             restart.GetComponent<RectTransform>().Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(440f, GoSize.y));
             resultButton = restart.gameObject;
@@ -126,7 +135,7 @@ namespace Combat.View
 
         public void SetRound(int round)
         {
-            turnText.text = "<color=#" + ColorUtility.ToHtmlStringRGB(Gold) + ">TURN</color>  " + round;
+            turnText.text = UIText.Get("battle.turn", "n", round.ToString());
         }
 
         /// <summary>AP shows as the empty queue slots; AP spent on moves shows as locked "Card Moved" slots.</summary>
@@ -139,19 +148,24 @@ namespace Combat.View
 
         int movesUsed;
 
+        /// <summary>What you did this turn, in order: a queued card, or null for a card move. Undo always takes back the
+        /// latest action, so this works like a stack; the slots show it left to right.</summary>
+        readonly List<CardInstance> actions = new List<CardInstance>();
+        /// <summary>The holders of the queued cards (where casts fly from).</summary>
+        readonly List<RectTransform> cardHolders = new List<RectTransform>();
+
         /// <summary>Where the next card to be cast sits in the queue (world position), for the channel animation.</summary>
         public Vector3 FirstSlotPosition
         {
             get
             {
-                if (QueueRow.childCount > 0)
-                {
-                    var first = (RectTransform)QueueRow.GetChild(0);
-                    return first.TransformPoint(first.rect.center);
-                }
-                return QueueRow.TransformPoint(QueueRow.rect.center);
+                var first = cardHolders.Count > 0 ? cardHolders[0] : QueueRow.childCount > 0 ? (RectTransform)QueueRow.GetChild(0) : QueueRow;
+                return first.TransformPoint(first.rect.center);
             }
         }
+
+        /// <summary>How many cards are in the queue as shown.</summary>
+        public int QueuedCount { get { return queued.Count; } }
 
         public void SetQueue(List<CardInstance> queue)
         {
@@ -159,24 +173,56 @@ namespace Combat.View
             RebuildQueue();
         }
 
+        /// <summary>Brings the action list in line with the controller: cards no longer queued and moves taken back
+        /// (the latest first) drop out; new cards and new moves join the end, in the order they happened.</summary>
+        void SyncActions()
+        {
+            actions.RemoveAll(a => a != null && !queued.Contains(a));
+            int moves = 0;
+            foreach (var a in actions) if (a == null) moves++;
+            for (int i = actions.Count - 1; i >= 0 && moves > movesUsed; i--)
+                if (actions[i] == null) { actions.RemoveAt(i); moves--; }
+            foreach (var card in queued) if (!actions.Contains(card)) actions.Add(card);
+            for (; moves < movesUsed; moves++) actions.Add(null);
+        }
+
         /// <summary>
-        /// Shows one bordered slot per card you can still play this round: queued cards fill slots,
-        /// empty frames show remaining AP.
+        /// One slot per action this turn, in the order you took them (a queued card, or the gray ring for a card move),
+        /// then a gold slot per AP left.
         /// </summary>
         void RebuildQueue()
         {
+            SyncActions();
             UIFactory.ClearChildren(QueueRow);
-            int slots = queued.Count + movesUsed + currentAP;
+            cardHolders.Clear();
+            int slots = actions.Count + currentAP;
+            var chipSize = ChipSize;
+            // Many slots (a long turn) shrink to stay within MaxQueueWidth.
+            float fit = (MaxQueueWidth - QueuePad * 2f - QueueGap * Mathf.Max(0, slots - 1)) / Mathf.Max(1, slots);
+            if (fit < chipSize.x) chipSize.x = fit;
+            QueueRow.sizeDelta = new Vector2(Mathf.Max(1, slots) * chipSize.x + QueueGap * Mathf.Max(0, slots - 1) + QueuePad * 2f,
+                ChipSize.y + QueuePad * 2f);
 
-            const float rowWidth = 440f - 8f, gap = 8f;
-            float chipWidth = slots > 0 ? Mathf.Min(100f, (rowWidth - gap * (slots - 1)) / slots) : 100f;
-            var chipSize = new Vector2(chipWidth, 68f);
-
-            foreach (var card in queued)
+            foreach (var card in actions)
             {
+                if (card == null)
+                {
+                    // A move used up an action slot: it stays locked for the turn, a gray plate with the ring.
+                    var locked = Slot("Moved", chipSize, MovedGray);
+                    InkStyle.Frame(locked.rectTransform, MovedRim, 2f, -2f);
+                    var swap = CardIcons.Swap;
+                    if (swap != null)
+                    {
+                        var ring = UIFactory.CreateImage(locked.transform, "Swap", MovedIcon);
+                        ring.sprite = swap;
+                        ring.preserveAspect = true;
+                        ring.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(56f, 56f));
+                    }
+                    continue;
+                }
                 var owner = card.Owner.Color;
-                var chip = UIFactory.CreateImage(QueueRow, card.Name, card.IsRitual ? CardView.RitualPastel(owner) : UIFactory.Darken(owner, 0.35f));
-                chip.rectTransform.sizeDelta = chipSize;
+                var chip = Slot("Card", chipSize, card.IsRitual ? CardView.RitualPastel(owner) : UIFactory.Darken(owner, 0.35f));
+                cardHolders.Add((RectTransform)chip.rectTransform.parent);
                 InkStyle.Frame(chip.rectTransform, Gold, 2f, -2f);
                 // The card's own pixel icon (or the Ult art) instead of words.
                 var art = card.IsRitual ? CardArt.Ult(card.Definition, card.Owner.Definition) : CardArt.Icon(card.Definition);
@@ -189,23 +235,46 @@ namespace Combat.View
                 if (count > 0) CardStars.Build((RectTransform)chip.transform, count, 13f, new Vector2(0f, 1f), new Vector2(4f, -3f));
             }
 
-            // A move used up an action slot: it stays locked for the turn and says so.
-            for (int i = 0; i < movesUsed; i++)
-            {
-                var locked = UIFactory.CreateImage(QueueRow, "Moved" + i, new Color(0.12f, 0.11f, 0.1f, 0.92f));
-                locked.rectTransform.sizeDelta = chipSize;
-                InkStyle.Frame(locked.rectTransform, UIFactory.WithAlpha(InkStyle.PaperDim, 0.7f), 2f, -2f);
-                var text = UIFactory.CreateText(locked.transform, "Label", "CARD\nMOVED", 16, InkStyle.PaperDim, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(9, 16);
-                text.lineSpacing = 0.85f;
-                text.rectTransform.Fill(4f);
-            }
-
+            // AP left: a warm gold slot with a bright rim and a diamond in the middle, one per AP.
             for (int i = 0; i < currentAP; i++)
             {
-                var slot = UIFactory.CreateImage(QueueRow, "EmptySlot" + i, new Color(1f, 0.8f, 0.3f, 0.06f));
-                slot.rectTransform.sizeDelta = chipSize;
-                InkStyle.Frame(slot.rectTransform, UIFactory.WithAlpha(Gold, 0.8f), 2f, -2f);
+                var slot = Slot("EmptySlot", chipSize, new Color(1f, 0.8f, 0.3f, 0.16f));
+                InkStyle.Frame(slot.rectTransform, InkStyle.GoldBright, 3f, -3f);
+                var diamond = UIFactory.CreateImage(slot.transform, "AP", Color.white);
+                diamond.sprite = CardIcons.Diamond;
+                diamond.preserveAspect = true;
+                diamond.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(30f, 30f));
             }
+        }
+
+        /// <summary>A slot: a holder the row lays out, with the plate inside it.</summary>
+        Image Slot(string name, Vector2 size, Color color)
+        {
+            var holder = UIFactory.CreateRect(name, QueueRow);
+            holder.sizeDelta = size;
+            var plate = UIFactory.CreateImage(holder, "Plate", color);
+            plate.rectTransform.Fill();
+            return plate;
+        }
+
+        void Update()
+        {
+            if (queueGroup != null && !Mathf.Approximately(queueGroup.alpha, queueAlphaTarget))
+                queueGroup.alpha = Mathf.MoveTowards(queueGroup.alpha, queueAlphaTarget, Time.unscaledDeltaTime * 3f);
+        }
+
+        // HUD > QUEUE STRIP VISIBILITY
+        // The strip shows (at 80%, so the battle shows through) while you plan, and fades out once your last card has
+        // been used, until the next turn starts.
+
+        const float QueueAlpha = 0.8f;
+        CanvasGroup queueGroup;
+        float queueAlphaTarget = QueueAlpha;
+
+        public void ShowQueue(bool show)
+        {
+            queueAlphaTarget = show ? QueueAlpha : 0f;
+            if (queueGroup != null) queueGroup.blocksRaycasts = show;
         }
 
         /// <summary>The battle log was removed (damage numbers and the banner say what happened); kept as a no-op so

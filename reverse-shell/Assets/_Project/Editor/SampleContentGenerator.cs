@@ -9,12 +9,13 @@ using UnityEngine;
 namespace Combat.EditorTools
 {
     /// <summary>
-    /// Tools > Combat > Generate Sample Content. Creates (or overwrites in place, keeping GUIDs)
+    /// Tools > Combat > Generate Sample Content. Creates whatever is missing of
     /// the main party (MC the Prototype, Heal Bot and Lucy), two machine enemies, the Parts and their catalog,
     /// cards/statuses/animations and a Battle scene. Sprites come from Assets/_Project/Art
     /// (Tools/SpriteForge builds the cast sheets, Tools/PortraitForge the character-card portraits).
     /// All three party members are original robots. Non-commercial fan project.
-    /// Everything it makes is plain data you can then edit in the inspector.
+    /// Everything it makes is plain data you can then edit in the inspector. Assets that already exist are never
+    /// touched, so your edits are safe; only Tools > Combat > Rebuild Sample Content (it asks first) overwrites them.
     /// </summary>
     public static class SampleContentGenerator
     {
@@ -24,10 +25,26 @@ namespace Combat.EditorTools
         const string PortraitArt = "Assets/_Project/Art/Portraits/";
         public const string PartCatalogPath = Root + "/Parts/PartCatalog.asset";
 
+        // Rebuild mode: existing assets are overwritten with the generator's values (GUIDs kept).
+        static bool overwrite;
+        // Assets made (or rebuilt) during this run; only these get their follow-up settings.
+        static readonly HashSet<Object> fresh = new HashSet<Object>();
+        static int kept;
+        static bool running;
+
         [MenuItem("Tools/Combat/Generate Sample Content")]
         public static void Generate()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            fresh.Clear();
+            kept = 0;
+            running = true;
+            try { GenerateAll(); }
+            finally { running = false; }
+        }
+
+        static void GenerateAll()
+        {
 
             AssetDatabase.Refresh(); // pick up sprite sheets written by Tools/SpriteForge
             foreach (var folder in new[] { "Cards", "Characters", "Enemies", "Statuses", "Sequences", "Animations", "Parts" })
@@ -46,8 +63,11 @@ namespace Combat.EditorTools
                 StackRule.RefreshDuration, 1, "-25% Physical DEF.", 0f, 0f, new StatModifier(StatType.PhysicalDefense, ModifierKind.Percent, -0.25f));
             var poison = Status("Status_Poison", "Poison", "PSN", new Color(0.5f, 0.85f, 0.3f), true,
                 StackRule.AddStacks, 3, "Lose 3% max HP per stack at round end.", 0.03f, 0f);
-            poison.verb = "poison"; // card text: "deal 120% ATK damage and poison 1 enemy (x1, 2 turns)"
-            EditorUtility.SetDirty(poison);
+            if (Fresh(poison))
+            {
+                poison.verb = "poison"; // card text: "deal 120% ATK damage and poison 1 enemy (x1, 2 turns)"
+                EditorUtility.SetDirty(poison);
+            }
             var regen = Status("Status_Regen", "Regeneration", "RGN", new Color(0.4f, 0.95f, 0.6f), false,
                 StackRule.RefreshDuration, 1, "Recover 5% max HP at round end.", 0f, 0.05f);
 
@@ -103,13 +123,16 @@ namespace Combat.EditorTools
                 });
             var mc = Character("Char_MC", "MC", "Prototype", new Color(0.92f, 0.92f, 0.95f), Afflatus.Volt, DamageType.Physical,
                 2200, 240f, 130f, 130f, new[] { mc1, mc2 }, mcUlt, AnimSet("MC"));
-            mc.cardPool = new List<CardDefinition> { mc3 };
-            mc.neutralGlow = true;
-            mc.glowColor = new Color(1f, 0.55f, 0.18f); // orange, matching the sprite's glow pads
-            mc.statBarReference = true; // crew-menu stat bars: MC at level 30 fills 90%
-            mc.partSockets = new List<Vector2>(); // all crew cards share the reference knight's layout (CharacterMenu.SocketSpots)
-            mc.channels = new List<Afflatus> { Afflatus.Volt, Afflatus.Fire, Afflatus.Toxin, Afflatus.Earth, Afflatus.Light, Afflatus.Void };
-            Portraits(mc, "MC");
+            if (Fresh(mc))
+            {
+                mc.cardPool = new List<CardDefinition> { mc3 };
+                mc.neutralGlow = true;
+                mc.glowColor = new Color(1f, 0.55f, 0.18f); // orange, matching the sprite's glow pads
+                mc.statBarReference = true; // crew-menu stat bars: MC at level 30 fills 90%
+                mc.partSockets = new List<Vector2>(); // all crew cards share the reference knight's layout (CharacterMenu.SocketSpots)
+                mc.channels = new List<Afflatus> { Afflatus.Volt, Afflatus.Fire, Afflatus.Toxin, Afflatus.Earth, Afflatus.Light, Afflatus.Void };
+                Portraits(mc, "MC");
+            }
 
             // ---------------------------------------------------------------- Heal Bot (Earth, Special)
             // The shared robot model, overgrown like a dryad. A tanky healer.
@@ -137,8 +160,11 @@ namespace Combat.EditorTools
                 });
             var healBot = Character("Char_HealBot", "Heal Bot", "Medic", new Color(0.5f, 0.86f, 0.45f), Afflatus.Earth, DamageType.Special,
                 2800, 190f, 160f, 150f, new[] { heal1, heal2 }, healUlt, AnimSet("HealBot"));
-            healBot.cardPool = new List<CardDefinition> { heal3 };
-            Portraits(healBot, "HealBot");
+            if (Fresh(healBot))
+            {
+                healBot.cardPool = new List<CardDefinition> { heal3 };
+                Portraits(healBot, "HealBot");
+            }
 
             // ---------------------------------------------------------------- Lucy (Void, Special)
             // The same robot model with purple accents. Viruses: damage over time and debuffs.
@@ -163,8 +189,11 @@ namespace Combat.EditorTools
                 });
             var lucy = Character("Char_Lucy", "Lucy", "Hacker", new Color(0.72f, 0.45f, 0.95f), Afflatus.Void, DamageType.Special,
                 2100, 215f, 120f, 150f, new[] { lucy1, lucy2 }, lucyUlt, AnimSet("Lucy"));
-            lucy.cardPool = new List<CardDefinition> { lucy3 };
-            Portraits(lucy, "Lucy");
+            if (Fresh(lucy))
+            {
+                lucy.cardPool = new List<CardDefinition> { lucy3 };
+                Portraits(lucy, "Lucy");
+            }
             foreach (var c in new[] { mc, healBot, lucy }) EditorUtility.SetDirty(c);
 
             // ---------------------------------------------------------------- Parts (internal slots on the character card)
@@ -181,12 +210,21 @@ namespace Combat.EditorTools
             var resonant = ResonantCore();
             parts.Add(fragmented);
             parts.Add(resonant);
-            var catalog = ScriptableObject.CreateInstance<PartCatalog>();
-            catalog.parts = parts;
-            catalog.starterParts = new List<PartDefinition>();   // a new game starts with no spare Parts
-            catalog.starterCore = fragmented;                     // only the protagonist's own, damaged Core
-            catalog.boundCore = resonant;                         // ...which the Soul Card turns into this
-            Save(catalog, PartCatalogPath);
+            var catalog = Save(ScriptableObject.CreateInstance<PartCatalog>(), PartCatalogPath);
+            if (Fresh(catalog))
+            {
+                catalog.parts = parts;
+                catalog.starterParts = new List<PartDefinition>();   // a new game starts with no spare Parts
+                catalog.starterCore = fragmented;                     // only the protagonist's own, damaged Core
+                catalog.boundCore = resonant;                         // ...which the Soul Card turns into this
+            }
+            else
+            {
+                // An existing catalog only gains Parts that were just made.
+                foreach (var added in parts)
+                    if (Fresh(added) && !catalog.parts.Contains(added)) catalog.parts.Add(added);
+            }
+            EditorUtility.SetDirty(catalog);
 
             // ---------------------------------------------------------------- Enemies (machine lifeforms)
             var goldenHammer = Card("Card_Enemy_GoldenHammer", "Golden Hammer", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
@@ -206,12 +244,12 @@ namespace Combat.EditorTools
                 new EnemySkill { card = goldenHammer, weight = 2f },
                 new EnemySkill { card = barrage, weight = 1f },
                 new EnemySkill { card = reinforce, weight = 0.5f });
-            sentry.xpReward = 120;
+            if (Fresh(sentry)) sentry.xpReward = 120;
             var stalker = Enemy("Enemy_ScrapStalker", "Scrap Stalker", new Color(0.5f, 0.58f, 0.32f), Afflatus.Toxin, DamageType.Special,
                 2600, 135f, 90f, 90f, AnimSet("ScrapStalker"),
                 new EnemySkill { card = bite, weight = 2f },
                 new EnemySkill { card = howl, weight = 0.6f });
-            stalker.xpReward = 80;
+            if (Fresh(stalker)) stalker.xpReward = 80;
             EditorUtility.SetDirty(sentry);
             EditorUtility.SetDirty(stalker);
 
@@ -234,10 +272,39 @@ namespace Combat.EditorTools
             EnsureChapterOne();
 
             AssetDatabase.SaveAssets();
-            CreateScene(setup);
+            if (overwrite || AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null) CreateScene(setup);
 
             Selection.activeObject = mc;
-            EditorUtility.DisplayDialog("Combat", "Sample content generated.\n\nScene: " + ScenePath + "\nPress Play to fight!", "OK");
+            EditorUtility.DisplayDialog("Combat", (overwrite ? "Sample content rebuilt." : "Sample content generated: "
+                + fresh.Count + " assets made, " + kept + " existing ones left as they were.")
+                + "\n\nScene: " + ScenePath + "\nPress Play to fight!", "OK");
+        }
+
+        [MenuItem("Tools/Combat/Rebuild Sample Content (overwrites edits)")]
+        static void Rebuild()
+        {
+            if (!EditorUtility.DisplayDialog("Rebuild Sample Content",
+                    "This puts every generated card, character, enemy, status and Part back to the generator's values, "
+                    + "and rebuilds the Battle scene.\n\nAny changes you made to them in the Inspector will be lost.",
+                    "Overwrite my edits", "Cancel"))
+                return;
+            overwrite = true;
+            try { Generate(); }
+            finally { overwrite = false; }
+        }
+
+        /// <summary>True if the asset was made (or rebuilt) during this run, so its generator settings may be applied.</summary>
+        static bool Fresh(Object asset)
+        {
+            return asset != null && fresh.Contains(asset);
+        }
+
+        /// <summary>A standalone run (the bootstrap) starts its own list of fresh assets.</summary>
+        static void BeginStandalone()
+        {
+            if (running) return;
+            fresh.Clear();
+            kept = 0;
         }
 
         [MenuItem("Tools/Combat/Open Battle Scene")]
@@ -260,10 +327,12 @@ namespace Combat.EditorTools
         /// <summary>
         /// Blue, the blue robot backup who joins in the Sandbox: a Light support / tank. Builds the DEF Up
         /// status, Blue's cards and character from Art/Characters/Blue (Tools/ChibiForge/knight_model.py), and adds
-        /// Blue to the end of Battle_Sample's roster (a 4th member fights as the backup). Safe to run again.
+        /// Blue to the end of Battle_Sample's roster (a 4th member fights as the backup). Safe to run again: only
+        /// missing assets are made.
         /// </summary>
         public static void EnsureBlue()
         {
+            BeginStandalone();
             var defUp = Status("Status_DefUp", "DEF Up", "DF", new Color(0.45f, 0.75f, 1f), false,
                 StackRule.AddStacks, 2, "+20% Physical and Special DEF per level.", 0f, 0f,
                 new StatModifier(StatType.PhysicalDefense, ModifierKind.Percent, 0.2f),
@@ -286,7 +355,7 @@ namespace Combat.EditorTools
                 3200, 120f, 190f, 170f, new[] { bash, bulwark }, aegis, anim);
 
             var setup = AssetDatabase.LoadAssetAtPath<BattleSetup>(Root + "/Battle_Sample.asset");
-            if (setup != null && !setup.party.Contains(blue))
+            if (setup != null && Fresh(blue) && !setup.party.Contains(blue))
             {
                 setup.party.Add(blue);
                 EditorUtility.SetDirty(setup);
@@ -297,21 +366,27 @@ namespace Combat.EditorTools
         // -------------------------------------------------------------------- Chapter One
 
         public const string BestiaryPath = "Assets/_Project/Resources/Bestiary.asset";
-        /// <summary>Bump when Chapter One's content changes: the bootstrap re-runs EnsureChapterOne on older projects.</summary>
+        /// <summary>Bump when Chapter One gains new assets: the bootstrap re-runs EnsureChapterOne on older projects, which
+        /// adds whatever is missing (it never changes assets that already exist).</summary>
         public const int ChapterOneVersion = 3;
 
         /// <summary>
         /// Chapter One's content (bible §9; numbers are first drafts, bible §13): the protagonist's resonance kits
         /// (Physical = the existing cards, Electric = Arc Edge, Static Field, Ult Thunderheart), Status_Stunned, the
         /// chapter's enemies (all on the red Rust Sentry sprite: Scrap Hound, Wire Crawler, Collector, Electric Dragon)
-        /// with their skills and Ults, and Resources/Bestiary.asset listing every enemy. Safe to run again.
+        /// with their skills and Ults, and Resources/Bestiary.asset listing every enemy. Safe to run again: only missing
+        /// assets are made, and the bestiary only gains enemies.
         /// </summary>
         public static void EnsureChapterOne()
         {
+            BeginStandalone();
             var stunned = Status("Status_Stunned", "Stunned", "ST", new Color(1f, 0.9f, 0.35f), true,
                 StackRule.RefreshDuration, 1, "Can't act on their next turn.", 0f, 0f);
-            stunned.preventsAction = true;
-            EditorUtility.SetDirty(stunned);
+            if (Fresh(stunned))
+            {
+                stunned.preventsAction = true;
+                EditorUtility.SetDirty(stunned);
+            }
             var atkUp = AssetDatabase.LoadAssetAtPath<StatusDefinition>(Root + "/Statuses/Status_AtkUp.asset");
             var defDown = AssetDatabase.LoadAssetAtPath<StatusDefinition>(Root + "/Statuses/Status_PhysicalDefDown.asset");
 
@@ -328,7 +403,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 3.2f, hits = 3 }, new ApplyStatusEffect { status = stunned, duration = 1, chance = 0.5f } });
 
             var mc = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(Root + "/Characters/Char_MC.asset");
-            if (mc != null)
+            if (mc != null && (overwrite || mc.resonances == null || mc.resonances.Count == 0))
             {
                 mc.resonances = new List<ResonanceKit>
                 {
@@ -348,7 +423,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 1.5f }, new ApplyStatusEffect { status = poison, duration = 2 } });
             var hound = Enemy("Enemy_ScrapHound", "Scrap Hound", new Color(0.78f, 0.42f, 0.28f), Afflatus.Fire, DamageType.Physical,
                 2400, 150f, 100f, 95f, red, new EnemySkill { card = bite, weight = 2f }, new EnemySkill { card = poisonStrike, weight = 1f });
-            hound.xpReward = 50;
+            if (Fresh(hound)) hound.xpReward = 50;
 
             var spark = Card("Card_Enemy_Spark", "Spark", CardKind.Attack, TargetMode.SingleEnemy, false, null,
                 new CardEffect[] { new DamageEffect { multiplier = 1.0f } });
@@ -356,7 +431,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new ApplyStatusEffect { target = EffectTarget.Self, status = atkUp, stacks = 1, duration = 2 } });
             var crawler = Enemy("Enemy_WireCrawler", "Wire Crawler", new Color(0.5f, 0.62f, 0.85f), Afflatus.Volt, DamageType.Special,
                 2700, 160f, 120f, 110f, red, new EnemySkill { card = spark, weight = 2f }, new EnemySkill { card = coilUp, weight = 1f });
-            crawler.xpReward = 70;
+            if (Fresh(crawler)) crawler.xpReward = 70;
 
             var grapple = Card("Card_Enemy_GrappleHook", "Grapple Hook", CardKind.Attack, TargetMode.SingleEnemy, false, null,
                 new CardEffect[] { new DamageEffect { multiplier = 1.2f } });
@@ -366,8 +441,11 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 2.6f } });
             var collector = Enemy("Enemy_Collector", "Collector", new Color(0.62f, 0.66f, 0.72f), Afflatus.None, DamageType.Physical,
                 4400, 185f, 140f, 130f, red, new EnemySkill { card = grapple, weight = 2f }, new EnemySkill { card = suppress, weight = 1f });
-            collector.ritual = reclaim;
-            collector.xpReward = 150;
+            if (Fresh(collector))
+            {
+                collector.ritual = reclaim;
+                collector.xpReward = 150;
+            }
 
             var breath = Card("Card_Enemy_ThunderBreath", "Thunder Breath", CardKind.Attack, TargetMode.AllEnemies, false, null,
                 new CardEffect[] { new DamageEffect { multiplier = 0.9f } });
@@ -380,8 +458,11 @@ namespace Combat.EditorTools
             var dragon = Enemy("Enemy_ElectricDragon", "Electric Dragon", new Color(0.45f, 0.75f, 1f), Afflatus.Volt, DamageType.Special,
                 2700, 170f, 150f, 160f, red, new EnemySkill { card = breath, weight = 1.5f }, new EnemySkill { card = tail, weight = 1.5f },
                 new EnemySkill { card = coil, weight = 1f });
-            dragon.ritual = storm;
-            dragon.xpReward = 300;
+            if (Fresh(dragon))
+            {
+                dragon.ritual = storm;
+                dragon.xpReward = 300;
+            }
             foreach (var e in new[] { hound, crawler, collector, dragon }) EditorUtility.SetDirty(e);
 
             // ---- The protagonist starts with their own Fragmented Core fitted and no spare Parts (bible §3, §9).
@@ -390,18 +471,23 @@ namespace Combat.EditorTools
             {
                 var fragmented = FragmentedCore();
                 var resonant = ResonantCore();
-                if (!partCatalog.parts.Contains(fragmented)) partCatalog.parts.Add(fragmented);
-                if (!partCatalog.parts.Contains(resonant)) partCatalog.parts.Add(resonant);
-                partCatalog.starterParts.Clear();
-                partCatalog.starterCore = fragmented;
-                partCatalog.boundCore = resonant;
+                if (Fresh(fragmented) && !partCatalog.parts.Contains(fragmented)) partCatalog.parts.Add(fragmented);
+                if (Fresh(resonant) && !partCatalog.parts.Contains(resonant)) partCatalog.parts.Add(resonant);
+                if (overwrite) partCatalog.starterParts.Clear();
+                if (overwrite || partCatalog.starterCore == null) partCatalog.starterCore = fragmented;
+                if (overwrite || partCatalog.boundCore == null) partCatalog.boundCore = resonant;
                 EditorUtility.SetDirty(partCatalog);
             }
 
-            // ---- The bestiary: every enemy, by asset name, for story encounters at runtime.
+            // ---- The bestiary: every enemy, by asset name, for story encounters at runtime. It only ever gains enemies.
             EnsureFolder("Assets/_Project/Resources");
-            var catalog = ScriptableObject.CreateInstance<EnemyCatalog>();
-            catalog.contentVersion = ChapterOneVersion;
+            var catalog = AssetDatabase.LoadAssetAtPath<EnemyCatalog>(BestiaryPath);
+            if (catalog == null)
+            {
+                catalog = ScriptableObject.CreateInstance<EnemyCatalog>();
+                AssetDatabase.CreateAsset(catalog, BestiaryPath);
+            }
+            catalog.contentVersion = Mathf.Max(catalog.contentVersion, ChapterOneVersion);
             foreach (var guid in AssetDatabase.FindAssets("t:EnemyDefinition", new[] { Root + "/Enemies" }))
             {
                 var e = AssetDatabase.LoadAssetAtPath<EnemyDefinition>(AssetDatabase.GUIDToAssetPath(guid));
@@ -409,7 +495,7 @@ namespace Combat.EditorTools
             }
             foreach (var e in new[] { hound, crawler, collector, dragon })
                 if (!catalog.enemies.Contains(e)) catalog.enemies.Add(e);
-            Save(catalog, BestiaryPath);
+            EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
         }
 
@@ -479,9 +565,12 @@ namespace Combat.EditorTools
             var core = Part("Part_ResonantCore", "Resonant Core", PartSlot.Core, new Color(0.45f, 0.78f, 1f),
                 "Your Core, bound with the Soul Card. +10% damage while Electric.",
                 new StatModifier(StatType.DamageBonus, ModifierKind.Flat, 0.1f));
-            core.elementOnly = true;
-            core.element = Afflatus.Volt;
-            EditorUtility.SetDirty(core);
+            if (Fresh(core))
+            {
+                core.elementOnly = true;
+                core.element = Afflatus.Volt;
+                EditorUtility.SetDirty(core);
+            }
             return core;
         }
 
@@ -534,7 +623,7 @@ namespace Combat.EditorTools
         }
 
         /// <summary>
-        /// Creates/updates Content/Animations/Anim_{folder}.asset from the sheets in Art/Characters/{folder}/
+        /// Creates Content/Animations/Anim_{folder}.asset (if it doesn't exist yet) from the sheets in Art/Characters/{folder}/
         /// (built by Tools/ChibiForge). Returns null if the folder has no sheets.
         /// </summary>
         public static SpriteAnimationSet AnimSet(string folder)
@@ -614,7 +703,7 @@ namespace Combat.EditorTools
                 "Characters/Char_Miku", "Cards/Card_Miku_StaticHymn", "Cards/Card_Miku_RallyChorus", "Cards/Card_Miku_Ritual",
                 "Enemies/Enemy_StaticEnforcer", "Enemies/Enemy_StaticThug",
                 "Cards/Card_Enemy_ShardSlam", "Cards/Card_Enemy_CrystalBarrage", "Cards/Card_Enemy_Harden",
-                "Cards/Card_Enemy_Bite", "Cards/Card_Enemy_Howl",
+                "Cards/Card_Enemy_Howl", // (the old Card_Enemy_Bite name is used again by the Scrap Hound, so it stays)
                 "Animations/Anim_Miku", "Animations/Anim_StaticEnforcer", "Animations/Anim_StaticThug",
                 "Backdrop_RainlineStation",
                 "Characters/Char_Teto", "Cards/Card_Teto_DrillSpin", "Cards/Card_Teto_BaguetteBash", "Cards/Card_Teto_Ritual",
@@ -636,19 +725,28 @@ namespace Combat.EditorTools
                 if (AssetDatabase.IsValidFolder(CharacterArt + folder)) AssetDatabase.DeleteAsset(CharacterArt + folder);
         }
 
-        /// <summary>Creates the asset, or copies into the existing one so references and GUIDs survive.</summary>
+        /// <summary>
+        /// Creates the asset if it's missing. An existing asset is returned untouched (your edits win); only Rebuild
+        /// copies the new values into it, keeping its GUID so references survive.
+        /// </summary>
         static T Save<T>(T obj, string path) where T : ScriptableObject
         {
             obj.name = Path.GetFileNameWithoutExtension(path);
             var existing = AssetDatabase.LoadAssetAtPath<T>(path);
             if (existing != null)
             {
-                EditorUtility.CopySerialized(obj, existing);
+                if (overwrite && !fresh.Contains(existing))
+                {
+                    EditorUtility.CopySerialized(obj, existing);
+                    EditorUtility.SetDirty(existing);
+                    fresh.Add(existing);
+                }
+                else if (!fresh.Contains(existing)) kept++;
                 Object.DestroyImmediate(obj);
-                EditorUtility.SetDirty(existing);
                 return existing;
             }
             AssetDatabase.CreateAsset(obj, path);
+            fresh.Add(obj);
             return obj;
         }
 

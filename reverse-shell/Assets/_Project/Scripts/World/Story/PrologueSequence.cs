@@ -86,11 +86,11 @@ namespace Game.World
             Scanlines(screen);
             InkStyle.Frame(screen, new Color(0.6f, 0.75f, 0.7f, 0.35f), 3f);
 
-            var brand = InkStyle.Title(screen, "Brand", "REVERSE SHELL", 54, new Color(0.85f, 0.95f, 0.9f), TextAnchor.UpperCenter);
+            var brand = InkStyle.Title(screen, "Brand", UIText.Get("title.name"), 54, new Color(0.85f, 0.95f, 0.9f), TextAnchor.UpperCenter);
             brand.rectTransform.TopStrip(48f, 70f);
-            var tag = UIFactory.CreateText(screen, "Tag", "A PUBLIC INFORMATION RECORDING", 24, new Color(0.7f, 0.85f, 0.8f, 0.8f), TextAnchor.UpperCenter);
+            var tag = UIFactory.CreateText(screen, "Tag", UIText.Get("prologue.tag"), 24, new Color(0.7f, 0.85f, 0.8f, 0.8f), TextAnchor.UpperCenter);
             tag.rectTransform.TopStrip(118f, 34f);
-            rec = UIFactory.CreateText(screen, "Rec", "• REC", 28, new Color(1f, 0.35f, 0.3f), TextAnchor.UpperLeft);
+            rec = UIFactory.CreateText(screen, "Rec", UIText.Get("prologue.rec"), 28, new Color(1f, 0.35f, 0.3f), TextAnchor.UpperLeft);
             rec.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(34f, -28f), new Vector2(200f, 40f));
             timecode = UIFactory.CreateText(screen, "Time", "", 28, new Color(0.85f, 0.95f, 0.9f, 0.8f), TextAnchor.UpperRight);
             timecode.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-34f, -28f), new Vector2(300f, 40f));
@@ -98,7 +98,7 @@ namespace Game.World
             line = UIFactory.CreateText(screen, "Line", "", 44, new Color(0.92f, 0.97f, 0.94f), TextAnchor.MiddleCenter);
             line.rectTransform.Place(center, center, new Vector2(0f, -20f), new Vector2(1240f, 360f));
             line.supportRichText = true;
-            var hint = UIFactory.CreateText(root, "Hint", "Enter  next      Esc / P  skip", 26, new Color(1f, 1f, 1f, 0.45f), TextAnchor.LowerCenter);
+            var hint = UIFactory.CreateText(root, "Hint", UIText.Get("prologue.hint"), 26, new Color(1f, 1f, 1f, 0.45f), TextAnchor.LowerCenter);
             hint.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(900f, 40f));
 
             yield return FadeIn(screen.gameObject, 1.2f);
@@ -118,7 +118,7 @@ namespace Game.World
                     line.text = "";
                     var word = InkStyle.Title(screen, "Everlasting", "", 120, InkStyle.GoldBright, TextAnchor.MiddleCenter);
                     word.rectTransform.Place(center, center, new Vector2(0f, -20f), new Vector2(1400f, 200f));
-                    const string everlasting = "EVERLASTING";
+                    string everlasting = UIText.Get("prologue.everlasting");
                     for (int i = 1; i <= everlasting.Length && !skip; i++)
                     {
                         word.text = everlasting.Substring(0, i);
@@ -128,7 +128,7 @@ namespace Game.World
                     Destroy(word.gameObject);
                 }
             }
-            hint.text = "Enter  next";
+            hint.text = UIText.Get("prologue.hint.next");
         }
 
         // ------------------------------------------------------------------ 2. The procedure fails
@@ -145,7 +145,7 @@ namespace Game.World
             fill.rectTransform.anchorMin = Vector2.zero;
             fill.rectTransform.anchorMax = new Vector2(0f, 1f);
             fill.rectTransform.offsetMin = fill.rectTransform.offsetMax = Vector2.zero;
-            var percent = UIFactory.CreateText(screen, "Percent", "TRANSFER 0%", 30, new Color(0.85f, 0.95f, 0.9f), TextAnchor.MiddleCenter);
+            var percent = UIFactory.CreateText(screen, "Percent", UIText.Get("prologue.transfer", "pct", "0"), 30, new Color(0.85f, 0.95f, 0.9f), TextAnchor.MiddleCenter);
             percent.rectTransform.Place(center, center, new Vector2(0f, -220f), new Vector2(900f, 44f));
 
             // It climbs, slows, and stalls.
@@ -154,7 +154,7 @@ namespace Game.World
             {
                 p = Mathf.MoveTowards(p, 0.63f, Time.unscaledDeltaTime * (p < 0.5f ? 0.22f : 0.06f));
                 fill.rectTransform.anchorMax = new Vector2(p, 1f);
-                percent.text = "TRANSFER " + Mathf.RoundToInt(p * 100f) + "%";
+                percent.text = UIText.Get("prologue.transfer", "pct", Mathf.RoundToInt(p * 100f).ToString());
                 yield return null;
             }
             yield return Wait(0.8f);
@@ -165,14 +165,14 @@ namespace Game.World
             {
                 screen.anchoredPosition = origin + new Vector2(UnityEngine.Random.Range(-40f, 40f), UnityEngine.Random.Range(-8f, 8f));
                 fill.color = i % 2 == 0 ? new Color(1f, 0.35f, 0.3f) : new Color(0.55f, 0.9f, 0.8f);
-                percent.text = i % 3 == 0 ? "TRANSFER ##%" : "TRANSFER 63%";
+                percent.text = UIText.Get("prologue.transfer", "pct", i % 3 == 0 ? "##" : "63");
                 line.text = i % 4 == 0 ? procedure.Substring(0, Mathf.Min(procedure.Length, 16)) + "—" : "";
                 yield return new WaitForSecondsRealtime(0.05f);
             }
             screen.anchoredPosition = origin;
             line.text = "";
             percent.color = new Color(1f, 0.4f, 0.35f);
-            percent.text = "TRANSFER INCOMPLETE";
+            percent.text = UIText.Get("prologue.transfer.failed");
             yield return Wait(1.6f);
             screen.gameObject.SetActive(false);
             timecode = null;
@@ -193,7 +193,7 @@ namespace Game.World
 
             string chosen = null;
             var field = NameField(root, center, n => chosen = n);
-            var note = UIFactory.CreateText(root, "Note", "Type a name, then Enter", 26, new Color(1f, 1f, 1f, 0.45f), TextAnchor.UpperCenter);
+            var note = UIFactory.CreateText(root, "Note", UIText.Get("prologue.name.hint"), 26, new Color(1f, 1f, 1f, 0.45f), TextAnchor.UpperCenter);
             note.rectTransform.Place(center, center, new Vector2(0f, -90f), new Vector2(900f, 40f));
             while (chosen == null)
             {

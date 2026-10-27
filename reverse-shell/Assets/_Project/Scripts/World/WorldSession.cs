@@ -261,6 +261,27 @@ namespace Game.World
             SaveGame.Load();
         }
 
+#if UNITY_EDITOR
+        /// <summary>The Level Designer's Play This Area writes an area id here (editor session only) before Play.</summary>
+        public const string PlayAreaKey = "ReverseShell.PlayArea";
+
+        /// <summary>Play This Area: skips the title, loads the latest save (or a new game) and starts at that area's spawn.
+        /// Saving while testing (Access Points) saves into that slot as usual.</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void PlayAreaFromDesigner()
+        {
+            string id = UnityEditor.SessionState.GetString(PlayAreaKey, "");
+            if (id.Length == 0) return;
+            UnityEditor.SessionState.EraseString(PlayAreaKey);
+            int latest = SaveGame.LatestSlot();
+            StartSlot(latest > 0 ? latest : 1, latest <= 0);
+            CurrentArea = id;
+            PlayerSpot = null;
+            HasReturnPoint = false;
+            ArrivedFrom = null;
+        }
+#endif
+
         /// <summary>The title screen's choice: play <paramref name="slot"/>, from its save or (newGame) from scratch
         /// (its old save is deleted). The caller reloads the area afterwards.</summary>
         public static void StartSlot(int slot, bool newGame)

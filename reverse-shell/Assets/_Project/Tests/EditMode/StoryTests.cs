@@ -284,5 +284,38 @@ namespace Combat.Tests
                 Assert.LessOrEqual(DialoguePager.Plain(page).Length, 14);
             }
         }
+
+        /// <summary>Every key the code asks UI.txt for (any dotted key on a line with UIText.Get) is in the file.</summary>
+        [Test]
+        public void UIText_EveryKeyInCodeExists()
+        {
+            Combat.View.UIText.Reload();
+            var key = new System.Text.RegularExpressions.Regex("\"([a-z_]+(?:\\.[a-z_]+)+)\"");
+            var scripts = System.IO.Path.Combine(Application.dataPath, "_Project/Scripts");
+            int checkedKeys = 0;
+            foreach (var file in System.IO.Directory.GetFiles(scripts, "*.cs", System.IO.SearchOption.AllDirectories))
+                foreach (var line in System.IO.File.ReadAllLines(file))
+                {
+                    if (!line.Contains("UIText.Get(")) continue;
+                    foreach (System.Text.RegularExpressions.Match m in key.Matches(line))
+                    {
+                        Assert.IsTrue(Combat.View.UIText.Has(m.Groups[1].Value),
+                            System.IO.Path.GetFileName(file) + " asks for " + m.Groups[1].Value + ", which UI.txt doesn't have");
+                        checkedKeys++;
+                    }
+                }
+            Assert.Greater(checkedKeys, 50, "found the UIText calls");
+        }
+
+        [Test]
+        public void UIText_ParsesKeysNewlinesAndColours()
+        {
+            var lines = new Dictionary<string, string>();
+            Combat.View.UIText.Parse("# comment\nmenu.back = Back\nbattle.card_moved = CARD\\nMOVED\nx.y = {gold}Hi{/c} <size=40>a</size>\n", lines);
+            Assert.AreEqual("Back", lines["menu.back"]);
+            Assert.AreEqual("CARD\nMOVED", lines["battle.card_moved"]);
+            StringAssert.StartsWith("<color=#", lines["x.y"]);
+            StringAssert.EndsWith("</color> <size=40>a</size>", lines["x.y"]);
+        }
     }
 }

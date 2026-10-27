@@ -21,7 +21,7 @@ The layout is mirrored by Combat.View.CardIcons (keep the two in sync):
     row 6  element orbs: 0 Star  1 Mineral  2 Beast  3 Plant (Earth)  4 Spirit  5 Intellect (Virus)
     row 7  0 CHIP  1 CORE  2 Poison  3 ATK Up  4 ATK Down  5 Physical DEF Down  6 Regen  7 Incantation Might Up
     row 8  0 DEF Up  1 Stunned  2 Go chevrons (fb649 turned to point right)  3 close X  4 pause sign (two bars in
-           fb647's silvers with the pack's outline)
+           fb647's silvers with the pack's outline)  5 moved-card ring (fb2061)
 
 Flat symbols on small printed cards, with white / silver / gold faces for the ranks. PLACEHOLDER designs in the
 spirit of Reverse: 1999's card icons (our own drawings, not its assets; to be redesigned): each sits in a fine
@@ -48,6 +48,7 @@ ELEMENT_ICONS = [2129, 2134, 2130, 2132, 2131, 2133]   # Star, Mineral, Beast, E
 EXTRA_ICONS = [2115, 2139, 1086, 1098, 1102, 1103, 968, 877]  # CHIP, CORE, Poison, ATK Up, ATK Down, DEF Down, Regen, IM Up
 STATUS_ICONS = [1099, 1075]                                   # DEF Up, Stunned (row 8)
 GO_ICON, CLOSE_ICON, PAUSE_COLORS, OUTLINE_FROM = 649, 656, 647, 656
+SWAP_ICON = 2061   # the battle queue's moved-card slot (tinted gray in game)
 OUT = os.path.join(ROOT, 'Assets', '_Project', 'Resources', 'UI', 'CardIcons.png')
 N = CELL * SS
 
@@ -490,6 +491,7 @@ def build():
     put(2, 8, place_raven(blank(), turned(raven(GO_ICON)), 4))
     put(3, 8, raven_cell(CLOSE_ICON))
     put(4, 8, place_raven(blank(), pause_icon(), 4))
+    put(5, 8, raven_cell(SWAP_ICON))
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     write_png(OUT, CELL * COLS, CELL * ROWS, atlas)
     print('wrote', os.path.relpath(OUT, ROOT))

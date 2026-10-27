@@ -155,6 +155,7 @@ namespace Combat.View
         void SetTurnPlaying(bool on)
         {
             turnPlaying = on;
+            if (on && hud.QueuedCount == 0) hud.ShowQueue(false);   // Go with nothing queued: no card to wait for
             RefreshLockOn();
         }
 
@@ -321,7 +322,7 @@ namespace Combat.View
             while (Controller.CanUndo && Controller.Undo()) { }
         }
 
-        public string ResultButtonLabel { get { return bootstrap.HasReturn ? "Continue" : "Fight Again"; } }
+        public string ResultButtonLabel { get { return UIText.Get(bootstrap.HasReturn ? "battle.continue" : "battle.fight_again"); } }
 
         public void OnRestart()
         {
@@ -351,8 +352,9 @@ namespace Combat.View
             {
                 case RoundStartedEvent round:
                     if (turnPlaying) SetTurnPlaying(false);
+                    hud.ShowQueue(true);   // the card holder comes back for the new turn
                     hud.SetRound(round.Round);
-                    hud.ShowBanner("Turn " + round.Round, Gold, 0.4f);
+                    hud.ShowBanner(UIText.Get("battle.banner.turn", "n", round.Round.ToString()), Gold, 0.4f);
                     hud.Log("-- Turn " + round.Round + " --");
                     return Tween.Wait(0.35f);
                 case CardDrawnEvent drawn:
@@ -447,8 +449,8 @@ namespace Combat.View
             cv.Rect.localScale = Vector3.zero;
             cv.ScaleTo(1f, 0.35f);
             hand.Layout(e.HandAfter, 0.35f);
-            hud.ShowBanner(e.Card.Owner.Name + "'s Ritual is ready!", CardView.RitualPastel(e.Card.Owner.Color), 0.6f);
-            hud.Log(e.Card.Owner.Name + "'s Ritual is ready!");
+            hud.ShowBanner(UIText.Get("battle.banner.ult_ready", "name", e.Card.Owner.Name), CardView.RitualPastel(e.Card.Owner.Color), 0.6f);
+            hud.Log(UIText.Get("battle.banner.ult_ready", "name", e.Card.Owner.Name));
             yield return Tween.Wait(0.4f);
         }
 
@@ -479,6 +481,8 @@ namespace Combat.View
             var caster = Get(e.Caster);
             Vector3 from = e.Caster.Team == Team.Player ? hud.FirstSlotPosition : (caster != null ? AboveHead(caster) : Vector3.zero);
             hud.SetQueue(e.QueueAfter);
+            // The player's last card is on its way: the card holder (and its AP slots) fades out until the next turn.
+            if (e.Caster.Team == Team.Player && e.QueueAfter.Count == 0) hud.ShowQueue(false);
             var targets = new List<UnitView>();
             foreach (var t in e.Targets)
             {
@@ -607,7 +611,7 @@ namespace Combat.View
             var uv = Get(e.Unit);
             var group = uv.gameObject.AddComponent<CanvasGroup>();
             group.alpha = 0f;
-            hud.ShowBanner(e.Unit.Name + " steps in!", e.Unit.Color, 0.8f);
+            hud.ShowBanner(UIText.Get("battle.banner.steps_in", "name", e.Unit.Name), e.Unit.Color, 0.8f);
             FxLibrary.PlayAt(FxLayer, BattleFx.Buff, uv.Center);
             yield return Tween.Fade(group, 1f, 0.35f);
             yield return Tween.Wait(0.3f);
@@ -627,7 +631,7 @@ namespace Combat.View
                 // The attacks are done: a clear break, a banner, then the end-of-turn ticks one by one.
                 tickRun = true;
                 yield return Tween.Wait(TickLead);
-                hud.ShowBanner("End of Turn", TickColor, TickBanner);
+                hud.ShowBanner(UIText.Get("battle.banner.end_of_turn"), TickColor, TickBanner);
                 yield return Tween.Wait(TickBanner);
             }
 
@@ -641,7 +645,7 @@ namespace Combat.View
             {
                 size = 92;
                 color = Color.Lerp(color, new Color(1f, 0.45f, 0.2f), 0.6f);
-                text = UIFactory.Size(34) + "CRIT!</size>\n" + text;
+                text = UIFactory.Size(34) + UIText.Get("battle.crit") + "</size>\n" + text;
             }
             SpawnDamageNumber(tv, text, color, size);
             if (e.IsTick) FxLibrary.PlayAt(FxLayer, BattleFx.PoisonTick, tv.Center);
@@ -698,6 +702,9 @@ namespace Combat.View
 
             var t = UIFactory.CreateText(FxLayer, "DamageNumber", text, size, color, TextAnchor.LowerCenter, FontStyle.Bold);
             t.supportRichText = true;
+            // Never wrap: a long status name ("Regeneration") stays on one line, centred over the unit.
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.verticalOverflow = VerticalWrapMode.Overflow;
             var rt = t.rectTransform;
             rt.pivot = new Vector2(0.5f, 0f);
             rt.sizeDelta = new Vector2(420f, 160f);

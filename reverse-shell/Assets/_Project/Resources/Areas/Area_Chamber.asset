@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 960ea5e6da086f3488b88985b67bfbb3, type: 3}
+  m_Name: Area_Chamber
+  m_EditorClassIdentifier: 
+  id: chamber
+  displayName: THE HUMMING HALL
+  subtitle: Where the trace ends
+  dim: 1
+  map: 'HHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHH....................HHH
+
+    HHH.,,,,,,,,U,,,,,,,,,.HHH
+
+    HHH.r................r.HHH
+
+    HHH....................HHH
+
+    HHH....................HHH
+
+    HHH.........E..........HHH
+
+    HHH....r....X.....r....HHH
+
+    HHH....................HHH
+
+    HHH....................HHH
+
+    HHHZZZZZZZZZZZZZZZZZZZZHHH
+
+    HHH.r................r.HHH
+
+    HHH....................HHH
+
+    HHHHHHHHHHH..S.HHHHHHHHHHH
+
+    HHHHHHHHHHH.W..HHHHHHHHHHH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHH
+
+'
+  warps:
+  - tile: W
+    to: tunnel
+  encounters:
+  - Enemies:
+    - Enemy_ElectricDragon
+    Level: 7
+    Boss: 1
+    WinFlag: ch1.dragon.beaten
+    Requires: []
+    Blocks:
+    - ch1.dragon.beaten
+    WinMessage: 
+    WinKey: guardian.win
+    Reward: 
+  npcs: []
+  chests: []

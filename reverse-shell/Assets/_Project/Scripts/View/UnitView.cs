@@ -21,8 +21,12 @@ namespace Combat.View
         public const float Width = 220f;
         /// <summary>Battle sprite size: 64 px frames at 6x (the knight-based sprites are about 38 px tall).</summary>
         const float SpriteSize = 384f;
-        /// <summary>The intent card floats just above the sprite's head.</summary>
-        const float IntentY = 64f;
+        /// <summary>A boss is drawn this much bigger.</summary>
+        const float BossScale = 1.5f;
+        /// <summary>The intent card floats just above the sprite's head: this high for an ordinary enemy, raised for a
+        /// boss by the extra height of its head (the figure's head is about 5/8 of the way up its frame).</summary>
+        const float IntentY = 64f, HeadShare = 0.625f;
+        float intentY = IntentY;
         const float IntentSize = 96f;
         public const float Height = 380f;
 
@@ -86,13 +90,14 @@ namespace Combat.View
 
             var def = unit.Definition;
             var top = new Vector2(0.5f, 1f);
+            if (unit.IsBoss) intentY = IntentY + SpriteSize * (BossScale - 1f) * HeadShare;
 
             if (unit.Team == Team.Enemy)
             {
                 // Intent: a small card above the head showing what the enemy will play: its type icon on a cream,
                 // silver or gold card for rank I / II / III (details are in the inspect screen).
                 intentIcon = UIFactory.CreateImage(transform, "Intent", Color.white);
-                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, IntentY), new Vector2(IntentSize, IntentSize));
+                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, intentY), new Vector2(IntentSize, IntentSize));
                 intentIcon.preserveAspect = true;
                 intentIcon.gameObject.SetActive(false);
             }
@@ -102,6 +107,7 @@ namespace Combat.View
 
             if (def.animations != null && def.animations.Has(UISpriteAnimator.Idle)) BuildAnimatedBody(unit);
             else BuildPanelBody(unit);
+            if (intentIcon != null) intentIcon.transform.SetAsLastSibling();   // never behind the sprite
 
             // Reticles sit in front of the body, centered on the torso (or the panel's middle).
             var reticleAnchor = animator != null ? new Vector2(0.5f, 0f) : new Vector2(0.5f, 0.5f);
@@ -117,7 +123,7 @@ namespace Combat.View
             // A slim nameplate: the HP bar and Ult pips (and small status icons). The name only shows on hover.
             nameText = InkStyle.Title(transform, "Name", def.DisplayName, 34, InkStyle.Paper, TextAnchor.MiddleCenter).BestFit(18, 34);
             // Above the head (for enemies, above the floating intent card).
-            float nameY = unit.Team == Team.Enemy ? IntentY + IntentSize / 2f + 24f : 18f;
+            float nameY = unit.Team == Team.Enemy ? intentY + IntentSize / 2f + 24f : 18f;
             nameText.rectTransform.Place(top, new Vector2(0.5f, 0f), new Vector2(0f, nameY), new Vector2(Width + 80f, 42f));
             var nameShadow = nameText.gameObject.AddComponent<Shadow>();
             nameShadow.effectColor = new Color(0f, 0f, 0f, 0.75f);
@@ -130,7 +136,7 @@ namespace Combat.View
             hpFill = SlantBar.Create(hpBar, "Fill", unit.Team == Team.Player ? new Color(0.35f, 0.8f, 0.45f) : new Color(0.85f, 0.3f, 0.3f), HpSlant);
             if (unit.IsBoss)
             {
-                var boss = InkStyle.Title(transform, "Boss", "BOSS", 34, InkStyle.Crimson, TextAnchor.LowerCenter);
+                var boss = InkStyle.Title(transform, "Boss", UIText.Get("common.boss"), 34, InkStyle.Crimson, TextAnchor.LowerCenter);
                 boss.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.85f);
                 boss.rectTransform.Place(top, new Vector2(0.5f, 0f), new Vector2(0f, -296f), new Vector2(Width, 48f));
             }
@@ -175,7 +181,7 @@ namespace Combat.View
             shadow.rectTransform.Place(bottom, new Vector2(0.5f, 0.5f), new Vector2(0f, -6f), new Vector2(120f, 30f));
 
             // 64 px frames at exactly 6x keep pixels crisp (a boss is drawn at 9x); the feet sit ~2 px above the frame bottom.
-            float size = unit.IsBoss ? SpriteSize * 1.5f : SpriteSize;
+            float size = unit.IsBoss ? SpriteSize * BossScale : SpriteSize;
             var images = new List<Image>();
             // A resonance (the protagonist's Electric) glows in its element; Physical keeps the character's own glow.
             Afflatus? resonance = unit.Character != null && unit.Character.resonances.Count > 0 && unit.Afflatus != Afflatus.None
@@ -241,7 +247,7 @@ namespace Combat.View
         void Update()
         {
             if (intentIcon != null && intentIcon.gameObject.activeSelf) // gentle bob, in whole pixels
-                intentIcon.rectTransform.anchoredPosition = new Vector2(0f, IntentY + Mathf.Round(Mathf.Sin(Time.time * 2.5f) * 1.5f) * 2f);
+                intentIcon.rectTransform.anchoredPosition = new Vector2(0f, intentY + Mathf.Round(Mathf.Sin(Time.time * 2.5f) * 1.5f) * 2f);
             if (ultReady)   // a full Ult bar pulses bright
             {
                 float p = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f);
@@ -477,11 +483,11 @@ namespace Combat.View
         {
             switch (kind)
             {
-                case CardKind.Attack: return "Attack";
-                case CardKind.Buff: return "Buff";
-                case CardKind.Debuff: return "Debuff";
-                case CardKind.Counter: return "Counter";
-                default: return "Heal";
+                case CardKind.Attack: return UIText.Get("card.kind.attack");
+                case CardKind.Buff: return UIText.Get("card.kind.buff");
+                case CardKind.Debuff: return UIText.Get("card.kind.debuff");
+                case CardKind.Counter: return UIText.Get("card.kind.counter");
+                default: return UIText.Get("card.kind.heal");
             }
         }
 

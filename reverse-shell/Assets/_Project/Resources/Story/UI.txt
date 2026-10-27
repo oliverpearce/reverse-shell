@@ -1,0 +1,298 @@
+# REVERSE SHELL — the words on buttons, menus, banners and key hints (UIText reads this file).
+# Story and dialogue live in the other files here (Chapter1.txt, World.txt); the Tutorials in Guide.txt.
+#
+#   key = text            one line; keep the key (left of the =) as it is and change the text
+#   \n                    starts a new line inside the text
+#   # anything            a comment, ignored
+# Colours: {gold} {red} {green} {cyan} {gray} {c=#RRGGBB} ... {/c}
+# Some lines take fill-ins such as {slot}; they are listed in the comment above the line.
+# A key that's missing shows as [missing: key] in game.
+
+# ------------------------------------------------------------------ Shared
+
+menu.back = Back
+menu.close = Close
+menu.no = No
+# The key hints under the yes/no and list pages (Save, Settings, Quit, Equip)
+menu.keys = {gold}↑ ↓{/c}  Choose      {gold}Enter{/c}  Select      {gold}Esc{/c}  Back
+
+common.lv = Lv
+common.level = Level
+common.boss = BOSS
+common.max = MAX
+common.xp = XP
+
+# Stat names (Units, the battle's unit sheet, results, status and Part bonuses)
+stat.hp = HP
+stat.max_hp = MAX HP
+stat.atk = ATK
+stat.phys_def = PHYS DEF
+stat.spec_def = SPEC DEF
+stat.crit = CRIT
+stat.crit_dmg = CRIT DMG
+stat.spell_dmg = SPELL DMG
+# The longer names in status and Part tooltips ("ATK +30%")
+stat.name.max_hp = Max HP
+stat.name.dmg = DMG
+stat.name.dmg_taken = DMG taken
+stat.name.card_dmg = Card DMG
+stat.name.ult_dmg = Ult DMG
+stat.name.healing = Healing
+stat.name.starting_ult = Starting Ult
+
+# The two kinds of item slot
+item.chip = CHIP
+item.core = CORE
+
+# ------------------------------------------------------------------ Title screen
+
+title.name = REVERSE SHELL
+title.subtitle = Demo
+# Bottom-right. Raise it with every build you hand out.
+title.version = Demo v0.2
+title.keys = {gold}↑ ↓{/c}  Select      {gold}Enter{/c}  Confirm      {gold}Esc / P{/c}  Back
+
+title.continue = Continue
+title.new_game = New Game
+title.load = Load
+title.sandbox = Sandbox Mode
+title.settings = Settings
+title.credits = Credits
+title.quit = Quit
+
+# {slot} = the slot number
+title.overwrite = Overwrite slot {slot}?
+title.overwrite.yes = Yes, start a new game
+
+title.sandbox.enter = Enter Sandbox Mode
+title.sandbox.help = Go straight to the Sandbox with your latest save: practice fights at any enemy level, and the whole test crew. Leave Sandbox Mode (Esc, Settings) takes you back.
+
+title.credits.text = <size=40>Credits</size>\n\nMade by {gold}Oliver Pearce{/c}. A free, non-commercial fan game inspired by Reverse: 1999\n(not affiliated with Bluepoch).\n\n{gold}Icons{/c}   Raven Fantasy Icons by Clockwork Raven Studios\n{gold}Character sprites{/c}   Fantasy Knight by aamatniekss\n{gold}Effects{/c}   Super Pixel Effects Gigapack by Will Tice / unTied Games\n{gold}Font{/c}   monogram by datagoblin\n\nThank you for playing!
+
+# ------------------------------------------------------------------ Settings (title, Esc menu and battle pause menu)
+
+# {value} = settings.on / settings.off
+settings.fullscreen = Fullscreen:  {value}
+settings.on = On
+settings.off = Off
+settings.fullscreen.help = Play in fullscreen or in a window. Changes right away.
+# The web build's version (browsers only go fullscreen on a click, and keep Esc for leaving it)
+settings.fullscreen.help.web = Fill the screen (or use the button under the game). The browser switches on your next click, and Esc leaves fullscreen, so open the menu with P there.
+
+# {value} = one of the three below
+settings.input = Input:  {value}
+settings.input.both = Both
+settings.input.mouse = Mouse
+settings.input.keyboard = Keyboard
+settings.input.help = Mouse: hover, click and drag. Keyboard: arrows or WASD, Enter and Backspace. Both: either. Walking, F, Q and Esc (or P) always work.
+
+# {value} = one of the two below
+settings.graphics = Graphics:  {value}
+settings.graphics.fast = Fast
+settings.graphics.pretty = Pretty
+settings.graphics.help = Fast: no glow or colour filter and fewer leaves, so the game runs cooler (best in a browser). Pretty: the full look.
+
+settings.tutorials = Tutorials
+settings.tutorials.help = Every key, and the battle tutorials: turns and AP, merging, Ult, resonance and more.
+
+# ------------------------------------------------------------------ Esc menu (the cards on the mat)
+
+pause.title = PAUSED
+pause.keys = {gold}← →{/c}  Choose      {gold}Enter{/c}  Select      {gold}Esc{/c}  Resume
+
+pause.card.quit = Quit
+pause.card.save = Save
+pause.card.settings = Settings
+pause.card.party = Party
+pause.card.units = Units
+pause.card.items = Items
+pause.card.resonance = Resonance
+
+pause.save.title = SAVE
+# {slot} = the slot number
+pause.save.overwrite = Overwrite slot {slot}?
+pause.save.overwrite.yes = Yes, save over it
+# Flashes on the Save card. {slot} = the slot number
+pause.saved = SAVED {slot}
+
+pause.settings.title = SETTINGS
+pause.sandbox.enter = Enter Sandbox Mode
+pause.sandbox.enter.help = Go to the Sandbox: practice fights with any enemy level, and the whole test crew. Leave Sandbox Mode (here) brings you back to where you are now.
+pause.sandbox.leave = Leave Sandbox Mode
+pause.sandbox.leave.help = Go back to exactly where you were before you entered the Sandbox.
+
+pause.quit.title = QUIT
+pause.quit.sure = Are you sure?
+pause.quit.yes = Yes, quit to the title screen
+
+# ------------------------------------------------------------------ Save slots (title and Esc → Save)
+
+# {slot} = the slot number
+save.slot = Slot {slot}
+save.current = (current)
+save.empty = Empty
+
+# ------------------------------------------------------------------ Units (Esc → Units)
+
+units.title = Units
+units.keys = {gold}← →{/c}  Member      {gold}↑ ↓{/c}  Select      {gold}Enter{/c}  Open      {gold}L{/c}  Leader      {gold}Esc / P{/c}  Close
+units.leader = Leader
+units.items = Items
+units.empty = Empty
+units.deck = Deck
+units.ult = Ult
+units.remove = Remove
+units.no_spare = No spare items
+
+# ------------------------------------------------------------------ Party (Esc → Party, and Prepare for Battle)
+
+party.title = Party
+party.title.prefight = Prepare for Battle
+# {close} = menu.back before a fight, menu.close from the Esc menu
+party.keys = {gold}Drag{/c}  Rearrange      {gold}← →{/c}  Move      {gold}↑ ↓{/c}  Slots / Members      {gold}Enter{/c}  Place      {gold}Backspace{/c}  Remove      {gold}Esc{/c}  {close}
+party.goal = Goal
+party.goal.text = Defeat all enemies.
+party.enemies = Enemies
+party.leader = LEADER
+party.backup = BACKUP
+party.backup.note = Replaces a fallen party member in combat
+party.members = Members
+party.start = Start
+
+# ------------------------------------------------------------------ Items (Esc → Items)
+
+items.title = Items
+items.keys = {gold}Arrows{/c}  Look      {gold}Enter{/c}  Equip      {gold}Esc{/c}  Back
+items.none = No items yet
+items.none.text = CHIPs and COREs you find will show up here.
+items.fitted = Fitted:
+# In the Equip list: what a member has in that slot now
+items.empty_slot = empty
+items.take_off = Fitted: take it off
+# {item} = the item's name
+items.equip = EQUIP {item}
+
+# ------------------------------------------------------------------ Resonance (Esc → Resonance)
+
+resonance.title = RESONANCE
+resonance.keys = {gold}← →{/c}  Choose      {gold}Enter{/c}  Resonate      {gold}Esc{/c}  Back
+resonance.locked = LOCKED
+
+# ------------------------------------------------------------------ Sandbox chest (the enemy level panel)
+
+chest.title = Sandbox Chest
+chest.preset.enemy = Enemy  Lv 5
+chest.preset.boss = Boss  Lv 20
+chest.preset.custom = Custom  Lv 30
+chest.level = Enemy Level
+# {value} = settings.on / settings.off
+chest.boss = Boss: {value}
+chest.done = Done
+chest.keys = {gold}← →{/c}  Level ±1      {gold}↑ ↓{/c}  Level ±10      {gold}Enter / Esc{/c}  Done
+# {level} = the level
+chest.next = Next practice fight:  Lv {level}
+
+# ------------------------------------------------------------------ Overworld
+
+overworld.objective = Objective
+# The prompt over what you face ([F] Talk)
+prompt.talk = Talk
+prompt.heal = Heal
+prompt.interact = Interact
+# {name} = the machine's or person's name
+prompt.fight = Fight the {name}
+prompt.talk_to = Talk to {name}
+prompt.beacon = Use Summon Beacon
+prompt.open_chest = Open the chest
+prompt.look_inside = Look inside
+# Filled into the Summon Beacon's question (World.txt beacon.ask). {n} = how many
+count.machine = 1 machine
+count.machines = {n} machines
+
+# ------------------------------------------------------------------ The opening recording
+
+prologue.tag = A PUBLIC INFORMATION RECORDING
+prologue.rec = • REC
+prologue.hint = Enter  next      Esc / P  skip
+prologue.hint.next = Enter  next
+# Spelled out letter by letter at the end of the recording
+prologue.everlasting = EVERLASTING
+# {pct} = the percentage
+prologue.transfer = TRANSFER {pct}%
+prologue.transfer.failed = TRANSFER INCOMPLETE
+prologue.name.hint = Type a name, then Enter
+
+# ------------------------------------------------------------------ Tutorials (Settings → Tutorials)
+
+guide.tab.controls = Controls
+guide.tab.battle = Battle
+guide.keys = {gold}← →{/c}  Tab      {gold}↑ ↓{/c}  Topic      {gold}Esc / P{/c}  Back
+
+# ------------------------------------------------------------------ Battle
+
+# The pause menu
+battle.pause.title = Paused
+battle.pause.resume = Resume
+battle.pause.settings = Settings
+battle.pause.restart = Restart Fight
+battle.pause.leave = Leave Fight
+battle.pause.hint = Esc / P  Resume
+# The little key labels under the pause and speed buttons
+battle.key.pause = ESC
+battle.key.speed = TAB
+
+# Top-left. {n} = the turn number
+battle.turn = {gold}TURN{/c}  {n}
+battle.go = Go
+# The button under the results
+battle.fight_again = Fight Again
+battle.continue = Continue
+# Above a critical hit's number
+battle.crit = CRIT!
+
+# Banners across the middle. {n} = the turn number, {name} = a unit's name
+battle.banner.turn = Turn {n}
+battle.banner.end_of_turn = End of Turn
+battle.banner.ult_ready = {name}'s Soul Card is primed!
+battle.banner.steps_in = {name} steps in!
+
+# Cards
+card.ult = Ult
+# {n} = I, II or III
+card.rank = Rank {n}
+card.damage = DAMAGE
+card.heal = HEAL
+card.kind.attack = Attack
+card.kind.buff = Buff
+card.kind.debuff = Debuff
+card.kind.counter = Counter
+card.kind.heal = Heal
+card.hint.upgrades = Scroll to see upgrades
+card.hint.close = Click anywhere to close
+
+# Status tooltips. {n} = turns, {pct} = a percentage
+status.turn = 1 turn
+status.turns = {n} turns
+status.lose_hp = Lose {pct} max HP each turn
+status.recover_hp = Recover {pct} max HP each turn
+status.cant_act = Can't act
+
+# Holding a unit (its sheet)
+inspect.hint = Click anywhere to return to battle
+inspect.ult = ULT
+inspect.ready = READY
+
+# The profile posters
+poster.target = TARGET PROFILE
+poster.personnel = PERSONNEL FILE
+poster.wanted = WANTED
+poster.cleared = CLEARED
+poster.threat = THREAT INDEX
+poster.combat = COMBAT INDEX
+
+# The results screen
+result.victory = RESULTS
+result.defeat = DEFEAT
+# {n} = the XP gained
+result.xp = +{n} XP
+result.level_up = LEVEL UP

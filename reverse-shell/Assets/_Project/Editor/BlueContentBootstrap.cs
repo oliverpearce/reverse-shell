@@ -24,8 +24,8 @@ namespace Combat.EditorTools
                 if (bestiary == null || bestiary.contentVersion < SampleContentGenerator.ChapterOneVersion)
                 {
                     SampleContentGenerator.EnsureChapterOne();
-                    UnityEngine.Debug.Log("Created Chapter One's content v" + SampleContentGenerator.ChapterOneVersion
-                        + " (resonance kits, enemies, Resources/Bestiary.asset).");
+                    UnityEngine.Debug.Log("Added any missing Chapter One content v" + SampleContentGenerator.ChapterOneVersion
+                        + " (resonance kits, enemies, Resources/Bestiary.asset). Existing assets were left as they are.");
                 }
                 int sits = SampleContentGenerator.EnsureSitClips();
                 if (sits > 0) UnityEngine.Debug.Log("Added the sit clip (the Esc menu's mat) to " + sits + " animation sets.");

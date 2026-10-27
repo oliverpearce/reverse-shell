@@ -86,7 +86,7 @@ namespace Game.World
             objectivePanel = panel.rectTransform;
             objectivePanel.Place(topRight, topRight, new Vector2(-28f, -28f), new Vector2(640f, 118f));
             InkStyle.Frame(objectivePanel, InkStyle.Rule, 2f);
-            var label = InkStyle.Label(objectivePanel, "Label", "Objective", 24, InkStyle.Gold, TextAnchor.UpperLeft);
+            var label = InkStyle.Label(objectivePanel, "Label", UIText.Get("overworld.objective"), 24, InkStyle.Gold, TextAnchor.UpperLeft);
             label.rectTransform.TopStrip(10f, 34f, 18f);
             objectiveText = UIFactory.CreateText(objectivePanel, "Text", "", 30, InkStyle.Paper, TextAnchor.UpperLeft);
             objectiveText.rectTransform.TopStrip(44f, 66f, 18f);
@@ -197,7 +197,7 @@ namespace Game.World
                 fill.rectTransform.offsetMax = Vector2.zero;
 
                 // The level on the name line, right-aligned, as big as the name and in gold so it reads at a glance.
-                var lv = InkStyle.Title(row, "Level", "<size=" + UIFactory.Px((int)(nameSize * 0.8f)) + ">Lv</size> " + m.Level,
+                var lv = InkStyle.Title(row, "Level", "<size=" + UIFactory.Px((int)(nameSize * 0.8f)) + ">" + UIText.Get("common.lv") + "</size> " + m.Level,
                     (int)(nameSize * 1.35f), InkStyle.GoldBright, TextAnchor.LowerRight);
                 lv.supportRichText = true;
                 lv.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(contentX, 0f), new Vector2(width, nameSize + 4f));

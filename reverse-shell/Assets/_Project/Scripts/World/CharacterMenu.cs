@@ -29,7 +29,7 @@ namespace Game.World
 
         static string SlotLabel(PartSlot slot)
         {
-            return slot == PartSlot.Chip ? "CHIP" : "CORE";
+            return UIText.Get(slot == PartSlot.Chip ? "item.chip" : "item.core");
         }
 
         OverworldBuilder world;
@@ -213,7 +213,7 @@ namespace Game.World
 
             page = UIFactory.CreateRect("Content", root).Fill();
             var center = new Vector2(0.5f, 0.5f);
-            var title = InkStyle.Title(page, "Title", "Units", 56, InkStyle.Paper, TextAnchor.UpperLeft);
+            var title = InkStyle.Title(page, "Title", UIText.Get("units.title"), 56, InkStyle.Paper, TextAnchor.UpperLeft);
             title.rectTransform.Place(center, new Vector2(0f, 1f), new Vector2(Left, Top), new Vector2(260f, 70f));
             tabs = UIFactory.CreateRect("Tabs", page).Place(center, new Vector2(0f, 1f), new Vector2(Left + 230f, Top - 4f), new Vector2(Right - Left - 230f - 110f, 60f));
 
@@ -226,9 +226,7 @@ namespace Game.World
             keyText = UIFactory.CreateText(keyBar, "Text", "", 28, InkStyle.PaperDim, TextAnchor.MiddleCenter, FontStyle.Bold);
             keyText.supportRichText = true;
             keyText.rectTransform.Fill();
-            const string gold = "<color=#C2A061>";
-            keyText.text = gold + "← →</color>  Member      " + gold + "↑ ↓</color>  Select      " + gold + "Enter</color>  Open      "
-                           + gold + "L</color>  Leader      " + gold + "Esc / P</color>  Close";
+            keyText.text = UIText.Get("units.keys");
         }
 
         void Rebuild()
@@ -260,7 +258,7 @@ namespace Game.World
                 }
                 if (i == 0)
                 {
-                    var lead = InkStyle.Label(tab, "Leader", "Leader", 24, InkStyle.Gold, TextAnchor.LowerCenter);
+                    var lead = InkStyle.Label(tab, "Leader", UIText.Get("units.leader"), 24, InkStyle.Gold, TextAnchor.LowerCenter);
                     lead.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 2f), new Vector2(w, 34f));
                 }
                 int index = i;
@@ -324,7 +322,7 @@ namespace Game.World
             var name = InkStyle.Title(detail, "Name", member.DisplayName, 76, InkStyle.Paper, TextAnchor.MiddleLeft).BestFit(40, 76);
             name.rectTransform.Place(center, tl, new Vector2(InfoX + 96f, y + 4f), new Vector2(Right - InfoX - 330f, 92f));
 
-            var lv = UIFactory.CreateText(detail, "Level", "Level  " + UIFactory.Size(48) + progress.Level + "</size>", 30, InkStyle.PaperDim, TextAnchor.LowerRight);
+            var lv = UIFactory.CreateText(detail, "Level", UIText.Get("common.level") + "  " + UIFactory.Size(48) + progress.Level + "</size>", 30, InkStyle.PaperDim, TextAnchor.LowerRight);
             lv.font = UIFactory.SerifFont;
             lv.supportRichText = true;
             lv.rectTransform.Place(center, new Vector2(1f, 1f), new Vector2(Right, y - 6f), new Vector2(240f, 70f));
@@ -346,7 +344,7 @@ namespace Game.World
             var tl = new Vector2(0f, 1f);
             float x = InfoX + 96f, w = Right - x;
             int hp = WorldSession.HPOf(member), max = WorldSession.MaxHPOf(member);
-            var label = InkStyle.Title(detail, "HP", "HP", 40, InkStyle.Paper, TextAnchor.MiddleLeft);
+            var label = InkStyle.Title(detail, "HP", UIText.Get("stat.hp"), 40, InkStyle.Paper, TextAnchor.MiddleLeft);
             label.rectTransform.Place(center, tl, new Vector2(x, y), new Vector2(200f, 50f));
             var value = InkStyle.Title(detail, "HPValue", hp + " / " + max, 36, InkStyle.Paper, TextAnchor.MiddleRight);
             value.rectTransform.Place(center, tl, new Vector2(Right - 400f, y), new Vector2(400f, 50f));
@@ -366,12 +364,12 @@ namespace Game.World
             var without = UnitFor(member, progress, false);
             var stats = new[]
             {
-                new KeyValuePair<string, StatType>("ATK", StatType.Attack),
-                new KeyValuePair<string, StatType>("PHYS DEF", StatType.PhysicalDefense),
-                new KeyValuePair<string, StatType>("CRIT", StatType.CritRate),
-                new KeyValuePair<string, StatType>("SPEC DEF", StatType.SpecialDefense),
-                new KeyValuePair<string, StatType>("CRIT DMG", StatType.CritDamage),
-                new KeyValuePair<string, StatType>("MAX HP", StatType.MaxHP),
+                new KeyValuePair<string, StatType>(UIText.Get("stat.atk"), StatType.Attack),
+                new KeyValuePair<string, StatType>(UIText.Get("stat.phys_def"), StatType.PhysicalDefense),
+                new KeyValuePair<string, StatType>(UIText.Get("stat.crit"), StatType.CritRate),
+                new KeyValuePair<string, StatType>(UIText.Get("stat.spec_def"), StatType.SpecialDefense),
+                new KeyValuePair<string, StatType>(UIText.Get("stat.crit_dmg"), StatType.CritDamage),
+                new KeyValuePair<string, StatType>(UIText.Get("stat.max_hp"), StatType.MaxHP),
             };
             float x0 = InfoX + 96f, gap = 14f, cw = (Right - x0 - gap) / 2f, ch = 48f;
             for (int i = 0; i < stats.Length; i++)
@@ -405,7 +403,7 @@ namespace Game.World
             var center = new Vector2(0.5f, 0.5f);
             var tl = new Vector2(0f, 1f);
             float x0 = InfoX + 96f, gap = 14f, w = (Right - x0 - gap) / 2f, h = 110f;
-            var head = InkStyle.Label(detail, "ItemsLabel", "Items", 30, InkStyle.Gold, TextAnchor.LowerLeft);
+            var head = InkStyle.Label(detail, "ItemsLabel", UIText.Get("units.items"), 30, InkStyle.Gold, TextAnchor.LowerLeft);
             head.rectTransform.Place(center, tl, new Vector2(x0, y), new Vector2(300f, 40f));
             y -= 46f;
             for (int s = 0; s < Slots.Length; s++)
@@ -420,7 +418,7 @@ namespace Game.World
                 icon.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(64f, 64f));
                 var slotText = InkStyle.Label(row, "Slot", SlotLabel(slot), 26, InkStyle.Gold, TextAnchor.UpperLeft);
                 slotText.rectTransform.Place(tl, tl, new Vector2(96f, -8f), new Vector2(160f, 34f));
-                var partName = InkStyle.Title(row, "Name", part != null ? part.DisplayName : "Empty", 36,
+                var partName = InkStyle.Title(row, "Name", part != null ? part.DisplayName : UIText.Get("units.empty"), 36,
                     part != null ? InkStyle.Paper : InkStyle.PaperDim, TextAnchor.UpperLeft).BestFit(18, 36);
                 partName.rectTransform.Place(tl, tl, new Vector2(96f, -42f), new Vector2(w - 112f, 38f));
                 GameObject descObject = null;
@@ -471,7 +469,7 @@ namespace Game.World
             foreach (var g in groups)
             {
                 float groupW = g.Value.Count * cardSize.x + Mathf.Max(0, g.Value.Count - 1) * cardGap;
-                var label = InkStyle.Label(bracket, g.Key, g.Key, 28, InkStyle.Gold, TextAnchor.LowerLeft);
+                var label = InkStyle.Label(bracket, g.Key, UIText.Get(g.Key == "Deck" ? "units.deck" : "units.ult"), 28, InkStyle.Gold, TextAnchor.LowerLeft);
                 label.rectTransform.Place(tl, tl, new Vector2(x, -pad + 6f), new Vector2(Mathf.Max(groupW, 120f), labelH));
                 for (int i = 0; i < g.Value.Count; i++)
                 {
@@ -588,13 +586,13 @@ namespace Game.World
                     }));
                 }
             if (WorldSession.PartIn(member, slot) != null)
-                options.Add(new PickerOption("Remove", null, () =>
+                options.Add(new PickerOption(UIText.Get("units.remove"), null, () =>
                 {
                     WorldSession.Unequip(member, slot);
                     SaveGame.Save();
                     BuildDetail();
                 }));
-            if (options.Count == 0) options.Add(new PickerOption("No spare items", null, ClosePicker));
+            if (options.Count == 0) options.Add(new PickerOption(UIText.Get("units.no_spare"), null, ClosePicker));
             OpenPicker(SlotLabel(slot), options);
         }
 

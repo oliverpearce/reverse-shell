@@ -20,7 +20,7 @@ namespace Combat.View
     public class GuideBook : MonoBehaviour
     {
         public const int ControlsTab = 0, BattleTab = 1;
-        static readonly string[] TabNames = { "Controls", "Battle" };
+        static string[] TabNames { get { return new[] { UIText.Get("guide.tab.controls"), UIText.Get("guide.tab.battle") }; } }
         static readonly string[] TabKeys = { "controls", "battle" };
 
         static GuideBook current;
@@ -98,7 +98,7 @@ namespace Combat.View
             Action finish = () =>
             {
                 if (section == null) return;
-                section.Body = Markup(body.ToString().Trim('\n', '\r', ' '));
+                section.Body = UIText.Markup(body.ToString().Trim('\n', '\r', ' '));
                 into.Add(section);
                 section = null;
                 body.Length = 0;
@@ -122,29 +122,6 @@ namespace Combat.View
                 if (section != null) body.Append(line).Append('\n');
             }
             finish();
-        }
-
-        static readonly Dictionary<string, Color> Colors = new Dictionary<string, Color>
-        {
-            { "gold", InkStyle.Gold },
-            { "red", new Color(0.93f, 0.45f, 0.42f) },
-            { "green", new Color(0.55f, 0.85f, 0.5f) },
-            { "cyan", new Color(0.45f, 0.8f, 0.88f) },
-            { "gray", InkStyle.Muted },
-        };
-
-        static readonly Regex Tag = new Regex(@"\{(gold|red|green|cyan|gray|c=#[0-9A-Fa-f]{6})\}");
-
-        /// <summary>The same colour tags as the story files ({gold} ... {/c}) as rich text, in colours that read on ink.</summary>
-        static string Markup(string text)
-        {
-            text = Tag.Replace(text, m =>
-            {
-                string key = m.Groups[1].Value;
-                if (key.StartsWith("c=")) return "<color=" + key.Substring(2) + ">";
-                return "<color=#" + ColorUtility.ToHtmlStringRGB(Colors[key]) + ">";
-            });
-            return text.Replace("{/c}", "</color>");
         }
 
         // ------------------------------------------------------------------ Layout
@@ -202,7 +179,7 @@ namespace Combat.View
             topicBody.rectTransform.offsetMax = new Vector2(-44f, -132f);
 
             var keys = UIFactory.CreateText(root, "Keys",
-                "<color=#C2A061>← →</color>  Tab      <color=#C2A061>↑ ↓</color>  Topic      <color=#C2A061>Esc / P</color>  Back",
+                UIText.Get("guide.keys"),
                 28, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
             keys.supportRichText = true;
             keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(1600f, 50f));

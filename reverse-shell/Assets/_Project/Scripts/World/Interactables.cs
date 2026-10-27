@@ -1,5 +1,6 @@
 using Combat;
 using UnityEngine;
+using Combat.View;
 
 namespace Game.World
 {
@@ -30,8 +31,9 @@ namespace Game.World
     /// <summary>Stand on the marked square and press interact to start a battle.</summary>
     public class EncounterInteractable : Interactable
     {
-        /// <summary>The area's fight definition (enemies, level, story flag); null = the shared practice fight.</summary>
-        public WorldAreas.EncounterDef def;
+        /// <summary>The area's fight definition (enemies, level, story flag); null = the shared practice fight. Not
+        /// serialized, so Unity never swaps the null for an empty fight.</summary>
+        [System.NonSerialized] public WorldAreas.EncounterDef def;
         public string id;
         public string displayName = "Machine";
         public BattleSetup setup;
@@ -39,7 +41,7 @@ namespace Game.World
         public Vector3 standPoint;
         public float standRadius = 0.55f;
 
-        public override string Prompt { get { return "Fight the " + displayName; } }
+        public override string Prompt { get { return UIText.Get("prompt.fight", "name", displayName); } }
 
         public override float Score(Vector3 playerPosition)
         {
@@ -60,7 +62,7 @@ namespace Game.World
         public Vector3 standPoint;
         public float standRadius = 0.6f;
 
-        public override string Prompt { get { return "Heal"; } }
+        public override string Prompt { get { return UIText.Get("prompt.heal"); } }
 
         public override float Score(Vector3 playerPosition)
         {
@@ -79,7 +81,7 @@ namespace Game.World
     {
         public float range = 1.35f;
 
-        public override string Prompt { get { return "Use Summon Beacon"; } }
+        public override string Prompt { get { return UIText.Get("prompt.beacon"); } }
 
         public override float Score(Vector3 playerPosition)
         {
@@ -95,7 +97,7 @@ namespace Game.World
                 world.UI.Say(StoryText.Speaker("beacon.none"), StoryText.Text("beacon.none"), DialogueVoice.Machine);
                 return;
             }
-            string count = beaten == 1 ? "1 machine" : beaten + " machines";
+            string count = UIText.Get(beaten == 1 ? "count.machine" : "count.machines", "n", beaten.ToString());
             world.UI.Dialogue.Ask(new DialogueLine(StoryText.Speaker("beacon.ask"), StoryText.Text("beacon.ask", "count", count), DialogueVoice.Machine),
                 StoryText.Texts("beacon.options"),
                 choice =>
@@ -117,7 +119,7 @@ namespace Game.World
         [Tooltip("Replaces \"Talk to <speaker>\" (e.g. \"Read the rune\").")]
         public string prompt;
 
-        public override string Prompt { get { return string.IsNullOrEmpty(prompt) ? "Talk to " + speaker : prompt; } }
+        public override string Prompt { get { return string.IsNullOrEmpty(prompt) ? UIText.Get("prompt.talk_to", "name", speaker) : prompt; } }
 
         public override float Score(Vector3 playerPosition)
         {
@@ -140,7 +142,7 @@ namespace Game.World
         public float range = 1.35f;
         public System.Action<OverworldBuilder> onInteract;
 
-        public override string Prompt { get { return "Interact"; } }
+        public override string Prompt { get { return UIText.Get("prompt.interact"); } }
 
         public override float Score(Vector3 playerPosition)
         {
@@ -160,7 +162,7 @@ namespace Game.World
         public float range = 1.35f;
         public string part, flag;
 
-        public override string Prompt { get { return StoryState.Has(flag) ? "Look inside" : "Open the chest"; } }
+        public override string Prompt { get { return UIText.Get(StoryState.Has(flag) ? "prompt.look_inside" : "prompt.open_chest"); } }
 
         public override float Score(Vector3 playerPosition)
         {
@@ -188,7 +190,7 @@ namespace Game.World
     {
         public float range = 1.35f;
 
-        public override string Prompt { get { return "Open the chest"; } }
+        public override string Prompt { get { return UIText.Get("prompt.open_chest"); } }
 
         public override float Score(Vector3 playerPosition)
         {

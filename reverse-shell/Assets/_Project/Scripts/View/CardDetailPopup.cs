@@ -90,7 +90,7 @@ namespace Combat.View
 
             bool upgrades = !card.isRitual && card.MaxRank > 1;
             // Plain (not letter-spaced) and big enough to read at a glance.
-            hint = UIFactory.CreateText(root, "Hint", upgrades ? "Scroll to see upgrades" : "Click anywhere to close", 30, InkStyle.Paper, TextAnchor.MiddleCenter);
+            hint = UIFactory.CreateText(root, "Hint", UIText.Get(upgrades ? "card.hint.upgrades" : "card.hint.close"), 30, InkStyle.Paper, TextAnchor.MiddleCenter);
             hint.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f), new Vector2(Rest.x, -CardView.Size.y * BigScale / 2f - 18f), new Vector2(900f, 56f));
             hint.color = Clear(hint.color);
         }

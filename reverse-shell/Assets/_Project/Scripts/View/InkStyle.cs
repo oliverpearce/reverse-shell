@@ -153,7 +153,8 @@ namespace Combat.View
         /// the shared hover effect. Buttons never keep keyboard focus.
         /// </summary>
         /// <param name="primary">Unused: primary buttons used to be gold; every button now looks like Go.</param>
-        public static Button Button(Transform parent, string name, string label, UnityAction onClick, bool primary, int fontSize = 40)
+        public static Button Button(Transform parent, string name, string label, UnityAction onClick, bool primary, int fontSize = 40,
+            bool chevrons = false)
         {
             var root = UIFactory.CreateRect(name, parent);
             var plate = UIFactory.CreateImage(root, "Plate", InkPanel, true);
@@ -176,6 +177,9 @@ namespace Combat.View
             text.font = UIFactory.SerifFont;
             text.rectTransform.Fill(8f);
             root.gameObject.AddComponent<ButtonHover>();
+            // Every button has the Go button's feel: a soft glow on hover and a punch + flash on press (chevrons only
+            // when asked for: the Go-sized buttons).
+            GoButtonFx.Add(button, chevrons && !string.IsNullOrEmpty(label));
             return button;
         }
 

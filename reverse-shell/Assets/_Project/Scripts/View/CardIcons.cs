@@ -61,10 +61,12 @@ namespace Combat.View
         public static Sprite Diamond { get { return Get(RowMisc, 4); } }
         public static Sprite CardBack { get { return Get(RowMisc, 5); } }
 
-        /// <summary>Button icons (Raven picks): the Go chevrons, the close X and the pause sign.</summary>
+        /// <summary>Button icons (Raven picks): the Go chevrons, the close X and the pause sign; and the ring on a queue
+        /// slot used up by moving a card (tinted gray there).</summary>
         public static Sprite GoChevron { get { return Get(RowMore, 2); } }
         public static Sprite Close { get { return Get(RowMore, 3); } }
         public static Sprite Pause { get { return Get(RowMore, 4); } }
+        public static Sprite Swap { get { return Get(RowMore, 5); } }
 
         /// <summary>The element's orb (Volt, Fire, Toxin, Earth, Light, Void), shown beside a unit's bars. The orbs are still the six picked for the old elements (ELEMENT_ICONS in Tools/IconForge/card_icons.py).</summary>
         public static Sprite Element(Afflatus afflatus)

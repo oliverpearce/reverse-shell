@@ -8,13 +8,14 @@ namespace Combat.Tests
     public class OverworldMapTests
     {
         [Test]
-        public void DefaultMap_IsRectangular_AndHasSpawnAndEncounter()
+        public void SandboxMap_IsRectangular_AndHasSpawnAndEncounter()
         {
-            var lines = OverworldBuilder.DefaultMap.TrimEnd('\n').Split('\n');
+            string sandbox = WorldAreas.Get(WorldAreas.Sandbox).Map;
+            var lines = sandbox.TrimEnd('\n').Split('\n');
             foreach (var line in lines)
                 Assert.AreEqual(lines[0].Length, line.Length, "row: " + line);
 
-            var map = new OverworldMap(OverworldBuilder.DefaultMap);
+            var map = new OverworldMap(sandbox);
             Assert.AreEqual(1, map.FindAll('S').Count);
             Assert.AreEqual(1, map.FindAll('E').Count);
             Assert.AreEqual(1, map.FindAll('X').Count);
@@ -108,6 +109,34 @@ namespace Combat.Tests
             Assert.IsTrue(map.IsSolidCell(2, 1));   // enemy
             Assert.IsTrue(map.IsSolidCell(-1, 0));
             Assert.IsTrue(map.IsSolidAt(new Vector3(-0.5f, 0f, 0.5f)));
+        }
+
+        /// <summary>Every chapter asset has a start area among its areas, unique area ids, and objective words that exist.</summary>
+        [Test]
+        public void Chapters_HaveStartArea_AndEveryObjectiveHasText()
+        {
+            Assert.IsNotNull(WorldAreas.Chapter(Chapter1.ChapterId), "Resources/Chapters has Chapter One");
+            var ids = new HashSet<string>();
+            foreach (var area in WorldAreas.All) Assert.IsTrue(ids.Add(area.Id), "area id used twice: " + area.Id);
+            foreach (var chapter in WorldAreas.Chapters)
+            {
+                Assert.IsNotNull(chapter.startArea, chapter.name + ": start area");
+                Assert.Contains(chapter.startArea, chapter.areas, chapter.name + ": the start area is one of its areas");
+                foreach (var o in chapter.objectives)
+                    Assert.IsTrue(StoryText.Has(o.key), chapter.name + ": objective text " + o.key);
+            }
+            Assert.AreEqual(WorldAreas.City, WorldAreas.StartArea, "a new game wakes in the city");
+        }
+
+        /// <summary>The Level Designer's palette knows every tile the areas use, and lists each tile once.</summary>
+        [Test]
+        public void TileLegend_CoversEveryTileInTheMaps()
+        {
+            var seen = new HashSet<char>();
+            foreach (var t in TileLegend.All) Assert.IsTrue(seen.Add(t.Char), "listed twice: " + t.Char);
+            foreach (var area in WorldAreas.All)
+                foreach (char c in area.Map.Replace("\n", ""))
+                    Assert.IsNotNull(TileLegend.Find(c), area.Id + " uses '" + c + "', which isn't in TileLegend");
         }
     }
 }

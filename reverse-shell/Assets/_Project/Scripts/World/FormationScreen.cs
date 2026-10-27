@@ -154,7 +154,7 @@ namespace Game.World
             overEnemyRow = overEnemyCards = false;
             var center = new Vector2(0.5f, 0.5f);
 
-            var title = InkStyle.Title(page, "Title", PreFight ? "Prepare for Battle" : "Party", 64, InkStyle.Paper, TextAnchor.UpperLeft);
+            var title = InkStyle.Title(page, "Title", UIText.Get(PreFight ? "party.title.prefight" : "party.title"), 64, InkStyle.Paper, TextAnchor.UpperLeft);
             title.rectTransform.Place(center, new Vector2(0f, 1f), new Vector2(-860f, 610f), new Vector2(900f, 84f));
 
             if (PreFight) BuildEnemies();
@@ -175,8 +175,7 @@ namespace Game.World
             }
             else ResonanceChartView.Create(page, new Vector2(440f, -320f));
 
-            string keys = "<color=#C2A061>Drag</color>  Rearrange      <color=#C2A061>← →</color>  Move      <color=#C2A061>↑ ↓</color>  Slots / Members      <color=#C2A061>Enter</color>  Place      "
-                          + "<color=#C2A061>Backspace</color>  Remove      <color=#C2A061>Esc</color>  " + (PreFight ? "Back" : "Close");
+            string keys = UIText.Get("party.keys", "close", UIText.Get(PreFight ? "menu.back" : "menu.close"));
             var hint = UIFactory.CreateText(page, "Keys", keys, 26, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
             hint.supportRichText = true;
             hint.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(1760f, 44f));
@@ -187,11 +186,11 @@ namespace Game.World
             var fight = preview != null ? preview() : null;
             var tl = new Vector2(0f, 1f);
             var center = new Vector2(0.5f, 0.5f);
-            var goal = InkStyle.Label(page, "GoalLabel", "Goal", 28, InkStyle.Gold, TextAnchor.UpperLeft);
+            var goal = InkStyle.Label(page, "GoalLabel", UIText.Get("party.goal"), 28, InkStyle.Gold, TextAnchor.UpperLeft);
             goal.rectTransform.Place(center, tl, new Vector2(-860f, 420f), new Vector2(380f, 40f));
-            var goalText = UIFactory.CreateText(page, "Goal", "Defeat all enemies.", 28, InkStyle.Paper, TextAnchor.UpperLeft);
+            var goalText = UIFactory.CreateText(page, "Goal", UIText.Get("party.goal.text"), 28, InkStyle.Paper, TextAnchor.UpperLeft);
             goalText.rectTransform.Place(center, tl, new Vector2(-860f, 376f), new Vector2(380f, 40f));
-            var label = InkStyle.Label(page, "EnemyLabel", "Enemies", 28, InkStyle.Gold, TextAnchor.UpperLeft);
+            var label = InkStyle.Label(page, "EnemyLabel", UIText.Get("party.enemies"), 28, InkStyle.Gold, TextAnchor.UpperLeft);
             label.rectTransform.Place(center, tl, new Vector2(-860f, 300f), new Vector2(380f, 40f));
             if (fight == null) return;
             float y = 252f;
@@ -207,7 +206,7 @@ namespace Game.World
                 badge.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(12f, 0f), new Vector2(56f, 56f));
                 var name = UIFactory.CreateText(row.rectTransform, "Name", enemy.DisplayName, 30, InkStyle.Paper, TextAnchor.UpperLeft);
                 name.rectTransform.Place(tl, tl, new Vector2(80f, -10f), new Vector2(300f, 40f));
-                string lv = "Lv " + fight.enemyLevel + (fight.boss ? "   <color=#E05A50>BOSS</color>" : "");
+                string lv = UIText.Get("common.lv") + " " + fight.enemyLevel + (fight.boss ? "   <color=#E05A50>" + UIText.Get("common.boss") + "</color>" : "");
                 var level = UIFactory.CreateText(row.rectTransform, "Level", lv, 28, InkStyle.GoldBright, TextAnchor.UpperLeft);
                 level.supportRichText = true;
                 level.rectTransform.Place(tl, tl, new Vector2(80f, -48f), new Vector2(300f, 36f));
@@ -322,7 +321,7 @@ namespace Game.World
                 slotRects.Add(rt);
                 if (closedBackup) rt.gameObject.AddComponent<CanvasGroup>().alpha = 0.35f;
 
-                string caption = i == WorldSession.BackupSlot ? "BACKUP" : i == 0 ? "LEADER" : "";
+                string caption = i == WorldSession.BackupSlot ? UIText.Get("party.backup") : i == 0 ? UIText.Get("party.leader") : "";
                 if (caption.Length > 0)
                 {
                     var cap = InkStyle.Label(rt, "Caption", caption, 26, i == WorldSession.BackupSlot ? new Color(0.55f, 0.75f, 1f) : InkStyle.Gold, TextAnchor.LowerCenter);
@@ -331,7 +330,7 @@ namespace Game.World
                 if (i == WorldSession.BackupSlot)
                 {
                     // What the backup does, under the slot (below a member's name plate when there is one).
-                    var note = UIFactory.CreateText(rt, "BackupNote", "Replaces a fallen party member in combat", 22,
+                    var note = UIFactory.CreateText(rt, "BackupNote", UIText.Get("party.backup.note"), 22,
                         closedBackup ? InkStyle.Muted : InkStyle.PaperDim, TextAnchor.UpperCenter);
                     note.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, member != null ? -112f : -14f), new Vector2(size.x + 60f, 60f));
                 }
@@ -347,7 +346,7 @@ namespace Game.World
                     plate.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(size.x, 92f));
                     var name = InkStyle.Title(plate.rectTransform, "Name", member.DisplayName, 32, InkStyle.Paper, TextAnchor.UpperCenter);
                     name.rectTransform.TopStrip(6f, 44f, 6f);
-                    var lv = InkStyle.Title(plate.rectTransform, "Lv", "Lv " + WorldSession.ProgressOf(member).Level, 30, InkStyle.GoldBright, TextAnchor.UpperCenter);
+                    var lv = InkStyle.Title(plate.rectTransform, "Lv", UIText.Get("common.lv") + " " + WorldSession.ProgressOf(member).Level, 30, InkStyle.GoldBright, TextAnchor.UpperCenter);
                     lv.rectTransform.TopStrip(48f, 40f, 6f);
                 }
                 else
@@ -388,7 +387,7 @@ namespace Game.World
             cloth.rectTransform.Place(midLeft, midLeft, Vector2.zero, new Vector2(membersMatW, MembersH));
             Clickable(cloth.gameObject, ToggleMembers, null);
             // "Members" sits above the mat (on the dark background, easy to read), showing while it's unrolled.
-            var label = InkStyle.Label(page, "StripLabel", "Members", 26, InkStyle.Paper, TextAnchor.LowerLeft);
+            var label = InkStyle.Label(page, "StripLabel", UIText.Get("party.members"), 26, InkStyle.Paper, TextAnchor.LowerLeft);
             label.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, 0f), new Vector2(MembersLeft + 6f, StripY + MembersH / 2f + 6f), new Vector2(400f, 36f));
             membersLabel = label.gameObject.AddComponent<CanvasGroup>();
             membersLabel.blocksRaycasts = false;
@@ -432,7 +431,7 @@ namespace Game.World
             membersRoll = roll.rectTransform;
             membersRoll.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(MembersLeft, StripY), new Vector2(64f, MembersH + 30f));
             Clickable(roll.gameObject, ToggleMembers, null);
-            var caption = InkStyle.Label(membersRoll, "Caption", "Members", 24, InkStyle.Paper, TextAnchor.UpperLeft);
+            var caption = InkStyle.Label(membersRoll, "Caption", UIText.Get("party.members"), 24, InkStyle.Paper, TextAnchor.UpperLeft);
             caption.rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(-8f, -8f), new Vector2(200f, 34f));
             membersCaption = caption.gameObject.AddComponent<CanvasGroup>();
             membersCaption.blocksRaycasts = false;
@@ -493,7 +492,7 @@ namespace Game.World
             if (PreFight)
             {
                 // Exactly the battle's Go button (size, font, chevrons, punch).
-                var start = HudView.GoStyleButton(page, "Start", "Start", () => Close(true));
+                var start = HudView.GoStyleButton(page, "Start", UIText.Get("party.start"), () => Close(true));
                 start.GetComponent<RectTransform>().Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-StartRight, StartBottom), HudView.GoSize);
             }
             // The same X in both modes (top-right): before a fight it backs out of the fight, like Esc.

@@ -36,6 +36,10 @@ namespace Game.EditorTools
                 setup = AssetDatabase.LoadAssetAtPath<BattleSetup>(BattleSetupPath);
             }
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) != null && !EditorUtility.DisplayDialog("Overworld",
+                    "Rebuild " + ScenePath + "?\n\nChanges you made to its objects in the Inspector (camera, Overworld "
+                    + "builder settings) will be replaced. Maps, story and content assets are not affected.", "Rebuild", "Cancel"))
+                return;
 
             // Make sure the pixel-art import settings are applied even if the textures arrived first.
             foreach (var file in new[] { "Yakuza1.png", "streetPeople.png" })
@@ -155,23 +159,35 @@ namespace Game.EditorTools
             layer.volumeLayer = 1; // Default layer
             layer.antialiasingMode = PostProcessLayer.Antialiasing.None;
 
+            // An existing profile is kept as it is, so your tweaks to bloom, grading and vignette survive.
             var profile = AssetDatabase.LoadAssetAtPath<PostProcessProfile>(ProfilePath);
             if (profile == null)
             {
                 profile = ScriptableObject.CreateInstance<PostProcessProfile>();
                 AssetDatabase.CreateAsset(profile, ProfilePath);
+                FillProfile(profile);
             }
-            profile.settings.Clear();
-            foreach (var sub in AssetDatabase.LoadAllAssetRepresentationsAtPath(ProfilePath))
-                Object.DestroyImmediate(sub, true);
 
+            var volumeGo = new GameObject("PostFX Volume");
+            var volume = volumeGo.AddComponent<PostProcessVolume>();
+            volume.isGlobal = true;
+            volume.sharedProfile = profile;
+            focus.volume = volume;
+            return true;
+#else
+            return false;
+#endif
+        }
+
+#if NEONHEX_POSTFX
+        static void FillProfile(PostProcessProfile profile)
+        {
             var bloom = Add<Bloom>(profile);
             // Only true light sources bloom (threshold well above sunlit sprites), so characters stay sharp.
             bloom.intensity.Override(1f);
             bloom.threshold.Override(1.6f);
             bloom.softKnee.Override(0.3f);
             bloom.diffusion.Override(5f);
-
 
             // Washed-out, slightly warm and desaturated: a quiet ruin in hazy sunlight.
             var grading = Add<ColorGrading>(profile);
@@ -189,19 +205,8 @@ namespace Game.EditorTools
 
             EditorUtility.SetDirty(profile);
             AssetDatabase.SaveAssets();
-
-            var volumeGo = new GameObject("PostFX Volume");
-            var volume = volumeGo.AddComponent<PostProcessVolume>();
-            volume.isGlobal = true;
-            volume.sharedProfile = profile;
-            focus.volume = volume;
-            return true;
-#else
-            return false;
-#endif
         }
 
-#if NEONHEX_POSTFX
         static T Add<T>(PostProcessProfile profile) where T : PostProcessEffectSettings
         {
             var settings = profile.AddSettings<T>();

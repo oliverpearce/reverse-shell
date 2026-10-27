@@ -28,27 +28,17 @@ namespace Game.World
             DragonSeen, DragonBeaten, ResonanceVolt, Complete,
         };
 
-        /// <summary>The objective shown on the overworld HUD, worked out from the flags alone ("" = none). The words are
-        /// the objective.* blocks of Resources/Story/World.txt.</summary>
+        /// <summary>The chapter asset's id (Resources/Chapters/Chapter_1).</summary>
+        public const string ChapterId = "chapter1";
+
+        /// <summary>The objective shown on the overworld HUD, worked out from the flags alone ("" = none). Which flag
+        /// shows which objective is the chapter asset's Objectives list; the words are the objective.* blocks of
+        /// Resources/Story/World.txt.</summary>
         public static string CurrentObjective()
         {
-            string key = ObjectiveKey();
-            return key == null ? "" : StoryText.Text(key);
-        }
-
-        static string ObjectiveKey()
-        {
-            if (!StoryState.Has(Awake)) return null;
-            if (StoryState.Has(Complete)) return "objective.complete";
-            if (StoryState.Has(ResonanceVolt)) return "objective.leave";
-            if (StoryState.Has(DragonBeaten)) return "objective.card";
-            if (StoryState.Has(DragonSeen)) return "objective.guardian";
-            if (StoryState.Has(Tunnel)) return "objective.tunnel";
-            if (StoryState.Has(Route)) return "objective.route";
-            if (StoryState.Has(CollectorBeaten)) return "objective.scan";
-            if (StoryState.Has(CollectorMet)) return "objective.collector";
-            if (StoryState.Has(Scanner)) return "objective.scanner";
-            return "objective.explore";
+            var chapter = WorldAreas.Chapter(ChapterId);
+            string key = chapter != null ? chapter.ObjectiveKey() : null;
+            return string.IsNullOrEmpty(key) ? "" : StoryText.Text(key);
         }
     }
 }

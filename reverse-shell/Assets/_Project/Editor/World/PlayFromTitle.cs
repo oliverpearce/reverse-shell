@@ -18,6 +18,11 @@ namespace Game.EditorTools
         static PlayFromTitle()
         {
             EditorApplication.delayCall += Apply;
+            // The Level Designer's Play This Area always starts in the overworld; afterwards, back to the usual.
+            EditorApplication.playModeStateChanged += change =>
+            {
+                if (change == PlayModeStateChange.EnteredEditMode) Apply();
+            };
         }
 
         static bool Enabled

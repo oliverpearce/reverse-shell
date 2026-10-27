@@ -33,22 +33,22 @@ namespace Combat.View
         {
             var topRight = new Vector2(1f, 1f);
 
-            // Pause button: a small ink plate with a gold hairline, the pause icon above a small "ESC".
+            // Pause button: a small ink plate with a gold hairline and the pause icon; its key (Esc) on a paper key-cap
+            // badge hanging under it.
             var button = InkStyle.Button(root, "PauseButton", "", view.TogglePause, false, 40);
             var brt = button.GetComponent<RectTransform>();
             brt.Place(topRight, topRight, new Vector2(-24f, -24f), new Vector2(124f, 104f));
             var pauseIcon = UIFactory.CreateImage(brt, "Icon", Color.white);
             pauseIcon.sprite = CardIcons.Pause;
             pauseIcon.preserveAspect = true;
-            pauseIcon.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 10f), new Vector2(64f, 64f));
-            Caption(brt, "ESC");
+            pauseIcon.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(64f, 64f));
+            Caption(brt, UIText.Get("battle.key.pause"));
 
             // Battle speed, left of the pause button: click (or Tab) cycles 1x / 2x / 4x.
             var speed = InkStyle.Button(root, "SpeedButton", "", CycleSpeed, false, 48);
             speed.GetComponent<RectTransform>().Place(topRight, topRight, new Vector2(-164f, -24f), new Vector2(136f, 104f));
             speedLabel = speed.GetComponentInChildren<Text>();
-            speedLabel.rectTransform.offsetMin = new Vector2(speedLabel.rectTransform.offsetMin.x, 26f);   // above the caption
-            Caption((RectTransform)speed.transform, "TAB");
+            Caption((RectTransform)speed.transform, UIText.Get("battle.key.speed"));
             ShowSpeed();
 
             // Overlay: an ink page with paper grain and a centered card with the hero frame.
@@ -62,7 +62,7 @@ namespace Combat.View
             cardRect = card.rectTransform;
             InkStyle.HeroFrame(card.rectTransform, InkStyle.Gold, 10f);
 
-            var title = InkStyle.Title(card.transform, "Title", "Paused", 110, InkStyle.Paper, TextAnchor.MiddleCenter);
+            var title = InkStyle.Title(card.transform, "Title", UIText.Get("battle.pause.title"), 110, InkStyle.Paper, TextAnchor.MiddleCenter);
             title.rectTransform.TopStrip(40f, 130f);
             var rule = InkStyle.Line(card.transform, "Rule", InkStyle.Gold);
             rule.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -178f), new Vector2(420f, 2f));
@@ -70,10 +70,10 @@ namespace Combat.View
             // Buttons stacked down the card; hovering one grows it and lifts it to a lighter grey (ButtonHover).
             mainPage = UIFactory.CreateRect("Buttons", card.transform).Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(640f, 480f));
             float y = 0f;
-            MenuButton(mainPage, "Resume", false, view.TogglePause, ref y);
-            MenuButton(mainPage, "Settings", false, () => ShowSettings(true), ref y);
-            MenuButton(mainPage, "Restart Fight", false, view.RestartFight, ref y);
-            MenuButton(mainPage, "Leave Fight", false, view.LeaveFight, ref y);
+            MenuButton(mainPage, UIText.Get("battle.pause.resume"), false, view.TogglePause, ref y);
+            MenuButton(mainPage, UIText.Get("battle.pause.settings"), false, () => ShowSettings(true), ref y);
+            MenuButton(mainPage, UIText.Get("battle.pause.restart"), false, view.RestartFight, ref y);
+            MenuButton(mainPage, UIText.Get("battle.pause.leave"), false, view.LeaveFight, ref y);
 
             settingsPage = UIFactory.CreateRect("Settings", card.transform).Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(640f, 480f));
             y = 0f;
@@ -95,10 +95,10 @@ namespace Combat.View
             }
             var guide = MenuButton(settingsPage, GameSettings.GuideLabel, false, () => GuideBook.Open(transform), ref y);
             InkStyle.HelpBadge((RectTransform)guide.transform, () => ShowHelp(GameSettings.GuideHelp), () => ShowHelp(null));
-            MenuButton(settingsPage, "Back", false, () => ShowSettings(false), ref y);
+            MenuButton(settingsPage, UIText.Get("menu.back"), false, () => ShowSettings(false), ref y);
             settingsPage.gameObject.SetActive(false);
 
-            var hint = UIFactory.CreateText(dim.transform, "Hint", "Esc / P  Resume", 30, InkStyle.Paper, TextAnchor.LowerCenter);
+            var hint = UIFactory.CreateText(dim.transform, "Hint", UIText.Get("battle.pause.hint"), 30, InkStyle.Paper, TextAnchor.LowerCenter);
             hint.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(900f, 60f));
 
             overlay.SetActive(false);
@@ -106,11 +106,16 @@ namespace Combat.View
 
         Text speedLabel;
 
-        /// <summary>The key hint along a small button's bottom edge.</summary>
+        /// <summary>The button's key on a small badge hanging just under it, in the same translucent ink plate and rule
+        /// frame as the buttons (the whole HUD stays see-through so the art leads).</summary>
         static void Caption(RectTransform button, string key)
         {
-            var t = UIFactory.CreateText(button, "Key", key, 16, InkStyle.Gold, TextAnchor.LowerCenter, FontStyle.Bold);
-            t.rectTransform.Fill(5f);
+            var badge = UIFactory.CreateImage(button, "KeyBadge", InkStyle.InkPanel);
+            badge.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, -8f), new Vector2(92f, 42f));
+            InkStyle.Frame(badge.rectTransform, InkStyle.Rule, 2f);
+            var t = UIFactory.CreateText(badge.rectTransform, "Key", key, 26, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.rectTransform.Fill();
         }
 
         public void CycleSpeed()

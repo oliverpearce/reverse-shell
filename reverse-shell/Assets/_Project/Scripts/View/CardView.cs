@@ -154,7 +154,7 @@ namespace Combat.View
 
             var title = UIFactory.CreateText(prt, "Title", card.Name, F(22), InkStyle.Paper, TextAnchor.UpperLeft).BestFit(F(12), F(22));
             title.rectTransform.TopStrip(10f * s, 32f * s, 12f * s);
-            string rank = card.IsRitual ? "Ult" : "Rank " + UIFactory.Roman(card.Rank);
+            string rank = card.IsRitual ? UIText.Get("card.ult") : UIText.Get("card.rank", "n", UIFactory.Roman(card.Rank));
             var kind = UIFactory.CreateText(prt, "Kind", UnitView.KindLabel(card.Definition.kind).ToUpperInvariant() + "   " + rank, F(13),
                 UnitView.KindColor(card.Definition.kind), TextAnchor.UpperLeft);
             kind.rectTransform.TopStrip(44f * s, 20f * s, 12f * s);
@@ -212,14 +212,14 @@ namespace Combat.View
                     int total = Mathf.RoundToInt(atk * damage.multiplier * might);
                     int hits = Mathf.Max(1, damage.hits);
                     string each = hits > 1 ? "  (" + hits + " x " + Mathf.RoundToInt((float)total / hits) + ")" : "";
-                    lines.Add("DAMAGE  " + gold + "<size=" + UIFactory.Px(numberSize) + ">" + total + "</size></color>" + each);
+                    lines.Add(UIText.Get("card.damage") + "  " + gold + "<size=" + UIFactory.Px(numberSize) + ">" + total + "</size></color>" + each);
                     continue;
                 }
                 var heal = effect as HealEffect;
                 if (heal != null)
                 {
                     int amount = Mathf.RoundToInt(atk * heal.multiplier * (1f + unit.GetStat(StatType.HealingBonus)));
-                    lines.Add("HEAL  " + gold + "<size=" + UIFactory.Px(numberSize) + ">" + amount + "</size></color>");
+                    lines.Add(UIText.Get("card.heal") + "  " + gold + "<size=" + UIFactory.Px(numberSize) + ">" + amount + "</size></color>");
                 }
             }
             return lines;

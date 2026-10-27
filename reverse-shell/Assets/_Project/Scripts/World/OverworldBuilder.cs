@@ -14,18 +14,14 @@ namespace Game.World
     /// </summary>
     public class OverworldBuilder : MonoBehaviour
     {
-        /// <summary>The Sandbox map (the original Mossline Station test level). Areas live in
-        /// <see cref="WorldAreas"/>; with useDefaultMap on (the default) the current area's map is built.</summary>
-        public const string DefaultMap = WorldAreas.SandboxMap;
-
         [Header("Area")]
         [Tooltip("Shown on arrival; replaced at runtime by the current area's name (WorldAreas).")]
         public string areaName = "MOSSLINE STATION";
         public string areaSubtitle = "The City Ruins";
-        [Tooltip("On: build the current area's map from code (WorldAreas), so map updates show up without regenerating the scene. " +
-                 "Turn off to use the custom map below.")]
+        [Tooltip("On: build the current area's map from its asset (Resources/Areas). " +
+                 "Turn off to try out the custom map below instead.")]
         public bool useDefaultMap = true;
-        [TextArea(12, 30)] public string map = DefaultMap;
+        [TextArea(12, 30)] public string map = "";
 
         [Header("Art")]
         [Tooltip("ruins.png (Tools/TileForge/ruins_atlas.py): 8x5 atlas of 64px cells.")]
@@ -543,7 +539,7 @@ namespace Game.World
         public void LeaveSandbox()
         {
             if (!WorldSession.InSandbox || !BeginTransition()) return;
-            WorldSession.CurrentArea = WorldSession.HasSandboxReturn ? WorldSession.SandboxReturnArea : WorldAreas.City;
+            WorldSession.CurrentArea = WorldSession.HasSandboxReturn ? WorldSession.SandboxReturnArea : WorldAreas.StartArea;
             WorldSession.ArrivedFrom = null;
             WorldSession.HasReturnPoint = WorldSession.HasSandboxReturn;
             WorldSession.ReturnPosition = WorldSession.SandboxReturnPosition;
@@ -978,7 +974,7 @@ namespace Game.World
             {
                 var talk = focused as TalkInteractable;
                 bool person = talk != null && string.IsNullOrEmpty(talk.prompt);
-                string verb = person ? "Talk" : focused is AccessPointInteractable ? "Heal" : "Interact";
+                string verb = UIText.Get(person ? "prompt.talk" : focused is AccessPointInteractable ? "prompt.heal" : "prompt.interact");
                 UI.ShowPrompt(interactKey.ToString(), verb, focused.PromptAnchor, cam);
             }
             else UI.HidePrompt();

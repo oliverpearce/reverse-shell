@@ -28,7 +28,9 @@ namespace Game.World
             public string Corner;
         }
 
-        const float RowWidth = 1180f, RowHeight = 86f, RowGap = 14f, TallHeight = 196f;
+        const float RowWidth = 1180f, RowHeight = 86f, RowGap = 14f;
+        // Tall rows (the save slots): wider and taller, with a wide margin inside so the text breathes.
+        const float TallWidth = 1500f, TallHeight = 220f, TallGap = 12f, TallPadX = 48f, TallPadTop = 28f;
 
         RectTransform list;
         Text title, help;
@@ -70,7 +72,7 @@ namespace Game.World
             helpPlate = plate.gameObject;
 
             var keys = UIFactory.CreateText(root, "Keys",
-                "<color=#C2A061>↑ ↓</color>  Choose      <color=#C2A061>Enter</color>  Select      <color=#C2A061>Esc</color>  Back",
+                UIText.Get("menu.keys"),
                 28, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
             keys.supportRichText = true;
             keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1600f, 50f));
@@ -90,7 +92,7 @@ namespace Game.World
             labels.Clear();
             nextY = 0f;
             // Pages with tall rows (the save slots) start higher, so they fit above the key hints.
-            list.anchoredPosition = new Vector2(0f, page.Exists(r => r.Detail != null) ? -230f : -280f);
+            list.anchoredPosition = new Vector2(0f, page.Exists(r => r.Detail != null) ? -180f : -280f);
             foreach (var row in page) AddRow(row);
             Select(select);
         }
@@ -108,10 +110,10 @@ namespace Game.World
         {
             int i = rows.Count;
             bool tall = row.Detail != null;
-            float height = tall ? TallHeight : RowHeight;
+            float height = tall ? TallHeight : RowHeight, width = tall ? TallWidth : RowWidth;
             var plate = UIFactory.CreateImage(list, "Row" + i, InkStyle.InkPanel, true);
-            plate.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -nextY), new Vector2(RowWidth, height));
-            nextY += height + RowGap;
+            plate.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -nextY), new Vector2(width, height));
+            nextY += height + (tall ? TallGap : RowGap);
             InkStyle.Frame(plate.rectTransform, InkStyle.Rule, 2f);
             var label = InkStyle.Title(plate.transform, "Label", row.Label, 44, InkStyle.Paper, tall ? TextAnchor.UpperLeft : TextAnchor.MiddleCenter);
             label.supportRichText = true;
@@ -120,19 +122,20 @@ namespace Game.World
             {
                 // Heading top-left, a gold hairline under it, then the detail lines; the corner text top-right.
                 var tl = new Vector2(0f, 1f);
-                label.rectTransform.Place(tl, tl, new Vector2(32f, -18f), new Vector2(RowWidth - 64f, 54f));
+                float inner = width - TallPadX * 2f;
+                label.rectTransform.Place(tl, tl, new Vector2(TallPadX, -TallPadTop), new Vector2(inner, 54f));
                 var rule = InkStyle.Line(plate.transform, "Rule", UIFactory.WithAlpha(InkStyle.Gold, 0.5f));
-                rule.rectTransform.Place(tl, tl, new Vector2(32f, -76f), new Vector2(RowWidth - 64f, 2f));
-                var detail = UIFactory.CreateText(plate.transform, "Detail", row.Detail, 40, InkStyle.Paper, TextAnchor.UpperLeft);
+                rule.rectTransform.Place(tl, tl, new Vector2(TallPadX, -TallPadTop - 60f), new Vector2(inner, 2f));
+                var detail = UIFactory.CreateText(plate.transform, "Detail", row.Detail, 36, InkStyle.Paper, TextAnchor.UpperLeft);
                 detail.supportRichText = true;
                 detail.lineSpacing = 1.05f;
                 detail.raycastTarget = false;
-                detail.rectTransform.Place(tl, tl, new Vector2(32f, -90f), new Vector2(RowWidth - 64f, height - 100f));
+                detail.rectTransform.Place(tl, tl, new Vector2(TallPadX, -TallPadTop - 74f), new Vector2(inner, height - TallPadTop - 74f - 20f));
                 if (!string.IsNullOrEmpty(row.Corner))
                 {
-                    var corner = UIFactory.CreateText(plate.transform, "Corner", row.Corner, 40, InkStyle.PaperDim, TextAnchor.UpperRight);
+                    var corner = UIFactory.CreateText(plate.transform, "Corner", row.Corner, 36, InkStyle.PaperDim, TextAnchor.UpperRight);
                     corner.raycastTarget = false;
-                    corner.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-32f, -22f), new Vector2(500f, 50f));
+                    corner.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-TallPadX, -TallPadTop - 4f), new Vector2(500f, 50f));
                 }
             }
             rows.Add(row);

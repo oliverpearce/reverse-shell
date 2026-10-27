@@ -1,0 +1,143 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 960ea5e6da086f3488b88985b67bfbb3, type: 3}
+  m_Name: Area_City
+  m_EditorClassIdentifier: 
+  id: city
+  displayName: THE CITY RUINS
+  subtitle: Overgrown District
+  dim: 0
+  map: 'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    H............==T.LLL.......*.T===...........,,,.==...........r.H
+
+    H.HHHHBBBHHH.==.BLLLBBBLLLBBB.===.HHHHHHHHHH,,,T==.BBBBBBBBBBB.H
+
+    H.HHHHBBBHHHr==.BLLLBBBLLLBBB.===*HHHHHHHHHH,,,.==.B7.......3B.H
+
+    HbHHHHBBBH,,,==.BBBBBBBLLLBBB.===bH,,,HHHHHHHHHb==.B....O....B.H
+
+    H.HHHHHHHHLLL==.BBBBBBBBBBBBB,===.H,,,HHHHHHHHH.==.B.........B.H
+
+    H.HHHHHHHHLLL==.BBBBBBBBBBBBB.===.H,,,HHHBBBHHH.==.B.........B.H
+
+    H,HHHHHHHHLLL==.BBBBBBBBBBBBB.==,.HHHHHHHBBBHHH.==.B...,.....B.H
+
+    H............==,..............===b.......BBB...r==.BBBBBZBBBBB.H
+
+    H==============================================================H
+
+    H==============================================================H
+
+    H....Tb.....r==TPPTPPTPPTPPTPP===.BBB...........==,............H
+
+    H.BBB,,,BBBB.==PPPPPPPPPPPPPPP===bBB,,,########.==T###########.H
+
+    H.BBB,,,BBBB,=,PP5PPPPPPPPPPPP===.BB,,,########.==.###########.H
+
+    H.BBB,,,BBBB.==PPPPPPPPPPPPPPP===.##,,,########b==.###########.H
+
+    H.B,,,BBBBBB.==PPPPPPPAPPPPPPP===T#############.==LLL#######LLbH
+
+    H.B,,,BBBBBB.==PPPPPPPPPPPPPPP===.###########LLL==LLL###,,,#LLLH
+
+    HTB,,,BBBBBB.==PPPPPPPPPPP2PPP===.###########LLL==LLL###,,,#LLTH
+
+    HbBBBBBBBBBB.==PPPPPPPPPPPPPPP,==.###########LLL==.#####,,,###rH
+
+    H....BBB.....==TPPTPPTPPTPPTPP===..............b==....,........H
+
+    H==============================,=======================*=======H
+
+    H====T==E=========r==================r==E===T=======*==========H
+
+    H=======X==============T================X======================H
+
+    HBBBBBPB=BBBB==,.............b===,,,,,,,=,,,,*,,,=.............H
+
+    HBP*PP*PP*PPB==.HHHHHHHHHHHHH.=,=,6,,,T,,,,,,b,*==.BBBBBBBBBBB.H
+
+    HBPPPPPPPPPPB==.HHHHHHHHHLLLH.===,,,,,,,TT,TT,,,==.BBBBBBBBBBB.H
+
+    HBP1PPPPPPPPB==.HHHHHH,,,LLLHb===,,,*b*****,,T,,==.BBBBBBBBBBB.H
+
+    HBPPPPKPPPPPB==,HHHHHH,,,LLLH.===*,,b***n**,,,T,==.BBBBBBBBBBB.H
+
+    HBPPPPSPPPPPB==bHHHHHH,,,BHHH.===,,,,,*****Tb,,,=*rBBBBBBBBBBB.H
+
+    HBPPPPPPPPPPB==.HHHHHHHHHHHHH.,==,,,,,*****,,,,,==,,,,BBBBBBBBbH
+
+    HBP4PPPPPPPPB==.HHHHHHHHHHVHH.===,,,,,,,b*T*,,*,==.,,,,BBBBBBBrH
+
+    HBBBBBPBBBBBB==...............===,,,,,,,,,,,,,,,==.,,,,.......,H
+
+    H=b====,====*=========:::::::=====b=========E==================H
+
+    H===========================================X==================H
+
+    H,....*...BBB==T.............b===LLL........=...==T......,.....H
+
+    H.#######BBBB==TBB###########.===LLLHHHHHHHHHHHb==.BBBBBBBBBBB.H
+
+    Hr#######BBBb==BBB###########.===LLLHHHHHHHHHBB,==,BBBBBBBBBBB.H
+
+    H.#######BBB.==BBB##LLLB#####,===,HHHHHHLLLHHBBB==.BBBBBBBBBBBTH
+
+    H.#######BBBb==.####LLLB#####.===.HHHHHHLLLHHBBB==.BBBB,,,BBBB.H
+
+    H.#######BBB.*=.####LLLB#####b===,HHHHHHLLLHHHH.==rBBBB,,,BBBB.H
+
+    H........BBB.==..............b===,..............==..BBB,,,.....H
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+'
+  warps:
+  - tile: V
+    to: tunnel
+  encounters:
+  - Enemies:
+    - Enemy_ScrapHound
+    Level: 4
+    Boss: 0
+    WinFlag: 
+    Requires: []
+    Blocks: []
+    WinMessage: 
+    WinKey: 
+    Reward: 
+  - Enemies:
+    - Enemy_ScrapHound
+    Level: 3
+    Boss: 0
+    WinFlag: 
+    Requires: []
+    Blocks: []
+    WinMessage: 
+    WinKey: 
+    Reward: 
+  - Enemies:
+    - Enemy_ScrapHound
+    Level: 5
+    Boss: 0
+    WinFlag: 
+    Requires: []
+    Blocks: []
+    WinMessage: 
+    WinKey: 
+    Reward: 
+  npcs:
+  - Name: Small Machine
+    Lines: []
+    LinesKey: npc.small_machine
+    Machine: 1
+  chests: []

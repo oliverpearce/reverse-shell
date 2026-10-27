@@ -141,7 +141,7 @@ namespace Combat.View
             y = Stats(sheet, unit, y + 22f);
             Cards(sheet, unit, y + 40f);
 
-            var hint = UIFactory.CreateText(root, "Hint", "Click anywhere to return to battle", 26, Muted, TextAnchor.MiddleCenter);
+            var hint = UIFactory.CreateText(root, "Hint", UIText.Get("inspect.hint"), 26, Muted, TextAnchor.MiddleCenter);
             hint.font = UIFactory.SerifFont;
             hint.raycastTarget = false;
             hint.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(sheetOnLeft ? -SheetInner - SheetW / 2f : SheetInner + SheetW / 2f, 34f), new Vector2(SheetW, 40f));
@@ -163,7 +163,7 @@ namespace Combat.View
 
             if (unit.Level > 0)
             {
-                var lv = UIFactory.CreateText(sheet, "Level", "Level  " + UIFactory.Size(40) + unit.Level + "</size>", 26, Muted, TextAnchor.LowerRight);
+                var lv = UIFactory.CreateText(sheet, "Level", UIText.Get("common.level") + "  " + UIFactory.Size(40) + unit.Level + "</size>", 26, Muted, TextAnchor.LowerRight);
                 lv.font = UIFactory.SerifFont;
                 lv.supportRichText = true;
                 lv.raycastTarget = false;
@@ -181,7 +181,7 @@ namespace Combat.View
         static float Health(RectTransform sheet, BattleUnit unit, float y)
         {
             float x = 92f, w = SheetW - 92f;
-            var label = UIFactory.CreateText(sheet, "HP", "HP", 44, TextColor, TextAnchor.MiddleLeft);
+            var label = UIFactory.CreateText(sheet, "HP", UIText.Get("stat.hp"), 44, TextColor, TextAnchor.MiddleLeft);
             label.font = UIFactory.SerifFont;
             label.raycastTarget = false;
             label.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(200f, 54f));
@@ -221,7 +221,7 @@ namespace Combat.View
             bool hasUlt = unit.Ultimate != null;
             if (!hasUlt || cap <= 0) return y;
             float x = 92f;
-            var label = UIFactory.CreateText(sheet, "Ult", "ULT", 28, Muted, TextAnchor.MiddleLeft);
+            var label = UIFactory.CreateText(sheet, "Ult", UIText.Get("inspect.ult"), 28, Muted, TextAnchor.MiddleLeft);
             label.raycastTarget = false;
             label.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(90f, 36f));
             const float pip = 34f, gap = 8f;
@@ -237,7 +237,7 @@ namespace Combat.View
             }
             if (full)
             {
-                var ready = UIFactory.CreateText(sheet, "UltReady", "READY", 24, new Color(1f, 0.55f, 0.2f), TextAnchor.MiddleLeft);
+                var ready = UIFactory.CreateText(sheet, "UltReady", UIText.Get("inspect.ready"), 24, new Color(1f, 0.55f, 0.2f), TextAnchor.MiddleLeft);
                 ready.raycastTarget = false;
                 ready.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + 100f + cap * (pip + gap), -y), new Vector2(160f, 30f));
             }
@@ -251,9 +251,9 @@ namespace Combat.View
             float spell = unit.GetStat(StatType.DamageBonus) + unit.GetStat(StatType.IncantationMight);
             var rows = new[]
             {
-                Stat("ATK", unit.GetStat(StatType.Attack), s.attack, false), Stat("PHYS DEF", unit.GetStat(StatType.PhysicalDefense), s.physicalDefense, false),
-                Stat("CRIT", unit.GetStat(StatType.CritRate), s.critRate, true), Stat("SPEC DEF", unit.GetStat(StatType.SpecialDefense), s.specialDefense, false),
-                Stat("CRIT DMG", unit.GetStat(StatType.CritDamage), s.critDamage, true), Stat("SPELL DMG", spell, 0f, true, true),
+                Stat(UIText.Get("stat.atk"), unit.GetStat(StatType.Attack), s.attack, false), Stat(UIText.Get("stat.phys_def"), unit.GetStat(StatType.PhysicalDefense), s.physicalDefense, false),
+                Stat(UIText.Get("stat.crit"), unit.GetStat(StatType.CritRate), s.critRate, true), Stat(UIText.Get("stat.spec_def"), unit.GetStat(StatType.SpecialDefense), s.specialDefense, false),
+                Stat(UIText.Get("stat.crit_dmg"), unit.GetStat(StatType.CritDamage), s.critDamage, true), Stat(UIText.Get("stat.spell_dmg"), spell, 0f, true, true),
             };
             float x0 = 92f, gap = 12f, cw = (SheetW - 92f - gap) / 2f, ch = 54f;
             for (int i = 0; i < rows.Length; i++)

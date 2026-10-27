@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Combat;
 using UnityEngine;
+using Combat.View;
 
 namespace Game.World
 {
@@ -98,12 +99,12 @@ namespace Game.World
         public static string SlotLabel(int slot, bool markCurrent)
         {
             var summary = Peek(slot);
-            string head = "Slot " + slot + (markCurrent && slot == Slot ? " <color=#C2A061>(current)</color>" : "");
-            if (summary == null) return head + "   <color=#8A857A>Empty</color>";
+            string head = UIText.Get("save.slot", "slot", slot.ToString()) + (markCurrent && slot == Slot ? " <color=#C2A061>" + UIText.Get("save.current") + "</color>" : "");
+            if (summary == null) return head + "   <color=#8A857A>" + UIText.Get("save.empty") + "</color>";
             string who = summary.Leader;
             if (who == WorldSession.StartingMember && !string.IsNullOrEmpty(summary.PlayerName)) who = summary.PlayerName;
             else if (who != null && who.StartsWith("Char_")) who = who.Substring(5);
-            return head + "   " + Combat.View.UIFactory.Size(28) + who + "  ·  Lv " + summary.Level + "  ·  " + summary.AreaName
+            return head + "   " + Combat.View.UIFactory.Size(28) + who + "  ·  " + UIText.Get("common.lv") + " " + summary.Level + "  ·  " + summary.AreaName
                    + "  ·  " + summary.Saved.ToString("d MMM, HH:mm") + "</size>";
         }
 
@@ -115,17 +116,17 @@ namespace Game.World
         public static void SlotCard(int slot, bool markCurrent, out string heading, out string detail, out string corner)
         {
             var summary = Peek(slot);
-            heading = "Slot " + slot + (markCurrent && slot == Slot ? "  <color=#C2A061>(current)</color>" : "");
+            heading = UIText.Get("save.slot", "slot", slot.ToString()) + (markCurrent && slot == Slot ? "  <color=#C2A061>" + UIText.Get("save.current") + "</color>" : "");
             if (summary == null)
             {
-                detail = "<color=#8A857A>Empty</color>";
+                detail = "<color=#8A857A>" + UIText.Get("save.empty") + "</color>";
                 corner = "";
                 return;
             }
             string who = summary.Leader;
             if (who == WorldSession.StartingMember && !string.IsNullOrEmpty(summary.PlayerName)) who = summary.PlayerName;
             else if (who != null && who.StartsWith("Char_")) who = who.Substring(5);
-            detail = Combat.View.UIFactory.Size(48) + who + "</size>    <color=#C2A061>Lv " + summary.Level + "</color>\n"
+            detail = Combat.View.UIFactory.Size(48) + who + "</size>    <color=#C2A061>" + UIText.Get("common.lv") + " " + summary.Level + "</color>\n"
                      + "<color=#B8B1A3>" + summary.AreaName + "</color>";
             corner = summary.Saved.ToString("d MMM, HH:mm");
         }
@@ -278,10 +279,10 @@ namespace Game.World
             WorldSession.SandboxEnemyLevel = data != null && data.sandboxLevel > 0 ? data.sandboxLevel : Combat.BattleUnit.DefaultEnemyLevel;
             WorldSession.SandboxBoss = data != null && data.sandboxBoss;
             WorldSession.HasSandboxReturn = data != null && data.hasSandboxReturn;
-            WorldSession.SandboxReturnArea = data != null && !string.IsNullOrEmpty(data.sandboxReturnArea) ? data.sandboxReturnArea : WorldAreas.City;
+            WorldSession.SandboxReturnArea = data != null && !string.IsNullOrEmpty(data.sandboxReturnArea) ? data.sandboxReturnArea : WorldAreas.StartArea;
             WorldSession.SandboxReturnPosition = data != null ? data.sandboxReturnPosition : Vector3.zero;
             WorldSession.SandboxReturnFacing = data != null ? data.sandboxReturnFacing : 0;
-            WorldSession.CurrentArea = data != null && !string.IsNullOrEmpty(data.area) ? data.area : WorldAreas.City;
+            WorldSession.CurrentArea = data != null && !string.IsNullOrEmpty(data.area) ? data.area : WorldAreas.StartArea;
             WorldSession.LastAccessPoint = data != null && data.accessPoint != null && !string.IsNullOrEmpty(data.accessPoint.area)
                 ? data.accessPoint.Clone() : null;
             // Continue puts you where you saved (only if it is in the saved area: a save made mid-travel has none).

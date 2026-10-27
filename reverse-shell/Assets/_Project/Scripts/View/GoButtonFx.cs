@@ -9,6 +9,8 @@ namespace Combat.View
     /// The battle's Go button flourish (on an ordinary InkStyle button, so it has the same ink plate and corner brackets
     /// as the rest of the UI). Hovering it slides the chevron icon (CardIcons.GoChevron) out to the right of the word,
     /// looping, while the word eases left. Pressing it (a click, or Enter through <see cref="Press"/>) punches the button and flashes it.
+    /// Every InkStyle button gets it (InkStyle.Button): a soft pale glow while hovered and the punch and flash on press.
+    /// Only the Go-sized buttons (HudView.GoStyleButton: Go, Fight Again / Continue, Start) add the chevrons.
     /// Unscaled time.
     /// </summary>
     public class GoButtonFx : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
@@ -17,13 +19,18 @@ namespace Combat.View
         Image chevron;
         Image flash;
         bool hovered;
-        float t;
+        float t, glow, pressFlash;
+        Button button;
+
+        /// <summary>How bright the hover glow gets (the press flash starts at 0.6).</summary>
+        const float GlowAlpha = 0.14f;
         Vector2 labelHome;
 
-        public static GoButtonFx Add(Button button)
+        public static GoButtonFx Add(Button button, bool chevrons = true)
         {
             var fx = button.gameObject.AddComponent<GoButtonFx>();
-            fx.Build((RectTransform)button.transform);
+            fx.button = button;
+            fx.Build((RectTransform)button.transform, chevrons);
             button.onClick.AddListener(fx.Press);
             return fx;
         }
@@ -32,18 +39,28 @@ namespace Combat.View
         string centredFor;
         Vector2 labelBase;
 
-        void Build(RectTransform root)
+        void Build(RectTransform root, bool chevrons)
         {
-            var found = root.Find("Label");
-            label = found != null ? (RectTransform)found : null;
-            labelText = label != null ? label.GetComponent<Text>() : null;
-            if (label != null) labelHome = labelBase = label.anchoredPosition;
-            chevron = UIFactory.CreateImage(root, "Chevron", new Color(1f, 1f, 1f, 0f));
-            chevron.sprite = CardIcons.GoChevron;
-            chevron.preserveAspect = true;
-            chevron.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(48f, 48f));
+            if (chevrons)
+            {
+                var found = root.Find("Label");
+                label = found != null ? (RectTransform)found : null;
+                labelText = label != null ? label.GetComponent<Text>() : null;
+                chevron = UIFactory.CreateImage(root, "Chevron", new Color(1f, 1f, 1f, 0f));
+                chevron.sprite = CardIcons.GoChevron;
+                chevron.preserveAspect = true;
+                chevron.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(48f, 48f));
+            }
             flash = UIFactory.CreateImage(root, "Flash", new Color(1f, 0.95f, 0.8f, 0f));
             flash.rectTransform.Fill();
+            flash.raycastTarget = false;
+        }
+
+        /// <summary>The label's resting place is read here, not in Build, so a menu that moves or resizes the label
+        /// right after making the button (the "?" badge's room on settings rows) keeps that layout.</summary>
+        void Start()
+        {
+            if (label != null) labelHome = labelBase = label.anchoredPosition;
         }
 
         public void OnPointerEnter(PointerEventData eventData) { hovered = true; }
@@ -53,7 +70,9 @@ namespace Combat.View
         void OnDisable()
         {
             hovered = false;
-            t = 0f;
+            t = glow = pressFlash = 0f;
+            if (flash != null) flash.color = new Color(flash.color.r, flash.color.g, flash.color.b, 0f);
+            transform.localScale = Vector3.one;   // a menu that closes mid-punch opens at full size next time
         }
 
         void Update()
@@ -68,14 +87,17 @@ namespace Combat.View
             // a loop.
             float start = labelText != null ? labelText.preferredWidth / 2f - 22f * ease + 6f : 30f;
             float phase = Mathf.Repeat(time * 1.6f, 1f);
-            chevron.rectTransform.anchoredPosition = new Vector2(start + phase * 18f, 0f);
-            chevron.color = new Color(1f, 1f, 1f, ease * Mathf.Sin(phase * Mathf.PI));
-            if (flash.color.a > 0f)
+            if (chevron != null)
             {
-                var c = flash.color;
-                c.a = Mathf.Max(0f, c.a - dt * 3f);
-                flash.color = c;
+                chevron.rectTransform.anchoredPosition = new Vector2(start + phase * 18f, 0f);
+                chevron.color = new Color(1f, 1f, 1f, ease * Mathf.Sin(phase * Mathf.PI));
             }
+            // The hover glow (eases in and out) and the press flash (fades fast); whichever is brighter shows.
+            bool lit = hovered && (button == null || button.interactable);
+            glow = Mathf.MoveTowards(glow, lit ? 1f : 0f, dt * 8f);
+            pressFlash = Mathf.Max(0f, pressFlash - dt * 3f);
+            float alpha = Mathf.Max(pressFlash, glow * GlowAlpha);
+            if (!Mathf.Approximately(flash.color.a, alpha)) flash.color = new Color(flash.color.r, flash.color.g, flash.color.b, alpha);
         }
 
         /// <summary>
@@ -103,7 +125,7 @@ namespace Combat.View
         /// <summary>The press: a quick punch and a pale flash (also called for Enter).</summary>
         public void Press()
         {
-            flash.color = new Color(flash.color.r, flash.color.g, flash.color.b, 0.6f);
+            pressFlash = 0.6f;
             if (isActiveAndEnabled) StartCoroutine(Punch());
         }
 

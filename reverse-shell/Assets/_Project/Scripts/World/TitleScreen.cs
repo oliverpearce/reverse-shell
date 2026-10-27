@@ -21,13 +21,11 @@ namespace Game.World
     /// </summary>
     public class TitleScreen : MonoBehaviour
     {
-        /// <summary>The game's name (a working title; change it here).</summary>
-        public const string GameTitle = "REVERSE SHELL";
-        public const string Subtitle = "Demo";
-        /// <summary>Shown bottom-right on the title screen. Raise it with every build you hand out.</summary>
-        public const string Version = "Demo v0.2";
-        /// <summary>Who made the game (the Credits page's first line).</summary>
-        public const string MadeBy = "Oliver Pearce";
+        /// <summary>The game's name, subtitle and version (bottom-right; raise it with every build you hand out) are the
+        /// title.* lines of Resources/Story/UI.txt, like every word on this screen.</summary>
+        public static string GameTitle { get { return UIText.Get("title.name"); } }
+        public static string Subtitle { get { return UIText.Get("title.subtitle"); } }
+        public static string Version { get { return UIText.Get("title.version"); } }
 
         RectTransform menu;
         readonly List<Text> rows = new List<Text>();
@@ -86,7 +84,7 @@ namespace Game.World
             var version = UIFactory.CreateText(root, "Version", Version, 24, InkStyle.PaperDim, TextAnchor.LowerRight);
             version.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-30f, 24f), new Vector2(400f, 40f));
 
-            var keys = UIFactory.CreateText(root, "Keys", "<color=#C2A061>↑ ↓</color>  Select      <color=#C2A061>Enter</color>  Confirm      <color=#C2A061>Esc / P</color>  Back",
+            var keys = UIFactory.CreateText(root, "Keys", UIText.Get("title.keys"),
                 28, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
             keys.supportRichText = true;
             keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(1600f, 44f));
@@ -98,13 +96,13 @@ namespace Game.World
         {
             int latest = SaveGame.LatestSlot();
             Page(null);
-            Row("Continue", () => Begin(latest, false), latest > 0);
-            Row("New Game", () => ShowSlots(true), true);
-            Row("Load", () => ShowSlots(false), latest > 0);
-            Row("Sandbox Mode", StartSandbox, true);
-            Row("Settings", ShowSettings, true);
-            Row("Credits", ShowCredits, true);
-            if (Application.platform != RuntimePlatform.WebGLPlayer) Row("Quit", Quit, true);   // a browser tab can't quit
+            Row(UIText.Get("title.continue"), () => Begin(latest, false), latest > 0);
+            Row(UIText.Get("title.new_game"), () => ShowSlots(true), true);
+            Row(UIText.Get("title.load"), () => ShowSlots(false), latest > 0);
+            Row(UIText.Get("title.sandbox"), StartSandbox, true);
+            Row(UIText.Get("title.settings"), ShowSettings, true);
+            Row(UIText.Get("title.credits"), ShowCredits, true);
+            if (Application.platform != RuntimePlatform.WebGLPlayer) Row(UIText.Get("title.quit"), Quit, true);   // a browser tab can't quit
             Select(latest > 0 ? 0 : 1);
         }
 
@@ -122,16 +120,16 @@ namespace Game.World
                 else
                     Row(label, () => Begin(captured, false), summary != null);
             }
-            Row("Back", ShowMain, true);
+            Row(UIText.Get("menu.back"), ShowMain, true);
             Select(0);
         }
 
         void Confirm(int slot)
         {
             Page(() => ShowSlots(true));
-            Row("Overwrite slot " + slot + "?", null, false);
-            Row("Yes, start a new game", () => Begin(slot, true), true);
-            Row("No", () => ShowSlots(true), true);
+            Row(UIText.Get("title.overwrite", "slot", slot.ToString()), null, false);
+            Row(UIText.Get("title.overwrite.yes"), () => Begin(slot, true), true);
+            Row(UIText.Get("menu.no"), () => ShowSlots(true), true);
             Select(2);
         }
 
@@ -150,32 +148,20 @@ namespace Game.World
                 }, true, opt.Help);
             }
             Row(GameSettings.GuideLabel, () => GuideBook.Open(transform), true, GameSettings.GuideHelp);
-            Row("Enter Sandbox Mode", StartSandbox, true, SandboxHelp);
-            Row("Back", ShowMain, true);
+            Row(UIText.Get("title.sandbox.enter"), StartSandbox, true, UIText.Get("title.sandbox.help"));
+            Row(UIText.Get("menu.back"), ShowMain, true);
             Select(0);
         }
 
         // ------------------------------------------------------------------ Credits
 
-        const string Key = "<color=#C2A061>", End = "</color>";
-
         void ShowCredits()
         {
             Page(ShowMain);
-            InfoPanel(CreditsText, 440f);
-            Row("Back", ShowMain, true);
+            InfoPanel(UIText.Get("title.credits.text"), 440f);
+            Row(UIText.Get("menu.back"), ShowMain, true);
             Select(0);
         }
-
-        const string CreditsText =
-            "<size=40>Credits</size>\n\n" +
-            "Made by " + Key + MadeBy + End + ". A free, non-commercial fan game inspired by Reverse: 1999\n" +
-            "(not affiliated with Bluepoch).\n\n" +
-            Key + "Icons" + End + "   Raven Fantasy Icons by Clockwork Raven Studios\n" +
-            Key + "Character sprites" + End + "   Fantasy Knight by aamatniekss\n" +
-            Key + "Effects" + End + "   Super Pixel Effects Gigapack by Will Tice / unTied Games\n" +
-            Key + "Font" + End + "   monogram by datagoblin\n\n" +
-            "Thank you for playing!";
 
         /// <summary>A page's text panel at the menu's top; the page's rows go under it.</summary>
         void InfoPanel(string text, float height)
@@ -188,9 +174,6 @@ namespace Game.World
             t.rectTransform.Fill(24f);
             rowTop = height + 16f;
         }
-
-        const string SandboxHelp = "Go straight to the Sandbox with your latest save: practice fights at any " +
-                                    "enemy level, and the whole test crew. Leave Sandbox Mode (Esc, Settings) takes you back.";
 
         /// <summary>Sandbox Mode: the latest save (or a new game), starting in the Sandbox.</summary>
         void StartSandbox()

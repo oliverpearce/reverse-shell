@@ -10,7 +10,7 @@ namespace Combat.View
     /// </summary>
     public class StatusTooltip : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        const float BoxWidth = 640f;
+        const float BoxWidth = 720f;
         static RectTransform shown;
         static StatusTooltip owner;
 
@@ -39,10 +39,10 @@ namespace Combat.View
             var root = (RectTransform)canvas.rootCanvas.transform;
             var def = status.Definition;
 
-            string turns = status.Remaining == 1 ? "1 turn" : status.Remaining + " turns";
+            string turns = UIText.Get(status.Remaining == 1 ? "status.turn" : "status.turns", "n", status.Remaining.ToString());
             // What it does in total right now (two stacks of +15% ATK read "ATK +30%"), else the written description.
             string total = StatusChip.TotalEffect(def, status.Stacks);
-            string level = def.maxStacks > 1 && status.Stacks >= def.maxStacks ? "MAX" : "";
+            string level = def.maxStacks > 1 && status.Stacks >= def.maxStacks ? UIText.Get("common.max") : "";
             string body = total.Length > 0 ? total : string.IsNullOrEmpty(def.description) ? "" : def.description;
 
             var box = InkStyle.Panel(root, "StatusTooltip", InkStyle.InkPanel).rectTransform;
@@ -146,9 +146,9 @@ namespace Combat.View
             var lines = new System.Collections.Generic.List<string>();
             if (def.modifiers != null)
                 foreach (var m in def.modifiers) lines.Add(StatName(m.stat) + " " + Signed(m, stacks, false));
-            if (def.damagePerRoundPercentMaxHP > 0f) lines.Add("Lose " + Pct(def.damagePerRoundPercentMaxHP * stacks) + " max HP each turn");
-            if (def.healPerRoundPercentMaxHP > 0f) lines.Add("Recover " + Pct(def.healPerRoundPercentMaxHP * stacks) + " max HP each turn");
-            if (def.preventsAction) lines.Add("Can't act");
+            if (def.damagePerRoundPercentMaxHP > 0f) lines.Add(UIText.Get("status.lose_hp", "pct", Pct(def.damagePerRoundPercentMaxHP * stacks)));
+            if (def.healPerRoundPercentMaxHP > 0f) lines.Add(UIText.Get("status.recover_hp", "pct", Pct(def.healPerRoundPercentMaxHP * stacks)));
+            if (def.preventsAction) lines.Add(UIText.Get("status.cant_act"));
             return string.Join("\n", lines.ToArray());
         }
 
@@ -186,18 +186,18 @@ namespace Combat.View
         {
             switch (stat)
             {
-                case StatType.MaxHP: return "Max HP";
-                case StatType.Attack: return "ATK";
-                case StatType.PhysicalDefense: return "PHYS DEF";
-                case StatType.SpecialDefense: return "SPEC DEF";
-                case StatType.CritRate: return "CRIT";
-                case StatType.CritDamage: return "CRIT DMG";
-                case StatType.DamageBonus: return "DMG";
-                case StatType.DamageTaken: return "DMG taken";
-                case StatType.IncantationMight: return "Card DMG";
-                case StatType.RitualMight: return "Ult DMG";
-                case StatType.HealingBonus: return "Healing";
-                case StatType.StartingMoxie: return "Starting Ult";
+                case StatType.MaxHP: return UIText.Get("stat.name.max_hp");
+                case StatType.Attack: return UIText.Get("stat.atk");
+                case StatType.PhysicalDefense: return UIText.Get("stat.phys_def");
+                case StatType.SpecialDefense: return UIText.Get("stat.spec_def");
+                case StatType.CritRate: return UIText.Get("stat.crit");
+                case StatType.CritDamage: return UIText.Get("stat.crit_dmg");
+                case StatType.DamageBonus: return UIText.Get("stat.name.dmg");
+                case StatType.DamageTaken: return UIText.Get("stat.name.dmg_taken");
+                case StatType.IncantationMight: return UIText.Get("stat.name.card_dmg");
+                case StatType.RitualMight: return UIText.Get("stat.name.ult_dmg");
+                case StatType.HealingBonus: return UIText.Get("stat.name.healing");
+                case StatType.StartingMoxie: return UIText.Get("stat.name.starting_ult");
             }
             return stat.ToString();
         }

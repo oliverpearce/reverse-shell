@@ -17,7 +17,10 @@ namespace Combat.View
 
         public static bool Fullscreen { get { return pendingFullscreen ?? Screen.fullScreen; } }
 
-        public static string FullscreenLabel { get { return "Fullscreen:  " + (Fullscreen ? "On" : "Off"); } }
+        public static string FullscreenLabel
+        {
+            get { return UIText.Get("settings.fullscreen", "value", UIText.Get(Fullscreen ? "settings.on" : "settings.off")); }
+        }
 
         public static void ToggleFullscreen()
         {
@@ -25,9 +28,15 @@ namespace Combat.View
             Screen.fullScreen = pendingFullscreen.Value;
         }
 
-        /// <summary>Browsers only go fullscreen on a click, and keep Esc for leaving it.</summary>
-        const string WebFullscreenHelp = "Fill the screen (or use the button under the game). The browser switches on your " +
-                                         "next click, and Esc leaves fullscreen, so open the menu with P there.";
+        /// <summary>The web build's version explains that browsers only go fullscreen on a click, and keep Esc for leaving it.</summary>
+        public static string FullscreenHelp
+        {
+            get
+            {
+                return UIText.Get(Application.platform == RuntimePlatform.WebGLPlayer
+                    ? "settings.fullscreen.help.web" : "settings.fullscreen.help");
+            }
+        }
 
         // ------------------------------------------------------------------ Controls
 
@@ -44,13 +53,20 @@ namespace Combat.View
         }
 
         /// <summary>Shown as "Input" (the guide, <see cref="GuideBook"/>, has a Controls tab).</summary>
-        public static string ControlsLabel { get { return "Input:  " + Controls; } }
+        public static string ControlsLabel
+        {
+            get
+            {
+                string value = Controls == ControlMode.Mouse ? "settings.input.mouse"
+                    : Controls == ControlMode.Keyboard ? "settings.input.keyboard" : "settings.input.both";
+                return UIText.Get("settings.input", "value", UIText.Get(value));
+            }
+        }
 
         /// <summary>Both → Mouse → Keyboard → Both.</summary>
         public static void CycleControls() { Controls = (ControlMode)(((int)Controls + 1) % 3); }
 
-        public const string ControlsHelp = "Mouse: hover, click and drag. Keyboard: arrows or WASD, Enter and Backspace. " +
-                                           "Both: either. Walking, F, Q and Esc (or P) always work.";
+        public static string ControlsHelp { get { return UIText.Get("settings.input.help"); } }
 
         // ------------------------------------------------------------------ Graphics
 
@@ -74,12 +90,14 @@ namespace Combat.View
         /// <summary>Raised when Graphics changes, so the cameras and post-processing switch right away.</summary>
         public static event Action GraphicsChanged;
 
-        public static string GraphicsLabel { get { return "Graphics:  " + (FastGraphics ? "Fast" : "Pretty"); } }
+        public static string GraphicsLabel
+        {
+            get { return UIText.Get("settings.graphics", "value", UIText.Get(FastGraphics ? "settings.graphics.fast" : "settings.graphics.pretty")); }
+        }
 
         public static void ToggleGraphics() { FastGraphics = !FastGraphics; }
 
-        public const string GraphicsHelp = "Fast: no glow or colour filter and fewer leaves, so the game runs cooler " +
-                                           "(best in a browser). Pretty: the full look.";
+        public static string GraphicsHelp { get { return UIText.Get("settings.graphics.help"); } }
 
         /// <summary>A camera's HDR follows the Graphics setting (off when Fast).</summary>
         public static void ApplyGraphics(Camera cam)
@@ -90,9 +108,9 @@ namespace Combat.View
         // ------------------------------------------------------------------ Guide
 
         /// <summary>The Settings row that opens the guide (<see cref="GuideBook"/>), in every Settings menu.</summary>
-        public const string GuideLabel = "Tutorials";
+        public static string GuideLabel { get { return UIText.Get("settings.tutorials"); } }
 
-        public const string GuideHelp = "Every key, and the battle tutorials: turns and AP, merging, Ult, resonance and more.";
+        public static string GuideHelp { get { return UIText.Get("settings.tutorials.help"); } }
 
         // ------------------------------------------------------------------ Battle speed
 
@@ -119,27 +137,19 @@ namespace Combat.View
             public string Help;
         }
 
-        public static readonly Option[] Options =
+        /// <summary>Built on each read, so the help lines come fresh from UI.txt.</summary>
+        public static Option[] Options
         {
-            new Option
+            get
             {
-                Label = () => FullscreenLabel,
-                Toggle = ToggleFullscreen,
-                Help = Application.platform == RuntimePlatform.WebGLPlayer ? WebFullscreenHelp : "Play in fullscreen or in a window. Changes right away.",
-            },
-            new Option
-            {
-                Label = () => ControlsLabel,
-                Toggle = CycleControls,
-                Help = ControlsHelp,
-            },
-            new Option
-            {
-                Label = () => GraphicsLabel,
-                Toggle = ToggleGraphics,
-                Help = GraphicsHelp,
-            },
-        };
+                return new[]
+                {
+                    new Option { Label = () => FullscreenLabel, Toggle = ToggleFullscreen, Help = FullscreenHelp },
+                    new Option { Label = () => ControlsLabel, Toggle = CycleControls, Help = ControlsHelp },
+                    new Option { Label = () => GraphicsLabel, Toggle = ToggleGraphics, Help = GraphicsHelp },
+                };
+            }
+        }
     }
 
     /// <summary>

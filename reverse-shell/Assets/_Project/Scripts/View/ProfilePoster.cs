@@ -62,7 +62,7 @@ namespace Combat.View
             // Header: file type on the left, ID on the right.
             var head = UIFactory.CreateImage(root, "Header", UIFactory.WithAlpha(Holo, 0.16f));
             head.rectTransform.TopStrip(0f, header);
-            var kind = UIFactory.CreateText(head.transform, "Kind", info.Hostile ? "TARGET PROFILE" : "PERSONNEL FILE",
+            var kind = UIFactory.CreateText(head.transform, "Kind", UIText.Get(info.Hostile ? "poster.target" : "poster.personnel"),
                 compact ? 12 : 15, Holo, TextAnchor.MiddleLeft, FontStyle.Bold);
             kind.rectTransform.Fill(8f);
             var id = UIFactory.CreateText(head.transform, "Id", IdCode(info.Name), compact ? 12 : 15, UIFactory.WithAlpha(Holo, 0.8f), TextAnchor.MiddleRight);
@@ -84,7 +84,7 @@ namespace Combat.View
             Brackets(window, compact ? 14f : 22f, Holo);
 
             // Stamp across the portrait's corner.
-            var stamp = UIFactory.CreateText(window, "Stamp", info.Hostile ? "WANTED" : "CLEARED", compact ? 22 : 40,
+            var stamp = UIFactory.CreateText(window, "Stamp", UIText.Get(info.Hostile ? "poster.wanted" : "poster.cleared"), compact ? 22 : 40,
                 info.Hostile ? Lethal : Holo, TextAnchor.MiddleCenter, FontStyle.BoldAndItalic);
             stamp.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-6f, -8f), new Vector2(compact ? 130f : 220f, compact ? 30f : 52f));
             stamp.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -12f);
@@ -112,7 +112,7 @@ namespace Combat.View
             if (info.Index >= 0)
             {
                 var color = IndexColor(info.Index, info.Hostile);
-                var label = UIFactory.CreateText(root, "IndexLabel", info.Hostile ? "THREAT INDEX" : "COMBAT INDEX", 14, UIFactory.WithAlpha(Holo, 0.85f), TextAnchor.LowerLeft, FontStyle.Bold);
+                var label = UIFactory.CreateText(root, "IndexLabel", UIText.Get(info.Hostile ? "poster.threat" : "poster.combat"), 14, UIFactory.WithAlpha(Holo, 0.85f), TextAnchor.LowerLeft, FontStyle.Bold);
                 label.rectTransform.Place(Vector2.zero, Vector2.zero, new Vector2(14f, 62f), new Vector2(160f, 20f));
                 var value = UIFactory.CreateText(root, "Index", info.Index.ToString(), 44, color, TextAnchor.LowerRight, FontStyle.BoldAndItalic);
                 value.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-14f, 54f), new Vector2(160f, 50f));
