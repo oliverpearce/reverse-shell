@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 84f16ca0de16a4d48be9e44684662a8b, type: 3}
-  m_Name: Card_HealBot_SapMend
+  m_Name: Card_Ashe_Overgrowth
   m_EditorClassIdentifier: 
-  displayName: Sap Mend
-  kind: 3
-  targetMode: 4
+  displayName: Overgrowth
+  kind: 1
+  targetMode: 5
   isRitual: 0
   icon: {fileID: 0}
   ranks:
@@ -27,30 +27,30 @@ MonoBehaviour:
   - description: 
     effects:
     - id: 2
-    - id: 3
   castSequence: {fileID: 11400000, guid: 481c490e60e4d7f4ab95032a2a843efe, type: 2}
   references:
     version: 1
     00000000:
-      type: {class: HealEffect, ns: Combat, asm: Combat.Runtime}
-      data:
-        target: 0
-        multiplier: 1.4
-    00000001:
-      type: {class: HealEffect, ns: Combat, asm: Combat.Runtime}
-      data:
-        target: 0
-        multiplier: 2.1
-    00000002:
-      type: {class: HealEffect, ns: Combat, asm: Combat.Runtime}
-      data:
-        target: 0
-        multiplier: 3.2
-    00000003:
       type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
         status: {fileID: 11400000, guid: c778463464f3f6a48bf8db3a444b22ef, type: 2}
         duration: 2
+        stacks: 1
+        chance: 1
+    00000001:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        status: {fileID: 11400000, guid: c778463464f3f6a48bf8db3a444b22ef, type: 2}
+        duration: 3
+        stacks: 1
+        chance: 1
+    00000002:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        status: {fileID: 11400000, guid: c778463464f3f6a48bf8db3a444b22ef, type: 2}
+        duration: 4
         stacks: 1
         chance: 1

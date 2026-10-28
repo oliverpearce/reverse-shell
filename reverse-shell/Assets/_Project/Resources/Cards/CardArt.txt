@@ -1,10 +1,10 @@
-# cell (left to right, top to bottom, 32 px, 4 per row) and card asset name; written by Tools/CardForge
+# cell (left to right, top to bottom, 34 px, 4 per row) and card asset name; written by Tools/CardForge
 0 Card_MC_EdgeStrike
 1 Card_MC_CrossSlash
 2 Card_MC_SyncField
-3 Card_HealBot_BrambleLash
-4 Card_HealBot_Overgrowth
-5 Card_HealBot_SapMend
+3 Card_Ashe_BrambleLash
+4 Card_Ashe_Overgrowth
+5 Card_Ashe_SapMend
 6 Card_Lucy_VirusSpike
 7 Card_Lucy_Corrupt
 8 Card_Lucy_Worm

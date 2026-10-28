@@ -14,7 +14,7 @@ For each character it writes four 96x144 PNGs into Assets/_Project/Art/Portraits
 Accent pixels are painted light gray in the base art so the glow layer decides their color. That is how a
 character's hue can change with the element it channels (MC) without repainting anything.
 
-HealBot and Lucy are the same robot model (robot_base); Heal Bot is overgrown with plants, Lucy carries a virus
+Ashe and Lucy are the same robot model (robot_base); Ashe is overgrown with plants, Lucy carries a virus
 look (cable twin-tails, circuit traces, glitch rows). MC is its own, taller model with a halo and a coat.
 Every robot has two glowing eyes (no visor band) and glowing scale-pattern trims along its armour edges.
 Deterministic: same script, same pixels. Uses pngtool.py from Tools/SpriteForge.
@@ -249,7 +249,7 @@ def gear(cv, cx, cy, r, ramp_=None):
         cv.set(cx - 1, cy, JOINT[1])
 
 
-# ---------------------------------------------------------------------------------------------------- the shared robot (Heal Bot / Lucy)
+# ---------------------------------------------------------------------------------------------------- the shared robot (Ashe / Lucy)
 
 def robot_body(cv, plate=PLATE, internals=False):
     """The shared robot model: rounded helmet, visor, shoulder domes, chest plate, slim plated limbs.
@@ -393,7 +393,7 @@ def robot_internals(cv, a, core_ramp, rng):
     ellipse(cv, 48, 50, 5, 5, core_ramp, glow=True)
 
 
-# ---------------------------------------------------------------------------------------------------- Heal Bot: overgrown
+# ---------------------------------------------------------------------------------------------------- Ashe: overgrown
 
 def leaf(cv, x, y, angle, size, rng):
     for i in range(size):
@@ -462,7 +462,7 @@ def overgrowth(cv, rng, internals=False):
 
 
 def roots_internals(cv, rng):
-    """Inside Heal Bot, roots thread through the frame and wrap a glowing seed core."""
+    """Inside Ashe, roots thread through the frame and wrap a glowing seed core."""
     for start, pts in (((48, 50), [(48, 50), (42, 58), (44, 68), (40, 78), (42, 90)]),
                        ((48, 50), [(48, 50), (55, 60), (52, 70), (57, 80), (55, 96)]),
                        ((48, 50), [(48, 50), (38, 46), (32, 52), (28, 64), (27, 80)]),
@@ -649,7 +649,7 @@ def shade_t(c, k):
 
 # ---------------------------------------------------------------------------------------------------- build
 
-def heal_bot(internals):
+def ashe(internals):
     rng = random.Random(11)
     cv = Canvas()
     a = robot_body(cv, PLATE, internals)
@@ -688,7 +688,7 @@ def mc(internals):
     return cv
 
 
-CHARACTERS = {'MC': mc, 'HealBot': heal_bot, 'Lucy': lucy}
+CHARACTERS = {'MC': mc, 'Ashe': ashe, 'Lucy': lucy}
 
 
 def finish(cv):
@@ -708,7 +708,7 @@ def build(name):
     return results
 
 
-GLOW_PREVIEW = {'MC': (255, 255, 255), 'HealBot': (128, 235, 115), 'Lucy': (200, 115, 255)}
+GLOW_PREVIEW = {'MC': (255, 255, 255), 'Ashe': (128, 235, 115), 'Lucy': (200, 115, 255)}
 
 
 def sheet(path, built, scale=4):

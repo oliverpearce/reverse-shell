@@ -161,6 +161,12 @@ namespace Game.World
             /// <summary>Spare Parts (version 2).</summary>
             public List<PartStack> inventory = new List<PartStack>();
             public bool starterPartsGiven;
+            /// <summary>The card collection (empty in older saves): extra copies by card, bindings (id = card, count unused;
+            /// kind in <see cref="BindingStack"/>), Sun / Moon / Star found, unopened packs.</summary>
+            public List<PartStack> cardCopies = new List<PartStack>();
+            public List<BindingStack> bindings = new List<BindingStack>();
+            public List<PartStack> bindingsFound = new List<PartStack>();
+            public int packs;
             /// <summary>The overworld area you were in (WorldAreas id); empty in older saves = the city.</summary>
             public string area;
             /// <summary>Who has joined the party (asset names); empty in older saves = everyone.</summary>
@@ -193,11 +199,19 @@ namespace Game.World
             public int count;
         }
 
+        [Serializable]
+        public class BindingStack
+        {
+            public string card;
+            public string kind;
+        }
+
         /// <summary>Characters that were renamed: old save keys (asset names) to the new ones.</summary>
         static readonly Dictionary<string, string> Renamed = new Dictionary<string, string>
         {
             { "Char_2B", "Char_MC" },
-            { "Char_V1", "Char_HealBot" },
+            { "Char_V1", "Char_Ashe" },
+            { "Char_HealBot", "Char_Ashe" },
             { "Char_V2", "Char_Lucy" },
         };
 
@@ -205,6 +219,19 @@ namespace Game.World
         {
             string renamed;
             return id != null && Renamed.TryGetValue(id, out renamed) ? renamed : id;
+        }
+
+        /// <summary>Card asset names from older saves: Heal Bot's cards became Ashe's (Card_HealBot_X is Card_Ashe_X).</summary>
+        public static string MigrateCard(string id)
+        {
+            const string old = "Card_HealBot_";
+            return id != null && id.StartsWith(old) ? "Card_Ashe_" + id.Substring(old.Length) : id;
+        }
+
+        static void MigrateCards(List<string> ids)
+        {
+            if (ids == null) return;
+            for (int i = 0; i < ids.Count; i++) ids[i] = MigrateCard(ids[i]);
         }
 
         /// <summary>The Training Center was renamed the Sandbox: older saves name its old area id.</summary>
@@ -233,6 +260,12 @@ namespace Game.World
             foreach (var entry in WorldSession.Inventory)
                 if (entry.Value > 0) data.inventory.Add(new PartStack { id = entry.Key, count = entry.Value });
             data.starterPartsGiven = WorldSession.StarterPartsGiven;
+            foreach (var entry in WorldSession.CardCopies)
+                if (entry.Value > 0) data.cardCopies.Add(new PartStack { id = entry.Key, count = entry.Value });
+            foreach (var entry in WorldSession.Bindings) data.bindings.Add(new BindingStack { card = entry.Key, kind = entry.Value });
+            foreach (var entry in WorldSession.BindingsFound)
+                if (entry.Value > 0) data.bindingsFound.Add(new PartStack { id = entry.Key, count = entry.Value });
+            data.packs = WorldSession.Packs;
             data.area = WorldSession.CurrentArea;
             data.members.AddRange(WorldSession.Members);
             data.formation.AddRange(WorldSession.Formation);
@@ -257,6 +290,10 @@ namespace Game.World
             WorldSession.DefeatedEncounters.Clear();
             WorldSession.PartyOrder.Clear();
             WorldSession.Inventory.Clear();
+            WorldSession.CardCopies.Clear();
+            WorldSession.Bindings.Clear();
+            WorldSession.BindingsFound.Clear();
+            WorldSession.Packs = 0;
             WorldSession.StarterPartsGiven = false;
             WorldSession.Members.Clear();
             StoryState.Clear();
@@ -295,12 +332,28 @@ namespace Game.World
             if (data.partyOrder != null)
                 foreach (var id in data.partyOrder) WorldSession.PartyOrder.Add(Migrate(id));
             foreach (var member in data.party)
-                if (!string.IsNullOrEmpty(member.id) && member.progress != null) WorldSession.Party[Migrate(member.id)] = member.progress.Clone();
+                if (!string.IsNullOrEmpty(member.id) && member.progress != null)
+                {
+                    var progress = member.progress.Clone();
+                    MigrateCards(progress.Cards);
+                    MigrateCards(progress.ExtraCards);
+                    WorldSession.Party[Migrate(member.id)] = progress;
+                }
             foreach (var id in data.defeatedEncounters) WorldSession.DefeatedEncounters.Add(id);
             if (data.inventory != null)
                 foreach (var stack in data.inventory)
                     if (!string.IsNullOrEmpty(stack.id) && stack.count > 0) WorldSession.Inventory[stack.id] = stack.count;
             WorldSession.StarterPartsGiven = data.starterPartsGiven; // older saves get the starter Parts on load
+            if (data.cardCopies != null)
+                foreach (var stack in data.cardCopies)
+                    if (!string.IsNullOrEmpty(stack.id) && stack.count > 0) WorldSession.CardCopies[MigrateCard(stack.id)] = stack.count;
+            if (data.bindings != null)
+                foreach (var b in data.bindings)
+                    if (!string.IsNullOrEmpty(b.card) && !string.IsNullOrEmpty(b.kind)) WorldSession.Bindings[MigrateCard(b.card)] = b.kind;
+            if (data.bindingsFound != null)
+                foreach (var stack in data.bindingsFound)
+                    if (!string.IsNullOrEmpty(stack.id) && stack.count > 0) WorldSession.BindingsFound[stack.id] = stack.count;
+            WorldSession.Packs = Mathf.Max(0, data.packs);
         }
 
         public static void Save()

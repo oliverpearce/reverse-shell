@@ -102,6 +102,9 @@ namespace Game.World
 
         public bool HasPose { get { return pose != null; } }
 
+        /// <summary>This character's animation set has a drawn clip with this name (e.g. "read", the Cards book).</summary>
+        public bool HasClip(string clip) { return animations != null && animations.Find(clip) != null; }
+
         void LateUpdate()
         {
             if (cam == null) cam = Camera.main;

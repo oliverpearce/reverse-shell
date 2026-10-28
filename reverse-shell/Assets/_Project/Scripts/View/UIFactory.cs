@@ -35,6 +35,22 @@ namespace Combat.View
 
         static int Readable(int size) { return Mathf.Max(size, MinFontSize); }
 
+        /// <summary>
+        /// UI > TEXT SIZES
+        /// The named text sizes (layout units, as passed to CreateText; each is monogram at FontScale times this). Use
+        /// these names when asking for a size ("make it Large"), so text stays readable and consistent:
+        ///   Min     18  the floor: nothing is ever drawn smaller
+        ///   Small   24  card name plates, captions under cards, page notes
+        ///   Medium  30  key hints, counters, body text in panels
+        ///   Large   36  buttons, info panels, headings inside panels
+        ///   XLarge  48  big numbers, banners
+        ///   Title   72  screen titles
+        /// </summary>
+        public static class TextSize
+        {
+            public const int Min = MinFontSize, Small = 24, Medium = 30, Large = 36, XLarge = 48, Title = 72;
+        }
+
         /// <summary>A rich-text size tag ("&lt;size=N&gt;") scaled like every other font size (never below the minimum).</summary>
         public static string Size(int size) { return "<size=" + Px(Readable(size)) + ">"; }
 
@@ -186,14 +202,41 @@ namespace Combat.View
             return BestFitCardPlate(t, min, Mathf.Max(min, max));
         }
 
-        /// <summary>Like <see cref="BestFit"/> without the minimum: only for a pixel card's own name plate, which is part
-        /// of the card art (its full name is readable in the card popup).</summary>
+        /// <summary>Keeps <paramref name="t"/> on one line: its current font size, or smaller until the line is at most
+        /// <paramref name="width"/> wide (never below <see cref="TextSize.Small"/>).</summary>
+        public static Text FitOneLine(this Text t, float width, int minSize = TextSize.Small)
+        {
+            t.resizeTextForBestFit = false;
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.verticalOverflow = VerticalWrapMode.Overflow;
+            int floor = Px(Readable(minSize));
+            var gen = t.cachedTextGeneratorForLayout;
+            for (int size = t.fontSize; size > floor; size--)
+            {
+                var settings = t.GetGenerationSettings(Vector2.zero);
+                settings.fontSize = size;
+                if (gen.GetPreferredWidth(t.text, settings) / t.pixelsPerUnit <= width)
+                {
+                    t.fontSize = size;
+                    return t;
+                }
+            }
+            t.fontSize = Mathf.Min(t.fontSize, floor);
+            return t;
+        }
+
+        /// <summary>A pixel card's name plate: as big as the plate allows, but never below <see cref="TextSize.Small"/>, so
+        /// card names are always readable; a long name wraps onto a second line (spilling past the plate) rather than
+        /// shrinking.</summary>
         public static Text BestFitCardPlate(this Text t, int min, int max)
         {
+            int floor = Mathf.Max(min, TextSize.Small);
             t.resizeTextForBestFit = true;
-            t.resizeTextMinSize = Px(min);
-            t.resizeTextMaxSize = Px(Mathf.Max(min, max));
-            t.verticalOverflow = VerticalWrapMode.Truncate;
+            t.resizeTextMinSize = Px(floor);
+            t.resizeTextMaxSize = Px(Mathf.Max(floor, max));
+            t.horizontalOverflow = HorizontalWrapMode.Wrap;
+            t.verticalOverflow = VerticalWrapMode.Overflow;
+            t.lineSpacing = 0.85f;
             return t;
         }
 

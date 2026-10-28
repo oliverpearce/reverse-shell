@@ -10,7 +10,7 @@ namespace Combat.EditorTools
 {
     /// <summary>
     /// Tools > Combat > Generate Sample Content. Creates whatever is missing of
-    /// the main party (MC the Prototype, Heal Bot and Lucy), two machine enemies, the Parts and their catalog,
+    /// the main party (MC the Prototype, Ashe and Lucy), two machine enemies, the Parts and their catalog,
     /// cards/statuses/animations and a Battle scene. Sprites come from Assets/_Project/Art
     /// (Tools/SpriteForge builds the cast sheets, Tools/PortraitForge the character-card portraits).
     /// All three party members are original robots. Non-commercial fan project.
@@ -134,9 +134,9 @@ namespace Combat.EditorTools
                 Portraits(mc, "MC");
             }
 
-            // ---------------------------------------------------------------- Heal Bot (Earth, Special)
+            // ---------------------------------------------------------------- Ashe (Earth, Special)
             // The shared robot model, overgrown like a dryad. A tanky healer.
-            var heal1 = Card("Card_HealBot_SapMend", "Sap Mend", CardKind.Heal, TargetMode.SingleAlly, false, seqSupport,
+            var heal1 = Card("Card_Ashe_SapMend", "Sap Mend", CardKind.Heal, TargetMode.SingleAlly, false, seqSupport,
                 new CardEffect[] { new HealEffect { target = EffectTarget.CardTargets, multiplier = 1.4f } },
                 new CardEffect[] { new HealEffect { target = EffectTarget.CardTargets, multiplier = 2.1f } },
                 new CardEffect[]
@@ -144,26 +144,26 @@ namespace Combat.EditorTools
                     new HealEffect { target = EffectTarget.CardTargets, multiplier = 3.2f },
                     new ApplyStatusEffect { target = EffectTarget.CardTargets, status = regen, duration = 2 }
                 });
-            var heal2 = Card("Card_HealBot_BrambleLash", "Bramble Lash", CardKind.Debuff, TargetMode.SingleEnemy, false, seqStrike,
+            var heal2 = Card("Card_Ashe_BrambleLash", "Bramble Lash", CardKind.Debuff, TargetMode.SingleEnemy, false, seqStrike,
                 new CardEffect[] { new DamageEffect { multiplier = 1.2f }, new ApplyStatusEffect { status = defDown, duration = 2 } },
                 new CardEffect[] { new DamageEffect { multiplier = 1.8f }, new ApplyStatusEffect { status = defDown, duration = 2 } },
                 new CardEffect[] { new DamageEffect { multiplier = 2.9f }, new ApplyStatusEffect { status = defDown, duration = 3 } });
-            var heal3 = Card("Card_HealBot_Overgrowth", "Overgrowth", CardKind.Buff, TargetMode.AllAllies, false, seqSupport,
+            var heal3 = Card("Card_Ashe_Overgrowth", "Overgrowth", CardKind.Buff, TargetMode.AllAllies, false, seqSupport,
                 new CardEffect[] { new ApplyStatusEffect { status = regen, duration = 2 } },
                 new CardEffect[] { new ApplyStatusEffect { status = regen, duration = 3 } },
                 new CardEffect[] { new ApplyStatusEffect { status = regen, duration = 4 } });
-            var healUlt = Card("Card_HealBot_VerdantBloom", "Verdant Bloom", CardKind.Heal, TargetMode.AllAllies, true, seqRitual,
+            var healUlt = Card("Card_Ashe_VerdantBloom", "Verdant Bloom", CardKind.Heal, TargetMode.AllAllies, true, seqRitual,
                 new CardEffect[]
                 {
                     new HealEffect { target = EffectTarget.CardTargets, multiplier = 2.5f },
                     new ApplyStatusEffect { target = EffectTarget.CardTargets, status = regen, duration = 3 }
                 });
-            var healBot = Character("Char_HealBot", "Heal Bot", "Medic", new Color(0.5f, 0.86f, 0.45f), Afflatus.Earth, DamageType.Special,
-                2800, 190f, 160f, 150f, new[] { heal1, heal2 }, healUlt, AnimSet("HealBot"));
-            if (Fresh(healBot))
+            var ashe = Character("Char_Ashe", "Ashe", "Druid", new Color(0.5f, 0.86f, 0.45f), Afflatus.Earth, DamageType.Special,
+                2800, 190f, 160f, 150f, new[] { heal1, heal2 }, healUlt, AnimSet("Ashe"));
+            if (Fresh(ashe))
             {
-                healBot.cardPool = new List<CardDefinition> { heal3 };
-                Portraits(healBot, "HealBot");
+                ashe.cardPool = new List<CardDefinition> { heal3 };
+                Portraits(ashe, "Ashe");
             }
 
             // ---------------------------------------------------------------- Lucy (Void, Special)
@@ -194,7 +194,7 @@ namespace Combat.EditorTools
                 lucy.cardPool = new List<CardDefinition> { lucy3 };
                 Portraits(lucy, "Lucy");
             }
-            foreach (var c in new[] { mc, healBot, lucy }) EditorUtility.SetDirty(c);
+            foreach (var c in new[] { mc, ashe, lucy }) EditorUtility.SetDirty(c);
 
             // ---------------------------------------------------------------- Parts (internal slots on the character card)
             var parts = new List<PartDefinition>
@@ -265,11 +265,12 @@ namespace Combat.EditorTools
             var setup = ScriptableObject.CreateInstance<BattleSetup>();
             setup.config = config;
             setup.backdrop = backdrop;
-            setup.party = new List<CharacterDefinition> { mc, healBot, lucy };
+            setup.party = new List<CharacterDefinition> { mc, ashe, lucy };
             setup.enemies = new List<EnemyDefinition> { sentry, stalker };
             setup = Save(setup, Root + "/Battle_Sample.asset");
             EnsureBlue();
             EnsureChapterOne();
+            EnsurePackRates();
 
             AssetDatabase.SaveAssets();
             if (overwrite || AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null) CreateScene(setup);
@@ -639,6 +640,7 @@ namespace Combat.EditorTools
             AddClip(set, folder, "spellcast", 20f, false, 0);
             AddClip(set, folder, "hurt", 15f, false, 0);
             AddClip(set, folder, "sit", 12f, false, 0);   // the Esc menu: sitting down on the mat (holds the last frame)
+            AddClip(set, folder, "read", 10f, false, 0);  // Items → Cards: opening the book (holds the last frame)
             if (set.clips.Count == 0)
             {
                 Debug.LogWarning("No sprite sheets in " + CharacterArt + folder + " - run Tools/ChibiForge/chibi_forge.py. Using placeholder.");
@@ -659,8 +661,23 @@ namespace Combat.EditorTools
             return Save(set, Root + "/Animations/Anim_" + folder + ".asset");
         }
 
-        /// <summary>Adds the sit clip to every existing Anim_*.asset that has a sit.png but no sit clip (sets made before
-        /// it existed). Returns how many were updated.</summary>
+        public const string PackRatesPath = "Assets/_Project/Resources/Cards/PackRates.asset";
+
+        /// <summary>Makes Resources/Cards/PackRates.asset (the card collection's numbers) if it's missing, with Moon's
+        /// status set to DEF Up. An existing one is never touched, so tuned rates are kept. True if it was made.</summary>
+        public static bool EnsurePackRates()
+        {
+            if (AssetDatabase.LoadAssetAtPath<PackRates>(PackRatesPath) != null) return false;
+            EnsureFolder(Path.GetDirectoryName(PackRatesPath).Replace('\\', '/'));
+            var rates = ScriptableObject.CreateInstance<PackRates>();
+            rates.moonStatus = AssetDatabase.LoadAssetAtPath<StatusDefinition>(Root + "/Statuses/Status_DefUp.asset");
+            AssetDatabase.CreateAsset(rates, PackRatesPath);
+            AssetDatabase.SaveAssets();
+            return true;
+        }
+
+        /// <summary>Adds the held-pose clips to every existing Anim_*.asset that has their sheet but not the clip (sets made
+        /// before they existed): "sit" (the Esc menu's kneel) and "read" (the Cards book). Returns how many sets changed.</summary>
         public static int EnsureSitClips()
         {
             int updated = 0;
@@ -668,10 +685,11 @@ namespace Combat.EditorTools
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 var set = AssetDatabase.LoadAssetAtPath<SpriteAnimationSet>(path);
-                if (set == null || set.Has("sit")) continue;
+                if (set == null) continue;
                 string folder = System.IO.Path.GetFileNameWithoutExtension(path).Replace("Anim_", "");
                 int before = set.clips.Count;
-                AddClip(set, folder, "sit", 12f, false, 0);
+                if (!set.Has("sit")) AddClip(set, folder, "sit", 12f, false, 0);
+                if (!set.Has("read")) AddClip(set, folder, "read", 10f, false, 0);
                 if (set.clips.Count == before) continue;
                 EditorUtility.SetDirty(set);
                 updated++;
@@ -720,7 +738,7 @@ namespace Combat.EditorTools
                 string path = Root + "/" + file + ".asset";
                 if (AssetDatabase.LoadAssetAtPath<Object>(path) != null) AssetDatabase.DeleteAsset(path);
             }
-            // Retired character art (2B, V1 and V2 became MC, Heal Bot and Lucy).
+            // Retired character art (2B, V1 and V2 became MC, Ashe and Lucy).
             foreach (var folder in new[] { "2B", "V1", "V2" })
                 if (AssetDatabase.IsValidFolder(CharacterArt + folder)) AssetDatabase.DeleteAsset(CharacterArt + folder);
         }

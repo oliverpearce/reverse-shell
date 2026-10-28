@@ -83,6 +83,18 @@ namespace Game.World
             return root;
         }
 
+        /// <summary>The language chip: a small dark chip with a glowing green core, lying on the ground.</summary>
+        public static GameObject LanguageChip(Transform parent, Vector3 at)
+        {
+            var green = new Color(0.45f, 1f, 0.6f);
+            var root = Root(parent, "LanguageChip", at);
+            Block(root.transform, "Chip", WorldArt.DarkMetal(), new Vector3(0f, 0.05f, 0f), new Vector3(0.3f, 0.05f, 0.3f));
+            var core = Block(root.transform, "Core", WorldArt.Emissive(green, 2.5f), new Vector3(0f, 0.09f, 0f), new Vector3(0.14f, 0.03f, 0.14f));
+            core.gameObject.AddComponent<Bob>().height = 0.02f;
+            WorldFx.Motes(root.transform, at + Vector3.up * 0.3f, 0.25f, 5f, green);
+            return root;
+        }
+
         /// <summary>The hidden route while closed: a slab of cracked wall, faintly warm along its seams.</summary>
         public static GameObject CrackedWall(Transform parent, Vector3 at)
         {

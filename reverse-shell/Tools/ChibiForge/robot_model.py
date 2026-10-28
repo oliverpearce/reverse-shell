@@ -63,7 +63,7 @@ SPECS = {
     # The crew: robots. hair = 6 tones (dark -> light), glow = eyes / lights, cape = 2 tones (dark, light).
     'MC': {'robot': True, 'hair': ramp('#1C2234', '#26304A', '#34446A', '#455A86', '#5A72A2', '#7C96C4'),
            'glow': hx('#BFE6FF'), 'cape': CAPE},
-    'HealBot': {'robot': True, 'hair': ramp('#14261A', '#1C3624', '#2A5232', '#3A6E40', '#4E8A50', '#78B868'),
+    'Ashe': {'robot': True, 'hair': ramp('#14261A', '#1C3624', '#2A5232', '#3A6E40', '#4E8A50', '#78B868'),
                 'glow': hx('#8EF070'), 'cape': ramp('#1E4A24', '#2E6A34')},
     'Lucy': {'robot': True, 'hair': ramp('#24102E', '#341A44', '#4A265E', '#5E3478', '#76449A', '#A066C8'),
              'glow': hx('#D07AFF'), 'cape': ramp('#3A1458', '#5A2280')},

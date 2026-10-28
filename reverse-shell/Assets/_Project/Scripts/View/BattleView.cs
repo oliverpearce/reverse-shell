@@ -322,6 +322,9 @@ namespace Combat.View
             while (Controller.CanUndo && Controller.Undo()) { }
         }
 
+        /// <summary>The fight came from the overworld (so a win gives card packs there).</summary>
+        public bool ReturnsToWorld { get { return bootstrap.HasReturn; } }
+
         public string ResultButtonLabel { get { return UIText.Get(bootstrap.HasReturn ? "battle.continue" : "battle.fight_again"); } }
 
         public void OnRestart()

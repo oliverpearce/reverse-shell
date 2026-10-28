@@ -225,7 +225,8 @@ namespace Combat.View
                 cardHolders.Add((RectTransform)chip.rectTransform.parent);
                 InkStyle.Frame(chip.rectTransform, Gold, 2f, -2f);
                 // The card's own pixel icon (or the Ult art) instead of words.
-                var art = card.IsRitual ? CardArt.Ult(card.Definition, card.Owner.Definition) : CardArt.Icon(card.Definition);
+                var art = card.IsRitual ? (CardArt.SoulSprite(card.Owner.Definition) ?? CardArt.Ult(card.Definition, card.Owner.Definition))
+                    : CardArt.Icon(card.Definition);
                 if (art == null) art = CardIcons.Glyph(CardIcons.TypeOf(card.Definition));
                 var icon = UIFactory.CreateImage(chip.transform, "Icon", Color.white);
                 icon.sprite = art;
@@ -310,6 +311,7 @@ namespace Combat.View
             resultPanel.SetActive(true);
             resultButtonLabel.text = view.ResultButtonLabel;
             ResultScreen.Host = this;
+            ResultScreen.PacksWon = victory && view.ReturnsToWorld ? PackRates.Current.packsPerWin : 0;
             StartCoroutine(ResultScreen.Play(resultContent, victory, result, resultButton));
         }
     }

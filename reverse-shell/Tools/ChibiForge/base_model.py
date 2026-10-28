@@ -2,7 +2,7 @@
 Base model: animates the crew from one reference sprite (reference/Base.png, a 74 x 112 girl with a mech backpack
 and two big mechanical arms) by cutting it into layers and moving them per frame.
 
-    python Tools/ChibiForge/base_model.py [MC HealBot Lucy] [--sheet out.png]
+    python Tools/ChibiForge/base_model.py [MC Ashe Lucy] [--sheet out.png]
 
 Layers (native pixel boxes on Base.png): the left mech arm (x < 26, below the shoulders), the right mech arm (x > 46),
 the two legs (split at x 36, below the shorts) and the body (head, torso, gloves, backpack, shorts).
@@ -44,7 +44,7 @@ EYE_BLUE = (0x62, 0x7B, 0x9D)
 # Recolours: target hue (degrees) for hair, eyes and shorts, and the spell / glow colour.
 CREW = {
     'MC': {'hue': None, 'glow': (240, 246, 255)},
-    'HealBot': {'hue': 115, 'glow': (142, 240, 112), 'sat': 1.5},
+    'Ashe': {'hue': 115, 'glow': (142, 240, 112), 'sat': 1.5},
     'Lucy': {'hue': 285, 'glow': (208, 122, 255), 'sat': 1.5},
 }
 # Ruin survivors: the same body without the mech backpack. hair_sat / hair_lift tune the near-black hair,

@@ -44,6 +44,11 @@ Grass where a floor should be. A capsule beside you, its lid cracked open to the
 On its side, a small red light blinks the same words over and over.{p} {red}TRANSFER INCOMPLETE{/c}
 {name} | {slow}Where...{/slow}{p} Where is everyone?
 
+[awakening.binder]
+Something presses against your hip: a small leather binder, strapped to your belt. Its cover is worn soft.
+{name} | {gray}...Cards?{/c}{p} Most of the sleeves are empty.
+{gold}Card Binder{/c} obtained.{p} Open it from the {gold}Esc{/c} menu.
+
 [pod]
 The capsule's light still blinks.{p} {red}TRANSFER INCOMPLETE{/c}
 
@@ -86,6 +91,11 @@ Record | A maintenance log on the wall.{p} {gray}"Line closed. Something down he
 It sets one flower down by your feet,{p} then goes back to the others.
 
 # ------------------------------------------------------------------ The scanner
+
+[chip.pickup]
+Something glints by the capsule that wasn't there before: the scanner's lines settle around a chip no bigger than a fingernail.
+Scanner | {gray}LANGUAGE PACK FOUND. INSTALLING...{/c}
+{gold}You got the language chip.{/c}{p} The runes on your cards read as words now.
 
 [scanner.pickup]
 A small visor lies in the broken glass. When you lift it, it hums,{p} and thin lines settle over everything you look at.

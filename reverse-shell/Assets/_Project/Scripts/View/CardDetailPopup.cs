@@ -109,6 +109,12 @@ namespace Combat.View
             Destroy(smallFace.gameObject);
             detailed = AbilityCard.Create(holder, unit, card, rank, BigScale);
             ((RectTransform)detailed.transform).Fill();
+            // Drag to tilt it in 3D (arrows too); the shine slides as it leans. The text panel stays flat.
+            var tilt = CardTilt.Add((RectTransform)detailed.transform);
+            tilt.ExcludeName = "DetailPanel";
+            tilt.Keyboard = true;
+            CardTiltDrag.Add(holder.gameObject, tilt);
+            CardHolo.Add((RectTransform)detailed.transform, tilt, card.isRitual ? CardHolo.Kind.Soul : CardHolo.Kind.Common);
             yield return Animate(FlipSeconds / 2f, p => holder.localScale = new Vector3(Mathf.Lerp(0f, 1f, p), Mathf.Lerp(0.96f, 1f, p), 1f));
             yield return Animate(0.2f, p => hint.color = Color.Lerp(Clear(InkStyle.Paper), InkStyle.Paper, p));
         }

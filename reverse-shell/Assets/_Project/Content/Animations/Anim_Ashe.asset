@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2ef9a189754547747a87d0b6aa80558c, type: 3}
-  m_Name: Anim_HealBot
+  m_Name: Anim_Ashe
   m_EditorClassIdentifier: 
   frameSize: 64
   feetPivot: 0.04
@@ -48,6 +48,12 @@ MonoBehaviour:
   - name: sit
     sheet: {fileID: 2800000, guid: deca53057dd0fe04b835abd33a9011f1, type: 3}
     fps: 12
+    loop: 0
+    firstFrame: 0
+    frameCount: 0
+  - name: read
+    sheet: {fileID: 2800000, guid: 6b2f613328a847b40a5e19308531aa41, type: 3}
+    fps: 10
     loop: 0
     firstFrame: 0
     frameCount: 0

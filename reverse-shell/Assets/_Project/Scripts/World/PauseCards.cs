@@ -40,6 +40,8 @@ namespace Game.World
         const float SelectedScale = 1.12f, SelectedLift = 36f;
         const float RowY = -20f;
         const int DefaultIndex = 2;                // Settings
+        // The card binder peeking up from the bottom edge: how much shows, and how far it rises when picked.
+        const float BinderWidth = 300f, BinderHeight = 400f, BinderPeek = 120f, BinderRise = 110f;
 
         // The opening, in seconds (unscaled). The zoom matches the battle inspect's 1.5x (camera distance / 1.5).
         const float ZoomIn = 1f / 1.5f, ZoomTime = 0.28f, WorldRoll = 0.5f, MatRoll = 0.45f, DealStep = 0.05f, DealTime = 0.28f;
@@ -89,6 +91,11 @@ namespace Game.World
 
         Image dim;
         CanvasGroup chrome;                        // the title and the key hint
+        Text keysText;
+        RectTransform binder;                      // the Cards book peeking up from the bottom (unlocked on waking)
+        CanvasGroup binderGroup;
+        bool binderSelected;
+        float binderLift;
         RectTransform matMask, rollEnd;
         float matReveal;
 
@@ -132,7 +139,7 @@ namespace Game.World
             // Top-left (the HUD is hidden while paused), so the zoomed-in player standing top-centre stays clear.
             title.alignment = TextAnchor.MiddleLeft;
             title.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(60f, -40f), new Vector2(700f, 110f));
-            var keys = UIFactory.CreateText(chromeRect, "Keys", UIText.Get("pause.keys"),
+            var keys = keysText = UIFactory.CreateText(chromeRect, "Keys", UIText.Get("pause.keys"),
                 28, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
             keys.supportRichText = true;
             keys.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.7f);
@@ -147,6 +154,8 @@ namespace Game.World
             cards.Add(new Entry { Name = UIText.Get("pause.card.items"), Icon = "Menu_Items", Color = new Color(0.36f, 0.72f, 0.78f), Play = () => OpenNext(5) });
             cards.Add(new Entry { Name = UIText.Get("pause.card.resonance"), Icon = "Menu_Resonance", Color = AfflatusInfo.Color(Afflatus.Volt), Play = () => OpenNext(6),
                                   Shown = () => WorldSession.ResonanceMenuUnlocked });
+
+            BuildBinder(root);
 
             var size = CardView.Size * CardScale;
             for (int i = 0; i < cards.Count; i++)
@@ -173,6 +182,58 @@ namespace Game.World
                 e.SprawlTilt = ((float)rng.NextDouble() * 2f - 1f) * 7f;
                 e.Tilt = e.SprawlTilt;
             }
+        }
+
+        /// <summary>The card binder: a small leather book with "Cards" on its cover, peeking up from the bottom right.
+        /// Hover / Down picks it (it rises); click / Enter opens the Cards book.</summary>
+        void BuildBinder(RectTransform root)
+        {
+            var corner = new Vector2(1f, 0f);
+            binder = UIFactory.CreateRect("Binder", root).Place(corner, new Vector2(0.5f, 1f), new Vector2(-260f, BinderPeek),
+                new Vector2(BinderWidth, BinderHeight));
+            binderGroup = binder.gameObject.AddComponent<CanvasGroup>();
+            var leather = UIFactory.CreateImage(binder, "Leather", new Color(0.33f, 0.17f, 0.12f), true);
+            leather.rectTransform.Fill();
+            var spine = UIFactory.CreateImage(binder, "Spine", new Color(0.2f, 0.09f, 0.07f));
+            spine.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(26f, BinderHeight));
+            var strap = UIFactory.CreateImage(binder, "Strap", new Color(0.88f, 0.7f, 0.32f));
+            strap.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(0f, -70f), new Vector2(16f, 54f));
+            var label = UIFactory.CreateText(binder, "Label", UIText.Get("pause.binder").ToUpperInvariant(), UIFactory.TextSize.XLarge,
+                new Color(0.95f, 0.8f, 0.42f), TextAnchor.UpperCenter, FontStyle.Bold);
+            label.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.6f);
+            label.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(10f, -22f), new Vector2(BinderWidth - 40f, 70f));
+            var emblem = UIFactory.CreateImage(binder, "Emblem", new Color(0.88f, 0.7f, 0.32f));
+            emblem.sprite = CardIcons.CardBack;
+            emblem.preserveAspect = true;
+            emblem.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(10f, -110f), new Vector2(110f, 110f));
+
+            var trigger = binder.gameObject.AddComponent<EventTrigger>();
+            var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+            enter.callback.AddListener(_ => binderSelected = true);
+            trigger.triggers.Add(enter);
+            var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+            exit.callback.AddListener(_ => binderSelected = false);
+            trigger.triggers.Add(exit);
+            var click = new EventTrigger.Entry { eventID = EventTriggerType.PointerClick };
+            click.callback.AddListener(_ => { binderSelected = true; OpenBinder(); });
+            trigger.triggers.Add(click);
+        }
+
+        /// <summary>Opens the Cards book (the collection); closing it comes back here.</summary>
+        void OpenBinder()
+        {
+            if (busy || items == null || !WorldSession.BinderUnlocked) return;
+            busy = true;
+            StartCoroutine(OpenBinderNextFrame());
+        }
+
+        IEnumerator OpenBinderNextFrame()
+        {
+            yield return null;   // so the key that opened it isn't read again by the book
+            HideNow(false);
+            int back = index;
+            binderSelected = false;
+            items.OpenCards(() => Open(back));
         }
 
         /// <summary>The big mat: the cloth inside a mask that widens from the left as it unrolls, and the rolled-up end
@@ -313,12 +374,8 @@ namespace Game.World
             var icon = UIFactory.CreateImage(root, "Icon", Color.white);
             icon.sprite = CardArt.Icon(e.Icon);
             icon.preserveAspect = true;
-            CardArt.PlacePixels(icon.rectTransform, CardArt.ArtX, CardArt.ArtY, CardArt.ArtSize, CardArt.ArtSize, u);
-            var plate = CardArt.NamePlate;
-            var name = UIFactory.CreateText(root, "Name", e.Name.ToUpperInvariant(), Mathf.RoundToInt(26 * s), InkStyle.Paper, TextAnchor.MiddleCenter)
-                .BestFitCardPlate(Mathf.RoundToInt(8 * s), Mathf.RoundToInt(26 * s));
-            CardArt.PlacePixels(name.rectTransform, plate.x, plate.y - 1, plate.width, plate.height + 2, u);
-            return name;
+            CardArt.PlaceIcon(icon.rectTransform, u);
+            return CardArt.NameLabel(root, e.Name, InkStyle.Paper, s);
         }
 
         // ------------------------------------------------------------------ Open / close
@@ -333,6 +390,9 @@ namespace Game.World
             transform.SetAsLastSibling();
             openedFrame = LastToggleFrame = Time.frameCount;
             foreach (var e in cards) e.Label.text = e.Name.ToUpperInvariant();
+            binder.gameObject.SetActive(WorldSession.BinderUnlocked);
+            binderSelected = false;
+            keysText.text = UIText.Get(WorldSession.BinderUnlocked ? "pause.keys.binder" : "pause.keys");
             var player = world.PlayerSprite;
             if (!zoomed && player != null) southMat = BlockedRight(player.transform.position);
             Frame();
@@ -597,10 +657,16 @@ namespace Game.World
                 return;
             }
             if (pages.IsOpen || pages.ClosedFrame == Time.frameCount) return;   // a page is over the cards
-            if (UIKeys.Pressed(KeyCode.LeftArrow) || UIKeys.Pressed(KeyCode.A)) Step(-1);
-            if (UIKeys.Pressed(KeyCode.RightArrow) || UIKeys.Pressed(KeyCode.D)) Step(1);
+            if (UIKeys.Pressed(KeyCode.LeftArrow) || UIKeys.Pressed(KeyCode.A)) { binderSelected = false; Step(-1); }
+            if (UIKeys.Pressed(KeyCode.RightArrow) || UIKeys.Pressed(KeyCode.D)) { binderSelected = false; Step(1); }
+            // Down picks the binder below the cards; Up goes back to the cards.
+            if (binder.gameObject.activeSelf && (UIKeys.Pressed(KeyCode.DownArrow) || UIKeys.Pressed(KeyCode.S))) binderSelected = true;
+            if (UIKeys.Pressed(KeyCode.UpArrow) || UIKeys.Pressed(KeyCode.W)) binderSelected = false;
             if (UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.Space) || UIKeys.Pressed(KeyCode.F))
-                Play();
+            {
+                if (binderSelected) OpenBinder();
+                else Play();
+            }
             else if (UIKeys.Back) Close();
         }
 
@@ -613,7 +679,7 @@ namespace Game.World
             {
                 var e = cards[i];
                 if (!e.Rect.gameObject.activeSelf) continue;
-                bool on = i == index && e.Deal >= 1f;
+                bool on = i == index && e.Deal >= 1f && !binderSelected;
                 float d = EaseOutBack(e.Deal);
                 e.Rect.localScale = Vector3.Lerp(e.Rect.localScale, Vector3.one * rowFit * (on ? SelectedScale : 1f), k);
                 e.Lift = Mathf.Lerp(e.Lift, on ? SelectedLift * rowFit : 0f, k);
@@ -625,6 +691,12 @@ namespace Game.World
                 e.Group.blocksRaycasts = e.Deal > 0.5f;
                 if (on) e.Rect.SetAsLastSibling();
             }
+            // The binder shows with the title and key hint, and rises out of the bottom edge while it's picked.
+            binderGroup.alpha = chrome.alpha;
+            binderGroup.blocksRaycasts = chrome.alpha > 0.5f;
+            binderLift = Mathf.Lerp(binderLift, binderSelected ? BinderRise : 0f, k);
+            binder.anchoredPosition = new Vector2(-260f, BinderPeek + binderLift);
+            binder.SetAsLastSibling();
         }
 
         // ------------------------------------------------------------------ Save: pick a slot

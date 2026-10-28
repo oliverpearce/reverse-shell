@@ -496,6 +496,27 @@ namespace Combat
                 effect.Apply(ctx);
                 if (IsOver) return;
             }
+            if (PackRates.Current.bindingOn && caster.Team == Team.Player && !card.IsRitual && caster.IsAlive)
+                ApplyBinding(caster, caster.BindingOf(card.Definition));
+        }
+
+        /// <summary>A bound Major Arcana's bonus for the card's user, after the card itself (amounts in PackRates):
+        /// Sun heals a share of max HP, Moon gives DEF Up, Star gives Ult points.</summary>
+        void ApplyBinding(BattleUnit caster, CardBinding binding)
+        {
+            var rates = PackRates.Current;
+            switch (binding)
+            {
+                case CardBinding.Sun:
+                    Heal(caster, caster, Mathf.Max(1, Mathf.RoundToInt(caster.MaxHP * rates.sunHeal)));
+                    break;
+                case CardBinding.Moon:
+                    ApplyStatus(caster, caster, rates.moonStatus, rates.moonTurns, 1);
+                    break;
+                case CardBinding.Star:
+                    AddMoxie(caster, rates.starUlt);
+                    break;
+            }
         }
 
         void EnemyTurn()

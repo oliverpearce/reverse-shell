@@ -256,7 +256,7 @@ namespace Combat.Tests
             string[] keys =
             {
                 "prologue.recording", "prologue.tagline", "prologue.procedure", "prologue.name", "prologue.name.question",
-                "awakening", "pod", "memory.1", "memory.2", "memory.3", "memory.after",
+                "awakening", "awakening.binder", "pod", "chip.pickup", "memory.2", "memory.3", "memory.after",
                 "record.city.4", "record.city.5", "record.city.6", "record.city.7", "record.tunnel.4", "npc.small_machine",
                 "scanner.pickup", "scan.jammed", "scan.trace", "scan.none.hint", "scan.none", "route.open",
                 "collector.intro", "collector.question", "collector.options", "collector.answer.1", "collector.answer.2",

@@ -27,8 +27,10 @@ namespace Combat.EditorTools
                     UnityEngine.Debug.Log("Added any missing Chapter One content v" + SampleContentGenerator.ChapterOneVersion
                         + " (resonance kits, enemies, Resources/Bestiary.asset). Existing assets were left as they are.");
                 }
+                if (SampleContentGenerator.EnsurePackRates())
+                    UnityEngine.Debug.Log("Created Resources/Cards/PackRates.asset (card pack odds, copies, bindings, Soul levels). Tune it in the Inspector.");
                 int sits = SampleContentGenerator.EnsureSitClips();
-                if (sits > 0) UnityEngine.Debug.Log("Added the sit clip (the Esc menu's mat) to " + sits + " animation sets.");
+                if (sits > 0) UnityEngine.Debug.Log("Added the sit / read clips (the Esc menu's kneel, the Cards book) to " + sits + " animation sets.");
             };
         }
     }

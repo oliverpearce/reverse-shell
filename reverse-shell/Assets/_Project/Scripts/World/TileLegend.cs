@@ -59,6 +59,7 @@ namespace Game.World
             T('6', "Record 3", "Story", 0.85f, 0.85f, 0.7f),
             T('7', "Record 4", "Story", 0.85f, 0.85f, 0.7f),
             T('O', "Optical scanner", "Story", 0.4f, 0.95f, 1f),
+            T('Y', "Language chip", "Story", 0.45f, 1f, 0.6f, "Chapter One: shows up once you have the scanner; makes card words readable."),
             T('U', "Soul Card pedestal", "Story", 1f, 0.85f, 0.4f),
             T('Z', "Story trigger", "Story", 1f, 0.4f, 0.8f, "Stepping on it runs a story beat (Chapter One's director)."),
             T(':', "Trace", "Story", 0.5f, 0.9f, 0.85f, "Marks the scanner shows."),
