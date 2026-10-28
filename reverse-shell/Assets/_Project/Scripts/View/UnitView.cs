@@ -27,7 +27,7 @@ namespace Combat.View
         /// boss by the extra height of its head (the figure's head is about 5/8 of the way up its frame).</summary>
         const float IntentY = 64f, HeadShare = 0.625f;
         float intentY = IntentY;
-        const float IntentSize = 96f;
+        const float IntentSize = 96f, IntentGlyphSize = 42f;   // the 7 px type icon at 6x
         public const float Height = 380f;
 
         public BattleUnit Unit { get; private set; }
@@ -49,7 +49,7 @@ namespace Combat.View
 
         BattleView view;
         CanvasGroup group;
-        Image portrait, sprite, flash, intentIcon;
+        Image portrait, sprite, flash, intentIcon, intentGlyph;
         SlantBar hpFill;
         Text nameText;   // shown on hover only
         Reticle lockOn, focusRing, targetPreview;
@@ -94,11 +94,14 @@ namespace Combat.View
 
             if (unit.Team == Team.Enemy)
             {
-                // Intent: a small card above the head showing what the enemy will play: its type icon on a cream,
-                // silver or gold card for rank I / II / III (details are in the inspect screen).
+                // Intent: a small ink card above the head showing what the enemy will play: the cards' own type icon
+                // on a dark plate with a bronze / silver / gold rim for rank I / II / III (IntentCards; details are in
+                // the inspect screen).
                 intentIcon = UIFactory.CreateImage(transform, "Intent", Color.white);
-                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, intentY), new Vector2(IntentSize, IntentSize));
-                intentIcon.preserveAspect = true;
+                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, intentY), new Vector2(IntentSize * 0.75f, IntentSize));
+                intentGlyph = UIFactory.CreateImage(intentIcon.rectTransform, "Type", Color.white);
+                intentGlyph.preserveAspect = true;
+                intentGlyph.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.one * IntentGlyphSize);
                 intentIcon.gameObject.SetActive(false);
             }
 
@@ -375,7 +378,10 @@ namespace Combat.View
             if (intentIcon == null) return;
             bool show = intent != null && Unit.IsAlive;
             intentIcon.gameObject.SetActive(show);
-            if (show) intentIcon.sprite = CardIcons.IntentCard(intent);
+            if (!show) return;
+            intentIcon.sprite = IntentCards.Plate(intent.Rank);
+            var type = CardIcons.TypeOf(intent.Definition);
+            intentGlyph.sprite = CardArt.Type(type) ?? CardIcons.Glyph(type);
         }
 
         /// <summary>How far the HP bar leans over its height (canvas units).</summary>

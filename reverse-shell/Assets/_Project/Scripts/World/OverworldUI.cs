@@ -106,12 +106,14 @@ namespace Game.World
             // An ink box with a gold hairline and a gold key: simple and readable.
             var promptBg = InkStyle.Panel(root, "Prompt", InkStyle.InkPanel);
             promptRect = promptBg.rectTransform;
-            promptRect.sizeDelta = new Vector2(320f, 76f);
+            // One line, "[F]  Talk": the plate is sized to the words each time (ShowPrompt).
+            promptRect.sizeDelta = new Vector2(PromptPadX * 2f, PromptHeight);
             promptRect.pivot = new Vector2(0.5f, 0f);
             InkStyle.Frame(promptRect, InkStyle.Rule, 2f);
-            promptText = UIFactory.CreateText(promptRect, "Text", "", 40, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold).BestFit(18, 40);
+            promptText = UIFactory.CreateText(promptRect, "Text", "", UIFactory.TextSize.Medium, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
             promptText.supportRichText = true;
-            promptText.rectTransform.Fill(10f);
+            promptText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            promptText.rectTransform.Fill();
             promptBg.gameObject.SetActive(false);
 
 
@@ -223,6 +225,8 @@ namespace Game.World
             return fadeRight;
         }
 
+        const float PromptPadX = 22f, PromptHeight = 56f;
+
         public void ShowPrompt(string key, string text, Vector3 worldPosition, Camera cam)
         {
             if (cam == null) return;
@@ -232,9 +236,14 @@ namespace Game.World
                 HidePrompt();
                 return;
             }
-            promptText.text = "<color=#C2A061>[" + key + "]</color>  " + text;
+            if (!promptRect.gameObject.activeSelf) promptRect.gameObject.SetActive(true);   // first, so it can measure
+            string line = "<color=#C2A061>[" + key + "]</color>  " + text;
+            if (promptText.text != line)
+            {
+                promptText.text = line;
+                promptRect.sizeDelta = new Vector2(promptText.preferredWidth + PromptPadX * 2f, PromptHeight);
+            }
             promptRect.position = screen;
-            if (!promptRect.gameObject.activeSelf) promptRect.gameObject.SetActive(true);
         }
 
         public void HidePrompt()

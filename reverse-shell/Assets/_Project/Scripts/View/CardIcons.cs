@@ -36,9 +36,15 @@ namespace Combat.View
             }
         }
 
-        /// <summary>The type's symbol: in its own color, or white to tint.</summary>
+        /// <summary>The type's symbol: in its own color, or white to tint. Buff and Debuff in color are the chunky pixel
+        /// block arrows (CardArt.Type, the user's pick), the same everywhere they show.</summary>
         public static Sprite Glyph(Type type, bool colored = true)
         {
+            if (colored && (type == Type.Buff || type == Type.Debuff))
+            {
+                var arrow = CardArt.Type(type);
+                if (arrow != null) return arrow;
+            }
             return Get(colored ? RowColored : RowWhite, (int)type);
         }
 

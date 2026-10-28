@@ -254,22 +254,22 @@ TYPE_SHAPES = [
         '..bb...',
         '.c.b...',
         '.......']),
-    ('Debuff', (0.62, 0.46, 0.9), [      # an arrow down (no outline: it would fill in the barbs)
-        '...a...',
-        '...a...',
-        '...b...',
-        'a..b..b',
-        '.a.b.b.',
-        '..bbb..',
-        '...c...']),
-    ('Buff', (0.4, 0.62, 0.95), [        # an arrow up
-        '...a...',
-        '..aab..',
-        '.a.b.b.',
-        'a..b..b',
-        '...b...',
-        '...b...',
-        '...c...']),
+    ('Debuff', (0.62, 0.46, 0.9), [      # a chunky block arrow down, its own 1 px outline (o) filling the cell
+        '.ooooo.',
+        '.ocbao.',
+        'oocbaoo',
+        'ocbbbao',
+        '.ocbao.',
+        '..oco..',
+        '...o...']),
+    ('Buff', (0.4, 0.62, 0.95), [        # a chunky block arrow up (the user's pick, "small block")
+        '...o...',
+        '..oao..',
+        '.oabco.',
+        'oabbbco',
+        'ooabcoo',
+        '.oabco.',
+        '.ooooo.']),
     ('Counter', (0.76, 0.58, 0.2), [     # a shield
         '.......',
         '.aaabb.',
@@ -307,12 +307,13 @@ def make_types():
             'a': tuple(min(255, int(v + (255 - v) * 0.55)) for v in base) + (255,),
             'b': base + (255,),
             'c': tuple(int(v * 0.6) for v in base) + (255,),
+            'o': OUTLINE,
         }
         for y, row in enumerate(rows):
             for x, ch in enumerate(row):
                 if ch in pal:
                     cell.px[y][x] = pal[ch]
-        if name not in ('Debuff', 'Buff'):
+        if name not in ('Debuff', 'Buff'):   # the arrows draw their own outline (o) to the cell's edge
             cell.outline()
         c.paste(cell, k * TYPE_SIZE, 0)
     return c
@@ -1118,6 +1119,9 @@ def build_atlas():
 
 def main():
     os.makedirs(OUT, exist_ok=True)
+    if '--types-only' in sys.argv:   # just CardTypes.png (the six 7x7 type icons)
+        save(make_types(), 'CardTypes.png')
+        return
     swirl, frame, pips = make_swirl(), make_frame(), make_pips()
     save(swirl, 'CardSwirl.png')
     save(frame, 'CardFrame.png')

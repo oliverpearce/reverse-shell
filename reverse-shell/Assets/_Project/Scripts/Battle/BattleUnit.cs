@@ -22,7 +22,7 @@ namespace Combat
         public readonly List<PartDefinition> Parts = new List<PartDefinition>();
 
         List<CardDefinition> incantations;
-        readonly Dictionary<CardDefinition, int> startRanks = new Dictionary<CardDefinition, int>();
+        readonly Dictionary<CardDefinition, int> upgrades = new Dictionary<CardDefinition, int>();
         readonly Dictionary<CardDefinition, CardBinding> bindings = new Dictionary<CardDefinition, CardBinding>();
         /// <summary>Party only: the Soul level's extra Ult power (added to RitualMight).</summary>
         public float UltPowerBonus { get; private set; }
@@ -111,11 +111,11 @@ namespace Combat
             incantations = null;
             elementOverride = null;
             ultimateOverride = null;
-            startRanks.Clear();
+            upgrades.Clear();
             bindings.Clear();
             UltPowerBonus = 0f;
             if (loadout == null) return;
-            if (loadout.StartRanks != null) foreach (var e in loadout.StartRanks) if (e.Key != null) startRanks[e.Key] = e.Value;
+            if (loadout.Upgrades != null) foreach (var e in loadout.Upgrades) if (e.Key != null) upgrades[e.Key] = e.Value;
             if (loadout.Bindings != null) foreach (var e in loadout.Bindings) if (e.Key != null) bindings[e.Key] = e.Value;
             UltPowerBonus = Mathf.Max(0, loadout.SoulLevel) * PackRates.Current.ultPowerPerSoul;
             elementOverride = loadout.Element;
@@ -125,11 +125,11 @@ namespace Combat
             HP = MaxHP;
         }
 
-        /// <summary>The rank this card starts at when drawn (copies owned rank it up; at least I, at most its max).</summary>
-        public int StartRankOf(CardDefinition card)
+        /// <summary>This card's copy upgrades (0-3, from copies owned): +2 card levels each (<see cref="CardLevels"/>).</summary>
+        public int UpgradesOf(CardDefinition card)
         {
-            int rank;
-            return card != null && startRanks.TryGetValue(card, out rank) ? Mathf.Clamp(rank, 1, card.MaxRank) : 1;
+            int n;
+            return card != null && upgrades.TryGetValue(card, out n) ? Mathf.Max(0, n) : 0;
         }
 
         /// <summary>The Sun / Moon / Star bound onto this card, if any.</summary>

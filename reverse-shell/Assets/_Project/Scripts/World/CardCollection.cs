@@ -40,6 +40,7 @@ namespace Game.World
             public readonly Dictionary<CharacterDefinition, int> SoulPulls = new Dictionary<CharacterDefinition, int>();
             public readonly Dictionary<CardBinding, int> RarePulls = new Dictionary<CardBinding, int>();
             public readonly Dictionary<CardDefinition, int> CommonPulls = new Dictionary<CardDefinition, int>();
+            public int BlankPulls;
 
             public int CardsPulled
             {
@@ -59,6 +60,7 @@ namespace Game.World
                 {
                     case CardPacks.Tier.Soul: Bump(SoulPulls, pull.Member); break;
                     case CardPacks.Tier.Rare: Bump(RarePulls, pull.Binding); break;
+                    case CardPacks.Tier.Blank: BlankPulls++; break;
                     default: Bump(CommonPulls, pull.Card); break;
                 }
             }
@@ -109,24 +111,79 @@ namespace Game.World
             return card != null && CopiesStore.TryGetValue(card.name, out n) ? n : 0;
         }
 
+        /// <summary>Adds copies up to <see cref="MaxCopies"/>; copies past that become blank cards instead.</summary>
         public static void AddCopy(CardDefinition card, int count = 1)
         {
             if (card == null || count <= 0) return;
-            CopiesStore[card.name] = Copies(card) + count;
+            int have = Copies(card);
+            int add = UnityEngine.Mathf.Min(count, UnityEngine.Mathf.Max(0, MaxCopies - have));
+            if (add > 0) CopiesStore[card.name] = have + add;
+            if (count > add) CopiesStore[BlankKey] = Blanks + count - add;
+            MarkNew(card.name);
         }
 
-        /// <summary>The rank this card starts battles at (I-III), from its copies.</summary>
-        public static int StartRank(CardDefinition card)
+        // CARD COLLECTION > BLANK CARDS
+        // Copies of a card past its top level (35) become blank cards; a blank can be imprinted with any card that isn't
+        // at the top yet, as one more copy of it. Kept in the copies store under BlankKey, so they save with the cards.
+
+        const string BlankKey = "#Blank";
+
+        /// <summary>Copies that give every upgrade (35); more become blank cards.</summary>
+        public static int MaxCopies { get { return Rates.CopiesFor(Rates.MaxUpgrades); } }
+
+        public static int Blanks
         {
-            return card == null ? 1 : UnityEngine.Mathf.Clamp(Rates.StartRank(Copies(card)), 1, card.MaxRank);
+            get
+            {
+                int n;
+                return CopiesStore.TryGetValue(BlankKey, out n) ? n : 0;
+            }
         }
 
-        /// <summary>Copies still needed for the next start rank, or 0 at the top.</summary>
-        public static int CopiesToNextRank(CardDefinition card)
+        /// <summary>One more blank card (a pack's second card, sometimes).</summary>
+        public static void AddBlank() { CopiesStore[BlankKey] = Blanks + 1; }
+
+        /// <summary>Whether a blank card can be imprinted with <paramref name="card"/> (one to spend, card not maxed).</summary>
+        public static bool CanImprint(CardDefinition card) { return card != null && Blanks > 0 && Copies(card) < MaxCopies; }
+
+        /// <summary>Spends a blank card on one more copy of <paramref name="card"/>. False if it can't.</summary>
+        public static bool Imprint(CardDefinition card)
         {
-            int copies = Copies(card), rank = StartRank(card);
-            if (card == null || rank >= card.MaxRank) return 0;
-            return (rank == 1 ? Rates.copiesForRankII : Rates.copiesForRankIII) - copies;
+            if (!CanImprint(card)) return false;
+            CopiesStore[BlankKey] = Blanks - 1;
+            CopiesStore[card.name] = Copies(card) + 1;
+            return true;
+        }
+
+        // CARD COLLECTION > NEW (cards pulled but not looked at yet in the book; this play session only)
+
+        static readonly HashSet<string> fresh = new HashSet<string>();
+
+        public static string SoulKey(CharacterDefinition member) { return member == null ? "" : "Soul:" + member.name; }
+        public static string ArcanaKey(CardBinding kind) { return "Arcana:" + kind; }
+
+        public static void MarkNew(string key) { if (!string.IsNullOrEmpty(key)) fresh.Add(key); }
+        public static bool IsNew(string key) { return !string.IsNullOrEmpty(key) && fresh.Contains(key); }
+        public static void Seen(string key) { fresh.Remove(key); }
+
+        /// <summary>This card's copy upgrades (0-3), from its copies: +2 card levels each in battle.</summary>
+        public static int Upgrades(CardDefinition card)
+        {
+            return card == null ? 0 : Rates.Upgrades(Copies(card));
+        }
+
+        /// <summary>The card's upgrade level as the book shows it: Lv 1 (none) to Lv 4 (every upgrade).</summary>
+        public static int UpgradeLevel(CardDefinition card) { return 1 + Upgrades(card); }
+
+        /// <summary>The top <see cref="UpgradeLevel"/> (4).</summary>
+        public static int MaxUpgradeLevel { get { return 1 + Rates.MaxUpgrades; } }
+
+        /// <summary>Copies still needed for the next upgrade, or 0 at the top.</summary>
+        public static int CopiesToNextUpgrade(CardDefinition card)
+        {
+            int n = Upgrades(card);
+            if (card == null || n >= Rates.MaxUpgrades) return 0;
+            return Rates.CopiesFor(n + 1) - Copies(card);
         }
 
         // CARD COLLECTION > BINDINGS (Sun, Moon, Star)
@@ -332,13 +389,13 @@ namespace Game.World
             return list;
         }
 
-        /// <summary>Fills a loadout's start ranks, bindings and Soul level for this member.</summary>
+        /// <summary>Fills a loadout's copy upgrades, bindings and Soul level for this member.</summary>
         public static void FillLoadout(CharacterDefinition member, Loadout loadout)
         {
             foreach (var card in AbilitiesOf(member))
             {
-                int rank = StartRank(card);
-                if (rank > 1) loadout.StartRanks[card] = rank;
+                int upgrades = Upgrades(card);
+                if (upgrades > 0) loadout.Upgrades[card] = upgrades;
                 var binding = BindingOf(card);
                 if (binding != CardBinding.None) loadout.Bindings[card] = binding;
             }

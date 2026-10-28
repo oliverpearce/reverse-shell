@@ -17,6 +17,9 @@ namespace Combat
         public TargetMode targetMode;
         [Tooltip("Ritual (ultimate) cards never merge and cost all Moxie.")]
         public bool isRitual;
+        [Tooltip("Power level, 1 (weakest) to 20 (strongest): party abilities 3-6, enemy abilities 5-10, Soul / Ult " +
+                 "cards 10-15 (15 = MC). Merges, copy upgrades and bosses add to it in a fight (CardLevels).")]
+        [Range(1, 20)] public int level = 4;
         public Sprite icon;
 
         public List<CardRank> ranks = new List<CardRank> { new CardRank(), new CardRank(), new CardRank() };

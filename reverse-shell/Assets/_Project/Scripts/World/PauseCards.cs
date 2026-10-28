@@ -140,10 +140,11 @@ namespace Game.World
             title.alignment = TextAnchor.MiddleLeft;
             title.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(60f, -40f), new Vector2(700f, 110f));
             var keys = keysText = UIFactory.CreateText(chromeRect, "Keys", UIText.Get("pause.keys"),
-                28, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
+                28, InkStyle.Paper, TextAnchor.MiddleLeft, FontStyle.Bold);
             keys.supportRichText = true;
             keys.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.7f);
-            keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1600f, 50f));
+            // Bottom left, clear of the card binder peeking up at the bottom right.
+            keys.rectTransform.Place(Vector2.zero, Vector2.zero, new Vector2(60f, 40f), new Vector2(1400f, 50f));
 
             // The order matters: OpenNext takes the card's index (3 Party, 4 Units, 5 Items, 6 Resonance) to come back to it.
             cards.Add(new Entry { Name = UIText.Get("pause.card.quit"), Icon = "Menu_Quit", Color = new Color(0.86f, 0.36f, 0.32f), Play = ConfirmQuit });
@@ -773,23 +774,34 @@ namespace Game.World
                 },
                 new RowMenu.Row
                 {
+                    Label = GameSettings.SfxLabel, Action = () => { }, Help = GameSettings.SfxHelp,
+                    SliderGet = () => GameSettings.SfxVolume, SliderSet = v => GameSettings.SfxVolume = v,
+                },
+                new RowMenu.Row
+                {
+                    Label = GameSettings.MusicLabel, Action = () => { }, Help = GameSettings.MusicHelp,
+                    SliderGet = () => GameSettings.MusicVolume, SliderSet = v => GameSettings.MusicVolume = v,
+                },
+                new RowMenu.Row
+                {
                     Label = GameSettings.GuideLabel,
                     Action = () => GuideBook.Open(pages.transform),
                     Help = GameSettings.GuideHelp,
                 },
-                new RowMenu.Row
+            };
+            // Sandbox Mode is entered from the title screen; here you can only leave it.
+            if (inSandbox)
+                rows.Add(new RowMenu.Row
                 {
-                    Label = UIText.Get(inSandbox ? "pause.sandbox.leave" : "pause.sandbox.enter"),
+                    Label = UIText.Get("pause.sandbox.leave"),
                     Action = () =>
                     {
                         HideNow(true);   // the area reloads
-                        if (inSandbox) world.LeaveSandbox();
-                        else world.EnterSandbox();
+                        world.LeaveSandbox();
                     },
-                    Help = UIText.Get(inSandbox ? "pause.sandbox.leave.help" : "pause.sandbox.enter.help"),
-                },
-                new RowMenu.Row { Label = UIText.Get("menu.back"), Action = pages.Hide },
-            };
+                    Help = UIText.Get("pause.sandbox.leave.help"),
+                });
+            rows.Add(new RowMenu.Row { Label = UIText.Get("menu.back"), Action = pages.Hide });
             pages.Show(UIText.Get("pause.settings.title"), rows, pages.Hide, select);
         }
 

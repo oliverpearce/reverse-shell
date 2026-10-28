@@ -132,12 +132,11 @@ namespace Combat.View
                         CardArt.PlacePixels(pip.rectTransform, CardArt.PipX + i * CardArt.PipStep, CardArt.PipY, CardArt.PipSize, CardArt.PipSize, u);
                     }
 
-                // The type icon in the pip strip, drawn at the card's own pixel size like the pips. Buff and Debuff keep
-                // their Raven arrows (the user preferred them to the pixel ones), in the same spot.
+                // The type icon in the pip strip, drawn at the card's own pixel size like the pips (Buff / Debuff are
+                // the chunky block arrows, like everywhere else).
                 var cardType = CardIcons.TypeOf(card.Definition);
                 var iconSprite = CardIcons.Glyph(cardType);
-                bool ravenArrow = cardType == CardIcons.Type.Buff || cardType == CardIcons.Type.Debuff;
-                var typeSprite = ravenArrow ? iconSprite : CardArt.Type(cardType);
+                var typeSprite = CardArt.Type(cardType) ?? iconSprite;
                 if (typeSprite != null)
                 {
                     var type = Pixel(root, "TypeIcon", typeSprite, Color.white);
@@ -336,7 +335,7 @@ namespace Combat.View
                 var damage = effect as DamageEffect;
                 if (damage != null)
                 {
-                    int total = Mathf.RoundToInt(atk * damage.multiplier * might);
+                    int total = Mathf.RoundToInt(atk * CardLevels.Damage(card, damage) * might);
                     int hits = Mathf.Max(1, damage.hits);
                     string each = hits > 1 ? "  (" + hits + " x " + Mathf.RoundToInt((float)total / hits) + ")" : "";
                     lines.Add(plain ? UIText.Get("card.damage") + " " + total + each
@@ -346,7 +345,7 @@ namespace Combat.View
                 var heal = effect as HealEffect;
                 if (heal != null)
                 {
-                    int amount = Mathf.RoundToInt(atk * heal.multiplier * (1f + unit.GetStat(StatType.HealingBonus)));
+                    int amount = Mathf.RoundToInt(atk * CardLevels.Heal(card, heal) * (1f + unit.GetStat(StatType.HealingBonus)));
                     lines.Add(plain ? UIText.Get("card.heal") + " " + amount
                         : UIText.Get("card.heal") + "  " + gold + "<size=" + UIFactory.Px(numberSize) + ">" + amount + "</size></color>");
                 }

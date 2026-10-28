@@ -209,7 +209,7 @@ namespace Combat.Tests
             hero.growthPerLevel = 0.08f;
             hero.stats.critRate = 0.1f;
             float atCap = 1000f * Leveling.StatScale(Leveling.MaxLevel, 0.08f);
-            Assert.AreEqual(30, Leveling.MaxLevel);
+            Assert.AreEqual(60, Leveling.MaxLevel);
             Assert.AreEqual(0.9f, atCap / Leveling.BarMax(hero, StatType.MaxHP), 1e-4f);
             Assert.AreEqual(0.9f, hero.stats.critRate / Leveling.BarMax(hero, StatType.CritRate), 1e-4f, "flat stats too");
         }

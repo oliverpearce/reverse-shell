@@ -131,6 +131,22 @@ namespace Game.World
             corner = summary.Saved.ToString("d MMM, HH:mm");
         }
 
+        /// <summary>The title's Cards book: puts <paramref name="slot"/>'s save into the session so the book shows its
+        /// copies, card levels and Soul levels. Safe before a game starts: starting one (StartSlot) clears it first.</summary>
+        public static void Preview(int slot)
+        {
+            string path = SlotPath(slot);
+            if (slot <= 0 || !File.Exists(path)) return;
+            try
+            {
+                Restore(JsonUtility.FromJson<Data>(File.ReadAllText(path)));
+            }
+            catch (Exception)
+            {
+                Restore(null);
+            }
+        }
+
         /// <summary>The most recently written slot, or 0 when there are none.</summary>
         public static int LatestSlot()
         {

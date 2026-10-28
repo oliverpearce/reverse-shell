@@ -19,14 +19,15 @@ namespace Game.EditorTools
         /// <summary>Pixel card pieces (Tools/CardForge), loaded at runtime by CardArt: crisp like the art.</summary>
         public const string CardsFolder = "Assets/_Project/Resources/Cards/";
 
-        /// <summary>The pixel UI font (monogram): rendered without anti-aliasing so its glyphs stay sharp.</summary>
+        /// <summary>The UI font (monogram): hinted smooth: anti-aliased edges, but the glyphs snap to the pixel grid so
+        /// they stay sharp rather than soft.</summary>
         public const string PixelFontPath = "Assets/_Project/Resources/Fonts/monogram";
 
         void OnPreprocessAsset()
         {
             var font = assetImporter as TrueTypeFontImporter;
             if (font == null || !assetPath.Replace('\\', '/').StartsWith(PixelFontPath)) return;
-            font.fontRenderingMode = FontRenderingMode.HintedRaster;
+            font.fontRenderingMode = FontRenderingMode.HintedSmooth;
             font.fontTextureCase = FontTextureCase.Dynamic;
             font.includeFontData = true;
         }

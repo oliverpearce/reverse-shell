@@ -7,7 +7,8 @@ namespace Combat
     [Serializable]
     public class DamageEffect : CardEffect
     {
-        [Tooltip("Total damage as a multiple of ATK (1.8 = 180%). Split evenly across hits.")]
+        [Tooltip("This hit's share of the card's power: the rank's biggest multiplier is the card level's full power " +
+                 "(CardLevels), others are that fraction of it. Split evenly across hits.")]
         public float multiplier = 1.8f;
         [Min(1)] public int hits = 1;
 
@@ -18,14 +19,14 @@ namespace Combat
             for (int h = 0; h < hitCount; h++)
             {
                 foreach (var t in targets)
-                    if (t.IsAlive) ctx.Battle.DealDamage(ctx.Caster, t, multiplier / hitCount, ctx.IsRitual);
+                    if (t.IsAlive) ctx.Battle.DealDamage(ctx.Caster, t, CardLevels.Damage(ctx.Card, this) / hitCount, ctx.IsRitual);
                 if (ctx.Battle.IsOver) return;
             }
         }
 
         public override EffectText Text()
         {
-            string pct = Mathf.RoundToInt(multiplier * 100f) + "%";
+            string pct = Mathf.RoundToInt(CardLevels.Damage(CardLevels.Describing, this) * 100f) + "%";
             return hits > 1
                 ? new EffectText("Deal {0} ATK damage to {1} over {2} hits.", pct, TargetPhrase(), hits.ToString())
                 : new EffectText("Deal {0} ATK damage to {1}.", pct, TargetPhrase());
@@ -35,14 +36,14 @@ namespace Combat
     [Serializable]
     public class HealEffect : CardEffect
     {
-        [Tooltip("Healing as a multiple of the caster's ATK.")]
+        [Tooltip("This heal's share of the card's power: the rank's biggest heal is the card level's full power (CardLevels).")]
         public float multiplier = 1.2f;
 
         public HealEffect() { target = EffectTarget.SingleAlly; }
 
         public override void Apply(EffectContext ctx)
         {
-            float amount = ctx.Caster.GetStat(StatType.Attack) * multiplier * (1f + ctx.Caster.GetStat(StatType.HealingBonus));
+            float amount = ctx.Caster.GetStat(StatType.Attack) * CardLevels.Heal(ctx.Card, this) * (1f + ctx.Caster.GetStat(StatType.HealingBonus));
             // An Ult's healing grows with Ult power (Soul levels), like its damage does.
             if (ctx.Card != null && ctx.Card.IsRitual) amount *= 1f + Mathf.Max(0f, ctx.Caster.GetStat(StatType.RitualMight));
             foreach (var t in ctx.Resolve(target))
@@ -51,7 +52,7 @@ namespace Combat
 
         public override EffectText Text()
         {
-            return new EffectText("Heal {0} for {1} of ATK.", TargetPhrase(), Mathf.RoundToInt(multiplier * 100f) + "%");
+            return new EffectText("Heal {0} for {1} of ATK.", TargetPhrase(), Mathf.RoundToInt(CardLevels.Heal(CardLevels.Describing, this) * 100f) + "%");
         }
     }
 

@@ -108,6 +108,8 @@ namespace Game.World
         PauseCards pauseCards;
         ResonanceScreen resonance;
         ItemsScreen items;
+        /// <summary>The Items page (its Cards book is the Units screen's card picker too).</summary>
+        public ItemsScreen Items { get { return items; } }
         CardsScreen cardPacks, cardIndex;   // the title's Card Packs and Card Index
         EnemyLevelPanel chestPanel;
         ScannerHud scannerHud;

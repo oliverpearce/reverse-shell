@@ -26,6 +26,7 @@ namespace Game.World
         DynamicText dynamic;
         CanvasGroup group;
         AudioSource voice;
+        const float VoiceVolume = 0.22f;   // the blips at full Sound Effects volume
         static AudioClip blip;
 
         readonly List<DialogueLine> queue = new List<DialogueLine>();
@@ -105,7 +106,7 @@ namespace Game.World
             voice = rt.gameObject.AddComponent<AudioSource>();
             voice.playOnAwake = false;
             voice.spatialBlend = 0f;
-            voice.volume = 0.22f;
+            voice.volume = VoiceVolume * GameSettings.SfxVolume;
             voice.clip = Blip();
         }
 
@@ -307,6 +308,7 @@ namespace Game.World
                 {
                     if (!char.IsLetterOrDigit(s[i]) || i % 2 != 0) continue;
                     voice.pitch = queue[index].Voice.Pitch * UnityEngine.Random.Range(0.94f, 1.06f);
+                    voice.volume = VoiceVolume * GameSettings.SfxVolume;
                     voice.Play();
                     break;
                 }

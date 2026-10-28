@@ -43,6 +43,7 @@ namespace Game.World
         System.Action onClosed;
         RowMenu picker;                            // who to fit the selected item on
         CardsScreen cards;                         // the Cards tab
+        public CardsScreen Cards { get { return cards; } }
         int lastToggle;
 
         static Sprite glowSprite;
@@ -67,12 +68,14 @@ namespace Game.World
             var dim = UIFactory.CreateImage(rt, "Dim", new Color(0.05f, 0.045f, 0.04f, 0.9f), true);
             dim.rectTransform.Fill();
             InkStyle.Grain(rt, new Color(1f, 0.95f, 0.85f, 0.035f));
-            var title = InkStyle.Title(rt, "Title", UIText.Get("items.title"), 64, InkStyle.Paper, TextAnchor.UpperLeft);
+            var title = InkStyle.Title(rt, "Title", UIText.Get("items.title"), UIFactory.TextSize.Title, InkStyle.Paper, TextAnchor.UpperLeft);
             title.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(60f, -40f), new Vector2(700f, 90f));
             var keys = UIFactory.CreateText(rt, "Keys",
-                UIText.Get("items.keys"), 28, InkStyle.Paper, TextAnchor.MiddleCenter);
+                UIText.Get("items.keys"), UIFactory.TextSize.Medium, InkStyle.Paper, TextAnchor.MiddleCenter);
             keys.supportRichText = true;
-            keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1600f, 50f));
+            // Same place and size as the Cards page's key line.
+            keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(1360f, 44f));
+            keys.FitOneLine(1360f);
             screen.picker = RowMenu.Create(rt);
             Tabs(rt, true, null, screen.ShowCards);
             screen.cards = CardsScreen.Create(parent, world, screen);
@@ -83,21 +86,22 @@ namespace Game.World
         /// <summary>The Parts | Cards tabs at the top of both pages; the current one is gold and does nothing.</summary>
         public static void Tabs(RectTransform root, bool partsActive, System.Action onParts, System.Action onCards)
         {
-            Tab(root, UIText.Get("items.tab.parts"), partsActive, onParts, new Vector2(-120f, -44f));
-            Tab(root, UIText.Get("items.tab.cards"), !partsActive, onCards, new Vector2(120f, -44f));
+            Tab(root, UIText.Get("items.tab.parts"), partsActive, onParts, new Vector2(-120f, -30f));
+            Tab(root, UIText.Get("items.tab.cards"), !partsActive, onCards, new Vector2(120f, -30f));
         }
 
         static void Tab(RectTransform root, string label, bool active, System.Action onClick, Vector2 at)
         {
             var top = new Vector2(0.5f, 1f);
-            var b = InkStyle.Button(root, "Tab_" + label, label, () => { if (!active && onClick != null) onClick(); }, false, 36);
-            b.GetComponent<RectTransform>().Place(top, top, at, new Vector2(220f, 72f));
+            // The same height, top line and text size as the Cards page's Resonance / Kind buttons.
+            var b = InkStyle.Button(root, "Tab_" + label, label, () => { if (!active && onClick != null) onClick(); }, false, UIFactory.TextSize.Large);
+            b.GetComponent<RectTransform>().Place(top, top, at, new Vector2(220f, 112f));
             var text = b.GetComponentInChildren<Text>();
             text.color = active ? InkStyle.GoldBright : InkStyle.PaperDim;
             if (active)
             {
                 var rule = InkStyle.Line(b.transform, "Underline", InkStyle.Gold);
-                rule.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 6f), new Vector2(140f, 3f));
+                rule.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(140f, 3f));
             }
         }
 

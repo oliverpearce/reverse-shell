@@ -14,7 +14,7 @@ namespace Game.World
     /// </summary>
     public static class CardPacks
     {
-        public enum Tier { Common, Rare, Soul }
+        public enum Tier { Common, Rare, Soul, Blank }
 
         public class Pull
         {
@@ -24,6 +24,8 @@ namespace Game.World
             public CharacterDefinition Member;   // Soul: whose Soul card
             /// <summary>Set by Claim: the card's start rank went up (Common), or the new Soul level (Soul).</summary>
             public bool RankedUp;
+            /// <summary>Set by Claim: the card was already at its top level, so it became a blank card.</summary>
+            public bool Blank;
             public int SoulLevelAfter;
         }
 
@@ -44,6 +46,8 @@ namespace Game.World
             for (int i = 0; i < rates.cardsPerPack; i++)
             {
                 Pull pull = null;
+                // The second card: sometimes a blank card (imprint it with any card in the Cards book).
+                if (i == 1 && i < rates.cardsPerPack - 1 && rng.NextDouble() < rates.blankChance) pull = new Pull { Tier = Tier.Blank };
                 if (i == rates.cardsPerPack - 1)
                 {
                     // The last card: the only one that can be a SOUL or rare card.
@@ -95,14 +99,20 @@ namespace Game.World
             switch (pull.Tier)
             {
                 case Tier.Common:
-                    int before = CardCollection.StartRank(pull.Card);
+                    int before = CardCollection.Upgrades(pull.Card), copies = CardCollection.Copies(pull.Card);
                     CardCollection.AddCopy(pull.Card);
-                    pull.RankedUp = CardCollection.StartRank(pull.Card) > before;
+                    pull.RankedUp = CardCollection.Upgrades(pull.Card) > before;
+                    pull.Blank = CardCollection.Copies(pull.Card) == copies;   // already at the top: it became a blank card
                     break;
                 case Tier.Rare:
                     CardCollection.AddFound(pull.Binding);
+                    CardCollection.MarkNew(CardCollection.ArcanaKey(pull.Binding));
+                    break;
+                case Tier.Blank:
+                    CardCollection.AddBlank();
                     break;
                 case Tier.Soul:
+                    CardCollection.MarkNew(CardCollection.SoulKey(pull.Member));
                     CardCollection.AddSoul(pull.Member);
                     pull.SoulLevelAfter = CardCollection.SoulLevel(pull.Member);
                     break;

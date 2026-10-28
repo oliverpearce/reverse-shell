@@ -26,6 +26,10 @@ namespace Game.World
             public string Detail;
             /// <summary>Optional text at a tall row's top-right (the save time).</summary>
             public string Corner;
+            /// <summary>A volume row: the label on the left and a slider (<see cref="VolumeSlider"/>) reading and
+            /// writing this value; Left / Right move it while the row is selected.</summary>
+            public Func<float> SliderGet;
+            public Action<float> SliderSet;
         }
 
         const float RowWidth = 1180f, RowHeight = 86f, RowGap = 14f;
@@ -38,6 +42,7 @@ namespace Game.World
         readonly List<Row> rows = new List<Row>();
         readonly List<Image> plates = new List<Image>();
         readonly List<Text> labels = new List<Text>();
+        readonly List<VolumeSlider> sliders = new List<VolumeSlider>();
         Action back;
         int index, openedFrame;
 
@@ -90,6 +95,7 @@ namespace Game.World
             rows.Clear();
             plates.Clear();
             labels.Clear();
+            sliders.Clear();
             nextY = 0f;
             // Pages with tall rows (the save slots) start higher, so they fit above the key hints.
             list.anchoredPosition = new Vector2(0f, page.Exists(r => r.Detail != null) ? -180f : -280f);
@@ -138,9 +144,17 @@ namespace Game.World
                     corner.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-TallPadX, -TallPadTop - 4f), new Vector2(500f, 50f));
                 }
             }
+            VolumeSlider slider = null;
+            if (row.SliderGet != null && row.SliderSet != null)
+            {
+                label.alignment = TextAnchor.MiddleLeft;
+                label.rectTransform.offsetMin = new Vector2(40f, label.rectTransform.offsetMin.y);
+                slider = VolumeSlider.Add(plate.rectTransform, row.SliderGet, row.SliderSet);
+            }
             rows.Add(row);
             plates.Add(plate);
             labels.Add(label);
+            sliders.Add(slider);
 
             var trigger = plate.gameObject.AddComponent<EventTrigger>();
             var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
@@ -211,6 +225,9 @@ namespace Game.World
             if (Time.frameCount == openedFrame || GuideBook.Blocking) return;   // the guide is over it
             if (UIKeys.Pressed(KeyCode.UpArrow) || UIKeys.Pressed(KeyCode.W)) Move(-1);
             if (UIKeys.Pressed(KeyCode.DownArrow) || UIKeys.Pressed(KeyCode.S)) Move(1);
+            var slider = index < sliders.Count ? sliders[index] : null;
+            if (slider != null && (UIKeys.Pressed(KeyCode.LeftArrow) || UIKeys.Pressed(KeyCode.A))) slider.Step(-1);
+            if (slider != null && (UIKeys.Pressed(KeyCode.RightArrow) || UIKeys.Pressed(KeyCode.D))) slider.Step(1);
             if (UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.Space) || UIKeys.Pressed(KeyCode.F))
                 Run();
             else if (UIKeys.Back && back != null) back();

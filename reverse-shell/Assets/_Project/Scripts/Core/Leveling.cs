@@ -44,7 +44,7 @@ namespace Combat
     /// <summary>XP curve and per-level stat growth. Pure rules, no scene or UI knowledge.</summary>
     public static class Leveling
     {
-        public const int MaxLevel = 30;
+        public const int MaxLevel = 60;   // the story's last enemies are ~Lv 90, beatable around Lv 50-60
 
         /// <summary>
         /// How full a stat bar is for the reference character (MC) at the level cap: the bars keep 10% headroom,

@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: PackRates
   m_EditorClassIdentifier: 
   cardsPerPack: 3
-  soulChance: 0.1
-  rareChance: 0.4
+  soulChance: 0.01
+  rareChance: 0.05
   packsPerWin: 1
   copiesForRankII: 3
   copiesForRankIII: 6
