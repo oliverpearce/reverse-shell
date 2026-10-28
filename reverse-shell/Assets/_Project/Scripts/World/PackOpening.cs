@@ -30,9 +30,10 @@ namespace Game.World
     public class PackOpening : MonoBehaviour
     {
         const float CardScale = 0.85f, CardStep = 310f;
-        const float FocusScale = 1.4f, FocusY = 60f, RowY = 40f;   // the card being revealed: big, in the middle
+        const float FocusScale = 1.4f, FocusY = 60f, RowY = 40f;   // the card being revealed: big, up in its own column
         const float RiseSeconds = 0.3f, BeatSeconds = 0.15f, LastBeatSeconds = 0.35f, SuspenseSeconds = 0.9f;
         const float ShowSeconds = 0.9f, SettleSeconds = 0.3f, SkipHoldSeconds = 0.6f;
+        const float DealSeconds = 0.55f, DealGap = 0.09f, SweepSeconds = 0.3f;
         static readonly Color Gold = InkStyle.GoldBright;
 
         class Slot
@@ -41,6 +42,12 @@ namespace Game.World
             public RectTransform Rect, Back, Face;
             public Text Under;
             public bool Revealed, Revealing;
+            /// <summary>Out of the pack and in the row, face down (it bobs, and lifts while hovered).</summary>
+            public bool Dealt;
+            public int Index;
+            public float Lift;
+            /// <summary>Fades the card while another one is being revealed.</summary>
+            public CanvasGroup Group;
             /// <summary>Its size while it's being revealed (FocusScale) or in the row (1); the flips scale around it.</summary>
             public float Scale = 1f;
         }
@@ -51,6 +58,8 @@ namespace Game.World
         public static int ClosedFrame { get; private set; }
 
         RectTransform root, stage, fx, pack;
+        /// <summary>The open pack's resonance colour, for the gem on the card backs.</summary>
+        Color backGem = Color.white;
         Image flash, dimMore;
         Text hint;
         Button done, again;
@@ -203,6 +212,7 @@ namespace Game.World
             slot.Scale = 1f;
             var hit = slot.Rect.gameObject.AddComponent<Image>();
             hit.color = new Color(0f, 0f, 0f, 0f);
+            slot.Group = slot.Rect.gameObject.AddComponent<CanvasGroup>();
             var button = slot.Rect.gameObject.AddComponent<Button>();
             button.transition = Selectable.Transition.None;
             var captured = slot;
@@ -213,7 +223,8 @@ namespace Game.World
 
         void NextPack()
         {
-            if (!CardPacks.TakePack()) return;
+            PackKind kind;
+            if (!CardPacks.TakePack(out kind)) return;
             UIFactory.ClearChildren(stage);
             slots.Clear();
             torn = tearing = finished = false;
@@ -221,13 +232,14 @@ namespace Game.World
             revealing = null;
             openedFrame = Time.frameCount;
             // Roll and claim straight away (and save), so leaving early never loses the cards.
-            var pulls = CardPacks.Roll(roster, new System.Random(Environment.TickCount));
+            var pulls = CardPacks.Roll(roster, new System.Random(Environment.TickCount), kind);
+            backGem = ResonanceInfo.Color(kind != null ? kind.pool : Resonance.Physical);
             foreach (var pull in pulls) CardPacks.Claim(pull);
             if (!CardCollection.InSession) SaveGame.Save();   // Card Pack mode keeps nothing
             foreach (var pull in pulls) slots.Add(new Slot { Pull = pull });
 
             pack = UIFactory.CreateRect("Pack", stage).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 900f), new Vector2(300f, 440f));
-            BuildPack(pack);
+            BuildPack(pack, kind);
             var hit = pack.gameObject.AddComponent<Button>();
             hit.transition = Selectable.Transition.None;
             hit.onClick.AddListener(Tear);
@@ -241,10 +253,21 @@ namespace Game.World
             StartCoroutine(DropIn());
         }
 
-        /// <summary>The pack: this area's (Resources/Cards/Packs/Pack_&lt;area id&gt;.png, from the argametina packs), else one
-        /// of the Pack_any_* colours at random, else a plain ink pack.</summary>
-        static void BuildPack(RectTransform pack)
+        /// <summary>The pack: its kind's picture (Resources/Cards/Packs/Pack_&lt;pack id&gt;.png, cut from the card sheet's
+        /// Art cell), else this area's (Pack_&lt;area id&gt;.png), else one of the Pack_any_* colours at random, else a plain
+        /// ink pack.</summary>
+        static void BuildPack(RectTransform pack, PackKind kind)
         {
+            var own = kind != null ? CardArt.Picture("Cards/Packs/Pack_" + kind.id) : null;
+            if (own != null)
+            {
+                var ownImg = UIFactory.CreateImage(pack, "Art", Color.white);
+                ownImg.sprite = own;
+                ownImg.preserveAspect = true;
+                ownImg.rectTransform.Fill();
+                ownImg.raycastTarget = true;
+                return;
+            }
             // Card Pack mode: a random area's pack each time.
             string area = WorldSession.CurrentArea;
             if (CardCollection.InSession)
@@ -308,28 +331,47 @@ namespace Game.World
             yield return RevealOneByOne();
         }
 
-        /// <summary>The cards one at a time: up into the middle (big, face down), a beat (longer and trembling for the
-        /// last), the flip and its rarity, a moment to look, then down into the row.</summary>
+        /// <summary>The deal, then the cards one at a time: every card bursts out of the torn pack face down and fans into
+        /// the row; then each lifts up into the middle (big), a beat (longer and trembling for the last), a shine sweeps
+        /// its back, the flip and its rarity, a moment to look, then down into its place.</summary>
         IEnumerator RevealOneByOne()
         {
             hint.text = "";   // the Skip button speaks for itself
+            var mouth = new Vector2(0f, 40f);
+            for (int i = 0; i < slots.Count; i++)
+            {
+                var slot = slots[i];
+                CreateCard(slot, i, mouth);
+                slot.Index = i;
+                slot.Back = UIFactory.CreateRect("Back", slot.Rect).Fill();
+                CardView.BuildBack(slot.Back, backGem);
+                slot.Rect.localScale = Vector3.one * 0.3f;
+                StartCoroutine(DealIn(slot, mouth));
+                yield return Beat(DealGap);
+            }
+            yield return Beat(DealSeconds);
+
             for (int i = 0; i < slots.Count; i++)
             {
                 var slot = slots[i];
                 revealing = slot;
+                slot.Revealing = true;   // it stops bobbing
+                slot.Rect.SetAsLastSibling();   // drawn over the cards still in the row
                 skipCard = fastForward && slot.Pull.Tier != CardPacks.Tier.Soul;
                 bool last = i == slots.Count - 1;
-                CreateCard(slot, i, new Vector2(0f, -260f));
-                slot.Back = UIFactory.CreateRect("Back", slot.Rect).Fill();
-                BuildBack(slot.Back);
 
-                var focus = new Vector2(0f, FocusY);
+                // Up in its own column (the row's spacing leaves room for it at its big size), so it never covers the others.
+                var focus = new Vector2(RowSpot(i).x, FocusY);
+                var start = slot.Rect.anchoredPosition;
+                var startRot = slot.Rect.localRotation;
                 yield return Anim(RiseSeconds, p =>
                 {
                     float e = Tween.OutBack(p);
-                    slot.Rect.anchoredPosition = Vector2.LerpUnclamped(new Vector2(0f, -260f), focus, e);
-                    slot.Rect.localScale = Vector3.one * Mathf.LerpUnclamped(0.5f, FocusScale, e);
+                    slot.Rect.anchoredPosition = Vector2.LerpUnclamped(start, focus, e);
+                    slot.Rect.localScale = Vector3.one * Mathf.LerpUnclamped(1f, FocusScale, e);
+                    slot.Rect.localRotation = Quaternion.Slerp(startRot, Quaternion.identity, p);
                 });
+                slot.Rect.localRotation = Quaternion.identity;
                 slot.Scale = FocusScale;
                 slot.Rect.localScale = Vector3.one * FocusScale;
                 yield return Beat(last ? LastBeatSeconds : BeatSeconds);
@@ -353,6 +395,67 @@ namespace Game.World
             revealing = null;
             skipCard = false;
             Finished();
+        }
+
+        /// <summary>One card dealt: out of the pack's mouth in an arc to its place in the row, spinning upright and
+        /// growing, a bounce and a few sparks as it lands.</summary>
+        IEnumerator DealIn(Slot slot, Vector2 mouth)
+        {
+            var to = RowSpot(slot.Index);
+            float side = slot.Index - (slots.Count - 1) / 2f;
+            float spin = side * 32f + (slot.Index % 2 == 0 ? 160f : -160f);
+            yield return Anim(DealSeconds, p =>
+            {
+                float e = Tween.OutBack(p);
+                slot.Rect.anchoredPosition = Vector2.LerpUnclamped(mouth, to, e) + new Vector2(0f, 150f * Mathf.Sin(p * Mathf.PI));
+                slot.Rect.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(spin, 0f, Smooth(p)));
+                slot.Rect.localScale = Vector3.one * Mathf.LerpUnclamped(0.3f, 1f, e);
+            });
+            slot.Rect.anchoredPosition = to;
+            slot.Rect.localRotation = Quaternion.identity;
+            slot.Rect.localScale = Vector3.one;
+            Burst(to + new Vector2(0f, -CardView.Size.y * CardScale * 0.45f), 10, 420f, 0.45f, 12f, t => Color.Lerp(Color.white, backGem, t));
+            slot.Dealt = true;
+        }
+
+        /// <summary>Face-down cards in the row bob gently and lift while the mouse is over them.</summary>
+        void BobDealtCards()
+        {
+            float now = Time.unscaledTime;
+            foreach (var s in slots)
+            {
+                // The card being revealed has the stage: the rest fade back behind it.
+                if (s.Group != null)
+                    s.Group.alpha = Mathf.MoveTowards(s.Group.alpha, revealing != null && s != revealing ? 0.55f : 1f, 4f * Time.unscaledDeltaTime);
+                if (!s.Dealt || s.Revealed || s.Revealing || s.Rect == null) continue;
+                bool over = RectTransformUtility.RectangleContainsScreenPoint(s.Rect, Input.mousePosition, null);
+                s.Lift = Mathf.MoveTowards(s.Lift, over ? 1f : 0f, 6f * Time.unscaledDeltaTime);
+                s.Rect.anchoredPosition = RowSpot(s.Index) + new Vector2(0f, Mathf.Sin(now * 2.6f + s.Index * 1.3f) * 5f + 26f * s.Lift);
+                s.Rect.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(now * 1.9f + s.Index * 1.7f) * (2f + 3f * s.Lift));
+                s.Rect.localScale = Vector3.one * (1f + 0.06f * s.Lift);
+            }
+        }
+
+        /// <summary>A bright band sweeping across a card's back (masked to the card), just before it flips.</summary>
+        IEnumerator SweepBack(Slot slot)
+        {
+            if (slot.Back == null) yield break;
+            var maskRt = UIFactory.CreateRect("Sweep", slot.Back).Fill();
+            var mask = maskRt.gameObject.AddComponent<Image>();
+            mask.sprite = CardArt.Picture("Cards/CardBack");
+            mask.raycastTarget = false;
+            maskRt.gameObject.AddComponent<Mask>().showMaskGraphic = false;
+            var size = slot.Back.rect.size;
+            var band = UIFactory.CreateImage(maskRt, "Band", new Color(1f, 1f, 1f, 0.7f));
+            band.raycastTarget = false;
+            band.rectTransform.sizeDelta = new Vector2(size.x * 0.22f, size.y * 1.6f);
+            band.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -25f);
+            yield return Anim(SweepSeconds, p =>
+            {
+                if (band == null) return;
+                band.rectTransform.anchoredPosition = new Vector2(Mathf.Lerp(-size.x, size.x, p), 0f);
+                band.color = new Color(1f, 1f, 1f, 0.75f * Mathf.Sin(p * Mathf.PI));
+            });
         }
 
         static float Smooth(float t) { return t * t * (3f - 2f * t); }
@@ -405,20 +508,6 @@ namespace Game.World
             yield return Anim(seconds, p => { if (rt != null) rt.anchoredPosition = Vector2.LerpUnclamped(from, to, Tween.OutBack(p)); });
         }
 
-        /// <summary>A card's back: dark, a gold frame and the card-back mark.</summary>
-        static void BuildBack(RectTransform back)
-        {
-            var plate = UIFactory.CreateImage(back, "Plate", new Color(0.1f, 0.09f, 0.12f, 1f));
-            plate.rectTransform.Fill();
-            plate.raycastTarget = false;
-            InkStyle.Frame(plate.rectTransform, Gold, 3f);
-            var mark = UIFactory.CreateImage(back, "Mark", Color.white);
-            mark.sprite = CardIcons.CardBack;
-            mark.preserveAspect = true;
-            mark.raycastTarget = false;
-            mark.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(120f, 120f));
-        }
-
         // PACK OPENING > REVEALING
 
         /// <summary>Once every card is out, a click zooms the card (before that clicks do nothing: Skip skips).</summary>
@@ -434,16 +523,26 @@ namespace Game.World
             if (tier == CardPacks.Tier.Soul) yield return SoulBuildUp(slot);
             if (tier == CardPacks.Tier.Blank) yield return BlankBuildUp(slot);
 
-            // The flip: edge-on, swap to the face, face-on again (slower for rarer cards).
+            yield return SweepBack(slot);
+            // The flip: it tips as it turns edge-on, swaps to the face, and rights itself face-on (slower for rarer cards).
             float half = tier == CardPacks.Tier.Soul ? 0.22f : tier == CardPacks.Tier.Rare || tier == CardPacks.Tier.Blank ? 0.16f : 0.11f;
             float k = slot.Scale;
-            yield return Anim(half, p => slot.Rect.localScale = new Vector3(1f - p, 1f + 0.06f * p, 1f) * k);
+            yield return Anim(half, p =>
+            {
+                slot.Rect.localScale = new Vector3(1f - p, 1f + 0.06f * p, 1f) * k;
+                slot.Rect.localRotation = Quaternion.Euler(0f, 0f, 9f * p);
+            });
             Destroy(slot.Back.gameObject);
             slot.Face = UIFactory.CreateRect("Face", slot.Rect).Fill();
             BuildFace(slot.Face, slot.Pull, CardScale);
             foreach (var g in slot.Face.GetComponentsInChildren<Graphic>()) g.raycastTarget = false;
-            yield return Anim(half, p => slot.Rect.localScale = new Vector3(p, 1.06f - 0.06f * p, 1f) * k);
+            yield return Anim(half, p =>
+            {
+                slot.Rect.localScale = new Vector3(p, 1.06f - 0.06f * p, 1f) * k;
+                slot.Rect.localRotation = Quaternion.Euler(0f, 0f, 9f * (1f - Tween.OutBack(p)));
+            });
             slot.Rect.localScale = Vector3.one * k;
+            slot.Rect.localRotation = Quaternion.identity;
             slot.Revealed = true;
             slot.Revealing = false;
             yield return Celebrate(slot);
@@ -460,7 +559,8 @@ namespace Game.World
                     CardView.BuildFace(face, Instance(pull.Member, WorldSession.UltimateOf(pull.Member) ?? pull.Member.ritual, 1), scale);
                     break;
                 case CardPacks.Tier.Blank:
-                    BuildBlankFace(face);
+                    ArcanaCards.BuildBlankFace(face, scale);
+                    CardHolo.Add(face, null, CardHolo.Kind.Blank);   // shines on the table too
                     break;
                 default:
                     var owner = OwnerOf(pull.Card);
@@ -470,21 +570,6 @@ namespace Game.World
         }
 
         static readonly Color Pearl = new Color(0.9f, 0.92f, 0.96f), Silver = new Color(0.72f, 0.82f, 0.95f);
-
-        /// <summary>A blank card: a pearl-white card with a silver rim and the card-back mark pressed faintly into it.</summary>
-        static void BuildBlankFace(RectTransform face)
-        {
-            var plate = UIFactory.CreateImage(face, "Plate", Pearl);
-            plate.rectTransform.Fill();
-            InkStyle.Frame(plate.rectTransform, Silver, 4f);
-            var inner = UIFactory.CreateImage(face, "Inner", new Color(1f, 1f, 1f, 0.35f));
-            inner.rectTransform.Fill(18f);
-            InkStyle.Frame(inner.rectTransform, UIFactory.WithAlpha(Silver, 0.6f), 2f);
-            var mark = UIFactory.CreateImage(face, "Mark", new Color(0.6f, 0.68f, 0.8f, 0.35f));
-            mark.sprite = CardIcons.CardBack;
-            mark.preserveAspect = true;
-            mark.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(110f, 110f));
-        }
 
         /// <summary>BLANK: before it flips, the card lifts a little inside a cool silver glow.</summary>
         IEnumerator BlankBuildUp(Slot slot)
@@ -538,7 +623,8 @@ namespace Game.World
         static CardInstance Instance(CharacterDefinition member, CardDefinition card, int rank)
         {
             var unit = new BattleUnit(member, Team.Player);
-            Afflatus element = member.afflatus;
+            // The protagonist's card pool cards (Physical) show in their own pool's colour, not the base element's.
+            Resonance element = member.resonances.Count > 0 ? card.pool : member.resonance;
             foreach (var kit in member.resonances)
                 if (kit != null && (kit.cards.Contains(card) || kit.ultimate == card)) element = kit.element;
             var loadout = new Loadout { Element = element };
@@ -683,8 +769,10 @@ namespace Game.World
         void Zoom(Slot slot)
         {
             var pull = slot.Pull;
-            var holo = pull.Tier == CardPacks.Tier.Soul ? CardHolo.Kind.Soul : pull.Tier == CardPacks.Tier.Rare ? CardHolo.Kind.Rare : CardHolo.Kind.Common;
-            CardZoom.Open(root, (face, s) => BuildFace(face, pull, s), holo);
+            var holo = pull.Tier == CardPacks.Tier.Soul ? CardHolo.Kind.Soul : pull.Tier == CardPacks.Tier.Rare ? CardHolo.Kind.Rare
+                : pull.Tier == CardPacks.Tier.Blank ? CardHolo.Kind.Blank : CardHolo.Kind.Common;
+            CardZoom.Open(root, (face, s) => BuildFace(face, pull, s), holo, null, null,
+                pull.Tier == CardPacks.Tier.Common && pull.Card != null ? pull.Card.kind : (CardKind?)null);
         }
 
         void Finish()
@@ -744,6 +832,7 @@ namespace Game.World
 
         void Update()
         {
+            BobDealtCards();
             if (CardZoom.IsOpen || CardZoom.ClosedFrame == Time.frameCount || Time.frameCount == openedFrame) return;
             if (pack != null && !torn && !tearing)
             {

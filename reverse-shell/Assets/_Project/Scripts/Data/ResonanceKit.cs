@@ -10,7 +10,7 @@ namespace Combat
     [Serializable]
     public class ResonanceKit
     {
-        public Afflatus element = Afflatus.None;
+        public Resonance element = Resonance.Physical;
         public List<CardDefinition> cards = new List<CardDefinition>();
         public CardDefinition ultimate;
     }

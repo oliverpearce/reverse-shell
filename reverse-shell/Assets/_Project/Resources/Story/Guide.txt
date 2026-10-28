@@ -90,9 +90,9 @@ The small card above an enemy is its {gold}intent{/c}: its move this turn.
 [battle] Resonance
 Some resonances (elements) beat others:
 
-{gold}Electric{/c} > {gold}Fire{/c} > {gold}Toxin{/c}
-> {gold}Earth{/c} > {gold}Electric{/c}
-{gold}Light{/c} and {gold}Void{/c} beat each other.
+{gold}Cinder{/c} > {gold}Cryo{/c} > {gold}Root{/c}
+> {gold}Arc{/c} > {gold}Cinder{/c}
+{gold}Prism{/c} is neutral but crits more.
 {gold}Physical{/c} is always neutral.
 
 Advantage: {green}+30% damage, +15% crit{/c}

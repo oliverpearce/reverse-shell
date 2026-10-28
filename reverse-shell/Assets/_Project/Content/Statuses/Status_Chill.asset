@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd0f780b638ca8c45aaa357730645aaa, type: 3}
+  m_Name: Status_Chill
+  m_EditorClassIdentifier: 
+  displayName: Chill
+  shortLabel: CHL
+  color: {r: 0.62, g: 0.88, b: 1, a: 1}
+  icon: {fileID: 0}
+  isDebuff: 1
+  stackRule: 1
+  maxStacks: 3
+  modifiers:
+  - stat: 1
+    kind: 1
+    value: -0.05
+  damagePerRoundPercentMaxHP: 0
+  healPerRoundPercentMaxHP: 0
+  damagePerRoundSourceATK: 0
+  preventsAction: 0
+  special: 0
+  becomesAtMaxStacks: {fileID: 11400000, guid: 2dc41ae53114c014a81cde81405899d2, type: 2}
+  becomesTurns: 1
+  description: -5% ATK per stack. At 3 stacks it becomes Frozen.
+  verb: chill

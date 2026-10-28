@@ -10,6 +10,8 @@ namespace Combat.View
     /// lifts from where it sits, glides to the centre while growing, then flips over (scale X to 0 and back) to its
     /// big detailed face with the full text. Scroll over it to see the upgrades (ranks I / II / III; a hint says so).
     /// Click anywhere or Esc closes it (it shrinks back to where it came from). Runs on unscaled time.
+    /// A unit's innate card also gets "Swap to Soul form": the card flips over to the Ult it powers up into (its full
+    /// text and live numbers), and back.
     /// </summary>
     public class CardDetailPopup : MonoBehaviour
     {
@@ -30,13 +32,18 @@ namespace Combat.View
         AbilityCard detailed;
         CanvasGroup dimGroup;
         Text hint;
+        CardDefinition soulForm;
+        bool showingSoul, flipping;
+        Button swapButton;
         Vector2 fromPos;
         float fromScale;
         Action onClosed;
         bool closing;
 
         /// <param name="from">The card that was clicked (the popup starts and ends there); may be null.</param>
-        public static CardDetailPopup Open(RectTransform canvasRoot, BattleUnit unit, CardDefinition card, int rank, RectTransform from, Action onClosed = null)
+        /// <param name="soulForm">The Ult this card powers up into (a unit's innate card), for the Swap button; null = none.</param>
+        public static CardDetailPopup Open(RectTransform canvasRoot, BattleUnit unit, CardDefinition card, int rank, RectTransform from,
+            Action onClosed = null, CardDefinition soulForm = null)
         {
             if (current != null) current.CloseNow();
             var rt = UIFactory.CreateRect("CardDetail", canvasRoot).Fill();
@@ -48,6 +55,7 @@ namespace Combat.View
             popup.card = card;
             popup.rank = Mathf.Max(1, rank);
             popup.onClosed = onClosed;
+            popup.soulForm = soulForm != null && soulForm != card ? soulForm : null;
             popup.Build(from);
             popup.StartCoroutine(popup.OpenRoutine());
             return popup;
@@ -93,6 +101,51 @@ namespace Combat.View
             hint = UIFactory.CreateText(root, "Hint", UIText.Get(upgrades ? "card.hint.upgrades" : "card.hint.close"), 30, InkStyle.Paper, TextAnchor.MiddleCenter);
             hint.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f), new Vector2(Rest.x, -CardView.Size.y * BigScale / 2f - 18f), new Vector2(900f, 56f));
             hint.color = Clear(hint.color);
+
+            if (soulForm != null)
+            {
+                swapButton = InkStyle.Button(root, "SoulSwap", UIText.Get("card.soul_swap"), Swap, false, 30);
+                ((RectTransform)swapButton.transform).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f),
+                    new Vector2(Rest.x, -CardView.Size.y * BigScale / 2f - 84f), new Vector2(440f, 64f));
+                swapButton.gameObject.SetActive(false);   // shown once the card has flipped open
+            }
+        }
+
+        /// <summary>Flips the open card over to its Soul form, or back to the innate card.</summary>
+        void Swap()
+        {
+            if (flipping || closing || detailed == null) return;
+            StartCoroutine(SwapRoutine());
+        }
+
+        IEnumerator SwapRoutine()
+        {
+            flipping = true;
+            yield return Animate(FlipSeconds / 2f, p => holder.localScale = new Vector3(1f - p, 1f + 0.04f * p, 1f));
+            showingSoul = !showingSoul;
+            Destroy(detailed.gameObject);
+            BuildDetailed(showingSoul ? soulForm : card, showingSoul ? 1 : rank);
+            var label = swapButton.GetComponentInChildren<Text>();
+            if (label != null) label.text = UIText.Get(showingSoul ? "card.innate_swap" : "card.soul_swap");
+            var shown = showingSoul ? soulForm : card;
+            hint.text = UIText.Get(!shown.isRitual && shown.MaxRank > 1 ? "card.hint.upgrades" : "card.hint.close");
+            yield return Animate(FlipSeconds / 2f, p => holder.localScale = new Vector3(p, Mathf.Lerp(1.04f, 1f, p), 1f));
+            flipping = false;
+        }
+
+        /// <summary>The big detailed face for <paramref name="shown"/>, tiltable, with its shine.</summary>
+        void BuildDetailed(CardDefinition shown, int shownRank)
+        {
+            detailed = AbilityCard.Create(holder, unit, shown, shownRank, BigScale);
+            ((RectTransform)detailed.transform).Fill();
+            // Drag to tilt it in 3D (arrows too); the shine slides as it leans. The text panel stays flat.
+            var tilt = CardTilt.Add((RectTransform)detailed.transform);
+            tilt.ExcludeName = "DetailPanel";
+            tilt.Keyboard = true;
+            if (holder.GetComponent<CardTiltDrag>() == null) CardTiltDrag.Add(holder.gameObject, tilt);
+            else holder.GetComponent<CardTiltDrag>().Tilt = tilt;
+            CardHolo.Add((RectTransform)detailed.transform, tilt, shown.isRitual ? CardHolo.Kind.Soul : CardHolo.Kind.Common,
+                null, shown.isRitual ? (CardKind?)null : shown.kind);
         }
 
         IEnumerator OpenRoutine()
@@ -107,15 +160,9 @@ namespace Combat.View
             // Flip: edge-on, swap to the detailed face, face-on again.
             yield return Animate(FlipSeconds / 2f, p => holder.localScale = new Vector3(0.92f * (1f - p), 0.92f + 0.04f * p, 1f));
             Destroy(smallFace.gameObject);
-            detailed = AbilityCard.Create(holder, unit, card, rank, BigScale);
-            ((RectTransform)detailed.transform).Fill();
-            // Drag to tilt it in 3D (arrows too); the shine slides as it leans. The text panel stays flat.
-            var tilt = CardTilt.Add((RectTransform)detailed.transform);
-            tilt.ExcludeName = "DetailPanel";
-            tilt.Keyboard = true;
-            CardTiltDrag.Add(holder.gameObject, tilt);
-            CardHolo.Add((RectTransform)detailed.transform, tilt, card.isRitual ? CardHolo.Kind.Soul : CardHolo.Kind.Common);
+            BuildDetailed(card, rank);
             yield return Animate(FlipSeconds / 2f, p => holder.localScale = new Vector3(Mathf.Lerp(0f, 1f, p), Mathf.Lerp(0.96f, 1f, p), 1f));
+            if (swapButton != null) swapButton.gameObject.SetActive(true);
             yield return Animate(0.2f, p => hint.color = Color.Lerp(Clear(InkStyle.Paper), InkStyle.Paper, p));
         }
 
@@ -143,6 +190,7 @@ namespace Combat.View
                 holder.localScale = Vector3.Lerp(startScale, Vector3.one * fromScale, p);
                 dimGroup.alpha = Mathf.Lerp(startDim, 0f, p);
                 hint.color = Clear(hint.color);
+                if (swapButton != null) swapButton.gameObject.SetActive(false);
             });
             CloseNow();
         }

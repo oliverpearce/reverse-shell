@@ -38,15 +38,16 @@ ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 sys.path.insert(0, os.path.join(ROOT, 'Tools', 'SpriteForge'))
 from pngtool import write_png  # noqa: E402
 
-CELL, COLS, ROWS, SS = 128, 8, 9, 4
+CELL, COLS, ROWS, SS = 128, 8, 10, 4
 RAVEN = os.path.join(ROOT, 'Assets', '_Project', 'Art', 'ThirdParty', 'RavenFantasyIcons', '32x32')
 
 # The user's picks from the Raven pack (icon numbers: fb<n>.png).
-TYPE_ICONS = [672, 884, 865, 665, 661, 776]        # Attack, Debuff, Buff, Counter, Heal, Ultimate
+TYPE_ICONS = [672, 884, 865, 665, 661, 776, 597]   # Attack, Debuff, Buff, Counter, Heal, Ultimate, Defense
 PIP_ICON, STAR_ICON = 2186, 984
-ELEMENT_ICONS = [2129, 2134, 2130, 2132, 2131, 2133]   # Star, Mineral, Beast, Earth, Spirit, Virus (orbs)
-EXTRA_ICONS = [2115, 2139, 1086, 1098, 1102, 1103, 968, 877]  # CHIP, CORE, Poison, ATK Up, ATK Down, DEF Down, Regen, IM Up
-STATUS_ICONS = [1099, 1075]                                   # DEF Up, Stunned (row 8)
+ELEMENT_ICONS = [2118, 2117, 2120, 2119, 2121]   # Arc, Cinder, Root, Cryo, Prism (orbs, in Resonance enum order; picked 2026-10-28)
+EXTRA_ICONS = [2115, 2139, 691, 684, 700, 698, 681, 683]    # CHIP, CORE, Poison, ATK Up, ATK Down, DEF Down, Regen, IM Up (statuses re-picked 2026-10-28)
+STATUS_ICONS = [1899, 688]                                    # DEF Up, Stunned (row 8)
+STATUS_ICONS_2 = [693, 694, 696, 692, 699, 702]               # Burn, Chill, Frozen, Shield, Counter, Covered (row 9)
 GO_ICON, CLOSE_ICON, PAUSE_COLORS, OUTLINE_FROM = 649, 656, 647, 656
 SWAP_ICON = 2061   # the battle queue's moved-card slot (tinted gray in game)
 OUT = os.path.join(ROOT, 'Assets', '_Project', 'Resources', 'UI', 'CardIcons.png')
@@ -58,7 +59,7 @@ def hx(h):
     return tuple(int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
 
 
-TYPE_COLORS = [hx('#B4302B'), hx('#6A4A9E'), hx('#3C6DB5'), hx('#B08528'), hx('#4C9868'), hx('#3FB2A6')]
+TYPE_COLORS = [hx('#B4302B'), hx('#6A4A9E'), hx('#3C6DB5'), hx('#B08528'), hx('#4C9868'), hx('#3FB2A6'), hx('#5FA8C8')]
 INK = hx('#1B1A18')
 
 
@@ -469,11 +470,14 @@ def build():
                 r, g, b, a = cell[y][x]
                 arow[col * CELL + x] = (int(r * 255 + 0.5), int(g * 255 + 0.5), int(b * 255 + 0.5), int(a * 255 + 0.5))
 
-    for t in range(6):
+    for t in range(len(TYPE_ICONS)):
         put(t, 0, raven_cell(TYPE_ICONS[t], recolor=lambda c: (1.0, 1.0, 1.0)))
         put(t, 1, raven_cell(TYPE_ICONS[t]))
         for rank in range(3):
             put(t, 2 + rank, mini_card(t, rank))
+        if t == 6:   # Defense: no misc cell or orb of its own
+            print('  type', t, 'done')
+            continue
         if t == 1:
             put(t, 5, raven_cell(PIP_ICON, recolor=dimmed))
         elif t == 2:
@@ -482,12 +486,15 @@ def build():
             put(t, 5, raven_cell(STAR_ICON))
         else:
             put(t, 5, pixelate(misc(t)))
-        put(t, 6, raven_cell(ELEMENT_ICONS[t]))
+        if t < len(ELEMENT_ICONS):
+            put(t, 6, raven_cell(ELEMENT_ICONS[t]))
         print('  type', t, 'done')
     for i, n in enumerate(EXTRA_ICONS):
         put(i, 7, raven_cell(n))
     for i, n in enumerate(STATUS_ICONS):
         put(i, 8, raven_cell(n))
+    for i, n in enumerate(STATUS_ICONS_2):
+        put(i, 9, raven_cell(n))
     put(2, 8, place_raven(blank(), turned(raven(GO_ICON)), 4))
     put(3, 8, raven_cell(CLOSE_ICON))
     put(4, 8, place_raven(blank(), pause_icon(), 4))

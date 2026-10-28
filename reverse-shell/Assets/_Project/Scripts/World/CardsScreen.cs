@@ -36,7 +36,7 @@ namespace Game.World
             public EntryKind Kind;
             public CardDefinition Card;            // Ability / Soul
             public CharacterDefinition Owner;      // Ability / Soul
-            public Afflatus Element;
+            public Resonance Element;
             public CardBinding Arcana;             // Arcana
             public RectTransform Rect;
             public CardLift Lift;
@@ -49,7 +49,7 @@ namespace Game.World
         const float Margin = 16f;
         /// <summary>The counters line under the title: as wide as it can be without reaching the Resonance button.</summary>
         const float CountersWidth = 690f;
-        static readonly CardKind?[] Kinds = { null, CardKind.Attack, CardKind.Debuff, CardKind.Buff, CardKind.Heal, CardKind.Counter };
+        static readonly CardKind?[] Kinds = { null, CardKind.Attack, CardKind.Debuff, CardKind.Buff, CardKind.Defense, CardKind.Heal, CardKind.Counter };
 
         OverworldBuilder world;
         ItemsScreen parts;
@@ -380,7 +380,7 @@ namespace Game.World
                 if (index)
                 {
                     // Every Soul card: the character's own and each resonance's Ult.
-                    all.Add(new Entry { Kind = EntryKind.Soul, Card = member.ritual, Owner = member, Element = member.afflatus });
+                    all.Add(new Entry { Kind = EntryKind.Soul, Card = member.ritual, Owner = member, Element = member.resonance });
                     foreach (var kit in member.resonances)
                         if (kit != null && kit.ultimate != null && !all.Exists(e => e.Card == kit.ultimate))
                             all.Add(new Entry { Kind = EntryKind.Soul, Card = kit.ultimate, Owner = member, Element = kit.element });
@@ -390,17 +390,18 @@ namespace Game.World
             }
         }
 
-        /// <summary>A card's resonance: the kit it belongs to, else its owner's own element.</summary>
-        static Afflatus ElementOf(CharacterDefinition member, CardDefinition card)
+        /// <summary>A card's resonance: the kit it belongs to; for the protagonist's other cards (the Physical card pool)
+        /// the card's own pool; else its owner's own element.</summary>
+        static Resonance ElementOf(CharacterDefinition member, CardDefinition card)
         {
             foreach (var kit in member.resonances)
                 if (kit != null && kit.cards.Contains(card)) return kit.element;
-            return member.afflatus;
+            return member.resonances.Count > 0 ? card.pool : member.resonance;
         }
 
-        List<Afflatus?> ResonanceChoices()
+        List<Resonance?> ResonanceChoices()
         {
-            var list = new List<Afflatus?> { null };
+            var list = new List<Resonance?> { null };
             foreach (var e in all)
                 if (e.Kind != EntryKind.Arcana && !list.Contains(e.Element)) list.Add(e.Element);
             return list;
@@ -479,7 +480,7 @@ namespace Game.World
             book.ShowSpread(index / PerSpread);
             var element = ResonanceChoices()[resonanceFilter];
             resonanceLabel.text = UIText.Get("cards.filter.resonance", "value",
-                element.HasValue ? AfflatusInfo.Display(element.Value) : UIText.Get("cards.filter.all"));
+                element.HasValue ? ResonanceInfo.Display(element.Value) : UIText.Get("cards.filter.all"));
             var kind = SpecialShown ? null : Kinds[kindFilter];
             kindLabel.text = UIText.Get("cards.filter.kind", "value", SpecialShown ? UIText.Get("cards.special")
                 : kind.HasValue ? UnitView.KindLabel(kind.Value) : UIText.Get("cards.filter.all"));
@@ -517,8 +518,18 @@ namespace Game.World
             int hovered = i;
             e.Lift.Hovered = () => { if (!book.Busy) Select(hovered); };
             var holo = CardHolo.Add(face, face.GetComponent<CardTilt>(),
-                e.Kind == EntryKind.Soul ? CardHolo.Kind.Soul : e.Kind == EntryKind.Arcana ? CardHolo.Kind.Rare : CardHolo.Kind.Common);
+                e.Kind == EntryKind.Soul ? CardHolo.Kind.Soul : e.Kind == EntryKind.Arcana ? CardHolo.Kind.Rare : CardHolo.Kind.Common,
+                null, e.Kind == EntryKind.Ability ? e.Card.kind : (CardKind?)null);
             holo.Strength = 0.35f;
+            if (e.Kind == EntryKind.Ability)
+            {
+                var ultForm = CardCollection.UltFormOf(e.Owner, e.Card);
+                if (ultForm != null)
+                {
+                    var soul = new Entry { Kind = EntryKind.Soul, Card = ultForm, Owner = e.Owner, Element = e.Element };
+                    SoulFormPreview.Attach(rt.gameObject, (f, s) => CardView.BuildFace(f, Instance(soul), s), FaceScale);
+                }
+            }
 
             // Under the card: copies (×N) for abilities, found for Sun / Moon / Star, the Soul level for Soul cards; in the
             // session how many were pulled. The title's index shows the latest save's, like the collection.
@@ -653,17 +664,15 @@ namespace Game.World
             icon.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -12f);
         }
 
-        /// <summary>A card with no copies: its picture is hidden and the rest is greyed out.</summary>
+        /// <summary>How see-through a card you have no copies of is in the book (its art and text still show).</summary>
+        const float UnownedAlpha = 0.5f;
+
+        /// <summary>A card with no copies: the whole face, art and all, at <see cref="UnownedAlpha"/>.</summary>
         static void Unowned(RectTransform face)
         {
-            foreach (var t in face.GetComponentsInChildren<Transform>(true))
-                if (t.name == "Art") t.gameObject.SetActive(false);
-            foreach (var g in face.GetComponentsInChildren<Graphic>(true))
-            {
-                var c = g.color;
-                float grey = (c.r + c.g + c.b) / 3f * 0.55f;
-                g.color = new Color(grey, grey, grey, c.a);
-            }
+            var group = face.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = UnownedAlpha;
+            group.blocksRaycasts = false;
         }
 
         /// <summary>"#RRGGBB" for rich text.</summary>
@@ -843,14 +852,14 @@ namespace Game.World
                     // Who uses it, its class and resonance beside the name, then the latest save's copies / level; the
                     // card text is only in the inspect view.
                     info.text = UIText.Get("cards.info.index.soul", "name", e.Card.DisplayName, "owner", e.Owner.DisplayName,
-                        "element", AfflatusInfo.Display(e.Element), "owner_c", Hex(e.Owner.color), "element_c", Hex(AfflatusInfo.Color(e.Element)),
+                        "element", ResonanceInfo.Display(e.Element), "owner_c", Hex(e.Owner.color), "element_c", Hex(ResonanceInfo.Color(e.Element)),
                         "level", CardCollection.SoulLevel(e.Owner).ToString(), "max", PackRates.Current.maxSoulLevel.ToString());
                     break;
                 default:
                     int next = CardCollection.CopiesToNextUpgrade(e.Card);
                     info.text = UIText.Get("cards.info.index.ability", "name", e.Card.DisplayName, "owner", e.Owner.DisplayName,
-                        "kind", UnitView.KindLabel(e.Card.kind), "element", AfflatusInfo.Display(e.Element),
-                        "owner_c", Hex(e.Owner.color), "kind_c", Hex(UnitView.KindColor(e.Card.kind)), "element_c", Hex(AfflatusInfo.Color(e.Element)),
+                        "kind", UnitView.KindLabel(e.Card.kind), "element", ResonanceInfo.Display(e.Element),
+                        "owner_c", Hex(e.Owner.color), "kind_c", Hex(UnitView.KindColor(e.Card.kind)), "element_c", Hex(ResonanceInfo.Color(e.Element)),
                         "copies", CardCollection.Copies(e.Card).ToString(),
                         "level", CardCollection.UpgradeLevel(e.Card).ToString(), "max", CardCollection.MaxUpgradeLevel.ToString(),
                         "next", next > 0 ? UIText.Get("cards.info.next", "n", next.ToString(), "level", (CardCollection.UpgradeLevel(e.Card) + 1).ToString()) : UIText.Get("cards.info.top"));
@@ -918,7 +927,8 @@ namespace Game.World
                 return;
             }
             var instance = Instance(e);
-            CardDetailPopup.Open(root, instance.Owner, e.Card, instance.Rank, e.Rect);
+            CardDetailPopup.Open(root, instance.Owner, e.Card, instance.Rank, e.Rect, null,
+                e.Kind == EntryKind.Ability ? CardCollection.UltFormOf(e.Owner, e.Card) : null);
         }
 
         void OpenBindPicker()

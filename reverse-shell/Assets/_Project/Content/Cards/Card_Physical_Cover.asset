@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84f16ca0de16a4d48be9e44684662a8b, type: 3}
+  m_Name: Card_Physical_Cover
+  m_EditorClassIdentifier: 
+  displayName: Cover
+  kind: 5
+  targetMode: 4
+  isRitual: 0
+  level: 4
+  pool: 5
+  rarity: 0
+  icon: {fileID: 0}
+  ranks:
+  - description: 
+    effects:
+    - id: 0
+    - id: 1
+  - description: 
+    effects:
+    - id: 2
+    - id: 3
+  - description: 
+    effects:
+    - id: 4
+    - id: 5
+  castSequence: {fileID: 0}
+  references:
+    version: 1
+    00000000:
+      type: {class: CoverEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        status: {fileID: 11400000, guid: 5b7c5eea3e36f384e86852c1baaca70b, type: 2}
+        duration: 1
+    00000001:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 1
+        status: {fileID: 11400000, guid: 066dbd358b3ec0f4fb8803f1930d022a, type: 2}
+        duration: 1
+        stacks: 1
+        chance: 1
+    00000002:
+      type: {class: CoverEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        status: {fileID: 11400000, guid: 5b7c5eea3e36f384e86852c1baaca70b, type: 2}
+        duration: 1
+    00000003:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 1
+        status: {fileID: 11400000, guid: 066dbd358b3ec0f4fb8803f1930d022a, type: 2}
+        duration: 1
+        stacks: 1
+        chance: 1
+    00000004:
+      type: {class: CoverEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        status: {fileID: 11400000, guid: 5b7c5eea3e36f384e86852c1baaca70b, type: 2}
+        duration: 1
+    00000005:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 1
+        status: {fileID: 11400000, guid: 066dbd358b3ec0f4fb8803f1930d022a, type: 2}
+        duration: 1
+        stacks: 1
+        chance: 1

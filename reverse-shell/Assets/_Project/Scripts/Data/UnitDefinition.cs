@@ -16,7 +16,8 @@ namespace Combat
         public Texture2D spriteSheet;
         [Min(1)] public int sheetColumns = 3;
         [Min(1)] public int sheetRows = 4;
-        public Afflatus afflatus;
+        [UnityEngine.Serialization.FormerlySerializedAs("afflatus")]
+        public Resonance resonance;
         public DamageType damageType;
         public Stats stats = new Stats();
 

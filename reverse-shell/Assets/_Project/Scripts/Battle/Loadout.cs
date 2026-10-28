@@ -9,7 +9,7 @@ namespace Combat
         public List<CardDefinition> Cards = new List<CardDefinition>();
         public List<PartDefinition> Parts = new List<PartDefinition>();
         /// <summary>The active resonance's element (null = the definition's element).</summary>
-        public Afflatus? Element;
+        public Resonance? Element;
         /// <summary>The active resonance's Ult card (null = the definition's ritual).</summary>
         public CardDefinition Ultimate;
         /// <summary>Copy upgrades per card (0-3, from copies owned; missing = none): +2 card levels each.</summary>

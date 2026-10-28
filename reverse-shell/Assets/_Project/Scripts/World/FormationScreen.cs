@@ -202,7 +202,7 @@ namespace Game.World
                 row.rectTransform.Place(center, tl, new Vector2(-860f, y), new Vector2(390f, 92f));
                 HoverEnemy(row.rectTransform, i, enemy, fight.enemyLevel, y);
                 InkStyle.Frame(row.rectTransform, UIFactory.WithAlpha(InkStyle.Crimson, 0.7f), 2f);
-                var badge = ElementBadgeFor(row.rectTransform, enemy.afflatus);
+                var badge = ElementBadgeFor(row.rectTransform, enemy.resonance);
                 badge.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(12f, 0f), new Vector2(56f, 56f));
                 var name = UIFactory.CreateText(row.rectTransform, "Name", enemy.DisplayName, 30, InkStyle.Paper, TextAnchor.UpperLeft);
                 name.rectTransform.Place(tl, tl, new Vector2(80f, -10f), new Vector2(300f, 40f));
@@ -274,7 +274,8 @@ namespace Game.World
                 rt.Fill();
                 var card = cards[i].Key;
                 int rank = cards[i].Value;
-                ability.OnClick = () => CardDetailPopup.Open((RectTransform)transform, unit, card, rank, rt);
+                var soul = unit.Enemy != null && unit.Enemy.innate == card ? unit.Enemy.ritual : null;
+                ability.OnClick = () => CardDetailPopup.Open((RectTransform)transform, unit, card, rank, rt, null, soul);
                 ability.OnLongPress = ability.OnClick;
             }
         }
@@ -287,7 +288,7 @@ namespace Game.World
             overEnemyCards = false;
         }
 
-        static RectTransform ElementBadgeFor(RectTransform parent, Afflatus element)
+        static RectTransform ElementBadgeFor(RectTransform parent, Resonance element)
         {
             var img = UIFactory.CreateImage(parent, "Element", Color.white);
             img.sprite = CardIcons.Element(element);

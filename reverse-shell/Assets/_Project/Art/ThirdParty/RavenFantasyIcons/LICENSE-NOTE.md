@@ -20,19 +20,22 @@
 | Counter | fb665 |
 | Heal | fb661 |
 | Ultimate | fb776 |
+| Defense (picked 2026-10-28) | fb597 |
 | Ult pip (the empty pip is a greyed copy) | fb2186 |
 | Rank star | fb984 |
-| Element orbs (Star, Mineral, Beast, Earth, Spirit, Virus) | fb2129, fb2134, fb2130, fb2132, fb2131, fb2133 |
+| Resonance orbs (Arc, Cinder, Root, Cryo, Prism; picked 2026-10-28) | fb2118, fb2117, fb2120, fb2119, fb2121 |
 | CHIP | fb2115 |
 | CORE | fb2139 |
-| Poison | fb1086 |
-| ATK Up | fb1098 |
-| ATK Down | fb1102 |
-| Physical DEF Down | fb1103 |
-| DEF Up | fb1099 |
-| Stunned | fb1075 |
-| Regen | fb968 |
-| Incantation Might Up | fb877 |
+| Poison | fb691 |
+| ATK Up | fb684 |
+| ATK Down | fb700 |
+| Physical DEF Down | fb698 |
+| DEF Up | fb1899 |
+| Stunned | fb688 |
+| Regen | fb681 |
+| Incantation Might Up | fb683 |
+| Burn / Chill / Frozen | fb693, fb694, fb696 |
+| Shield / Counter / Covered | fb692, fb699, fb702 |
 | Go button chevrons (turned to point right) | fb649 |
 | Close X | fb656 |
 | Battle queue: moved-card slot (tinted gray) | fb2061 |
@@ -44,7 +47,7 @@
 ## Card icons
 
 `Tools/CardForge/card_forge.py` (`RAVEN_PICKS`) puts these into `Resources/Cards/CardArt.png` as each card's centre
-icon, with the cards' 1 px plum outline added. No icon is used twice (cards, card types and statuses):
+icon, with the cards' 1 px plum outline added. The table below is the older cards; the 110-card pool's picks (2026-10-28, from the icon picker) are in `RAVEN_PICKS` and in the card sheet's Icon column (Planning/CARDS.xlsx). No two cards share an icon:
 
 | Card | Icon |
 |---|---|
@@ -62,7 +65,6 @@ icon, with the cards' 1 px plum outline added. No icon is used twice (cards, car
 | Shield Bash | fb1811 |
 | Bulwark | fb2151 |
 | Corroded Blade | fb722 |
-| Missile Volley | fb1017 |
 | Network Link | fb905 |
 | Golden Hammer | fb1044 |
 | Reinforce | fb1921 |

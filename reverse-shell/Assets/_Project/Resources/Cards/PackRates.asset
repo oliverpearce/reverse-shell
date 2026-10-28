@@ -15,13 +15,98 @@ MonoBehaviour:
   cardsPerPack: 3
   soulChance: 0.01
   rareChance: 0.05
+  blankChance: 0.1
   packsPerWin: 1
-  copiesForRankII: 3
-  copiesForRankIII: 6
+  packs:
+  - id: Physical
+    displayName: Physical Pack
+    pool: 5
+    cardsPerPack: 3
+    packsPerWin: 1
+    poolShare: 0
+    commonShare: 0.7
+    rareShare: 0.25
+    epicShare: 0.05
+    soulChance: 0.01
+    arcanaChance: 0.05
+    blankChance: 0.1
+  - id: Arc
+    displayName: Arc Pack
+    pool: 0
+    cardsPerPack: 3
+    packsPerWin: 1
+    poolShare: 0.7
+    commonShare: 0.7
+    rareShare: 0.25
+    epicShare: 0.05
+    soulChance: 0.01
+    arcanaChance: 0.05
+    blankChance: 0.1
+  - id: Root
+    displayName: Root Pack
+    pool: 2
+    cardsPerPack: 3
+    packsPerWin: 1
+    poolShare: 0.7
+    commonShare: 0.7
+    rareShare: 0.25
+    epicShare: 0.05
+    soulChance: 0.01
+    arcanaChance: 0.05
+    blankChance: 0.1
+  - id: Cryo
+    displayName: Cryo Pack
+    pool: 3
+    cardsPerPack: 3
+    packsPerWin: 1
+    poolShare: 0.7
+    commonShare: 0.7
+    rareShare: 0.25
+    epicShare: 0.05
+    soulChance: 0.01
+    arcanaChance: 0.05
+    blankChance: 0.1
+  - id: Cinder
+    displayName: Cinder Pack
+    pool: 1
+    cardsPerPack: 3
+    packsPerWin: 1
+    poolShare: 0.7
+    commonShare: 0.7
+    rareShare: 0.25
+    epicShare: 0.05
+    soulChance: 0.01
+    arcanaChance: 0.05
+    blankChance: 0.1
+  - id: Prism
+    displayName: Prism Pack
+    pool: 4
+    cardsPerPack: 3
+    packsPerWin: 1
+    poolShare: 0.7
+    commonShare: 0.7
+    rareShare: 0.25
+    epicShare: 0.05
+    soulChance: 0.01
+    arcanaChance: 0.05
+    blankChance: 0.1
+  areaPacks:
+  - area: city
+    pack: Arc
+  - area: tunnel
+    pack: Arc
+  - area: chamber
+    pack: Arc
+  - area: sandbox
+    pack: Physical
+  upgradeCopies: 050000000a00000014000000
+  bindingOn: 1
   maxPerBinding: 2
   sunHeal: 0.05
   moonStatus: {fileID: 11400000, guid: 066dbd358b3ec0f4fb8803f1930d022a, type: 2}
   moonTurns: 1
   starUlt: 1
+  extraDeckSlots: 2
+  startWithSecondCard: 0
   maxSoulLevel: 3
   ultPowerPerSoul: 0.1

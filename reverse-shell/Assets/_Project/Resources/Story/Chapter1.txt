@@ -187,7 +187,7 @@ Unlocked. Switch it any time outside battle: Esc, then Units.
 # After the banner: the Core the card bound with.
 [absorb.core]
 The cracks in your Core have sealed over with a faint blue light.
-{gold}Your Fragmented Core is now the Resonant Core.{/c}{p} {gray}+10% damage while Electric.{/c}
+{gold}Your Fragmented Core is now the Resonant Core.{/c}{p} {gray}+10% damage while Arc.{/c}
 
 [ending]
 Scanner | {gray}NEW TRACE.{/c}

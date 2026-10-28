@@ -66,7 +66,7 @@ title.card_index = Cards
 title.overwrite = Overwrite slot {slot}?
 title.overwrite.yes = Yes, start a new game
 
-title.credits.text = <size=40>Credits</size>\n\nMade by {gold}Oliver Pearce{/c}.\n\n{gold}Icons{/c}   Raven Fantasy Icons by Clockwork Raven Studios\n{gold}Character sprites{/c}   Fantasy Knight by aamatniekss\n{gold}Effects{/c}   Super Pixel Effects Gigapack by Will Tice / unTied Games\n{gold}Font{/c}   monogram by datagoblin\n{gold}Card packs{/c}   Free Card Packs by argametina\n\nThank you for playing!
+title.credits.text = <size=40>Credits</size>\n\nMade by {gold}Oliver Pearce{/c}.\n\n{gold}Icons{/c}   Raven Fantasy Icons by Clockwork Raven Studios\n{gold}Character sprites{/c}   Fantasy Knight by aamatniekss\n{gold}Effects{/c}   Super Pixel Effects Gigapack by Will Tice / unTied Games\n{gold}Font{/c}   monogram by datagoblin\n{gold}Card packs{/c}   Free Card Packs by argametina\n{gold}Card back{/c}   Major Arcana Tarot Cards by Stars in a Box (stars-in-a-box.itch.io)\n\nThank you for playing!
 
 # ------------------------------------------------------------------ Settings (title, Esc menu and battle pause menu)
 
@@ -268,6 +268,8 @@ battle.fight_again = Fight Again
 battle.continue = Continue
 # Above a critical hit's number
 battle.crit = CRIT!
+# Under a hit a shield soaked. {n} = the damage blocked
+battle.blocked = BLOCK {n}
 
 # Banners across the middle. {n} = the turn number, {name} = a unit's name
 battle.banner.turn = Turn {n}
@@ -286,6 +288,12 @@ card.kind.buff = Buff
 card.kind.debuff = Debuff
 card.kind.counter = Counter
 card.kind.heal = Heal
+card.kind.defense = Defense
+# Above the Ult a unit's innate card powers up into, shown when hovering the innate card
+card.soul_form = SOUL FORM
+# The card popup's button on an innate card, and on its Soul form to go back
+card.soul_swap = Swap to Soul form
+card.innate_swap = Back to innate card
 card.hint.upgrades = Scroll to see upgrades
 card.hint.close = Click anywhere to close
 
@@ -295,6 +303,9 @@ status.turns = {n} turns
 status.lose_hp = Lose {pct} max HP each turn
 status.recover_hp = Recover {pct} max HP each turn
 status.cant_act = Can't act
+# A shield's tooltip. {n} = the damage it still soaks
+status.shield_left = Soaks {n} more damage this turn
+status.burn = Lose {pct} of the burner's ATK each turn
 
 # Holding a unit (its sheet)
 inspect.hint = Click anywhere to return to battle

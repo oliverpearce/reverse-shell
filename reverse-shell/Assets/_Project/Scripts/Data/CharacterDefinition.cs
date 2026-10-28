@@ -40,9 +40,9 @@ namespace Combat
         public bool statBarReference;
 
         [Header("Glow / elements")]
-        [Tooltip("Elements this character can channel. Empty or one = just their afflatus.")]
-        public List<Afflatus> channels = new List<Afflatus>();
-        [Tooltip("Glow in Glow Color instead of the afflatus color while no element is channeled (MC).")]
+        [Tooltip("Elements this character can channel. Empty or one = just their resonance.")]
+        public List<Resonance> channels = new List<Resonance>();
+        [Tooltip("Glow in Glow Color instead of the resonance color while no element is channeled (MC).")]
         public bool neutralGlow;
         public Color glowColor = Color.white;
 
@@ -53,7 +53,7 @@ namespace Combat
         public List<ResonanceKit> resonances = new List<ResonanceKit>();
 
         /// <summary>The kit for <paramref name="element"/>, or null.</summary>
-        public ResonanceKit KitFor(Afflatus element)
+        public ResonanceKit KitFor(Resonance element)
         {
             foreach (var kit in resonances) if (kit != null && kit.element == element) return kit;
             return null;

@@ -96,9 +96,9 @@ namespace Combat.EditorTools
             var atkDown = Status("Status_AtkDown", "ATK Down", "ATK", new Color(0.72f, 0.42f, 0.95f), true,
                 StackRule.RefreshDuration, 1, "-20% ATK.", 0f, 0f, new StatModifier(StatType.Attack, ModifierKind.Percent, -0.2f));
 
-            // ---------------------------------------------------------------- MC, the main character (Volt, Physical)
+            // ---------------------------------------------------------------- MC, the main character (Physical, Arc)
             // Party leader and the standout model. Glows white for now; it will channel several elements later
-            // (channels + AfflatusInfo.GlowFor). A heavy single-target strike plus a team damage buff.
+            // (channels + ResonanceInfo.GlowFor). A heavy single-target strike plus a team damage buff.
             var mc1 = Card("Card_MC_EdgeStrike", "Edge Strike", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
                 new CardEffect[] { new DamageEffect { multiplier = 1.8f } },
                 new CardEffect[] { new DamageEffect { multiplier = 2.7f } },
@@ -115,13 +115,13 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 1f } },
                 new CardEffect[] { new DamageEffect { multiplier = 1.5f } },
                 new CardEffect[] { new DamageEffect { multiplier = 2.4f } });
-            var mcUlt = Card("Card_MC_PrismBurst", "Prism Burst", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
+            var mcUlt = Card("Card_MC_EdgeBreaker", "Edge Breaker", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
                 new CardEffect[]
                 {
                     new DamageEffect { multiplier = 6f, hits = 2 },
                     new ApplyStatusEffect { target = EffectTarget.AllAllies, status = atkUp, stacks = 2, duration = 2 }
                 });
-            var mc = Character("Char_MC", "MC", "Prototype", new Color(0.92f, 0.92f, 0.95f), Afflatus.Volt, DamageType.Physical,
+            var mc = Character("Char_MC", "MC", "Prototype", new Color(0.92f, 0.92f, 0.95f), Resonance.Arc, DamageType.Physical,
                 2200, 240f, 130f, 130f, new[] { mc1, mc2 }, mcUlt, AnimSet("MC"));
             if (Fresh(mc))
             {
@@ -130,7 +130,7 @@ namespace Combat.EditorTools
                 mc.glowColor = new Color(1f, 0.55f, 0.18f); // orange, matching the sprite's glow pads
                 mc.statBarReference = true; // crew-menu stat bars: MC at level 30 fills 90%
                 mc.partSockets = new List<Vector2>(); // all crew cards share the reference knight's layout (CharacterMenu.SocketSpots)
-                mc.channels = new List<Afflatus> { Afflatus.Volt, Afflatus.Fire, Afflatus.Toxin, Afflatus.Earth, Afflatus.Light, Afflatus.Void };
+                mc.channels = new List<Resonance> { Resonance.Arc, Resonance.Root, Resonance.Cryo, Resonance.Cinder, Resonance.Prism };
                 Portraits(mc, "MC");
             }
 
@@ -158,7 +158,7 @@ namespace Combat.EditorTools
                     new HealEffect { target = EffectTarget.CardTargets, multiplier = 2.5f },
                     new ApplyStatusEffect { target = EffectTarget.CardTargets, status = regen, duration = 3 }
                 });
-            var ashe = Character("Char_Ashe", "Ashe", "Druid", new Color(0.5f, 0.86f, 0.45f), Afflatus.Earth, DamageType.Special,
+            var ashe = Character("Char_Ashe", "Ashe", "Druid", new Color(0.5f, 0.86f, 0.45f), Resonance.Root, DamageType.Special,
                 2800, 190f, 160f, 150f, new[] { heal1, heal2 }, healUlt, AnimSet("Ashe"));
             if (Fresh(ashe))
             {
@@ -166,7 +166,7 @@ namespace Combat.EditorTools
                 Portraits(ashe, "Ashe");
             }
 
-            // ---------------------------------------------------------------- Lucy (Void, Special)
+            // ---------------------------------------------------------------- Lucy (Arc, Special)
             // The same robot model with purple accents. Viruses: damage over time and debuffs.
             var lucy1 = Card("Card_Lucy_VirusSpike", "Virus Spike", CardKind.Attack, TargetMode.SingleEnemy, false, seqBolt,
                 new CardEffect[] { new DamageEffect { multiplier = 1.2f }, new ApplyStatusEffect { status = poison, duration = 2 } },
@@ -187,7 +187,7 @@ namespace Combat.EditorTools
                     new ApplyStatusEffect { status = poison, stacks = 2, duration = 3 },
                     new ApplyStatusEffect { status = defDown, duration = 2 }
                 });
-            var lucy = Character("Char_Lucy", "Lucy", "Hacker", new Color(0.72f, 0.45f, 0.95f), Afflatus.Void, DamageType.Special,
+            var lucy = Character("Char_Lucy", "Lucy", "Hacker", new Color(0.72f, 0.45f, 0.95f), Resonance.Arc, DamageType.Special,
                 2100, 215f, 120f, 150f, new[] { lucy1, lucy2 }, lucyUlt, AnimSet("Lucy"));
             if (Fresh(lucy))
             {
@@ -229,8 +229,6 @@ namespace Combat.EditorTools
             // ---------------------------------------------------------------- Enemies (machine lifeforms)
             var goldenHammer = Card("Card_Enemy_GoldenHammer", "Golden Hammer", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
                 new CardEffect[] { new DamageEffect { multiplier = 1.6f } });
-            var barrage = Card("Card_Enemy_MissileVolley", "Missile Volley", CardKind.Attack, TargetMode.AllEnemies, false, seqSweep,
-                new CardEffect[] { new DamageEffect { multiplier = 0.8f, hits = 2 } });
             var reinforce = Card("Card_Enemy_Reinforce", "Reinforce", CardKind.Buff, TargetMode.Self, false, seqSupport,
                 new CardEffect[] { new ApplyStatusEffect { status = atkUp, duration = 3 } });
             var bite = Card("Card_Enemy_CorrodedBlade", "Corroded Blade", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
@@ -239,13 +237,12 @@ namespace Combat.EditorTools
                 new CardEffect[] { new ApplyStatusEffect { status = atkUp, duration = 2 } });
 
             // Tuned as an introductory fight: roughly 6-8 rounds, enemies deal ~350 HP/round into ~7000 party HP.
-            var sentry = Enemy("Enemy_RustSentry", "Rust Sentry", new Color(0.66f, 0.46f, 0.3f), Afflatus.Fire, DamageType.Physical,
+            var sentry = Enemy("Enemy_RustSentry", "Rust Sentry", new Color(0.66f, 0.46f, 0.3f), Resonance.Cinder, DamageType.Physical,
                 4200, 150f, 140f, 110f, AnimSet("RustSentry"),
                 new EnemySkill { card = goldenHammer, weight = 2f },
-                new EnemySkill { card = barrage, weight = 1f },
                 new EnemySkill { card = reinforce, weight = 0.5f });
             if (Fresh(sentry)) sentry.xpReward = 120;
-            var stalker = Enemy("Enemy_ScrapStalker", "Scrap Stalker", new Color(0.5f, 0.58f, 0.32f), Afflatus.Toxin, DamageType.Special,
+            var stalker = Enemy("Enemy_ScrapStalker", "Scrap Stalker", new Color(0.5f, 0.58f, 0.32f), Resonance.Root, DamageType.Special,
                 2600, 135f, 90f, 90f, AnimSet("ScrapStalker"),
                 new EnemySkill { card = bite, weight = 2f },
                 new EnemySkill { card = howl, weight = 0.6f });
@@ -352,7 +349,7 @@ namespace Combat.EditorTools
                                    new ApplyStatusEffect { status = defUp, stacks = 2, duration = 2 } });
 
             var anim = AnimSet("Blue");
-            var blue = Character("Char_Blue", "Blue", "Guardian", new Color(0.45f, 0.65f, 1f), Afflatus.Light, DamageType.Physical,
+            var blue = Character("Char_Blue", "Blue", "Guardian", new Color(0.45f, 0.65f, 1f), Resonance.Prism, DamageType.Physical,
                 3200, 120f, 190f, 170f, new[] { bash, bulwark }, aegis, anim);
 
             var setup = AssetDatabase.LoadAssetAtPath<BattleSetup>(Root + "/Battle_Sample.asset");
@@ -373,7 +370,7 @@ namespace Combat.EditorTools
 
         /// <summary>
         /// Chapter One's content (bible §9; numbers are first drafts, bible §13): the protagonist's resonance kits
-        /// (Physical = the existing cards, Electric = Arc Edge, Static Field, Ult Thunderheart), Status_Stunned, the
+        /// (Physical = the existing cards, Arc = Arc Edge, Static Field, Ult Thunderheart), Status_Stunned, the
         /// chapter's enemies (all on the red Rust Sentry sprite: Scrap Hound, Wire Crawler, Collector, Electric Dragon)
         /// with their skills and Ults, and Resources/Bestiary.asset listing every enemy. Safe to run again: only missing
         /// assets are made, and the bestiary only gains enemies.
@@ -391,7 +388,7 @@ namespace Combat.EditorTools
             var atkUp = AssetDatabase.LoadAssetAtPath<StatusDefinition>(Root + "/Statuses/Status_AtkUp.asset");
             var defDown = AssetDatabase.LoadAssetAtPath<StatusDefinition>(Root + "/Statuses/Status_PhysicalDefDown.asset");
 
-            // ---- The protagonist's Electric kit: chains and stuns rather than just "the same hit, but yellow".
+            // ---- The protagonist's Arc kit: chains and stuns rather than just "the same hit, but yellow".
             var arcEdge = Card("Card_MC_ArcEdge", "Arc Edge", CardKind.Attack, TargetMode.SingleEnemy, false, null,
                 new CardEffect[] { new DamageEffect { multiplier = 1.4f }, new DamageEffect { target = EffectTarget.RandomEnemy, multiplier = 0.5f } },
                 new CardEffect[] { new DamageEffect { multiplier = 2.1f }, new DamageEffect { target = EffectTarget.RandomEnemy, multiplier = 0.8f } },
@@ -400,7 +397,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 0.5f }, new ApplyStatusEffect { status = stunned, duration = 1, chance = 0.25f } },
                 new CardEffect[] { new DamageEffect { multiplier = 0.8f }, new ApplyStatusEffect { status = stunned, duration = 1, chance = 0.4f } },
                 new CardEffect[] { new DamageEffect { multiplier = 1.2f }, new ApplyStatusEffect { status = stunned, duration = 1, chance = 0.6f } });
-            var thunderheart = Card("Card_MC_Thunderheart", "Thunderheart", CardKind.Attack, TargetMode.AllEnemies, true, null,
+            var thunderheart = Card("Card_MC_ArcTempest", "Arc Tempest", CardKind.Attack, TargetMode.AllEnemies, true, null,
                 new CardEffect[] { new DamageEffect { multiplier = 3.2f, hits = 3 }, new ApplyStatusEffect { status = stunned, duration = 1, chance = 0.5f } });
 
             var mc = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(Root + "/Characters/Char_MC.asset");
@@ -408,8 +405,8 @@ namespace Combat.EditorTools
             {
                 mc.resonances = new List<ResonanceKit>
                 {
-                    new ResonanceKit { element = Afflatus.None, cards = new List<CardDefinition>(mc.incantations), ultimate = mc.ritual },
-                    new ResonanceKit { element = Afflatus.Volt, cards = new List<CardDefinition> { arcEdge, staticField }, ultimate = thunderheart },
+                    new ResonanceKit { element = Resonance.Physical, cards = new List<CardDefinition>(mc.incantations), ultimate = mc.ritual },
+                    new ResonanceKit { element = Resonance.Arc, cards = new List<CardDefinition> { arcEdge, staticField }, ultimate = thunderheart },
                 };
                 EditorUtility.SetDirty(mc);
             }
@@ -422,7 +419,7 @@ namespace Combat.EditorTools
             var poison = AssetDatabase.LoadAssetAtPath<StatusDefinition>(Root + "/Statuses/Status_Poison.asset");
             var poisonStrike = Card("Card_Enemy_PoisonStrike", "Poison Strike", CardKind.Attack, TargetMode.SingleEnemy, false, null,
                 new CardEffect[] { new DamageEffect { multiplier = 1.5f }, new ApplyStatusEffect { status = poison, duration = 2 } });
-            var hound = Enemy("Enemy_ScrapHound", "Scrap Hound", new Color(0.78f, 0.42f, 0.28f), Afflatus.Fire, DamageType.Physical,
+            var hound = Enemy("Enemy_ScrapHound", "Scrap Hound", new Color(0.78f, 0.42f, 0.28f), Resonance.Cinder, DamageType.Physical,
                 2400, 150f, 100f, 95f, red, new EnemySkill { card = bite, weight = 2f }, new EnemySkill { card = poisonStrike, weight = 1f });
             if (Fresh(hound)) hound.xpReward = 50;
 
@@ -430,7 +427,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 1.0f } });
             var coilUp = Card("Card_Enemy_CoilUp", "Coil Up", CardKind.Buff, TargetMode.Self, false, null,
                 new CardEffect[] { new ApplyStatusEffect { target = EffectTarget.Self, status = atkUp, stacks = 1, duration = 2 } });
-            var crawler = Enemy("Enemy_WireCrawler", "Wire Crawler", new Color(0.5f, 0.62f, 0.85f), Afflatus.Volt, DamageType.Special,
+            var crawler = Enemy("Enemy_WireCrawler", "Wire Crawler", new Color(0.5f, 0.62f, 0.85f), Resonance.Arc, DamageType.Special,
                 2700, 160f, 120f, 110f, red, new EnemySkill { card = spark, weight = 2f }, new EnemySkill { card = coilUp, weight = 1f });
             if (Fresh(crawler)) crawler.xpReward = 70;
 
@@ -440,7 +437,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 0.9f }, new ApplyStatusEffect { status = defDown, duration = 2 } });
             var reclaim = Card("Card_Enemy_Reclaim", "Reclaim", CardKind.Attack, TargetMode.SingleEnemy, true, null,
                 new CardEffect[] { new DamageEffect { multiplier = 2.6f } });
-            var collector = Enemy("Enemy_Collector", "Collector", new Color(0.62f, 0.66f, 0.72f), Afflatus.None, DamageType.Physical,
+            var collector = Enemy("Enemy_Collector", "Collector", new Color(0.62f, 0.66f, 0.72f), Resonance.Physical, DamageType.Physical,
                 4400, 185f, 140f, 130f, red, new EnemySkill { card = grapple, weight = 2f }, new EnemySkill { card = suppress, weight = 1f });
             if (Fresh(collector))
             {
@@ -456,7 +453,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 0.7f }, new ApplyStatusEffect { status = stunned, duration = 1, chance = 0.35f } });
             var storm = Card("Card_Enemy_StormHeart", "Storm Heart", CardKind.Attack, TargetMode.AllEnemies, true, null,
                 new CardEffect[] { new DamageEffect { multiplier = 1.8f, hits = 3 } });
-            var dragon = Enemy("Enemy_ElectricDragon", "Electric Dragon", new Color(0.45f, 0.75f, 1f), Afflatus.Volt, DamageType.Special,
+            var dragon = Enemy("Enemy_ElectricDragon", "Electric Dragon", new Color(0.45f, 0.75f, 1f), Resonance.Arc, DamageType.Special,
                 2700, 170f, 150f, 160f, red, new EnemySkill { card = breath, weight = 1.5f }, new EnemySkill { card = tail, weight = 1.5f },
                 new EnemySkill { card = coil, weight = 1f });
             if (Fresh(dragon))
@@ -539,12 +536,12 @@ namespace Combat.EditorTools
             return Save(card, Root + "/Cards/" + file + ".asset");
         }
 
-        static CharacterDefinition Character(string file, string displayName, string archetype, Color color, Afflatus afflatus,
+        static CharacterDefinition Character(string file, string displayName, string archetype, Color color, Resonance resonance,
             DamageType damageType, int hp, float atk, float rdef, float mdef, CardDefinition[] incantations, CardDefinition ritual,
             SpriteAnimationSet animations)
         {
             var c = ScriptableObject.CreateInstance<CharacterDefinition>();
-            Fill(c, displayName, color, afflatus, damageType, hp, atk, rdef, mdef);
+            Fill(c, displayName, color, resonance, damageType, hp, atk, rdef, mdef);
             c.animations = animations;
             c.archetype = archetype;
             c.incantations = incantations.ToList();
@@ -552,7 +549,7 @@ namespace Combat.EditorTools
             return Save(c, Root + "/Characters/" + file + ".asset");
         }
 
-        /// <summary>The Core the protagonist wakes up with: cracked by the failed transfer, no bonuses. Electric resonance
+        /// <summary>The Core the protagonist wakes up with: cracked by the failed transfer, no bonuses. Arc resonance
         /// binds to it later in the chapter.</summary>
         static PartDefinition FragmentedCore()
         {
@@ -560,16 +557,16 @@ namespace Combat.EditorTools
                 "Your own Core, cracked by the failed transfer. It still turns.");
         }
 
-        /// <summary>The Fragmented Core after the Soul Card binds with it: +10% damage while Electric.</summary>
+        /// <summary>The Fragmented Core after the Soul Card binds with it: +10% damage while Arc.</summary>
         static PartDefinition ResonantCore()
         {
             var core = Part("Part_ResonantCore", "Resonant Core", PartSlot.Core, new Color(0.45f, 0.78f, 1f),
-                "Your Core, bound with the Soul Card. +10% damage while Electric.",
+                "Your Core, bound with the Soul Card. +10% damage while Arc.",
                 new StatModifier(StatType.DamageBonus, ModifierKind.Flat, 0.1f));
             if (Fresh(core))
             {
                 core.elementOnly = true;
-                core.element = Afflatus.Volt;
+                core.element = Resonance.Arc;
                 EditorUtility.SetDirty(core);
             }
             return core;
@@ -603,22 +600,22 @@ namespace Combat.EditorTools
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
-        static EnemyDefinition Enemy(string file, string displayName, Color color, Afflatus afflatus, DamageType damageType,
+        static EnemyDefinition Enemy(string file, string displayName, Color color, Resonance resonance, DamageType damageType,
             int hp, float atk, float rdef, float mdef, SpriteAnimationSet animations, params EnemySkill[] skills)
         {
             var e = ScriptableObject.CreateInstance<EnemyDefinition>();
-            Fill(e, displayName, color, afflatus, damageType, hp, atk, rdef, mdef);
+            Fill(e, displayName, color, resonance, damageType, hp, atk, rdef, mdef);
             e.animations = animations;
             e.skills = skills.ToList();
             return Save(e, Root + "/Enemies/" + file + ".asset");
         }
 
-        static void Fill(UnitDefinition u, string displayName, Color color, Afflatus afflatus, DamageType damageType,
+        static void Fill(UnitDefinition u, string displayName, Color color, Resonance resonance, DamageType damageType,
             int hp, float atk, float rdef, float mdef)
         {
             u.displayName = displayName;
             u.color = color;
-            u.afflatus = afflatus;
+            u.resonance = resonance;
             u.damageType = damageType;
             u.stats = new Stats { maxHP = hp, attack = atk, physicalDefense = rdef, specialDefense = mdef };
         }

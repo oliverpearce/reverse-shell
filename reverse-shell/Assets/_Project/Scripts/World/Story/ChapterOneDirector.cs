@@ -139,7 +139,7 @@ namespace Game.World
             {
                 GameObject card;
                 var pedestal = StoryProps.Pedestal(b.transform, map.CellCenter(cell.x, cell.y), out card);
-                if (StoryState.Has(Chapter1.ResonanceVolt)) card.SetActive(false);
+                if (StoryState.Has(Chapter1.ResonanceArc)) card.SetActive(false);
                 Prop(b, pedestal, w => TakeSoulCard(w, card));
             }
         }
@@ -300,7 +300,7 @@ namespace Game.World
 
         static void TakeSoulCard(OverworldBuilder b, GameObject card)
         {
-            if (StoryState.Has(Chapter1.ResonanceVolt)) { Say(b, "pedestal.empty"); return; }
+            if (StoryState.Has(Chapter1.ResonanceArc)) { Say(b, "pedestal.empty"); return; }
             if (!StoryState.Has(Chapter1.DragonBeaten)) { Say(b, "pedestal.blocked"); return; }
             b.StartCoroutine(Absorb(b, card));
         }
@@ -310,8 +310,8 @@ namespace Game.World
             b.SetCutscene(true);
             yield return Talk(b, Script("absorb"));
             if (card != null) card.SetActive(false);
-            WorldSession.UnlockResonance(Afflatus.Volt);
-            StoryState.Set(Chapter1.ResonanceVolt);
+            WorldSession.UnlockResonance(Resonance.Arc);
+            StoryState.Set(Chapter1.ResonanceArc);
             WorldSession.BindSoulCard();
             SaveGame.Save();
             var banner = StoryText.Texts("absorb.banner");

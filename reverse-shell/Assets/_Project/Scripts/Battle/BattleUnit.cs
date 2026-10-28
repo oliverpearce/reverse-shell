@@ -85,14 +85,14 @@ namespace Combat
         }
 
         /// <summary>Fits a loadout's cards and Parts. HP is refilled to the (possibly new) max; set HP afterwards to carry damage.</summary>
-        Afflatus? elementOverride;
+        Resonance? elementOverride;
         CardDefinition ultimateOverride;
 
         /// <summary>This unit's element in battle: its active resonance, else its definition's.</summary>
-        public Afflatus Afflatus { get { return elementOverride ?? Definition.afflatus; } }
+        public Resonance Resonance { get { return elementOverride ?? Definition.resonance; } }
 
         /// <summary>This unit's colour (card swirls, queue chips, flashes): its resonance's, else its definition's.</summary>
-        public Color Color { get { return AfflatusInfo.ResonanceColor(Definition.color, elementOverride); } }
+        public Color Color { get { return ResonanceInfo.ResonanceColor(Definition.color, elementOverride); } }
 
         /// <summary>The Ult card it can spawn: its active resonance's, else its definition's ritual.</summary>
         public CardDefinition Ultimate
@@ -157,7 +157,7 @@ namespace Combat
             }
             foreach (var part in Parts)
             {
-                if (!part.AppliesTo(Afflatus)) continue;
+                if (!part.AppliesTo(Resonance)) continue;
                 foreach (var mod in part.modifiers)
                 {
                     if (mod.stat != stat) continue;
@@ -185,7 +185,7 @@ namespace Combat
 
         public List<StatusSnapshot> SnapshotStatuses()
         {
-            return Statuses.ConvertAll(s => new StatusSnapshot(s.Definition, s.Remaining, s.Stacks));
+            return Statuses.ConvertAll(s => new StatusSnapshot(s.Definition, s.Remaining, s.Stacks, s.Power));
         }
 
         public override string ToString() { return Name; }
@@ -197,6 +197,13 @@ namespace Combat
         public readonly BattleUnit Source;
         public int Remaining;
         public int Stacks;
+        /// <summary>Shield: HP it still soaks. Counter: the counter hit's multiple of the holder's ATK.</summary>
+        public float Power;
+        /// <summary>Counter: extra share of Power while the holder is below half HP (1 = double).</summary>
+        public float Bonus;
+        /// <summary>Counter: a status the counter hit also gives the attacker (and for how many turns).</summary>
+        public StatusDefinition Payload;
+        public int PayloadTurns;
 
         public StatusInstance(StatusDefinition definition, BattleUnit source, int remaining, int stacks)
         {
@@ -212,12 +219,15 @@ namespace Combat
         public readonly StatusDefinition Definition;
         public readonly int Remaining;
         public readonly int Stacks;
+        /// <summary>A shield's HP left (0 for other statuses).</summary>
+        public readonly float Power;
 
-        public StatusSnapshot(StatusDefinition definition, int remaining, int stacks)
+        public StatusSnapshot(StatusDefinition definition, int remaining, int stacks, float power = 0f)
         {
             Definition = definition;
             Remaining = remaining;
             Stacks = stacks;
+            Power = power;
         }
     }
 }

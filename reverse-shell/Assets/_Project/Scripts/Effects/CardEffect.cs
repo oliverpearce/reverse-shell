@@ -43,6 +43,13 @@ namespace Combat
         }
     }
 
+    /// <summary>An effect whose size comes from the card's level (damage, heals, shields, counters). Its multiplier is
+    /// only its share of the rank's biggest one (<see cref="CardLevels.Of"/>).</summary>
+    public interface IPoweredEffect
+    {
+        float Multiplier { get; }
+    }
+
     public class EffectContext
     {
         public readonly BattleController Battle;

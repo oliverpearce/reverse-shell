@@ -20,6 +20,8 @@ namespace Combat
         public float advantageDamage = 1.3f;
         public float advantageCritBonus = 0.15f;
         public float disadvantageDamage = 0.8f;
+        [Tooltip("Prism is neutral in every matchup but gets this much extra crit chance (0.1 = +10%).")]
+        public float prismCritBonus = 0.1f;
 
         [Header("Card levels (1-20, see GAME_BIBLE: Game balance and systems)")]
         [Tooltip("A card's main hit (or heal) is this x its level, as a multiple of ATK. 0.25: Lv 4 = 100%, Lv 8 = 200%.")]

@@ -24,8 +24,15 @@ namespace Combat
         public float damagePerRoundPercentMaxHP;
         [Tooltip("Fraction of max HP restored at round end, per stack.")]
         public float healPerRoundPercentMaxHP;
+        [Tooltip("Share of the source's ATK lost at round end, per stack (Burn: 0.15 = 15%).")]
+        public float damagePerRoundSourceATK;
         [Tooltip("Unit skips its actions while this is active.")]
         public bool preventsAction;
+        [Tooltip("Shield, Counter and Cover are run by the battle rules; the card effect that gives it sets its numbers.")]
+        public StatusSpecial special;
+        [Tooltip("At max stacks this status turns into another one (Chill at 3 becomes Frozen).")]
+        public StatusDefinition becomesAtMaxStacks;
+        [Min(1)] public int becomesTurns = 1;
 
         [TextArea] public string description;
 

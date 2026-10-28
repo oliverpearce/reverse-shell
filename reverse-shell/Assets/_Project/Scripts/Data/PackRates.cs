@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Combat
@@ -10,6 +11,38 @@ namespace Combat
     /// code: what a pack holds and how often each tier drops, how many copies rank a card up, the binding and Soul
     /// caps, and what Sun / Moon / Star and Soul levels do. The generator makes the asset only if it's missing.
     /// </summary>
+    /// <summary>One kind of pack (the card sheet's Packs tab): its resonance, how many cards and wins, and its odds.</summary>
+    [System.Serializable]
+    public class PackKind
+    {
+        [Tooltip("Pack ID on the sheet; its picture is Resources/Cards/Packs/Pack_<id>.png.")]
+        public string id = "Physical";
+        public string displayName = "Physical Pack";
+        [Tooltip("The resonance whose cards it gives (Physical = Physical cards only).")]
+        public Resonance pool = Resonance.Physical;
+        [Min(1)] public int cardsPerPack = 3;
+        [Min(0)] public int packsPerWin = 1;
+        [Tooltip("Chance each common card is from the resonance; the rest are Physical cards (0.7 = 70%).")]
+        [Range(0f, 1f)] public float poolShare = 0.7f;
+        [Range(0f, 1f)] public float commonShare = 0.7f;
+        [Range(0f, 1f)] public float rareShare = 0.25f;
+        [Range(0f, 1f)] public float epicShare = 0.05f;
+        [Tooltip("Chance the last card is a Soul card.")]
+        [Range(0f, 1f)] public float soulChance = 0.01f;
+        [Tooltip("Chance the last card is Sun, Moon or Star.")]
+        [Range(0f, 1f)] public float arcanaChance = 0.05f;
+        [Tooltip("Chance the second card is a blank card.")]
+        [Range(0f, 1f)] public float blankChance = 0.1f;
+    }
+
+    /// <summary>Which pack a won fight in an area gives (the card sheet's Areas tab).</summary>
+    [System.Serializable]
+    public class AreaPack
+    {
+        public string area;
+        public string pack;
+    }
+
     [CreateAssetMenu(menuName = "Combat/Pack Rates", fileName = "PackRates")]
     public class PackRates : ScriptableObject
     {
@@ -24,6 +57,10 @@ namespace Combat
         [Range(0f, 1f)] public float blankChance = 0.1f;
         [Tooltip("Packs given after every won fight.")]
         [Min(0)] public int packsPerWin = 1;
+
+        [Header("Packs by chapter (filled from the card sheet by Reverse Shell > Import Cards From Sheet)")]
+        public List<PackKind> packs = new List<PackKind>();
+        public List<AreaPack> areaPacks = new List<AreaPack>();
 
         [Header("Copies (duplicates upgrade cards: +2 card levels each, CombatConfig.levelsPerUpgrade)")]
         [Tooltip("Copies each upgrade costs, in order: 5, then 10 more, then 20 more (35 in all for the top).")]
@@ -44,8 +81,8 @@ namespace Combat
         [Min(0)] public int starUlt = 1;
 
         [Header("Decks")]
-        [Tooltip("Cards a unit can bring besides its locked card (its leftmost card) and its Soul card.")]
-        [Min(0)] public int extraDeckSlots = 1;
+        [Tooltip("Alt cards a unit can bring besides its Main card (its leftmost card) and its Soul card.")]
+        [Min(0)] public int extraDeckSlots = 2;
         [Tooltip("Off: every unit starts with just its locked card and its Soul card. On: its second card fills the extra slot to start.")]
         public bool startWithSecondCard;
 
@@ -66,6 +103,30 @@ namespace Combat
                 if (current == null) current = CreateInstance<PackRates>();
                 return current;
             }
+        }
+
+        /// <summary>The overworld area the current fight is in (set by the overworld, read by the results screen).</summary>
+        public static string ActiveArea;
+
+        /// <summary>The pack with this id, or null.</summary>
+        public PackKind Pack(string id)
+        {
+            return string.IsNullOrEmpty(id) ? null : packs.Find(p => p != null && p.id == id);
+        }
+
+        /// <summary>The pack a won fight in <paramref name="area"/> gives: the Areas tab's, else the Physical pack, else
+        /// null (no packs set up: the old all-cards pack).</summary>
+        public PackKind PackForArea(string area)
+        {
+            var entry = areaPacks.Find(a => a != null && a.area == area);
+            return (entry != null ? Pack(entry.pack) : null) ?? Pack("Physical");
+        }
+
+        /// <summary>Packs a won fight in <paramref name="area"/> gives.</summary>
+        public int PacksPerWin(string area)
+        {
+            var kind = PackForArea(area);
+            return kind != null ? kind.packsPerWin : packsPerWin;
         }
 
         /// <summary>How many upgrades exist (3).</summary>

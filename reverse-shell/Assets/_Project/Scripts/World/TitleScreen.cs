@@ -134,12 +134,11 @@ namespace Game.World
             for (int slot = 1; slot <= SaveGame.SlotCount; slot++)
             {
                 var summary = SaveGame.Peek(slot);
-                string label = SaveGame.SlotLabel(slot, false);
                 int captured = slot;
                 if (newGame)
-                    Row(label, () => { if (summary != null) Confirm(captured); else Begin(captured, true); }, true);
+                    SlotRow(slot, () => { if (summary != null) Confirm(captured); else Begin(captured, true); }, true);
                 else
-                    Row(label, () => Begin(captured, false), summary != null);
+                    SlotRow(slot, () => Begin(captured, false), summary != null);
             }
             Row(UIText.Get("menu.back"), ShowMain, true);
             Select(0);
@@ -259,6 +258,50 @@ namespace Game.World
         {
             AddRow(label, action, isEnabled, helpText, 0f, RowWidth, 0);
             NextLine();
+        }
+
+        /// <summary>
+        /// A save slot's row, laid out in columns so nothing wraps: "Slot 2" on the left, then the leader's name, the
+        /// level in gold and the area on one line, and the save time at the right (dimmer). An empty slot says so.
+        /// </summary>
+        void SlotRow(int slot, Action action, bool isEnabled)
+        {
+            int i = rows.Count;
+            Row(UIText.Get("save.slot", "slot", slot.ToString()), action, isEnabled);
+            var head = rows[i];
+            head.alignment = TextAnchor.MiddleLeft;
+            head.rectTransform.offsetMin = new Vector2(36f, head.rectTransform.offsetMin.y);
+            var plate = plates[i].transform;
+            Func<string, int, Color, TextAnchor, Text> part = (text, size, color, anchor) =>
+            {
+                var t = InkStyle.Label(plate, "Part", text, size, isEnabled ? color : UIFactory.WithAlpha(color, 0.45f), anchor);
+                t.supportRichText = true;
+                t.horizontalOverflow = HorizontalWrapMode.Overflow;
+                t.raycastTarget = false;
+                return t;
+            };
+            string who, area, when;
+            int level;
+            if (!SaveGame.SlotParts(slot, out who, out level, out area, out when))
+            {
+                var empty = part(UIText.Get("save.empty"), UIFactory.TextSize.Medium, InkStyle.PaperDim, TextAnchor.MiddleLeft);
+                empty.rectTransform.Fill();
+                empty.rectTransform.offsetMin = new Vector2(250f, 0f);
+                return;
+            }
+            string line = who + "    <color=#C2A061>" + UIText.Get("common.lv") + " " + level + "</color>    " + area;
+            var details = part(line, UIFactory.TextSize.Medium, InkStyle.Paper, TextAnchor.MiddleLeft);
+            details.rectTransform.Fill();
+            details.rectTransform.offsetMin = new Vector2(250f, 0f);
+            details.rectTransform.offsetMax = new Vector2(-240f, 0f);
+            details.horizontalOverflow = HorizontalWrapMode.Wrap;   // clipped by its width rather than running into the time
+            details.verticalOverflow = VerticalWrapMode.Truncate;
+            details.resizeTextForBestFit = true;
+            details.resizeTextMinSize = UIFactory.TextSize.Small;
+            details.resizeTextMaxSize = UIFactory.TextSize.Medium;
+            var time = part(when, UIFactory.TextSize.Small, InkStyle.PaperDim, TextAnchor.MiddleRight);
+            time.rectTransform.Fill();
+            time.rectTransform.offsetMax = new Vector2(-36f, 0f);
         }
 
         /// <summary>A volume row: the name on the left, a slider on the right (drag it, or Left / Right when selected).</summary>

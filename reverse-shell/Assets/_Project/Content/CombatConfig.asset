@@ -21,3 +21,4 @@ MonoBehaviour:
   advantageDamage: 1.3
   advantageCritBonus: 0.15
   disadvantageDamage: 0.8
+  prismCritBonus: 0.1

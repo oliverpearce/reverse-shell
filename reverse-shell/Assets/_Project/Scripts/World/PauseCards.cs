@@ -153,7 +153,7 @@ namespace Game.World
             cards.Add(new Entry { Name = UIText.Get("pause.card.party"), Icon = "Menu_Party", Color = new Color(0.72f, 0.62f, 0.95f), Play = () => OpenNext(3) });
             cards.Add(new Entry { Name = UIText.Get("pause.card.units"), Icon = "Menu_Units", Color = new Color(0.5f, 0.82f, 0.62f), Play = () => OpenNext(4) });
             cards.Add(new Entry { Name = UIText.Get("pause.card.items"), Icon = "Menu_Items", Color = new Color(0.36f, 0.72f, 0.78f), Play = () => OpenNext(5) });
-            cards.Add(new Entry { Name = UIText.Get("pause.card.resonance"), Icon = "Menu_Resonance", Color = AfflatusInfo.Color(Afflatus.Volt), Play = () => OpenNext(6),
+            cards.Add(new Entry { Name = UIText.Get("pause.card.resonance"), Icon = "Menu_Resonance", Color = ResonanceInfo.Color(Resonance.Arc), Play = () => OpenNext(6),
                                   Shown = () => WorldSession.ResonanceMenuUnlocked });
 
             BuildBinder(root);

@@ -198,7 +198,8 @@ namespace Combat.Tests
                 for (int i = 0; i < Rates.maxPerBinding + 3; i++) Assert.IsTrue(CardCollection.AddFound(CardBinding.Sun));
                 for (int i = 0; i < Rates.maxSoulLevel + 3; i++) Assert.IsTrue(CardCollection.AddSoul(hero));
                 CardCollection.AddCopy(strike, 5);
-                Assert.IsTrue(CardPacks.TakePack(), "packs never run out");
+                PackKind kind;
+                Assert.IsTrue(CardPacks.TakePack(out kind), "packs never run out");
                 Assert.AreEqual(0, WorldSession.Packs);
             }
             finally { CardCollection.EndSession(); }
@@ -269,7 +270,7 @@ namespace Combat.Tests
             CardCollection.AddCopy(strike, 4);
             CardCollection.AddFound(CardBinding.Moon);
             CardCollection.Bind(strike, CardBinding.Moon);
-            WorldSession.Packs = 3;
+            WorldSession.AddPacks("", 3);
             CardCollection.AddSoul(hero);
 
             var data = SaveGame.Capture();

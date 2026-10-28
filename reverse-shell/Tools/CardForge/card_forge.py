@@ -294,6 +294,14 @@ TYPE_SHAPES = [
         '..abc..',
         '..b.c..',
         '.......']),
+    ('Defense', (0.45, 0.72, 0.85), [    # a crenellated wall (Counter keeps the shield)
+        '.......',
+        '.a.a.a.',
+        '.abbbc.',
+        '.abbbc.',
+        '.abbbc.',
+        '.bbbcc.',
+        '.......']),
 ]
 TYPE_SIZE = 7
 
@@ -562,28 +570,6 @@ def icon_corroded_blade():
     # dripping corrosion
     c.rect(18, 17, 18, 20, GREEN[1])
     c.put(18, 21, GREEN[0])
-    return c
-
-
-def missile(c, x, y, ang, length, body):
-    ux, uy = math.cos(ang), math.sin(ang)
-    nx, ny = -uy, ux
-    tail = (x - ux * length, y - uy * length)
-    c.stroke([(x, y), tail], 1.6, body[1])
-    c.line(x - ux, y - uy, tail[0], tail[1], body[0])
-    c.disc(x, y, 1.6, RED[1])
-    c.poly([(tail[0] + nx * 3, tail[1] + ny * 3), (tail[0] + ux * 2, tail[1] + uy * 2), (tail[0] - nx * 3, tail[1] - ny * 3)], RED[2])
-    # flame
-    c.stroke([(tail[0] - ux * 1.5, tail[1] - uy * 1.5), (tail[0] - ux * 5, tail[1] - uy * 5)], 1.2, AMBER[1])
-    c.put(tail[0] - ux * 2, tail[1] - uy * 2, AMBER[0])
-
-
-def icon_missile_volley():
-    c = Canvas(CELL, CELL)
-    ang = math.radians(-45)
-    for (x, y) in ((17, 6), (23, 12), (29, 18)):     # side by side, flying up-right in formation
-        missile(c, x, y, ang, 10, STEEL)
-    c.outline()
     return c
 
 
@@ -912,7 +898,7 @@ RAVEN_PICKS = {
     'Card_Ashe_BrambleLash': 1067, 'Card_Ashe_Overgrowth': 1110, 'Card_Ashe_SapMend': 1073,
     'Card_Lucy_VirusSpike': 741, 'Card_Lucy_Corrupt': 1117, 'Card_Lucy_Worm': 342,
     'Card_Blue_ShieldBash': 1811, 'Card_Blue_Bulwark': 2151,
-    'Card_Enemy_CorrodedBlade': 722, 'Card_Enemy_MissileVolley': 1017, 'Card_Enemy_NetworkLink': 905,
+    'Card_Enemy_CorrodedBlade': 722, 'Card_Enemy_NetworkLink': 905,
     'Card_Enemy_GoldenHammer': 1044,
     'Card_Enemy_Reinforce': 1921, 'Card_Enemy_Bite': 799, 'Card_Enemy_CoilUp': 824,
     'Card_Enemy_GrappleHook': 393,
@@ -922,6 +908,44 @@ RAVEN_PICKS = {
     # The Esc menu cards and the scanner HUD (picked 2026-10-24; Units, Resonance and the lock keep their drawings).
     'Menu_Quit': 3, 'Menu_Save': 10, 'Menu_Settings': 2, 'Menu_Party': 14, 'Menu_Items': 1,
     'Ui_Binoculars': 297,
+    # The 110-card pool's new cards (picked 2026-10-28 in the icon picker; Ult cards show full art instead).
+    'Card_Arc_ChainBolt': 1026, 'Card_Arc_EMPPulse': 1032, 'Card_Arc_FeedbackLoop': 1038,
+    'Card_Arc_FlickerGuard': 1043, 'Card_Arc_GroundFault': 1029, 'Card_Arc_IonBarrier': 1024,
+    'Card_Arc_JamSignal': 1040, 'Card_Arc_Jumpstart': 992, 'Card_Arc_LightningRod': 1007,
+    'Card_Arc_Overclock': 985, 'Card_Arc_Overload': 1033, 'Card_Arc_Quickstep': 1036,
+    'Card_Arc_RestartPulse': 1042, 'Card_Arc_ShortCircuit': 1031, 'Card_Arc_StaticDischarge': 1028,
+    'Card_Arc_SurgeLance': 1035, 'Card_Arc_Thunderclap': 1030,
+    'Card_Root_BarkSkin': 851, 'Card_Root_BlightSpores': 809, 'Card_Root_Bloom': 963,
+    'Card_Root_BrambleWhip': 833, 'Card_Root_Corrode': 779, 'Card_Root_CreepingRot': 780,
+    'Card_Root_DeepRoots': 970, 'Card_Root_Graft': 971, 'Card_Root_HedgeWall': 782,
+    'Card_Root_IvyShelter': 1115, 'Card_Root_LeechRoot': 975, 'Card_Root_MendingSap': 976,
+    'Card_Root_OozeSpill': 964, 'Card_Root_Photosynthesis': 969, 'Card_Root_SapBurst': 810,
+    'Card_Root_SnareTrap': 806, 'Card_Root_StranglingVines': 805, 'Card_Root_ThornVolley': 834,
+    'Card_Root_Thornmail': 965, 'Card_Root_Wilt': 777,
+    'Card_Cryo_ColdRetort': 819, 'Card_Cryo_CrystalEdge': 174, 'Card_Cryo_FlashFreeze': 1012,
+    'Card_Cryo_FrostFocus': 1023, 'Card_Cryo_FrostShard': 1010, 'Card_Cryo_FrostbiteWard': 1011,
+    'Card_Cryo_FrozenBastion': 1009, 'Card_Cryo_GlacialCover': 2152, 'Card_Cryo_GlacialMirror': 1019,
+    'Card_Cryo_GlacierCrash': 1017, 'Card_Cryo_HoarfrostAura': 789, 'Card_Cryo_IceWall': 1014,
+    'Card_Cryo_IcicleRiposte': 1022, 'Card_Cryo_PermafrostShell': 2149, 'Card_Cryo_RimePlating': 2145,
+    'Card_Cryo_ShatterGuard': 1020, 'Card_Cryo_Snowdrift': 2146, 'Card_Cryo_Stillness': 786,
+    'Card_Cryo_Thaw': 26, 'Card_Cryo_WinterSResolve': 787,
+    'Card_Cinder_AshCloud': 802, 'Card_Cinder_Backdraft': 812, 'Card_Cinder_BlastFurnace': 763,
+    'Card_Cinder_Cauterize': 1041, 'Card_Cinder_Detonate': 1003, 'Card_Cinder_EmberStrike': 993,
+    'Card_Cinder_FireSpin': 766, 'Card_Cinder_FlameWave': 998, 'Card_Cinder_Flashpoint': 977,
+    'Card_Cinder_HeatHaze': 1008, 'Card_Cinder_HeatShield': 762, 'Card_Cinder_InfernoLance': 1006,
+    'Card_Cinder_Kindle': 995, 'Card_Cinder_MagmaFist': 1001, 'Card_Cinder_MeltArmor': 996,
+    'Card_Cinder_Scorch': 1004, 'Card_Cinder_SlagHammer': 997, 'Card_Cinder_SmokeScreen': 765,
+    'Card_Cinder_Stoke': 1002, 'Card_Cinder_Wildfire': 981,
+    'Card_Prism_Inspire': 773, 'Card_Prism_Judgment': 843, 'Card_Prism_LightLance': 770,
+    'Card_Prism_MirrorShard': 772, 'Card_Prism_Pinpoint': 737, 'Card_Prism_PrismaticLens': 740,
+    'Card_Prism_Radiance': 774, 'Card_Prism_Refraction': 775, 'Card_Prism_SanctuaryGlass': 738,
+    'Card_Prism_SpectrumBurst': 829,
+    'Card_Physical_BraceForImpact': 1900, 'Card_Physical_Cleave': 1449, 'Card_Physical_Cover': 1192,
+    'Card_Physical_Expose': 928, 'Card_Physical_FieldRepair': 1584, 'Card_Physical_Fortify': 1126,
+    'Card_Physical_GroundSlam': 1536, 'Card_Physical_Guard': 1101, 'Card_Physical_Interrupt': 848,
+    'Card_Physical_PreciseShot': 1448, 'Card_Physical_QuickJab': 1446, 'Card_Physical_RallyGuard': 1258,
+    'Card_Physical_Reversal': 1542, 'Card_Physical_Riposte': 1530, 'Card_Physical_SteadyAim': 1789,
+    'Card_Physical_Strike': 1447, 'Card_Physical_Suppress': 890, 'Card_Physical_VersatileStrike': 1535,
 }
 
 
@@ -963,7 +987,6 @@ ICONS = [
     ('Card_Lucy_Corrupt', icon_corrupt),
     ('Card_Lucy_Worm', icon_worm),
     ('Card_Enemy_CorrodedBlade', icon_corroded_blade),
-    ('Card_Enemy_MissileVolley', icon_missile_volley),
     ('Card_Enemy_NetworkLink', icon_network_link),
     ('Card_Enemy_GoldenHammer', icon_golden_hammer),
     ('Card_Enemy_Reinforce', icon_reinforce),
@@ -1013,7 +1036,7 @@ ULT_OWNERS = [
 
 
 # Resonance Ults with their own full art (CardArt.Ult tries "Ult_<card asset>" before the owner's card):
-# (card asset, sprite folder, swirl colour = AfflatusInfo.Color of the element, extra decoration)
+# (card asset, sprite folder, swirl colour = ResonanceInfo.Color of the resonance, extra decoration)
 ULT_CARDS = [
     ('Card_MC_Thunderheart', 'MC', (1.0, 0.84, 0.18), 'bolts'),   # Electric: yellow, lightning down both sides
 ]

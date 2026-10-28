@@ -19,7 +19,7 @@ MonoBehaviour:
   spriteSheet: {fileID: 0}
   sheetColumns: 3
   sheetRows: 4
-  afflatus: 4
+  resonance: 4
   damageType: 0
   stats:
     maxHP: 3200

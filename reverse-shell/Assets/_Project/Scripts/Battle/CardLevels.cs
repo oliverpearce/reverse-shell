@@ -8,7 +8,8 @@ namespace Combat
     /// +5 at rank III) and on a boss (+3). Its main hit or heal is <see cref="CombatConfig.powerPerLevel"/> x level, as
     /// a multiple of ATK (less when it hits everyone, <see cref="CombatConfig.spreadShare"/>). The multipliers on the
     /// card's effects only set the shape: each one's share of the rank's biggest one (so a 1.4 + 0.5 card does its
-    /// level's power plus 36% of it).
+    /// level's power plus 36% of it). Damage, heals, shields and counters share that one budget
+    /// (<see cref="IPoweredEffect"/>): a 1.0 heal + 0.6 hit heals the full power and hits for 60% of it.
     /// </summary>
     public static class CardLevels
     {
@@ -27,6 +28,9 @@ namespace Combat
             {
                 level += c.levelsPerUpgrade * card.Owner.UpgradesOf(card.Definition);
                 if (card.Owner.IsBoss) level += c.bossCardLevels;
+                // An enemy's innate card is a Physical card it plays a few levels up.
+                var enemy = card.Owner.Enemy;
+                if (enemy != null && enemy.innate == card.Definition) level += enemy.innateLevels;
             }
             if (!card.IsRitual) level += card.Rank >= 3 ? c.rankIIILevels : card.Rank == 2 ? c.rankIILevels : 0;
             return Mathf.Clamp(level, 1, c.maxCardLevel);
@@ -39,29 +43,23 @@ namespace Combat
         }
 
         /// <summary>A damage effect's real multiplier on <paramref name="card"/> (null card: the authored value).</summary>
-        public static float Damage(CardInstance card, DamageEffect effect)
-        {
-            if (card == null || card.RankData == null) return effect.multiplier;
-            float main = 0f;
-            foreach (var e in card.RankData.effects)
-            {
-                var d = e as DamageEffect;
-                if (d != null) main = Mathf.Max(main, d.multiplier);
-            }
-            return Scaled(card, effect.multiplier, main, effect.target);
-        }
+        public static float Damage(CardInstance card, DamageEffect effect) { return Of(card, effect); }
 
         /// <summary>A heal effect's real multiplier on <paramref name="card"/> (null card: the authored value).</summary>
-        public static float Heal(CardInstance card, HealEffect effect)
+        public static float Heal(CardInstance card, HealEffect effect) { return Of(card, effect); }
+
+        /// <summary>Any powered effect's real multiple of ATK on <paramref name="card"/>: its share of the rank's biggest
+        /// powered effect times the level's power (null card: the authored value).</summary>
+        public static float Of(CardInstance card, IPoweredEffect effect)
         {
-            if (card == null || card.RankData == null) return effect.multiplier;
+            if (card == null || card.RankData == null) return effect.Multiplier;
             float main = 0f;
             foreach (var e in card.RankData.effects)
             {
-                var h = e as HealEffect;
-                if (h != null) main = Mathf.Max(main, h.multiplier);
+                var p = e as IPoweredEffect;
+                if (p != null) main = Mathf.Max(main, p.Multiplier);
             }
-            return Scaled(card, effect.multiplier, main, effect.target);
+            return Scaled(card, effect.Multiplier, main, ((CardEffect)effect).target);
         }
 
         static float Scaled(CardInstance card, float multiplier, float main, EffectTarget target)

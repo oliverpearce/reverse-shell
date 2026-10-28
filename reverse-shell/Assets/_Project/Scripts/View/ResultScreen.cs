@@ -220,7 +220,7 @@ namespace Combat.View
             var number = InkStyle.Title(root, "Level", level.ToString(), 150, InkStyle.GoldBright, TextAnchor.MiddleCenter);
             number.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
             number.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -60f), new Vector2(600f, 170f));
-            FxLibrary.PlayAt(root, BattleFx.Buff, root.position, 9f);
+            FxLibrary.PlayAt(root, BattleFx.LevelUp, root.position, 9f);
 
             root.localScale = Vector3.one * 0.3f;
             Host.StartCoroutine(Tween.Run(1.5f, p => { if (ring != null) ring.localRotation = Quaternion.Euler(0f, 0f, 45f + p * 90f); }));

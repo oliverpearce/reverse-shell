@@ -311,7 +311,7 @@ namespace Combat.View
             resultPanel.SetActive(true);
             resultButtonLabel.text = view.ResultButtonLabel;
             ResultScreen.Host = this;
-            ResultScreen.PacksWon = victory && view.ReturnsToWorld ? PackRates.Current.packsPerWin : 0;
+            ResultScreen.PacksWon = victory && view.ReturnsToWorld ? PackRates.Current.PacksPerWin(PackRates.ActiveArea) : 0;
             StartCoroutine(ResultScreen.Play(resultContent, victory, result, resultButton));
         }
     }

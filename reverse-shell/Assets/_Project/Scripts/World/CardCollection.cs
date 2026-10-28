@@ -327,9 +327,26 @@ namespace Game.World
             {
                 if (list.Count >= Rates.extraDeckSlots) break;
                 var card = Find(member, name);
-                if (card != null && card != locked && !list.Contains(card)) list.Add(card);
+                if (card != null && card != locked && !list.Contains(card) && UsableNow(member, card)) list.Add(card);
             }
             return list;
+        }
+
+        /// <summary>
+        /// Whether <paramref name="member"/> can bring <paramref name="card"/> under its active resonance: a resonance
+        /// kit's cards only while that resonance is active (bible v0.6: decks are the active resonance plus Physical);
+        /// Physical cards (the card pool) and other members' cards always. A saved Alt from another resonance just
+        /// sits out until you switch back.
+        /// </summary>
+        public static bool UsableNow(CharacterDefinition member, CardDefinition card)
+        {
+            if (member == null || card == null) return true;
+            if (member.cardPool.Contains(card) || member.incantations.Contains(card)) return true;
+            var active = WorldSession.ActiveKit(member);
+            if (active != null && active.cards.Contains(card)) return true;
+            foreach (var kit in member.resonances)
+                if (kit != null && kit != active && kit.cards.Contains(card)) return false;
+            return true;
         }
 
         /// <summary>The extra card in slot <paramref name="slot"/>, or null if it's empty.</summary>
@@ -367,7 +384,7 @@ namespace Game.World
         {
             var list = new List<CardDefinition>();
             var locked = LockedCard(member);
-            System.Action<CardDefinition> add = c => { if (c != locked && !list.Contains(c) && Owned(c, roster)) list.Add(c); };
+            System.Action<CardDefinition> add = c => { if (c != locked && !list.Contains(c) && Owned(c, roster) && UsableNow(member, c)) list.Add(c); };
             foreach (var c in AbilitiesOf(member)) add(c);
             foreach (var m in roster)
                 if (m != null && m != member) foreach (var c in AbilitiesOf(m)) add(c);
@@ -386,6 +403,32 @@ namespace Game.World
             foreach (var c in member.cardPool) add(c);
             foreach (var kit in member.resonances)
                 if (kit != null) foreach (var c in kit.cards) add(c);
+            return list;
+        }
+
+        /// <summary>The Soul form of a unit's innate card: the Ult of the resonance kit whose Main card it is, or (a unit
+        /// without kits) its own Ult when it's its first card. Null for every other card.</summary>
+        public static CardDefinition UltFormOf(CharacterDefinition member, CardDefinition card)
+        {
+            if (member == null || card == null) return null;
+            foreach (var kit in member.resonances)
+                if (kit != null && kit.cards.Count > 0 && kit.cards[0] == card) return kit.ultimate;
+            if (member.resonances.Count == 0 && member.incantations.Count > 0 && member.incantations[0] == card) return member.ritual;
+            return null;
+        }
+
+        /// <summary>The ability cards a unit's packs can give: its card pool, its own cards and the kits of resonances it
+        /// has unlocked (so locked resonances' cards don't drop early).</summary>
+        public static List<CardDefinition> PackPoolOf(CharacterDefinition member)
+        {
+            var list = new List<CardDefinition>();
+            if (member == null) return list;
+            System.Action<CardDefinition> add = c => { if (c != null && !c.isRitual && !list.Contains(c)) list.Add(c); };
+            foreach (var c in member.incantations) add(c);
+            foreach (var c in member.cardPool) add(c);
+            var open = WorldSession.AvailableResonances(member);
+            foreach (var kit in member.resonances)
+                if (kit != null && (open.Count == 0 || open.Contains(kit.element))) foreach (var c in kit.cards) add(c);
             return list;
         }
 

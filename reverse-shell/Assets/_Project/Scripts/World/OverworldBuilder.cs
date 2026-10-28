@@ -149,7 +149,7 @@ namespace Game.World
 #endif
             WorldSession.EnsureLoaded(); // first area of the session reads save.json
             WorldSession.GiveStarterParts(); // a new game (or an older save) gets the starter Parts once
-            if (StoryState.Has(Chapter1.ResonanceVolt)) WorldSession.BindSoulCard(); // saves from before the Resonant Core
+            if (StoryState.Has(Chapter1.ResonanceArc)) WorldSession.BindSoulCard(); // saves from before the Resonant Core
             area = WorldAreas.Get(WorldSession.CurrentArea);
             areaName = area.Name;
             areaSubtitle = area.Subtitle;
@@ -1107,6 +1107,7 @@ namespace Game.World
             var everyone = new List<CharacterDefinition>(setup.party);
             if (setup.backup != null) everyone.Add(setup.backup);
             var party = WorldSession.PartyFor(everyone);
+            Combat.PackRates.ActiveArea = WorldSession.CurrentArea;   // the results screen counts this area's packs
             BattleLauncher.Request(setup, party, WorldSession.LoadoutsFor(everyone), result =>
             {
                 WorldSession.PendingSpeaker = leader;
@@ -1119,7 +1120,9 @@ namespace Game.World
                     case BattleOutcome.Victory:
                         WorldSession.DefeatedEncounters.Add(id);
                         if (winFlag != null) StoryState.Set(winFlag);
-                        WorldSession.Packs += Combat.PackRates.Current.packsPerWin;   // every win gives card packs (Items > Cards)
+                        // Every win gives card packs (Items > Cards): this area's chapter pack.
+                        var packKind = Combat.PackRates.Current.PackForArea(WorldSession.CurrentArea);
+                        WorldSession.AddPacks(packKind != null ? packKind.id : "", Combat.PackRates.Current.PacksPerWin(WorldSession.CurrentArea));
                         // The results screen already shows XP and level ups: only story fights say anything after
                         // (plus the Part a story fight gives).
                         if (!string.IsNullOrEmpty(reward))

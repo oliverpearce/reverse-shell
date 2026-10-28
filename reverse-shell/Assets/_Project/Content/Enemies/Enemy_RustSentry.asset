@@ -19,7 +19,7 @@ MonoBehaviour:
   spriteSheet: {fileID: 0}
   sheetColumns: 3
   sheetRows: 4
-  afflatus: 1
+  resonance: 1
   damageType: 0
   stats:
     maxHP: 4200
@@ -32,9 +32,6 @@ MonoBehaviour:
   - card: {fileID: 11400000, guid: 44200de3aa9719344a1fd304547c17e9, type: 2}
     rank: 1
     weight: 2
-  - card: {fileID: 11400000, guid: 2bfdd1949225de3418f9209e402d2724, type: 2}
-    rank: 1
-    weight: 1
   - card: {fileID: 11400000, guid: 77929cf4292be8740a025ceeb616d57c, type: 2}
     rank: 1
     weight: 0.5

@@ -41,7 +41,9 @@ namespace Combat.View
 
             string turns = UIText.Get(status.Remaining == 1 ? "status.turn" : "status.turns", "n", status.Remaining.ToString());
             // What it does in total right now (two stacks of +15% ATK read "ATK +30%"), else the written description.
-            string total = StatusChip.TotalEffect(def, status.Stacks);
+            string total = def.special == StatusSpecial.Shield
+                ? UIText.Get("status.shield_left", "n", Mathf.RoundToInt(status.Power).ToString())
+                : StatusChip.TotalEffect(def, status.Stacks);
             string level = def.maxStacks > 1 && status.Stacks >= def.maxStacks ? UIText.Get("common.max") : "";
             string body = total.Length > 0 ? total : string.IsNullOrEmpty(def.description) ? "" : def.description;
 
@@ -120,7 +122,7 @@ namespace Combat.View
                 var turns = UIFactory.CreateText(chip, "Turns", s.Remaining.ToString(), Mathf.RoundToInt(22f * n), InkStyle.Paper, TextAnchor.LowerRight, FontStyle.Bold);
                 turns.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
                 turns.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(6f, -6f) * k, new Vector2(60f, 28f) * n);
-                AddAmount(chip, s.Definition, s.Stacks, n);
+                AddAmount(chip, s.Definition, s.Stacks, n, s.Power);
             }
             StatusTooltip.Attach(hit.gameObject, s);
             return chip;
@@ -147,6 +149,7 @@ namespace Combat.View
             if (def.modifiers != null)
                 foreach (var m in def.modifiers) lines.Add(StatName(m.stat) + " " + Signed(m, stacks, false));
             if (def.damagePerRoundPercentMaxHP > 0f) lines.Add(UIText.Get("status.lose_hp", "pct", Pct(def.damagePerRoundPercentMaxHP * stacks)));
+            if (def.damagePerRoundSourceATK > 0f) lines.Add(UIText.Get("status.burn", "pct", Pct(def.damagePerRoundSourceATK * stacks)));
             if (def.healPerRoundPercentMaxHP > 0f) lines.Add(UIText.Get("status.recover_hp", "pct", Pct(def.healPerRoundPercentMaxHP * stacks)));
             if (def.preventsAction) lines.Add(UIText.Get("status.cant_act"));
             return string.Join("\n", lines.ToArray());
@@ -203,9 +206,12 @@ namespace Combat.View
         }
 
         /// <summary>The total amount in a chip's top-left corner, green for buffs and red for debuffs.</summary>
-        public static void AddAmount(RectTransform chip, StatusDefinition def, int stacks, float k)
+        public static void AddAmount(RectTransform chip, StatusDefinition def, int stacks, float k, float power = 0f)
         {
-            string amount = Amount(def, stacks);
+            // A shield shows the HP it still soaks; a counter, how many hits back it has left.
+            string amount = def != null && def.special == StatusSpecial.Shield ? Mathf.RoundToInt(power).ToString()
+                : def != null && def.special == StatusSpecial.Counter ? "x" + stacks
+                : Amount(def, stacks);
             if (amount.Length == 0) return;
             var t = UIFactory.CreateText(chip, "Amount", amount, Mathf.RoundToInt(20f * k), ArrowColor(def), TextAnchor.UpperLeft, FontStyle.Bold);
             t.horizontalOverflow = HorizontalWrapMode.Overflow;

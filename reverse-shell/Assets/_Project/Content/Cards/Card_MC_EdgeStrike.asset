@@ -17,6 +17,8 @@ MonoBehaviour:
   targetMode: 0
   isRitual: 0
   level: 6
+  pool: 5
+  rarity: 0
   icon: {fileID: 0}
   ranks:
   - description: 
@@ -35,17 +37,26 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
-        multiplier: 1.8
+        multiplier: 1
         hits: 1
+        bonusVs: {fileID: 0}
+        bonusPerStack: 0
+        consumeBonus: 0
     00000001:
       type: {class: DamageEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
-        multiplier: 2.7
+        multiplier: 1
         hits: 1
+        bonusVs: {fileID: 0}
+        bonusPerStack: 0
+        consumeBonus: 0
     00000002:
       type: {class: DamageEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
-        multiplier: 4.5
+        multiplier: 1
         hits: 1
+        bonusVs: {fileID: 0}
+        bonusPerStack: 0
+        consumeBonus: 0

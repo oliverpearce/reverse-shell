@@ -22,7 +22,8 @@ namespace Game.World
         const float Left = -820f, Right = 820f, Top = 600f;
         const float InfoX = -60f;                   // the info column's left edge
         const float SpriteScale = 12f;              // 64 px frames at 12x (whole pixels)
-        const float RowCardScale = 1f;      // the pixel card at 5x, like the hand
+        /// <summary>The deck row's cards: as big as fits Main + Alts + Soul across the row, in whole card pixels (5x is the hand's size).</summary>
+        float rowCardScale = 1f;
 
         /// <summary>The item slots shown (weapon / armor slots are shelved for now).</summary>
         static readonly PartSlot[] Slots = { PartSlot.Chip, PartSlot.Core };
@@ -238,7 +239,7 @@ namespace Game.World
         {
             BuildTabs();
             BuildDetail();
-            var c = AfflatusInfo.GlowFor(Member);
+            var c = ResonanceInfo.GlowFor(Member);
             c.a = 0.16f;
             glowBackdrop.color = c;
         }
@@ -464,8 +465,12 @@ namespace Game.World
             int extraSlots = PackRates.Current.extraDeckSlots;
 
             float x0 = InfoX + 96f;
-            var cardSize = CardView.Size * RowCardScale;
             const float cardGap = 16f, groupGap = 40f, pad = 18f, labelH = 30f;
+            int cards = 1 + extraSlots + (ult != null ? 1 : 0);
+            float room = Right - x0 - pad * 2f - groupGap * (ult != null ? 2f : 1f) - cardGap * Mathf.Max(0, extraSlots - 1);
+            int pixel = Mathf.Clamp(Mathf.FloorToInt(room / cards / CardArt.Width), 2, (int)CardArt.HandPixel);
+            rowCardScale = pixel / CardArt.HandPixel;
+            var cardSize = CardView.Size * rowCardScale;
             var bracket = UIFactory.CreateRect("Cards", detail).Place(center, tl, new Vector2(x0, y), new Vector2(Right - x0, cardSize.y + labelH + pad * 2f));
             InkStyle.Frame(bracket, UIFactory.WithAlpha(InkStyle.Gold, 0.4f), 1f);
 
@@ -480,7 +485,8 @@ namespace Game.World
             groupLabel("units.main", cardSize.x);
             if (locked != null)
             {
-                var rt = CardSlot(bracket, unit, locked, new Vector2(x, -pad - labelH), cardSize);
+                var rt = CardSlot(bracket, unit, locked, new Vector2(x, -pad - labelH), cardSize, rowCardScale);
+                SoulFormPreview.Attach(rt.gameObject, unit, CardCollection.UltFormOf(member, locked) ?? ult, rowCardScale * 1.4f);
                 var captured = locked;
                 Clickable(rt, () => { SetFocus(Slots.Length); OpenCard(captured, rt); });
                 focusTargets.Add(rt);
@@ -496,7 +502,7 @@ namespace Game.World
                     int slot = s;
                     var card = CardCollection.ExtraIn(member, s);
                     RectTransform rt;
-                    if (card != null) rt = CardSlot(bracket, unit, card, new Vector2(x, -pad - labelH), cardSize);
+                    if (card != null) rt = CardSlot(bracket, unit, card, new Vector2(x, -pad - labelH), cardSize, rowCardScale);
                     else
                     {
                         // Empty: a faint frame with a "+".
@@ -528,17 +534,17 @@ namespace Game.World
             if (ult != null)
             {
                 groupLabel("units.ult", cardSize.x);
-                var rt = CardSlot(bracket, unit, ult, new Vector2(x, -pad - labelH), cardSize);
+                var rt = CardSlot(bracket, unit, ult, new Vector2(x, -pad - labelH), cardSize, rowCardScale);
                 Clickable(rt, () => OpenCard(ult, rt));
             }
         }
 
         /// <summary>One card in the deck row (icon only: the text is in the popup).</summary>
-        static RectTransform CardSlot(RectTransform bracket, BattleUnit unit, CardDefinition card, Vector2 at, Vector2 size)
+        static RectTransform CardSlot(RectTransform bracket, BattleUnit unit, CardDefinition card, Vector2 at, Vector2 size, float scale)
         {
             var tl = new Vector2(0f, 1f);
             var holder = UIFactory.CreateRect("Slot", bracket).Place(tl, tl, at, size);
-            var ability = AbilityCard.Create(holder, unit, card, 0, RowCardScale, true);
+            var ability = AbilityCard.Create(holder, unit, card, 0, scale, true);
             var rt = (RectTransform)ability.transform;
             rt.Fill();
             return rt;
@@ -622,7 +628,8 @@ namespace Game.World
         {
             var member = Member;
             if (member == null) return;
-            CardDetailPopup.Open((RectTransform)transform, UnitFor(member, WorldSession.ProgressOf(member), true), card, 1, from);
+            CardDetailPopup.Open((RectTransform)transform, UnitFor(member, WorldSession.ProgressOf(member), true), card, 1, from,
+                null, CardCollection.UltFormOf(member, card));
         }
 
         // ------------------------------------------------------------------ Focus, pickers and changes

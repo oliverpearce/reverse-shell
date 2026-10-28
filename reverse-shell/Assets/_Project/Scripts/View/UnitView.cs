@@ -186,10 +186,10 @@ namespace Combat.View
             // 64 px frames at exactly 6x keep pixels crisp (a boss is drawn at 9x); the feet sit ~2 px above the frame bottom.
             float size = unit.IsBoss ? SpriteSize * BossScale : SpriteSize;
             var images = new List<Image>();
-            // A resonance (the protagonist's Electric) glows in its element; Physical keeps the character's own glow.
-            Afflatus? resonance = unit.Character != null && unit.Character.resonances.Count > 0 && unit.Afflatus != Afflatus.None
-                ? unit.Afflatus : (Afflatus?)null;
-            var glowColor = Color.Lerp(unit.Character != null ? AfflatusInfo.GlowFor(unit.Character, resonance) : unit.Definition.color, Color.white, 0.45f);
+            // A resonance (the protagonist's Arc) glows in its element; Physical keeps the character's own glow.
+            Resonance? resonance = unit.Character != null && unit.Character.resonances.Count > 0 && unit.Resonance != Resonance.Physical
+                ? unit.Resonance : (Resonance?)null;
+            var glowColor = Color.Lerp(unit.Character != null ? ResonanceInfo.GlowFor(unit.Character, resonance) : unit.Definition.color, Color.white, 0.45f);
             glowColor.a = 0.16f;
             foreach (var o in new[] { new Vector2(-6f, 0f), new Vector2(6f, 0f), new Vector2(0f, 6f), new Vector2(0f, -6f),
                                       new Vector2(-4.5f, 4.5f), new Vector2(4.5f, 4.5f), new Vector2(-4.5f, -4.5f), new Vector2(4.5f, -4.5f) })
@@ -493,6 +493,7 @@ namespace Combat.View
                 case CardKind.Buff: return UIText.Get("card.kind.buff");
                 case CardKind.Debuff: return UIText.Get("card.kind.debuff");
                 case CardKind.Counter: return UIText.Get("card.kind.counter");
+                case CardKind.Defense: return UIText.Get("card.kind.defense");
                 default: return UIText.Get("card.kind.heal");
             }
         }
@@ -506,6 +507,7 @@ namespace Combat.View
                 case CardKind.Buff: return new Color(0.3f, 0.5f, 0.82f);
                 case CardKind.Debuff: return new Color(0.5f, 0.36f, 0.75f);
                 case CardKind.Counter: return new Color(0.76f, 0.58f, 0.2f);
+                case CardKind.Defense: return new Color(0.45f, 0.72f, 0.85f);
                 default: return new Color(0.35f, 0.72f, 0.48f);
             }
         }

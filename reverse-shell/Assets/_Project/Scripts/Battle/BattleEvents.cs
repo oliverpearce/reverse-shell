@@ -103,11 +103,25 @@ namespace Combat
         public BattleUnit Source;
         public BattleUnit Target;
         public int Amount;
+        /// <summary>Damage a shield soaked up before HP (Amount is what got through).</summary>
+        public int Blocked;
         public bool Crit;
         public bool IsTick;
-        public AfflatusRelation Relation;
+        /// <summary>A Counter's hit back.</summary>
+        public bool IsCounter;
+        /// <summary>An end-of-turn tick: the status that dealt it.</summary>
+        public StatusDefinition TickStatus;
+        public ResonanceRelation Relation;
         public int HPAfter;
         public int MaxHP;
+    }
+
+    /// <summary>A moment with an effect but no number: a shield going up, a cover, an interrupt, a cleanse.</summary>
+    public class FxCueEvent : BattleEvent
+    {
+        public const string Shield = "shield", Cover = "cover", Interrupt = "interrupt", Cleanse = "cleanse";
+        public BattleUnit Unit;
+        public string Cue;
     }
 
     public class HealEvent : BattleEvent

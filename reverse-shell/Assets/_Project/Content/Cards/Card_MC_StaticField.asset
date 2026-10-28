@@ -17,6 +17,8 @@ MonoBehaviour:
   targetMode: 1
   isRitual: 0
   level: 5
+  pool: 0
+  rarity: 1
   icon: {fileID: 0}
   ranks:
   - description: 
@@ -27,10 +29,13 @@ MonoBehaviour:
     effects:
     - id: 2
     - id: 3
+    - id: 4
   - description: 
     effects:
-    - id: 4
     - id: 5
+    - id: 6
+    - id: 7
+    - id: 8
   castSequence: {fileID: 0}
   references:
     version: 1
@@ -40,6 +45,9 @@ MonoBehaviour:
         target: 0
         multiplier: 0.5
         hits: 1
+        bonusVs: {fileID: 0}
+        bonusPerStack: 0
+        consumeBonus: 0
     00000001:
       type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
       data:
@@ -52,8 +60,11 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
-        multiplier: 0.8
+        multiplier: 0.5
         hits: 1
+        bonusVs: {fileID: 0}
+        bonusPerStack: 0
+        consumeBonus: 0
     00000003:
       type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
       data:
@@ -61,18 +72,45 @@ MonoBehaviour:
         status: {fileID: 11400000, guid: 28257566785a530408a00303d7931991, type: 2}
         duration: 1
         stacks: 1
-        chance: 0.4
+        chance: 0.25
     00000004:
-      type: {class: DamageEffect, ns: Combat, asm: Combat.Runtime}
-      data:
-        target: 0
-        multiplier: 1.2
-        hits: 1
-    00000005:
       type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
         status: {fileID: 11400000, guid: 28257566785a530408a00303d7931991, type: 2}
         duration: 1
         stacks: 1
-        chance: 0.6
+        chance: 0.2
+    00000005:
+      type: {class: DamageEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        multiplier: 0.5
+        hits: 1
+        bonusVs: {fileID: 0}
+        bonusPerStack: 0
+        consumeBonus: 0
+    00000006:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        status: {fileID: 11400000, guid: 28257566785a530408a00303d7931991, type: 2}
+        duration: 1
+        stacks: 1
+        chance: 0.25
+    00000007:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        status: {fileID: 11400000, guid: 28257566785a530408a00303d7931991, type: 2}
+        duration: 1
+        stacks: 1
+        chance: 0.2
+    00000008:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        status: {fileID: 11400000, guid: 28257566785a530408a00303d7931991, type: 2}
+        duration: 1
+        stacks: 1
+        chance: 0.33

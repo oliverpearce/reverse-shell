@@ -20,14 +20,14 @@ namespace Game.World
         public const string Tunnel = "ch1.tunnel";               // entered the buried tunnel
         public const string DragonSeen = "ch1.dragon.seen";      // saw the guardian
         public const string DragonBeaten = "ch1.dragon.beaten";
-        public const string ResonanceVolt = "ch1.resonance.volt"; // the Soul Card bound to the Core
+        public const string ResonanceArc = "ch1.resonance.volt"; // the Soul Card bound to the Core
         public const string Complete = "ch1.complete";           // saw the ending
 
         /// <summary>Every flag in story order (the debug panel lists them).</summary>
         public static readonly string[] All =
         {
             Named, Awake, Binder, Memory1, Memory2, Memory3, Scanner, LanguageChip, CollectorMet, CollectorBeaten, Route, Tunnel,
-            DragonSeen, DragonBeaten, ResonanceVolt, Complete,
+            DragonSeen, DragonBeaten, ResonanceArc, Complete,
         };
 
         /// <summary>The chapter asset's id (Resources/Chapters/Chapter_1).</summary>
