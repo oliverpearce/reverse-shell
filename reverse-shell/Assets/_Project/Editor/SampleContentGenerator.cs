@@ -96,7 +96,7 @@ namespace Combat.EditorTools
             var atkDown = Status("Status_AtkDown", "ATK Down", "ATK", new Color(0.72f, 0.42f, 0.95f), true,
                 StackRule.RefreshDuration, 1, "-20% ATK.", 0f, 0f, new StatModifier(StatType.Attack, ModifierKind.Percent, -0.2f));
 
-            // ---------------------------------------------------------------- MC, the main character (Physical, Arc)
+            // ---------------------------------------------------------------- MC, the main character (Basic, Arc)
             // Party leader and the standout model. Glows white for now; it will channel several elements later
             // (channels + ResonanceInfo.GlowFor). A heavy single-target strike plus a team damage buff.
             var mc1 = Card("Card_MC_EdgeStrike", "Edge Strike", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
@@ -370,7 +370,7 @@ namespace Combat.EditorTools
 
         /// <summary>
         /// Chapter One's content (bible §9; numbers are first drafts, bible §13): the protagonist's resonance kits
-        /// (Physical = the existing cards, Arc = Arc Edge, Static Field, Ult Thunderheart), Status_Stunned, the
+        /// (Basic = the existing cards, Arc = Arc Edge, Static Field, Ult Thunderheart), Status_Stunned, the
         /// chapter's enemies (all on the red Rust Sentry sprite: Scrap Hound, Wire Crawler, Collector, Electric Dragon)
         /// with their skills and Ults, and Resources/Bestiary.asset listing every enemy. Safe to run again: only missing
         /// assets are made, and the bestiary only gains enemies.
@@ -405,7 +405,7 @@ namespace Combat.EditorTools
             {
                 mc.resonances = new List<ResonanceKit>
                 {
-                    new ResonanceKit { element = Resonance.Physical, cards = new List<CardDefinition>(mc.incantations), ultimate = mc.ritual },
+                    new ResonanceKit { element = Resonance.Basic, cards = new List<CardDefinition>(mc.incantations), ultimate = mc.ritual },
                     new ResonanceKit { element = Resonance.Arc, cards = new List<CardDefinition> { arcEdge, staticField }, ultimate = thunderheart },
                 };
                 EditorUtility.SetDirty(mc);
@@ -437,7 +437,7 @@ namespace Combat.EditorTools
                 new CardEffect[] { new DamageEffect { multiplier = 0.9f }, new ApplyStatusEffect { status = defDown, duration = 2 } });
             var reclaim = Card("Card_Enemy_Reclaim", "Reclaim", CardKind.Attack, TargetMode.SingleEnemy, true, null,
                 new CardEffect[] { new DamageEffect { multiplier = 2.6f } });
-            var collector = Enemy("Enemy_Collector", "Collector", new Color(0.62f, 0.66f, 0.72f), Resonance.Physical, DamageType.Physical,
+            var collector = Enemy("Enemy_Collector", "Collector", new Color(0.62f, 0.66f, 0.72f), Resonance.Basic, DamageType.Physical,
                 4400, 185f, 140f, 130f, red, new EnemySkill { card = grapple, weight = 2f }, new EnemySkill { card = suppress, weight = 1f });
             if (Fresh(collector))
             {

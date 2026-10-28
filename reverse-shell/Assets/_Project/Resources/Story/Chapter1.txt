@@ -44,8 +44,8 @@ Grass where a floor should be. A capsule beside you, its lid cracked open to the
 On its side, a small red light blinks the same words over and over.{p} {red}TRANSFER INCOMPLETE{/c}
 {name} | {slow}Where...{/slow}{p} Where is everyone?
 
-[awakening.binder]
-Something presses against your hip: a small leather binder, strapped to your belt. Its cover is worn soft.
+[binder.pickup]
+A small leather binder lies by the capsule, its cover worn soft. A gold strap holds it shut.
 {name} | {gray}...Cards?{/c}{p} Most of the sleeves are empty.
 {gold}Card Binder{/c} obtained.{p} Open it from the {gold}Esc{/c} menu.
 
@@ -93,9 +93,19 @@ It sets one flower down by your feet,{p} then goes back to the others.
 # ------------------------------------------------------------------ The scanner
 
 [chip.pickup]
-Something glints by the capsule that wasn't there before: the scanner's lines settle around a chip no bigger than a fingernail.
-Scanner | {gray}LANGUAGE PACK FOUND. INSTALLING...{/c}
+Something glints by the capsule: a chip no bigger than a fingernail, its core glowing green. It warms in your hand.
+Core | {gray}LANGUAGE PACK FOUND. INSTALLING...{/c}
 {gold}You got the language chip.{/c}{p} The runes on your cards read as words now.
+
+[chip.colours.pickup]
+A chip lies by the rails, its core flickering violet, then every colour at once.
+Core | {gray}COLOUR TABLES FOUND. INSTALLING...{/c}
+{gold}You got the colours chip.{/c}{p} Your cards' words have their colours back.
+
+[chip.numbers.pickup]
+A chip lies in the corner of the empty house, half buried in moss, its core pulsing gold.
+Core | {gray}NUMERIC PACK FOUND. INSTALLING...{/c}
+{gold}You got the numbers chip.{/c}{p} The numbers on your cards read clearly now.
 
 [scanner.pickup]
 A small visor lies in the broken glass. When you lift it, it hums,{p} and thin lines settle over everything you look at.

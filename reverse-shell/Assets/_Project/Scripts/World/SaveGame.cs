@@ -188,6 +188,8 @@ namespace Game.World
             public int packs;
             /// <summary>Each unopened pack's id (older saves only have the count).</summary>
             public List<string> packKinds = new List<string>();
+            /// <summary>Items used ("area:x:row"): walkable from then on.</summary>
+            public List<string> usedItems = new List<string>();
             /// <summary>The overworld area you were in (WorldAreas id); empty in older saves = the city.</summary>
             public string area;
             /// <summary>Who has joined the party (asset names); empty in older saves = everyone.</summary>
@@ -196,7 +198,7 @@ namespace Game.World
             public List<string> formation = new List<string>();
             /// <summary>Story progress (StoryState): flags set so far, and the protagonist's chosen name.</summary>
             public List<string> flags = new List<string>();
-            /// <summary>Unlocked resonances and the active one, by element name ("" = Physical).</summary>
+            /// <summary>Unlocked resonances and the active one, by element name ("" = Basic).</summary>
             public List<string> resonances = new List<string>();
             public string activeResonance = "";
             public string playerName = "";
@@ -288,6 +290,7 @@ namespace Game.World
                 if (entry.Value > 0) data.bindingsFound.Add(new PartStack { id = entry.Key, count = entry.Value });
             data.packs = WorldSession.Packs;
             data.packKinds.AddRange(WorldSession.PackQueue);
+            data.usedItems.AddRange(WorldSession.UsedItems);
             data.area = WorldSession.CurrentArea;
             data.members.AddRange(WorldSession.Members);
             data.formation.AddRange(WorldSession.Formation);
@@ -317,10 +320,11 @@ namespace Game.World
             WorldSession.BindingsFound.Clear();
             WorldSession.PackQueue.Clear();
             WorldSession.StarterPartsGiven = false;
+            WorldSession.UsedItems.Clear();   // picked-up chips and items come back on a new game
             WorldSession.Members.Clear();
             StoryState.Clear();
             WorldSession.UnlockedResonances.Clear();
-            WorldSession.ActiveResonance = Combat.Resonance.Physical;
+            WorldSession.ActiveResonance = Combat.Resonance.Basic;
             if (data != null) MigrateAreas(data);
             if (data != null && data.resonances != null)
                 foreach (var r in data.resonances)
@@ -378,6 +382,7 @@ namespace Game.World
             WorldSession.PackQueue.Clear();
             if (data.packKinds != null && data.packKinds.Count > 0) WorldSession.PackQueue.AddRange(data.packKinds);
             else WorldSession.AddPacks("", Mathf.Max(0, data.packs));
+            if (data.usedItems != null) foreach (var key in data.usedItems) WorldSession.UsedItems.Add(key);
         }
 
         public static void Save()

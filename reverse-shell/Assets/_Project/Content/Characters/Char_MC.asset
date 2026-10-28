@@ -52,6 +52,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 59e3a750de725a949b583a9197d6ff87, type: 2}
   - {fileID: 11400000, guid: cdeef13b83a1d7141b40fee5b703cc5a, type: 2}
   - {fileID: 11400000, guid: f6e35a0fd4f777c4db1ef63a86cf61e7, type: 2}
+  starterCards:
+  - {fileID: 11400000, guid: e1e14ff8909bbd749ba6d8a7709972a7, type: 2}
+  - {fileID: 11400000, guid: d9c0ad83ead185a47b62b378679a746e, type: 2}
   ritual: {fileID: 11400000, guid: 34edb817f953b444c9bf24763d8463b1, type: 2}
   growthPerLevel: 0.08
   portraitFront: {fileID: 21300000, guid: 77cb898fbba3d0944a12b8301b33d9c0, type: 3}

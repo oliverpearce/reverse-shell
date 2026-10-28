@@ -8,7 +8,7 @@ namespace Combat.View
     /// <summary>
     /// Hovering a unit's innate card shows its Soul form (the Ult it powers up into) beside it, under a "SOUL FORM"
     /// label: on the Units page, in the Cards book and on a unit's battle sheet. The preview sits on the root canvas, to
-    /// the card's right (or left when that runs off screen), and never takes clicks.
+    /// the card's left (so it doesn't cover the cards after it; right when there's no room), and never takes clicks.
     /// </summary>
     public class SoulFormPreview : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
@@ -22,10 +22,21 @@ namespace Combat.View
         public static SoulFormPreview Attach(GameObject target, BattleUnit unit, CardDefinition ult, float scale)
         {
             if (ult == null) return null;
-            return Attach(target, (face, s) => CardView.BuildFace(face, new CardInstance(ult, unit, 1), s), scale);
+            return Attach(target, (face, s) => CardView.BuildFace(face, new CardInstance(ult, unit, 1), s, true), scale);
         }
 
-        /// <param name="buildFace">Draws the Soul card into the rect it's given (CardView.Size * scale).</param>
+        /// <summary>A Soul form not known yet (a resonance not unlocked, a companion not met): a card back under "???".</summary>
+        public static SoulFormPreview AttachHidden(GameObject target, float scale)
+        {
+            var preview = Attach(target, (face, s) => CardView.BuildBack(face, new Color(0.55f, 0.53f, 0.5f)), scale);
+            if (preview != null) preview.hidden = true;
+            return preview;
+        }
+
+        bool hidden;
+
+        /// <param name="buildFace">Draws the Soul card into the rect it's given (CardView.Size * scale), as a card only (its
+        /// text and numbers are for the card popup's Swap to Soul form).</param>
         public static SoulFormPreview Attach(GameObject target, Action<RectTransform, float> buildFace, float scale)
         {
             if (target == null || buildFace == null) return null;
@@ -54,7 +65,7 @@ namespace Combat.View
             InkStyle.Frame(panel, UIFactory.WithAlpha(InkStyle.Gold, 0.8f), 2f);
             panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
             panel.sizeDelta = box;
-            var label = InkStyle.Label(panel, "Label", UIText.Get("card.soul_form"), UIFactory.TextSize.Small, InkStyle.Gold, TextAnchor.MiddleCenter);
+            var label = InkStyle.Label(panel, "Label", UIText.Get(hidden ? "card.soul_form_hidden" : "card.soul_form"), UIFactory.TextSize.Small, InkStyle.Gold, TextAnchor.MiddleCenter);
             label.rectTransform.TopStrip(Pad, LabelH, Pad);
             var face = UIFactory.CreateRect("Face", panel);
             face.anchorMin = face.anchorMax = new Vector2(0.5f, 0f);
@@ -68,8 +79,8 @@ namespace Combat.View
             Vector3 right = root.InverseTransformPoint(self.TransformPoint(new Vector3(self.rect.xMax, self.rect.center.y, 0f)));
             Vector3 left = root.InverseTransformPoint(self.TransformPoint(new Vector3(self.rect.xMin, self.rect.center.y, 0f)));
             var half = root.rect.size / 2f;
-            bool fitsRight = right.x + Gap + box.x <= half.x;
-            float x = fitsRight ? right.x + Gap + box.x / 2f : left.x - Gap - box.x / 2f;
+            bool fitsLeft = left.x - Gap - box.x >= -half.x;
+            float x = fitsLeft ? left.x - Gap - box.x / 2f : right.x + Gap + box.x / 2f;
             float y = Mathf.Clamp(right.y, -half.y + box.y / 2f, half.y - box.y / 2f);
             panel.anchoredPosition = new Vector2(x, y);
             panel.SetAsLastSibling();

@@ -24,7 +24,12 @@ namespace Game.World
         }
 
         [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
-        static void HookTranslation() { Combat.View.CardTranslation.Check = () => Translated; }
+        static void HookTranslation()
+        {
+            Combat.View.CardTranslation.Check = () => Translated;
+            Combat.View.CardTranslation.NumbersCheck = () => IndexOpen || InSession || WorldSession.InSandbox || StoryState.Has(Chapter1.NumbersChip);
+            Combat.View.CardTranslation.ColoursCheck = () => IndexOpen || InSession || WorldSession.InSandbox || StoryState.Has(Chapter1.ColoursChip);
+        }
 
         static PackRates Rates { get { return PackRates.Current; } }
 
@@ -319,6 +324,11 @@ namespace Game.World
             var locked = LockedCard(member);
             if (!progress.ExtrasChosen)
             {
+                // The starter cards fill the Alt slots until the player picks others.
+                foreach (var starter in member.starterCards)
+                    if (starter != null && starter != locked && !list.Contains(starter) && list.Count < Rates.extraDeckSlots && UsableNow(member, starter))
+                        list.Add(starter);
+                if (list.Count > 0) return list;
                 var second = Rates.startWithSecondCard ? SecondCard(member) : null;
                 if (second != null && Rates.extraDeckSlots > 0) list.Add(second);
                 return list;
@@ -334,8 +344,8 @@ namespace Game.World
 
         /// <summary>
         /// Whether <paramref name="member"/> can bring <paramref name="card"/> under its active resonance: a resonance
-        /// kit's cards only while that resonance is active (bible v0.6: decks are the active resonance plus Physical);
-        /// Physical cards (the card pool) and other members' cards always. A saved Alt from another resonance just
+        /// kit's cards only while that resonance is active (bible v0.6: decks are the active resonance plus Basic);
+        /// Basic cards (the card pool) and other members' cards always. A saved Alt from another resonance just
         /// sits out until you switch back.
         /// </summary>
         public static bool UsableNow(CharacterDefinition member, CardDefinition card)
@@ -356,6 +366,48 @@ namespace Game.World
             return slot >= 0 && slot < extras.Count ? extras[slot] : null;
         }
 
+        /// <summary>
+        /// Puts <paramref name="card"/> in an extra slot for <paramref name="member"/>, taking it out of any other unit's
+        /// deck in <paramref name="roster"/> first: a card is only ever in one unit's deck at a time.
+        /// </summary>
+        public static void SetExtra(CharacterDefinition member, int slot, CardDefinition card, IList<CharacterDefinition> roster)
+        {
+            if (card != null && roster != null)
+                foreach (var other in roster)
+                {
+                    if (other == null || other == member || !Extras(other).Contains(card)) continue;
+                    var keep = Extras(other).ConvertAll(c => c.name);
+                    keep.Remove(card.name);
+                    var progress = WorldSession.ProgressOf(other);
+                    progress.ExtraCards = keep;
+                    progress.ExtrasChosen = true;
+                }
+            SetExtra(member, slot, card);
+        }
+
+        /// <summary>
+        /// Cleans up a loaded save so no card is in two decks: every unit keeps its innate card; going through
+        /// <paramref name="cast"/> in party order, each keeps the Alts nobody before it has, and loses the rest (its slot
+        /// goes empty). Safe to run every time (it changes nothing once the decks are clean).
+        /// </summary>
+        public static void EnforceOneDeck(IList<CharacterDefinition> cast)
+        {
+            if (cast == null) return;
+            var taken = new HashSet<CardDefinition>();
+            foreach (var m in cast) if (m != null && LockedCard(m) != null) taken.Add(LockedCard(m));
+            foreach (var m in cast)
+            {
+                if (m == null) continue;
+                var extras = Extras(m);
+                var keep = extras.FindAll(c => !taken.Contains(c));
+                foreach (var c in keep) taken.Add(c);
+                if (keep.Count == extras.Count) continue;
+                var progress = WorldSession.ProgressOf(m);
+                progress.ExtraCards = keep.ConvertAll(c => c.name);
+                progress.ExtrasChosen = true;
+            }
+        }
+
         /// <summary>Puts <paramref name="card"/> in an extra slot (null = Remove: the slot goes empty).</summary>
         public static void SetExtra(CharacterDefinition member, int slot, CardDefinition card)
         {
@@ -368,14 +420,38 @@ namespace Game.World
             progress.ExtrasChosen = true;
         }
 
-        /// <summary>A card you have: someone's locked card (or default second card), or at least one copy from packs.</summary>
+        /// <summary>A card you have: a unit's innate card in use (its current Main), a starter card, or at least one copy
+        /// from packs. Other innate cards (the other resonances', companions') come from packs like any card.</summary>
         public static bool Owned(CardDefinition card, IList<CharacterDefinition> roster)
         {
             if (card == null) return false;
             if (Copies(card) > 0) return true;
             foreach (var m in roster)
-                if (m != null && (LockedCard(m) == card || (Rates.startWithSecondCard && SecondCard(m) == card))) return true;
+                if (m != null && (LockedCard(m) == card || m.starterCards.Contains(card) || (Rates.startWithSecondCard && SecondCard(m) == card))) return true;
             return false;
+        }
+
+        /// <summary>Who has <paramref name="card"/> in their deck right now (as their innate card or an Alt).</summary>
+        public static List<CharacterDefinition> EquippedBy(CardDefinition card, IList<CharacterDefinition> roster)
+        {
+            var list = new List<CharacterDefinition>();
+            if (card == null || roster == null) return list;
+            foreach (var m in roster)
+                if (m != null && !list.Contains(m) && (LockedCard(m) == card || Extras(m).Contains(card))) list.Add(m);
+            return list;
+        }
+
+        /// <summary>
+        /// Whether an innate card's Soul form can be seen yet: a resonance's innate once that resonance is unlocked (any
+        /// in Sandbox Mode), a companion's once you've met them. Until then it shows as "???".
+        /// </summary>
+        public static bool SoulFormKnown(CharacterDefinition member, CardDefinition card)
+        {
+            if (member == null || card == null) return false;
+            if (WorldSession.InSandbox) return true;
+            foreach (var kit in member.resonances)
+                if (kit != null && kit.cards.Count > 0 && kit.cards[0] == card) return WorldSession.AvailableResonances(member).Contains(kit.element);
+            return WorldSession.Members.Count == 0 || WorldSession.Members.Contains(member.name);
         }
 
         /// <summary>What can go in a unit's extra slot: every party ability card you own except its locked card, its own
@@ -384,7 +460,13 @@ namespace Game.World
         {
             var list = new List<CardDefinition>();
             var locked = LockedCard(member);
-            System.Action<CardDefinition> add = c => { if (c != locked && !list.Contains(c) && Owned(c, roster) && UsableNow(member, c)) list.Add(c); };
+            // Another unit's innate card is theirs alone (an Alt in another deck can be taken: SetExtra moves it).
+            System.Action<CardDefinition> add = c =>
+            {
+                if (c == locked || list.Contains(c) || !Owned(c, roster) || !UsableNow(member, c)) return;
+                foreach (var m in roster) if (m != null && m != member && LockedCard(m) == c) return;
+                list.Add(c);
+            };
             foreach (var c in AbilitiesOf(member)) add(c);
             foreach (var m in roster)
                 if (m != null && m != member) foreach (var c in AbilitiesOf(m)) add(c);

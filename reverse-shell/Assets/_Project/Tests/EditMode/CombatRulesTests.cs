@@ -21,12 +21,12 @@ namespace Combat.Tests
             Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Arc, Resonance.Root));
             Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Arc, Resonance.Prism));
             Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Prism, Resonance.Cinder));
-            Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Physical, Resonance.Arc));
+            Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Basic, Resonance.Arc));
         }
 
         [TestCase("Volt", Resonance.Arc)]
-        [TestCase("None", Resonance.Physical)]
-        [TestCase("Void", Resonance.Physical)]
+        [TestCase("None", Resonance.Basic)]
+        [TestCase("Void", Resonance.Basic)]
         [TestCase("Cryo", Resonance.Cryo)]
         public void Resonance_ReadsOldAndNewSaveNames(string saved, Resonance expected)
         {

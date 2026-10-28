@@ -68,6 +68,7 @@ namespace Game.World
         float skipHeld;
         bool mouseOnSkip, mouseOverSkip;
         Slot revealing;              // the card being revealed
+        PackKind forcedKind, openedKind;
         bool skipCard, fastForward;  // skip the current card / every card left (Soul cards always play)
         const float SkipIdleAlpha = 0.2f;
         UiParticles particles;
@@ -77,7 +78,8 @@ namespace Game.World
         bool torn, tearing, finished;
         int openedFrame;
 
-        public static PackOpening Open(RectTransform canvasRoot, List<CharacterDefinition> roster, Action onDone)
+        /// <param name="kind">Pack Mode: the pack picked from the shelf (every pack and "Open another" is this one).</param>
+        public static PackOpening Open(RectTransform canvasRoot, List<CharacterDefinition> roster, Action onDone, PackKind kind = null)
         {
             if (current != null) return current;
             var rt = UIFactory.CreateRect("PackOpening", canvasRoot).Fill();
@@ -87,6 +89,7 @@ namespace Game.World
             opening.root = rt;
             opening.roster = roster;
             opening.onDone = onDone;
+            opening.forcedKind = kind;
             opening.Build();
             opening.NextPack();
             return opening;
@@ -176,7 +179,7 @@ namespace Game.World
         }
 
         /// <summary>A tap on Skip: the card being revealed jumps to its end (into the row) and the next one starts.
-        /// A Soul card can't be skipped. Before the pack is torn, it tears it.</summary>
+        /// A Soul card and the pack's last card can't be skipped. Before the pack is torn, it tears it.</summary>
         void SkipCard()
         {
             if (finished) return;
@@ -185,18 +188,25 @@ namespace Game.World
                 if (!tearing) Tear();
                 return;
             }
-            if (revealing != null && revealing.Pull.Tier == CardPacks.Tier.Soul) return;
+            if (revealing != null && !Skippable(revealing)) return;
             skipCard = true;
         }
 
-        /// <summary>A full hold on Skip: every card left jumps to its end, except a Soul card, which still plays.</summary>
+        /// <summary>A full hold on Skip: every card left jumps to its end, except a Soul card and the last card, which
+        /// still play.</summary>
         void FastForward()
         {
             skipHeld = 0f;
             mouseOnSkip = false;
             fastForward = true;
             if (!torn && !tearing) Tear();
-            skipCard = revealing == null || revealing.Pull.Tier != CardPacks.Tier.Soul;
+            skipCard = revealing == null || Skippable(revealing);
+        }
+
+        /// <summary>The last card always plays its draw (spamming Skip would otherwise always cut it), and so does a Soul card.</summary>
+        bool Skippable(Slot slot)
+        {
+            return slot.Pull.Tier != CardPacks.Tier.Soul && slot.Index != slots.Count - 1;
         }
 
         /// <summary>Card <paramref name="i"/>'s place in the row once it's out.</summary>
@@ -225,6 +235,12 @@ namespace Game.World
         {
             PackKind kind;
             if (!CardPacks.TakePack(out kind)) return;
+            if (CardCollection.InSession)
+            {
+                if (forcedKind != null) kind = forcedKind;
+                PackModeRun.OnPackOpened(kind);   // the first one starts the race's timer
+            }
+            openedKind = kind;
             UIFactory.ClearChildren(stage);
             slots.Clear();
             torn = tearing = finished = false;
@@ -233,7 +249,7 @@ namespace Game.World
             openedFrame = Time.frameCount;
             // Roll and claim straight away (and save), so leaving early never loses the cards.
             var pulls = CardPacks.Roll(roster, new System.Random(Environment.TickCount), kind);
-            backGem = ResonanceInfo.Color(kind != null ? kind.pool : Resonance.Physical);
+            backGem = ResonanceInfo.Color(kind != null ? kind.pool : Resonance.Basic);
             foreach (var pull in pulls) CardPacks.Claim(pull);
             if (!CardCollection.InSession) SaveGame.Save();   // Card Pack mode keeps nothing
             foreach (var pull in pulls) slots.Add(new Slot { Pull = pull });
@@ -357,7 +373,7 @@ namespace Game.World
                 revealing = slot;
                 slot.Revealing = true;   // it stops bobbing
                 slot.Rect.SetAsLastSibling();   // drawn over the cards still in the row
-                skipCard = fastForward && slot.Pull.Tier != CardPacks.Tier.Soul;
+                skipCard = fastForward && Skippable(slot);
                 bool last = i == slots.Count - 1;
 
                 // Up in its own column (the row's spacing leaves room for it at its big size), so it never covers the others.
@@ -545,7 +561,96 @@ namespace Game.World
             slot.Rect.localRotation = Quaternion.identity;
             slot.Revealed = true;
             slot.Revealing = false;
+            var run = CardCollection.InSession ? PackModeRun.OnReveal(slot.Pull, roster) : new PackModeRun.RevealResult();
             yield return Celebrate(slot);
+            if (CardCollection.InSession) yield return RunFlair(slot, run);
+        }
+
+        // PACK OPENING > PACK MODE FLAIR (the race: streaks, jackpots, so close)
+
+        static readonly Color Jackpot = new Color(1f, 0.85f, 0.3f), Streak = new Color(0.55f, 1f, 0.6f), Close = new Color(1f, 0.5f, 0.35f);
+
+        IEnumerator RunFlair(Slot slot, PackModeRun.RevealResult run)
+        {
+            if (run.NewCard && run.Streak >= 2)
+                StartCoroutine(PopText(slot.Rect.anchoredPosition + new Vector2(0f, 230f), UIText.Get("packmode.streak", "n", run.Streak.ToString()), Streak, 44f));
+            if (run.Completed == null) yield break;
+            // JACKPOT: the pull that finished a set.
+            var at = slot.Rect.anchoredPosition;
+            FlashTo(0.9f);
+            for (int i = 0; i < 5; i++)
+            {
+                float hue = i / 5f;
+                particles.Burst(at + new Vector2((i - 2) * 140f, 60f), 26, 1100f, 1.3f, 20f, t => Color.HSVToRGB(Mathf.Repeat(hue + t * 0.4f, 1f), 0.6f, 1f), 500f);
+            }
+            var split = PackModeRun.SplitOf(run.Completed);
+            string sub = UIText.Get("packmode.set_done", "pack", run.Completed.displayName.ToUpperInvariant(),
+                "time", PackModeRun.Format(split != null ? split.Time : 0f), "packs", (split != null ? split.Packs : 0).ToString());
+            yield return Banner(UIText.Get("packmode.jackpot"), sub, Jackpot, PackModeRun.Records.LastWasRecord ? UIText.Get("packmode.record") : null);
+            if (run.RunComplete)
+            {
+                FlashTo(1f);
+                particles.Burst(Vector2.zero, 120, 1500f, 1.8f, 24f, t => Color.HSVToRGB(Mathf.Repeat(t * 3f, 1f), 0.55f, 1f), 600f);
+                yield return Banner(UIText.Get("packmode.all_sets"), UIText.Get("packmode.run_done", "time", PackModeRun.Format(PackModeRun.Elapsed),
+                    "packs", PackModeRun.PacksOpened.ToString()), Jackpot, PackModeRun.Records.LastWasRecord ? UIText.Get("packmode.record") : null);
+            }
+        }
+
+        /// <summary>A big two-line banner over the stage that pops in, holds and fades (real time, not skippable).</summary>
+        IEnumerator Banner(string title, string sub, Color color, string extra)
+        {
+            var holder = UIFactory.CreateRect("Banner", fx).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 330f), new Vector2(1400f, 260f));
+            var group = holder.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            var big = InkStyle.Title(holder, "Title", title, UIFactory.TextSize.Title + 24, color, TextAnchor.MiddleCenter);
+            big.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(1400f, 120f));
+            big.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
+            var line = UIFactory.CreateText(holder, "Sub", sub + (extra != null ? "\n" + extra : ""), UIFactory.TextSize.XLarge, InkStyle.Paper, TextAnchor.UpperCenter);
+            line.supportRichText = true;
+            line.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -120f), new Vector2(1400f, 140f));
+            line.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
+            for (float t = 0f; t < 0.3f; t += Time.unscaledDeltaTime)
+            {
+                float p = t / 0.3f;
+                holder.localScale = Vector3.one * Mathf.LerpUnclamped(0.4f, 1f, Tween.OutBack(p));
+                group.alpha = p;
+                yield return null;
+            }
+            holder.localScale = Vector3.one;
+            group.alpha = 1f;
+            for (float t = 0f; t < 1.3f; t += Time.unscaledDeltaTime)
+            {
+                big.rectTransform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(t * 14f) * 2.5f);   // a goofy wobble
+                yield return null;
+            }
+            StartCoroutine(FadeAway(holder, group));
+        }
+
+        IEnumerator FadeAway(RectTransform holder, CanvasGroup group)
+        {
+            for (float t = 0f; t < 0.4f && holder != null; t += Time.unscaledDeltaTime)
+            {
+                group.alpha = 1f - t / 0.4f;
+                yield return null;
+            }
+            if (holder != null) Destroy(holder.gameObject);
+        }
+
+        /// <summary>A short line that pops up over a card and floats away ("NEW x3!").</summary>
+        IEnumerator PopText(Vector2 at, string text, Color color, float size)
+        {
+            var t = InkStyle.Title(fx, "Pop", text, Mathf.RoundToInt(size), color, TextAnchor.MiddleCenter);
+            t.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), at, new Vector2(500f, 80f));
+            t.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
+            t.raycastTarget = false;
+            for (float e = 0f; e < 1f && t != null; e += Time.unscaledDeltaTime)
+            {
+                t.rectTransform.anchoredPosition = at + new Vector2(0f, 70f * e);
+                t.rectTransform.localScale = Vector3.one * (e < 0.15f ? Mathf.Lerp(0.5f, 1.15f, e / 0.15f) : 1f);
+                t.color = new Color(color.r, color.g, color.b, e < 0.7f ? 1f : 1f - (e - 0.7f) / 0.3f);
+                yield return null;
+            }
+            if (t != null) Destroy(t.gameObject);
         }
 
         void BuildFace(RectTransform face, CardPacks.Pull pull, float scale)
@@ -623,7 +728,7 @@ namespace Game.World
         static CardInstance Instance(CharacterDefinition member, CardDefinition card, int rank)
         {
             var unit = new BattleUnit(member, Team.Player);
-            // The protagonist's card pool cards (Physical) show in their own pool's colour, not the base element's.
+            // The protagonist's card pool cards (Basic) show in their own pool's colour, not the base element's.
             Resonance element = member.resonances.Count > 0 ? card.pool : member.resonance;
             foreach (var kit in member.resonances)
                 if (kit != null && (kit.cards.Contains(card) || kit.ultimate == card)) element = kit.element;
@@ -758,6 +863,13 @@ namespace Game.World
         void Finished()
         {
             finished = true;
+            // Pack Mode: one card left in this pack's set.
+            if (CardCollection.InSession && openedKind != null && PackModeRun.SplitOf(openedKind) == null)
+            {
+                int missing = PackModeRun.SetOf(openedKind, roster).Count - PackModeRun.Have(openedKind, roster);
+                if (missing == 1 && PackModeRun.NoteSoClose(openedKind))
+                    StartCoroutine(Banner(UIText.Get("packmode.so_close"), UIText.Get("packmode.one_left", "pack", openedKind.displayName), Close, null));
+            }
             hint.text = UIText.Get("pack.hint.zoom");
             skip.gameObject.SetActive(false);   // Open takes its place
             done.gameObject.SetActive(true);

@@ -21,8 +21,8 @@ namespace Combat.Tests
 
         BattleController Battle(params CharacterDefinition[] party)
         {
-            // Physical enemy: neutral and no Prism crit bonus, so the numbers are exact.
-            var enemy = TestFactory.Enemy("Dummy", resonance: Resonance.Physical);
+            // Basic enemy: neutral and no Prism crit bonus, so the numbers are exact.
+            var enemy = TestFactory.Enemy("Dummy", resonance: Resonance.Basic);
             var battle = new BattleController(party, new[] { enemy }, CombatConfig.Default, Seed);
             battle.StartBattle();
             return battle;
@@ -30,7 +30,7 @@ namespace Combat.Tests
 
         CharacterDefinition Hero(string name = "Hero")
         {
-            return TestFactory.Character(name, Resonance.Physical, 100f, null, TestFactory.Card(name + "Strike"));
+            return TestFactory.Character(name, Resonance.Basic, 100f, null, TestFactory.Card(name + "Strike"));
         }
 
         [Test]
@@ -147,7 +147,7 @@ namespace Combat.Tests
         public void Interrupt_CancelsTheIntent()
         {
             var hit = TestFactory.Card("Bite");
-            var enemyDef = TestFactory.Enemy("Biter", resonance: Resonance.Physical, skills: new EnemySkill { card = hit, weight = 1f });
+            var enemyDef = TestFactory.Enemy("Biter", resonance: Resonance.Basic, skills: new EnemySkill { card = hit, weight = 1f });
             var battle = new BattleController(new[] { Hero() }, new[] { enemyDef }, CombatConfig.Default, Seed);
             battle.StartBattle();
             var enemy = battle.State.Enemies[0];

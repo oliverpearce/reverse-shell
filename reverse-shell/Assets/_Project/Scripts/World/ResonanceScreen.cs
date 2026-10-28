@@ -9,7 +9,7 @@ namespace Game.World
 {
     /// <summary>
     /// The Esc menu's Resonance card (bible §3): the protagonist's resonances as pixel cards in a row, only the ones
-    /// they have (Physical, and Arc once absorbed, or always in Sandbox Mode); the row centres and shrinks to fit
+    /// they have (Basic, and Arc once absorbed, or always in Sandbox Mode); the row centres and shrinks to fit
     /// as more unlock. Below it are the shown resonance's innate cards and Ult, in its colour; clicking or holding one
     /// opens it (<see cref="CardDetailPopup"/>: the full text). Left/Right (or the mouse) moves, Enter / F / Space / a
     /// click switches (free outside combat), Esc goes back to the Esc cards. The active resonance sits in a gold frame.
@@ -24,7 +24,7 @@ namespace Game.World
 
         /// <summary>The order shown: the starting Core, then the resonances in chapter order (Arc, Root, Cryo, Cinder, Prism).</summary>
         static readonly Resonance[] Order =
-            { Resonance.Physical, Resonance.Arc, Resonance.Root, Resonance.Cryo, Resonance.Cinder, Resonance.Prism };
+            { Resonance.Basic, Resonance.Arc, Resonance.Root, Resonance.Cryo, Resonance.Cinder, Resonance.Prism };
 
         class Entry
         {

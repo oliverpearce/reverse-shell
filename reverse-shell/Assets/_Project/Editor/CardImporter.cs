@@ -11,15 +11,39 @@ namespace Combat.EditorTools
     /// Builds the card assets from the card sheet (Planning/CARDS.xlsx). Tools/CardForge/sheet_to_json.py turns the sheet
     /// into Tools/CardForge/cards.json; this reads that file and, for every row, creates or updates its CardDefinition
     /// (name, kind, target, level and each rank's effects; icons and cast sequences are kept). It then fills the
-    /// protagonist's resonance kits: each pool's cards (its Main card first) and its Ult, with the Physical cards as the
+    /// protagonist's resonance kits: each pool's cards (its Main card first) and its Ult, with the Basic cards as the
     /// card pool every resonance can use. The Packs and Areas tabs go into Resources/Cards/PackRates (the pack pictures
     /// are cut by the script). The new statuses (Burn, Chill, Frozen, Shield, Counter, Covered) are made if
     /// missing; existing status assets keep their tuning.
     ///   Menu: Reverse Shell / Import Cards From Sheet
     ///   Batch: Unity -batchmode -quit -projectPath . -executeMethod Combat.EditorTools.CardImporter.Import
     /// </summary>
+    [InitializeOnLoad]
     public static class CardImporter
     {
+        /// <summary>When the editor loads (and after every script reload), imports cards.json again if it changed since
+        /// the last import, so a new export from the sheet reaches the game without the menu.</summary>
+        static CardImporter()
+        {
+            EditorApplication.delayCall += ImportIfChanged;
+            // Play pressed before the import got its turn: import on the way back to edit mode instead.
+            EditorApplication.playModeStateChanged += s => { if (s == PlayModeStateChange.EnteredEditMode) ImportIfChanged(); };
+        }
+
+        static string HashKey { get { return "ReverseShell.CardsJsonHash." + Application.dataPath; } }
+
+        static void ImportIfChanged()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode || !File.Exists(JsonPath)) return;
+            string hash;
+            using (var sha = System.Security.Cryptography.SHA1.Create())
+                hash = System.BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(JsonPath)));
+            if (EditorPrefs.GetString(HashKey, "") == hash) return;
+            Debug.Log("CardImporter: cards.json changed; importing it.");
+            Import();
+            EditorPrefs.SetString(HashKey, hash);
+        }
+
         const string Root = "Assets/_Project/Content";
         const string CardsDir = Root + "/Cards";
         const string StatusDir = Root + "/Statuses";
@@ -27,8 +51,8 @@ namespace Combat.EditorTools
         const string RatesPath = "Assets/_Project/Resources/Cards/PackRates.asset";
         static readonly string JsonPath = Path.Combine(Application.dataPath, "../Tools/CardForge/cards.json");
 
-        /// <summary>Kit order on the protagonist: the starting Physical Core, then the chapters' resonances.</summary>
-        static readonly Resonance[] KitOrder = { Resonance.Physical, Resonance.Arc, Resonance.Root, Resonance.Cryo, Resonance.Cinder, Resonance.Prism };
+        /// <summary>Kit order on the protagonist: the starting Basic Core, then the chapters' resonances.</summary>
+        static readonly Resonance[] KitOrder = { Resonance.Basic, Resonance.Arc, Resonance.Root, Resonance.Cryo, Resonance.Cinder, Resonance.Prism };
 
 #pragma warning disable 0649   // filled by JsonUtility
         [Serializable]
@@ -63,7 +87,7 @@ namespace Combat.EditorTools
         {
             public string id, name, pool, category, target, asset, resonance, rarity;
             public int level = 4;
-            public bool main, ult, enemy;
+            public bool main, ult, enemy, starter;
             public List<Fx> rank1 = new List<Fx>(), rank2 = new List<Fx>(), rank3 = new List<Fx>();
         }
 
@@ -184,16 +208,18 @@ namespace Combat.EditorTools
                 var ult = built.Where(b => b.Key.ult && !b.Key.enemy && b.Key.resonance == pool).Select(b => b.Value).FirstOrDefault();
                 var kit = new ResonanceKit { element = element, ultimate = ult != null ? ult : old != null ? old.ultimate : null };
                 if (main != null) kit.cards.Add(main);
-                // Physical's kit is just its Main card: the rest are the card pool, usable under every resonance.
-                if (element != Resonance.Physical)
+                // Basic's kit is just its Main card: the rest are the card pool, usable under every resonance.
+                if (element != Resonance.Basic)
                     foreach (var b in rows) if (b.Value != main) kit.cards.Add(b.Value);
                 kits.Add(kit);
             }
             mc.resonances = kits;
-            var physical = built.Where(b => !b.Key.ult && b.Key.pool == "Physical").Select(b => b.Value).ToList();
+            var physical = built.Where(b => !b.Key.ult && b.Key.pool == "Basic").Select(b => b.Value).ToList();
             mc.cardPool = physical;
             if (kits[0].cards.Count > 0) mc.incantations = new List<CardDefinition> { kits[0].cards[0] };
             if (kits[0].ultimate != null) mc.ritual = kits[0].ultimate;
+            // The cards tagged Starter: owned from the start, in the Alt slots until the player picks others.
+            mc.starterCards = built.Where(b => b.Key.starter && !b.Key.ult).Select(b => b.Value).ToList();
             EditorUtility.SetDirty(mc);
         }
 
@@ -212,7 +238,7 @@ namespace Combat.EditorTools
             EditorUtility.SetDirty(rates);
         }
 
-        /// <summary>The Enemies tab: each enemy's innate card (a Physical card), its level bonus and weight, and its Ult.</summary>
+        /// <summary>The Enemies tab: each enemy's innate card (a Basic card), its level bonus and weight, and its Ult.</summary>
         static void FillEnemies(Sheet sheet)
         {
             foreach (var row in sheet.enemies)

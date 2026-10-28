@@ -227,7 +227,10 @@ namespace Combat.View
 
             // The statuses it gives: small icons at the right end of the kind line, under the name.
             float chipsWidth = StatusChips(prt, card, s);
-            bool read = CardTranslation.On;   // without the language chip: runes, but numbers and status colours show
+            bool read = CardTranslation.On;   // without the language chip: runes (numbers and colours have their own chips)
+            bool colours = CardTranslation.Colours;
+            var kindColor = colours ? UnitView.KindColor(card.Definition.kind) : InkStyle.PaperDim;
+            var numberColor = colours ? NumberGold : new Color(0.92f, 0.92f, 0.95f);
             string rank = card.IsRitual ? UIText.Get("card.ult") : UIText.Get("card.rank", "n", UIFactory.Roman(card.Rank));
             string kindLine = UnitView.KindLabel(card.Definition.kind).ToUpperInvariant() + "   " + rank;
             if (read)
@@ -237,7 +240,7 @@ namespace Combat.View
                 title.rectTransform.TopStrip(6f * s, 36f * s, 12f * s);
                 OneLine(title, PanelWidth * s - 24f * s, F(30), F(26));
                 // The kind and rank: big enough to read at a glance (the chips sit at its right end).
-                var kind = UIFactory.CreateText(prt, "Kind", kindLine, F(18), UnitView.KindColor(card.Definition.kind), TextAnchor.MiddleLeft);
+                var kind = UIFactory.CreateText(prt, "Kind", kindLine, F(18), kindColor, TextAnchor.MiddleLeft);
                 kind.rectTransform.TopStrip(44f * s, 30f * s, 12f * s);
                 kind.rectTransform.offsetMax = new Vector2(-(12f + chipsWidth) * s, kind.rectTransform.offsetMax.y);
             }
@@ -249,14 +252,13 @@ namespace Combat.View
                 RuneText.Build(titleArea, card.Name, InkStyle.Paper, titleWidth, 26f * s, 16f * s, true);
                 var kindArea = UIFactory.CreateRect("Kind", prt);
                 kindArea.TopStrip(46f * s, 26f * s, 12f * s);
-                RuneText.Paragraph(kindArea, kindLine, UnitView.KindColor(card.Definition.kind), 11f * s, 6f * s, null,
-                    UnitView.KindColor(card.Definition.kind), 1.4f);
+                RuneText.Paragraph(kindArea, kindLine, kindColor, 11f * s, 6f * s, null, kindColor, 1.4f);
             }
             var rule = InkStyle.Line(prt, "Rule", InkStyle.Rule);
             rule.rectTransform.TopStrip(76f * s, 2f, 12f * s);
 
             // The real numbers with the owner's current stats (before the target's DEF), in big gold, at the bottom.
-            var live = LiveNumbers(card, F(30), !read);
+            var live = LiveNumbers(card, F(30), !read).ConvertAll(l => CardTranslation.PlainColours(CardTranslation.HideDigits(l)));
             float liveH = live.Count * 40f;
             if (live.Count > 0 && !read)
             {
@@ -266,7 +268,7 @@ namespace Combat.View
                 numbersArea.pivot = new Vector2(0.5f, 0f);
                 numbersArea.offsetMin = new Vector2(12f, 8f) * s;
                 numbersArea.offsetMax = new Vector2(-12f, 8f + liveH) * s;
-                RuneText.Paragraph(numbersArea, string.Join("\n", live.ToArray()), InkStyle.Paper, 9f * s, 5f * s, null, NumberGold, 2.2f);
+                RuneText.Paragraph(numbersArea, string.Join("\n", live.ToArray()), InkStyle.Paper, 9f * s, 5f * s, null, numberColor, 2.2f);
                 liveH += 8f;
             }
             else if (live.Count > 0)
@@ -289,15 +291,20 @@ namespace Combat.View
             if (!read)
             {
                 // Runes, with the numbers readable in gold and each status in its colour: you can guess what it does.
-                RuneText.Paragraph(middle, card.Describe(), new Color(0.92f, 0.92f, 0.95f), 9f * s, 4f * s, StatusPhrases(card), NumberGold, 1.4f);
+                RuneText.Paragraph(middle, CardTranslation.HideDigits(card.Describe()), new Color(0.92f, 0.92f, 0.95f), 9f * s, 4f * s,
+                    colours ? StatusPhrases(card) : null, numberColor, 1.4f);
                 return;
             }
             var desc = UIFactory.CreateText(middle, "Description", "", F(15), new Color(0.92f, 0.92f, 0.95f), TextAnchor.UpperLeft);
             desc.font = UIFactory.BodyFont;
             desc.lineSpacing = 1.05f;
             desc.rectTransform.Fill();
-            string text = card.Describe();
-            UIFactory.FitRich(desc, size => ColorStatuses(UIFactory.EmphasizeNumbers(text, Mathf.RoundToInt(size * 1.3f), NumberGold), card), F(8), F(15));
+            string text = CardTranslation.HideDigits(card.Describe());
+            UIFactory.FitRich(desc, size =>
+            {
+                string rich = UIFactory.EmphasizeNumbers(text, Mathf.RoundToInt(size * 1.3f), numberColor);
+                return colours ? ColorStatuses(rich, card) : rich;
+            }, F(8), F(15));
         }
 
         /// <summary>The card info panel's width at scale 1.</summary>
@@ -434,6 +441,7 @@ namespace Combat.View
                 var hitArea = holder.gameObject.AddComponent<Image>();
                 hitArea.color = new Color(0f, 0f, 0f, 0f);
                 StatusTooltip.Attach(holder.gameObject, new StatusSnapshot(apply.status, apply.duration, apply.stacks), true);
+                if (!CardTranslation.Numbers) { x += chip + gap; continue; }   // the turns and amount come with the numbers chip
                 StatusChip.AddAmount(holder, apply.status, apply.stacks, s * 0.75f);
                 var turns = UIFactory.CreateText(holder, "Turns", apply.duration.ToString(), Mathf.RoundToInt(15f * s), InkStyle.Paper, TextAnchor.LowerRight, FontStyle.Bold);
                 turns.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);

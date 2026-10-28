@@ -466,8 +466,9 @@ namespace Game.World
 
             float x0 = InfoX + 96f;
             const float cardGap = 16f, groupGap = 40f, pad = 18f, labelH = 30f;
-            int cards = 1 + extraSlots + (ult != null ? 1 : 0);
-            float room = Right - x0 - pad * 2f - groupGap * (ult != null ? 2f : 1f) - cardGap * Mathf.Max(0, extraSlots - 1);
+            // Innate + Alts only: the Soul card shows when hovering the innate card (and in its popup).
+            int cards = 1 + extraSlots;
+            float room = Right - x0 - pad * 2f - groupGap - cardGap * Mathf.Max(0, extraSlots - 1);
             int pixel = Mathf.Clamp(Mathf.FloorToInt(room / cards / CardArt.Width), 2, (int)CardArt.HandPixel);
             rowCardScale = pixel / CardArt.HandPixel;
             var cardSize = CardView.Size * rowCardScale;
@@ -530,13 +531,6 @@ namespace Game.World
                 x += groupGap - cardGap;
             }
 
-            // The Soul card.
-            if (ult != null)
-            {
-                groupLabel("units.ult", cardSize.x);
-                var rt = CardSlot(bracket, unit, ult, new Vector2(x, -pad - labelH), cardSize, rowCardScale);
-                Clickable(rt, () => OpenCard(ult, rt));
-            }
         }
 
         /// <summary>One card in the deck row (icon only: the text is in the popup).</summary>
@@ -562,7 +556,7 @@ namespace Game.World
                 choices.Remove(current);
                 book.OpenToPick(choices, current != null, card =>
                 {
-                    CardCollection.SetExtra(member, slot, card);
+                    CardCollection.SetExtra(member, slot, card, party);
                     SaveGame.Save();
                 }, BuildDetail);
                 return;
@@ -581,7 +575,7 @@ namespace Game.World
                 string owner = OwnerName(card);
                 options.Add(new PickerOption(card.DisplayName, UIText.Get("units.extra.detail", "owner", owner, "kind", UnitView.KindLabel(card.kind)), () =>
                 {
-                    CardCollection.SetExtra(member, slot, captured);
+                    CardCollection.SetExtra(member, slot, captured, party);
                     SaveGame.Save();
                     BuildDetail();
                 }));

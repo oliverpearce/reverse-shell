@@ -39,13 +39,13 @@ namespace Combat.View
             var root = (RectTransform)canvas.rootCanvas.transform;
             var def = status.Definition;
 
-            string turns = UIText.Get(status.Remaining == 1 ? "status.turn" : "status.turns", "n", status.Remaining.ToString());
+            string turns = CardTranslation.HideDigits(UIText.Get(status.Remaining == 1 ? "status.turn" : "status.turns", "n", status.Remaining.ToString()));
             // What it does in total right now (two stacks of +15% ATK read "ATK +30%"), else the written description.
             string total = def.special == StatusSpecial.Shield
                 ? UIText.Get("status.shield_left", "n", Mathf.RoundToInt(status.Power).ToString())
                 : StatusChip.TotalEffect(def, status.Stacks);
             string level = def.maxStacks > 1 && status.Stacks >= def.maxStacks ? UIText.Get("common.max") : "";
-            string body = total.Length > 0 ? total : string.IsNullOrEmpty(def.description) ? "" : def.description;
+            string body = CardTranslation.HideDigits(total.Length > 0 ? total : string.IsNullOrEmpty(def.description) ? "" : def.description);
 
             var box = InkStyle.Panel(root, "StatusTooltip", InkStyle.InkPanel).rectTransform;
             InkStyle.Frame(box, UIFactory.WithAlpha(def.color, 0.8f), 2f);
@@ -116,7 +116,7 @@ namespace Combat.View
                 UIFactory.CreateText(chip, "Label", s.Definition.shortLabel, Mathf.RoundToInt(20f * k), Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).rectTransform.Fill();
                 hit = plate;
             }
-            if (numbers)
+            if (numbers && CardTranslation.Numbers)   // turns and amounts come with the numbers chip
             {
                 float n = k * numberScale;
                 var turns = UIFactory.CreateText(chip, "Turns", s.Remaining.ToString(), Mathf.RoundToInt(22f * n), InkStyle.Paper, TextAnchor.LowerRight, FontStyle.Bold);

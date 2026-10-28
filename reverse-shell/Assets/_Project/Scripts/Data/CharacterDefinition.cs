@@ -16,6 +16,10 @@ namespace Combat
         [Tooltip("Extra incantations the player can swap into the deck from the character menu.")]
         public List<CardDefinition> cardPool = new List<CardDefinition>();
 
+        [Tooltip("Cards owned from the start, filling the Alt slots until the player picks others (the card sheet's " +
+                 "\"Starter\" tag; the protagonist's two basic Basic cards).")]
+        public List<CardDefinition> starterCards = new List<CardDefinition>();
+
         [Tooltip("Ultimate card, spawned into the hand when Moxie reaches the cap.")]
         public CardDefinition ritual;
 

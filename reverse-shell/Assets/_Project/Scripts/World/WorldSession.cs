@@ -188,6 +188,11 @@ namespace Game.World
         public static readonly List<string> PackQueue = new List<string>();
         public static int Packs { get { return PackQueue.Count; } }
 
+        /// <summary>Items the player has used ("area:x:row"), whose squares are walkable from then on. Saved.</summary>
+        public static readonly HashSet<string> UsedItems = new HashSet<string>();
+
+        public static string ItemKey(string area, int x, int row) { return area + ":" + x + ":" + row; }
+
         public static void AddPacks(string id, int count)
         {
             for (int i = 0; i < count; i++) PackQueue.Add(id ?? "");
@@ -393,16 +398,15 @@ namespace Game.World
         public static readonly HashSet<Resonance> UnlockedResonances = new HashSet<Resonance>();
 
         /// <summary>The protagonist's active resonance (free to switch outside combat). Saved.</summary>
-        public static Resonance ActiveResonance = Resonance.Physical;
+        public static Resonance ActiveResonance = Resonance.Basic;
 
         public static void UnlockResonance(Resonance element) { UnlockedResonances.Add(element); }
 
         /// <summary>The Esc menu's Resonance card: after Chapter One, and always in Sandbox Mode.</summary>
         public static bool ResonanceMenuUnlocked { get { return InSandbox || StoryState.Has(Chapter1.Complete); } }
 
-        /// <summary>The card binder (the Cards book, peeking out of the Esc menu): found on waking in Chapter 1 (saves from
-        /// before it existed count waking as finding it).</summary>
-        public static bool BinderUnlocked { get { return InSandbox || StoryState.Has(Chapter1.Binder) || StoryState.Has(Chapter1.Awake); } }
+        /// <summary>The card binder (the Cards book, peeking out of the Esc menu): picked up beside the capsule in Chapter 1.</summary>
+        public static bool BinderUnlocked { get { return InSandbox || StoryState.Has(Chapter1.Binder); } }
 
         /// <summary>
         /// The resonances <paramref name="member"/> can switch to now, in kit order (empty = no kits). Sandbox Mode
@@ -449,7 +453,7 @@ namespace Game.World
         public static Resonance ElementOf(CharacterDefinition member)
         {
             var kit = ActiveKit(member);
-            return kit != null ? kit.element : (member != null ? member.resonance : Resonance.Physical);
+            return kit != null ? kit.element : (member != null ? member.resonance : Resonance.Basic);
         }
 
         /// <summary>A unit's deck: its locked card plus the extra cards chosen for it (CardCollection), no repeats. Its
@@ -703,6 +707,7 @@ namespace Game.World
             Bindings.Clear();
             BindingsFound.Clear();
             PackQueue.Clear();
+            UsedItems.Clear();
             StarterPartsGiven = false;
             Catalog = null;
             HasReturnPoint = false;

@@ -16,13 +16,13 @@ namespace Combat
     public class PackKind
     {
         [Tooltip("Pack ID on the sheet; its picture is Resources/Cards/Packs/Pack_<id>.png.")]
-        public string id = "Physical";
-        public string displayName = "Physical Pack";
-        [Tooltip("The resonance whose cards it gives (Physical = Physical cards only).")]
-        public Resonance pool = Resonance.Physical;
+        public string id = "Basic";
+        public string displayName = "Basic Pack";
+        [Tooltip("The resonance whose cards it gives (Basic = the Basic cards only).")]
+        public Resonance pool = Resonance.Basic;
         [Min(1)] public int cardsPerPack = 3;
         [Min(0)] public int packsPerWin = 1;
-        [Tooltip("Chance each common card is from the resonance; the rest are Physical cards (0.7 = 70%).")]
+        [Tooltip("Chance each common card is from the resonance; the rest are Basic cards (0.7 = 70%).")]
         [Range(0f, 1f)] public float poolShare = 0.7f;
         [Range(0f, 1f)] public float commonShare = 0.7f;
         [Range(0f, 1f)] public float rareShare = 0.25f;
@@ -108,24 +108,46 @@ namespace Combat
         /// <summary>The overworld area the current fight is in (set by the overworld, read by the results screen).</summary>
         public static string ActiveArea;
 
-        /// <summary>The pack with this id, or null.</summary>
+        /// <summary>The pack with this id, or null. "Basic" and its old name "Physical" both find the Basic pool's pack
+        /// (old saves, and pack data not re-imported since the rename).</summary>
         public PackKind Pack(string id)
         {
-            return string.IsNullOrEmpty(id) ? null : packs.Find(p => p != null && p.id == id);
+            if (string.IsNullOrEmpty(id)) return null;
+            var kind = packs.Find(p => p != null && p.id == id);
+            if (kind == null && (id == "Basic" || id == "Physical")) kind = packs.Find(p => p != null && p.pool == Resonance.Basic);
+            return kind;
         }
 
-        /// <summary>The pack a won fight in <paramref name="area"/> gives: the Areas tab's, else the Physical pack, else
-        /// null (no packs set up: the old all-cards pack).</summary>
-        public PackKind PackForArea(string area)
+        /// <summary>The Areas tab's pack id meaning "a random pack each win" (the Sandbox).</summary>
+        public const string RandomPack = "Random";
+
+        /// <summary>The pack id a won fight in <paramref name="area"/> gives: the Areas tab's (it may be
+        /// <see cref="RandomPack"/>), else the Basic pack's.</summary>
+        public string PackIdForArea(string area)
         {
             var entry = areaPacks.Find(a => a != null && a.area == area);
-            return (entry != null ? Pack(entry.pack) : null) ?? Pack("Physical");
+            return entry != null && !string.IsNullOrEmpty(entry.pack) ? entry.pack : "Basic";
+        }
+
+        /// <summary>The pack a won fight in <paramref name="area"/> gives: the Areas tab's, else the Basic pack, else
+        /// null (no packs set up: the old all-cards pack). A Random area rolls one of the packs.</summary>
+        public PackKind PackForArea(string area)
+        {
+            string id = PackIdForArea(area);
+            if (id == RandomPack) return RandomKind();
+            return Pack(id) ?? Pack("Basic");
+        }
+
+        /// <summary>Any one of the packs, at random (null if there are none).</summary>
+        public PackKind RandomKind()
+        {
+            return packs.Count > 0 ? packs[UnityEngine.Random.Range(0, packs.Count)] : null;
         }
 
         /// <summary>Packs a won fight in <paramref name="area"/> gives.</summary>
         public int PacksPerWin(string area)
         {
-            var kind = PackForArea(area);
+            var kind = PackIdForArea(area) == RandomPack ? null : PackForArea(area);
             return kind != null ? kind.packsPerWin : packsPerWin;
         }
 

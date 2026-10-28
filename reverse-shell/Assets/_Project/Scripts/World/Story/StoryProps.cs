@@ -83,15 +83,33 @@ namespace Game.World
             return root;
         }
 
+        /// <summary>The card binder: a small worn leather binder lying shut on the ground, a gold strap across it and a faint
+        /// glint of gold drifting up so it reads as something to pick up.</summary>
+        public static GameObject Binder(Transform parent, Vector3 at)
+        {
+            var gold = new Color(1f, 0.82f, 0.45f);
+            var root = Root(parent, "CardBinder", at);
+            Block(root.transform, "Cover", WorldArt.Matte(new Color(0.36f, 0.2f, 0.12f)), new Vector3(0f, 0.05f, 0f), new Vector3(0.34f, 0.08f, 0.44f), 12f);
+            Block(root.transform, "Pages", WorldArt.Matte(new Color(0.88f, 0.82f, 0.68f)), new Vector3(0.02f, 0.05f, 0f), new Vector3(0.3f, 0.05f, 0.4f), 12f);
+            Block(root.transform, "Strap", WorldArt.Emissive(gold, 0.8f), new Vector3(0f, 0.1f, 0f), new Vector3(0.36f, 0.015f, 0.06f), 12f);
+            WorldFx.Motes(root.transform, at + Vector3.up * 0.3f, 0.25f, 5f, gold);
+            return root;
+        }
+
         /// <summary>The language chip: a small dark chip with a glowing green core, lying on the ground.</summary>
         public static GameObject LanguageChip(Transform parent, Vector3 at)
         {
-            var green = new Color(0.45f, 1f, 0.6f);
-            var root = Root(parent, "LanguageChip", at);
+            return Chip(parent, at, "LanguageChip", new Color(0.45f, 1f, 0.6f));
+        }
+
+        /// <summary>A chip like the language chip with a core of its own colour (the numbers chip: gold, the colours chip: violet).</summary>
+        public static GameObject Chip(Transform parent, Vector3 at, string name, Color core)
+        {
+            var root = Root(parent, name, at);
             Block(root.transform, "Chip", WorldArt.DarkMetal(), new Vector3(0f, 0.05f, 0f), new Vector3(0.3f, 0.05f, 0.3f));
-            var core = Block(root.transform, "Core", WorldArt.Emissive(green, 2.5f), new Vector3(0f, 0.09f, 0f), new Vector3(0.14f, 0.03f, 0.14f));
-            core.gameObject.AddComponent<Bob>().height = 0.02f;
-            WorldFx.Motes(root.transform, at + Vector3.up * 0.3f, 0.25f, 5f, green);
+            var glow = Block(root.transform, "Core", WorldArt.Emissive(core, 2.5f), new Vector3(0f, 0.09f, 0f), new Vector3(0.14f, 0.03f, 0.14f));
+            glow.gameObject.AddComponent<Bob>().height = 0.02f;
+            WorldFx.Motes(root.transform, at + Vector3.up * 0.3f, 0.25f, 5f, core);
             return root;
         }
 

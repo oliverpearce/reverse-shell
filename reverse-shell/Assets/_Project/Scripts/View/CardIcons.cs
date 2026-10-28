@@ -81,7 +81,7 @@ namespace Combat.View
         /// <summary>The resonance's orb, shown beside a unit's bars. Picked for the five resonances (ELEMENT_ICONS in Tools/IconForge/card_icons.py).</summary>
         public static Sprite Element(Resonance resonance)
         {
-            if (resonance == Resonance.Physical) return null;   // Physical has no orb
+            if (resonance == Resonance.Basic) return null;   // Basic has no orb
             return Get(RowElement, (int)resonance);
         }
 

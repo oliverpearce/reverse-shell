@@ -2,7 +2,7 @@ namespace Combat
 {
     /// <summary>
     /// Resonance advantage wheel (bible v0.6): Cinder > Cryo > Root > Arc > Cinder (fire melts ice, frost kills growth,
-    /// roots ground the current, a surge overloads the furnace). Prism and Physical are neutral to everything; Prism's
+    /// roots ground the current, a surge overloads the furnace). Prism and Basic are neutral to everything; Prism's
     /// precision gives it bonus crit instead (CombatConfig.prismCritBonus).
     /// </summary>
     public static class ResonanceChart

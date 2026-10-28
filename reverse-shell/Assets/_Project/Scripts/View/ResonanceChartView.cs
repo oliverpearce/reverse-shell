@@ -6,7 +6,7 @@ namespace Combat.View
 {
     /// <summary>
     /// A resonance type chart for menus: the advantage wheel in one line (each one beats the next, "&gt;") and Prism,
-    /// which beats nothing but crits more. Physical is left out (it's neutral to everything). Built from <see cref="ResonanceChart.Beats"/>, so it always matches
+    /// which beats nothing but crits more. Basic is left out (it's neutral to everything). Built from <see cref="ResonanceChart.Beats"/>, so it always matches
     /// the rules. Element orbs from <see cref="CardIcons.Element"/>, names in their colours (<see cref="ResonanceInfo"/>).
     /// </summary>
     public static class ResonanceChartView
@@ -47,7 +47,7 @@ namespace Combat.View
         static Resonance? BeatenBy(Resonance attacker)
         {
             foreach (Resonance e in System.Enum.GetValues(typeof(Resonance)))
-                if (e != Resonance.Physical && e != attacker && ResonanceChart.Beats(attacker, e)) return e;
+                if (e != Resonance.Basic && e != attacker && ResonanceChart.Beats(attacker, e)) return e;
             return null;
         }
 

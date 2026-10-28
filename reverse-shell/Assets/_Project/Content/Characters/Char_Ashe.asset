@@ -35,6 +35,9 @@ MonoBehaviour:
   cardPool:
   - {fileID: 11400000, guid: 5a6db6bb4ab89e240bfc33cf63c48df2, type: 2}
   ritual: {fileID: 11400000, guid: 157ff0ac7cde0b2419be20cc9a4935e1, type: 2}
+  starterCards:
+  - {fileID: 11400000, guid: 33d31f179718eb04799e99e6bffbbd2f, type: 2}
+  - {fileID: 11400000, guid: 5a6db6bb4ab89e240bfc33cf63c48df2, type: 2}
   growthPerLevel: 0.08
   portraitFront: {fileID: 21300000, guid: 3fdd3dd974f9cb442841b5b03b6bfa7c, type: 3}
   portraitInternals: {fileID: 21300000, guid: 51120539b86221141a0f556d47caf8af, type: 3}

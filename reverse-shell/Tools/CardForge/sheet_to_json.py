@@ -26,7 +26,7 @@ PACK_SHEET = os.path.join(PROJECT, 'Art', 'ThirdParty', 'CardPacks', 'CardPacks.
 PACK_OUT = os.path.join(PROJECT, 'Resources', 'Cards', 'Packs')
 RARITIES = ['Common', 'Rare', 'Epic']
 
-POOLS = ['Arc', 'Root', 'Cryo', 'Cinder', 'Prism', 'Physical', 'Ult']
+POOLS = ['Arc', 'Root', 'Cryo', 'Cinder', 'Prism', 'Basic', 'Ult']
 CATEGORIES = ['Attack', 'Buff', 'Debuff', 'Defense', 'Counter', 'Heal']
 TARGETS = {'Single enemy': 'SingleEnemy', 'All enemies': 'AllEnemies', 'Random enemy': 'RandomEnemy', 'Self': 'Self',
            'Single ally': 'SingleAlly', 'All allies': 'AllAllies', 'Random ally': 'RandomAlly'}
@@ -177,11 +177,12 @@ def main():
             tags = [t.strip() for t in (get('Tags') or '').split(',')] if 'Tags' in col else []
             resonance = tags[0] if ult and tags else ''
             enemy = ult and 'Enemy' in tags   # an enemy's Ult (Enemies tab), not a resonance kit's
+            starter = 'Starter' in tags       # owned from the start, in the Alt slots until the player picks others
             if ult and resonance not in POOLS[:6]:
                 raise ValueError('an Ult row needs its resonance (Arc, Root, ...) first in Tags')
             cards.append({'id': get('ID') or '', 'name': name, 'pool': pool, 'category': cat, 'target': TARGETS[target],
                           'level': int(level), 'main': str(get('Main') or '').strip().upper() == 'Y', 'ult': ult,
-                          'resonance': resonance, 'enemy': enemy, 'asset': asset, 'rarity': rarity,
+                          'resonance': resonance, 'enemy': enemy, 'starter': starter, 'asset': asset, 'rarity': rarity,
                           'rank1': base, 'rank2': base + r2, 'rank3': base + r2 + r3})
         except (ValueError, IndexError) as e:
             problems.append('%s: %s' % (where, e))
@@ -241,8 +242,8 @@ def read_areas(wb, problems):
     for r, get in table(wb['Areas']):
         area, pack = get('Area ID'), get('Pack')
         if not area: continue
-        if pack not in ids:
-            problems.append('Areas row %d (%s): Pack "%s" is not on the Packs tab' % (r, area, pack))
+        if pack != 'Random' and pack not in ids:   # Random: a random pack each win
+            problems.append('Areas row %d (%s): Pack "%s" is not on the Packs tab (or Random)' % (r, area, pack))
             continue
         areas.append({'area': str(area), 'pack': str(pack)})
     return areas

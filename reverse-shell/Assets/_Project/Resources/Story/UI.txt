@@ -27,7 +27,7 @@ stat.hp = HP
 stat.max_hp = MAX HP
 stat.atk = ATK
 stat.phys_def = PHYS DEF
-stat.spec_def = SPEC DEF
+stat.spec_def = RES DEF
 stat.crit = CRIT
 stat.crit_dmg = CRIT DMG
 stat.spell_dmg = SPELL DMG
@@ -151,7 +151,7 @@ units.ult = Ult
 units.remove = Remove
 units.no_spare = No spare parts
 # The deck row: the main card (always brought), the alt slot you fill, the Soul card
-units.main = Main
+units.main = Innate
 units.alt = Alt
 # The confirm over the alt card (right click it, or Enter): opens the Cards book to pick
 units.alt.replace = Replace
@@ -291,6 +291,8 @@ card.kind.heal = Heal
 card.kind.defense = Defense
 # Above the Ult a unit's innate card powers up into, shown when hovering the innate card
 card.soul_form = SOUL FORM
+# The same, before its resonance is unlocked / its character is met
+card.soul_form_hidden = SOUL FORM  ???
 # The card popup's button on an innate card, and on its Soul form to go back
 card.soul_swap = Swap to Soul form
 card.innate_swap = Back to innate card
@@ -345,9 +347,38 @@ cards.keys.pick = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c} / click
 # The top-bar buttons: a caption, then the current choice in gold. {value} = an element / kind / frame style, or cards.filter.all
 cards.filter.resonance = Resonance\n{gold}{value}{/c}
 cards.filter.kind = Kind\n{gold}{value}{/c}
+cards.filter.sort = Sort\n{gold}{value}{/c}
+# The Sort dropdown's choices
+cards.sort.resonance = Resonance
+cards.sort.pack = Pack
+cards.sort.kind = Kind
+cards.sort.name = Name
+cards.sort.level_high = Level ↓
+cards.sort.level_low = Level ↑
+cards.sort.copies_most = Copies ↓
+cards.sort.copies_fewest = Copies ↑
 cards.filter.all = All
 # The Kind filter's last choice, and the tag on Soul cards and Sun / Moon / Star (kept apart from the ability cards)
 cards.special = Special
+# Pack Mode, the race: collect every card of every pack's set (Soul / Sun / Moon / Star / blank cards don't count)
+packmode.done = SET
+packmode.packs = {n} packs
+packmode.best = best {time}
+packmode.no_best = best xx:xx:xx
+packmode.best_run = Best run {time}   {packs} packs
+packmode.goal = Fill every set to stop the clock
+packmode.open = OPEN
+packmode.soul = Soul
+packmode.souls = {n} pulled
+packmode.random = random pack
+packmode.streak = NEW x{n}!
+packmode.jackpot = JACKPOT!
+packmode.set_done = {pack} SET   {time}   {packs} packs
+packmode.record = {gold}NEW RECORD!{/c}
+packmode.all_sets = ALL SETS!
+packmode.run_done = Every set in {time}, {packs} packs
+packmode.so_close = SO CLOSE!
+packmode.one_left = 1 card left in the {pack} set
 # Under each card (the level shows as stars beside it). {n} = how many, {max} = the cap
 cards.copies = {n}
 cards.found = {n} / {max}

@@ -85,21 +85,21 @@ namespace Combat.Tests
             var mc = TestFactory.Character("Hero", Resonance.Arc, 100f, null, physical);
             mc.resonances = new List<ResonanceKit>
             {
-                new ResonanceKit { element = Resonance.Physical, cards = new List<CardDefinition> { physical } },
+                new ResonanceKit { element = Resonance.Basic, cards = new List<CardDefinition> { physical } },
                 new ResonanceKit { element = Resonance.Arc, cards = new List<CardDefinition> { electric }, ultimate = ult },
             };
             return mc;
         }
 
         [Test]
-        public void Resonance_StartsPhysical_ElectricNeedsUnlocking_AndSwapsCardsElementAndUlt()
+        public void Resonance_StartsBasic_ElectricNeedsUnlocking_AndSwapsCardsElementAndUlt()
         {
             CardDefinition physical, electric, ult;
             var mc = Protagonist(out physical, out electric, out ult);
 
-            Assert.AreEqual(new[] { Resonance.Physical }, WorldSession.AvailableResonances(mc).ToArray());
-            WorldSession.SetResonance(Resonance.Arc);   // not unlocked yet: still Physical
-            Assert.AreEqual(Resonance.Physical, WorldSession.ElementOf(mc));
+            Assert.AreEqual(new[] { Resonance.Basic }, WorldSession.AvailableResonances(mc).ToArray());
+            WorldSession.SetResonance(Resonance.Arc);   // not unlocked yet: still Basic
+            Assert.AreEqual(Resonance.Basic, WorldSession.ElementOf(mc));
             CollectionAssert.AreEqual(new[] { physical }, WorldSession.DeckOf(mc));
 
             WorldSession.UnlockResonance(Resonance.Arc);
@@ -123,7 +123,7 @@ namespace Combat.Tests
 
             WorldSession.CurrentArea = WorldAreas.Sandbox;
             Assert.IsTrue(WorldSession.ResonanceMenuUnlocked);
-            Assert.AreEqual(new[] { Resonance.Physical, Resonance.Arc }, WorldSession.AvailableResonances(mc).ToArray());
+            Assert.AreEqual(new[] { Resonance.Basic, Resonance.Arc }, WorldSession.AvailableResonances(mc).ToArray());
 
             WorldSession.CurrentArea = WorldAreas.City;
             StoryState.Set(Chapter1.Complete);
@@ -131,7 +131,7 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void Resonance_SetsTheColour_ElectricYellow_PhysicalOwn()
+        public void Resonance_SetsTheColour_ElectricYellow_BasicOwn()
         {
             CardDefinition physical, electric, ult;
             var mc = Protagonist(out physical, out electric, out ult);
@@ -150,12 +150,12 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void Physical_IsNeutralAgainstEveryElement()
+        public void Basic_IsNeutralAgainstEveryElement()
         {
             foreach (Resonance other in System.Enum.GetValues(typeof(Resonance)))
             {
-                Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Physical, other));
-                Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(other, Resonance.Physical));
+                Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Basic, other));
+                Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(other, Resonance.Basic));
             }
         }
 
@@ -256,7 +256,7 @@ namespace Combat.Tests
             string[] keys =
             {
                 "prologue.recording", "prologue.tagline", "prologue.procedure", "prologue.name", "prologue.name.question",
-                "awakening", "awakening.binder", "pod", "chip.pickup", "memory.2", "memory.3", "memory.after",
+                "awakening", "binder.pickup", "pod", "chip.pickup", "chip.colours.pickup", "chip.numbers.pickup", "memory.2", "memory.3", "memory.after",
                 "record.city.4", "record.city.5", "record.city.6", "record.city.7", "record.tunnel.4", "npc.small_machine",
                 "scanner.pickup", "scan.jammed", "scan.trace", "scan.none.hint", "scan.none", "route.open",
                 "collector.intro", "collector.question", "collector.options", "collector.answer.1", "collector.answer.2",

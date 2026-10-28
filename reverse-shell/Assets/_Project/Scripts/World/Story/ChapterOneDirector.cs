@@ -77,10 +77,7 @@ namespace Game.World
             yield return new WaitForSeconds(0.8f);
             yield return b.UI.FadeTo(new Color(0f, 0f, 0f, 0f), 2.6f);
             yield return Talk(b, Script("awakening"));
-            // The card binder at their hip: the Cards book, opened from the Esc menu from now on.
-            yield return Talk(b, Script("awakening.binder"));
-            StoryState.Set(Chapter1.Binder);
-            StoryState.Set(Chapter1.Awake);
+            StoryState.Set(Chapter1.Awake);   // the card binder lies by the capsule, to pick up (SpawnBinder)
             SaveGame.Save();
             b.SetCutscene(false);
             yield return b.UI.ShowTitle(b.Area.Name, b.Area.Subtitle);
@@ -101,7 +98,10 @@ namespace Game.World
             if (id != WorldAreas.City && id != WorldAreas.Tunnel && id != WorldAreas.Chamber) return;
 
             foreach (var cell in map.FindAll('K'))
+            {
                 Prop(b, StoryProps.Pod(b.transform, map.CellCenter(cell.x, cell.y)), w => Say(w, "pod"));
+                SpawnBinder(b, cell);
+            }
 
             for (char c = '1'; c <= '3'; c++)
             {
@@ -174,29 +174,68 @@ namespace Game.World
                 StoryState.Set(Chapter1.Scanner);
                 SaveGame.Save();
                 if (item != null) Object.Destroy(item);
-                SpawnChip(b);   // the scanner shows the language chip back in the pod room
+            });
+        }
+
+        // ------------------------------------------------------------------ The card binder
+
+        /// <summary>The card binder (the Cards book): lying on a free square beside the capsule until you pick it up.</summary>
+        static void SpawnBinder(OverworldBuilder b, Vector2Int pod)
+        {
+            if (StoryState.Has(Chapter1.Binder)) return;
+            var tries = new[] { new Vector2Int(0, 1), new Vector2Int(1, 0), new Vector2Int(-1, 0), new Vector2Int(0, -1),
+                                new Vector2Int(1, 1), new Vector2Int(-1, 1), new Vector2Int(1, -1), new Vector2Int(-1, -1) };
+            foreach (var d in tries)
+            {
+                int x = pod.x + d.x, row = pod.y + d.y;
+                if (b.Map.IsSolidCell(x, row)) continue;
+                var binder = StoryProps.Binder(b.transform, b.Map.CellCenter(x, row));
+                Prop(b, binder, w => TakeBinder(w, binder));
+                return;
+            }
+        }
+
+        static void TakeBinder(OverworldBuilder b, GameObject binder)
+        {
+            if (StoryState.Has(Chapter1.Binder)) return;
+            Say(b, "binder.pickup", () =>
+            {
+                StoryState.Set(Chapter1.Binder);
+                SaveGame.Save();
+                if (binder != null) Object.Destroy(binder);
             });
         }
 
         // ------------------------------------------------------------------ The language chip
 
-        /// <summary>The language chip (map 'Y', the pod room): only there once you have the scanner, until you take it.</summary>
+        /// <summary>
+        /// The three chips that make cards readable, each lying where its map tile is until you take it: the language
+        /// chip (Y, the pod room: words), the colours chip (Q, the city's bottom-right corner: text colours) and the
+        /// numbers chip (M, the Buried Line tunnel: numbers).
+        /// </summary>
         static void SpawnChip(OverworldBuilder b)
         {
-            if (!StoryState.Has(Chapter1.Scanner) || StoryState.Has(Chapter1.LanguageChip)) return;
-            foreach (var cell in b.Map.FindAll('Y'))
+            SpawnChip(b, 'Y', Chapter1.LanguageChip, "chip.pickup", "LanguageChip", new Color(0.45f, 1f, 0.6f));
+            SpawnChip(b, 'Q', Chapter1.ColoursChip, "chip.colours.pickup", "ColoursChip", new Color(0.8f, 0.5f, 1f));
+            SpawnChip(b, 'M', Chapter1.NumbersChip, "chip.numbers.pickup", "NumbersChip", new Color(1f, 0.82f, 0.35f));
+        }
+
+        static void SpawnChip(OverworldBuilder b, char tile, string flag, string script, string name, Color core)
+        {
+            if (StoryState.Has(flag)) return;
+            foreach (var cell in b.Map.FindAll(tile))
             {
-                var chip = StoryProps.LanguageChip(b.transform, b.Map.CellCenter(cell.x, cell.y));
-                Prop(b, chip, w => TakeChip(w, chip));
+                var chip = StoryProps.Chip(b.transform, b.Map.CellCenter(cell.x, cell.y), name, core);
+                Prop(b, chip, w => TakeChip(w, chip, flag, script));
             }
         }
 
-        static void TakeChip(OverworldBuilder b, GameObject chip)
+        static void TakeChip(OverworldBuilder b, GameObject chip, string flag, string script)
         {
-            if (StoryState.Has(Chapter1.LanguageChip)) return;
-            Say(b, "chip.pickup", () =>
+            if (StoryState.Has(flag)) return;
+            Say(b, script, () =>
             {
-                StoryState.Set(Chapter1.LanguageChip);
+                StoryState.Set(flag);
                 SaveGame.Save();
                 if (chip != null) Object.Destroy(chip);
             });

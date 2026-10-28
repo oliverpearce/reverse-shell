@@ -93,7 +93,7 @@ Some resonances (elements) beat others:
 {gold}Cinder{/c} > {gold}Cryo{/c} > {gold}Root{/c}
 > {gold}Arc{/c} > {gold}Cinder{/c}
 {gold}Prism{/c} is neutral but crits more.
-{gold}Physical{/c} is always neutral.
+{gold}Basic{/c} is always neutral.
 
 Advantage: {green}+30% damage, +15% crit{/c}
 Disadvantage: {red}-20% damage{/c}

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Combat;
 using Combat.View;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Game.World
@@ -101,9 +102,12 @@ namespace Game.World
             title.rectTransform.Place(topLeft, topLeft, new Vector2(60f, -40f), new Vector2(700f, 90f));
             if (mode == Mode.Collection) ItemsScreen.Tabs(root, false, SwitchToParts, null);
 
-            // Top right: the two sort filters, each a caption over its current choice in big gold; a click moves to the next.
-            resonanceLabel = TopButton("Resonance", -370f, () => CycleFilter(ref resonanceFilter, ResonanceChoices().Count));
-            kindLabel = TopButton("Kind", -50f, () => CycleFilter(ref kindFilter, Kinds.Length + 1));   // the last is Special
+            // Top right: Sort, then the two filters, each a caption over its current choice in big gold; a click opens a dropdown.
+            sortLabel = TopButton("Sort", -478f, () => OpenDropdown(sortLabel, SortNames(), sortMode, i => { sortMode = i; Rebuild(0); SaveSort(); }));
+            resonanceLabel = TopButton("Resonance", -259f, () => OpenDropdown(resonanceLabel, ResonanceNames(), resonanceFilter, i => { resonanceFilter = i; Rebuild(0); SaveSort(); }));
+            kindLabel = TopButton("Kind", -40f, () => OpenDropdown(kindLabel, KindNames(), kindFilter, i => { kindFilter = i; Rebuild(0); SaveSort(); }));
+            if (mode == Mode.Session)   // Pack Mode: the shelf picks the set the book shows, so no filters (the timer goes there)
+                foreach (var label in new[] { sortLabel, resonanceLabel, kindLabel }) label.transform.parent.gameObject.SetActive(false);
 
             bookHolder = UIFactory.CreateRect("Book", root).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, BookY), CardBook.Size);
             bookHolder.localScale = Vector3.one * BookScale;
@@ -116,7 +120,9 @@ namespace Game.World
             var bottom = new Vector2(0.5f, 0f);
             const float keysY = 14f, keysH = 44f, panelY = keysY + keysH + Margin, panelH = 124f, packW = 420f;
             float bookHalf = CardBook.Size.x * BookScale / 2f;
-            float panelW = 2f * bookHalf - (mode == Mode.Index ? 0f : packW + Margin);
+            if (mode == Mode.Session) shelfWidth = 2f * bookHalf - SessionInfoWidth - Margin;
+            float rightW = mode == Mode.Session ? shelfWidth : packW;   // Pack Mode: the wide pack shelf instead of Open Pack
+            float panelW = 2f * bookHalf - (mode == Mode.Index ? 0f : rightW + Margin);
             var panel = InkStyle.Panel(root, "Info", InkStyle.InkPanel);
             panel.rectTransform.Place(bottom, bottom, new Vector2(-bookHalf + panelW / 2f, panelY), new Vector2(panelW, panelH));
             InkStyle.Frame(panel.rectTransform, InkStyle.Rule, 2f);
@@ -138,8 +144,13 @@ namespace Game.World
             packButton.GetComponent<RectTransform>().Place(bottom, bottom, new Vector2(bookHalf - packW / 2f, panelY), new Vector2(packW, panelH));
             packLabel = packButton.GetComponentInChildren<Text>();
             packLabel.fontSize = UIFactory.Px(UIFactory.TextSize.XLarge);
-            packButton.gameObject.SetActive(mode != Mode.Index);
-            if (mode == Mode.Session) BuildSessionStats();
+            packButton.gameObject.SetActive(mode == Mode.Collection || (mode == Mode.Session && PackModeRun.Packs.Count == 0));
+            if (mode == Mode.Session)
+            {
+                BuildSessionStats();
+                BuildShelf(new Vector2(bookHalf - shelfWidth / 2f, panelY), panelH);
+                BuildTimer();
+            }
             if (mode == Mode.Collection)
             {
                 // Copy to Blank: inside the info panel's right end, while you have blank cards.
@@ -163,7 +174,7 @@ namespace Game.World
         {
             var topRight = new Vector2(1f, 1f);
             var b = InkStyle.Button(root, name, "", onClick, false, UIFactory.TextSize.Large);
-            b.GetComponent<RectTransform>().Place(topRight, topRight, new Vector2(x, -30f), new Vector2(300f, 112f));
+            b.GetComponent<RectTransform>().Place(topRight, topRight, new Vector2(x, -30f), new Vector2(205f, 112f));
             var label = b.GetComponentInChildren<Text>();
             label.supportRichText = true;
             label.lineSpacing = 1.1f;
@@ -223,11 +234,8 @@ namespace Game.World
             if (Picking || CardCollection.Free(kind) <= 0) return;
             var owned = new List<CardDefinition>();
             foreach (var member in Roster)
-            {
-                var locked = CardCollection.LockedCard(member);
                 foreach (var card in CardCollection.AbilitiesOf(member))
-                    if (!owned.Contains(card) && (card == locked || CardCollection.Copies(card) > 0)) owned.Add(card);
-            }
+                    if (!owned.Contains(card) && CardCollection.Owned(card, Roster)) owned.Add(card);
             pickFrom = owned;
             pickCanRemove = false;
             useReturn = true;
@@ -263,7 +271,7 @@ namespace Game.World
                 keysText.text = UIText.Get(Picking ? "cards.keys.pick" : "cards.keys");
                 keysText.FitOneLine(1360f);
             }
-            if (mode == Mode.Session && !CardCollection.InSession) CardCollection.BeginSession();
+            if (mode == Mode.Session && !CardCollection.InSession) { CardCollection.BeginSession(); PackModeRun.Reset(); }
             if (mode == Mode.Index) CardCollection.IndexOpen = true;
             // From the title no game is loaded yet: the index shows the latest save's copies and levels.
             if (mode == Mode.Index && !WorldSession.TitleDone) SaveGame.Preview(SaveGame.LatestSlot());
@@ -364,16 +372,17 @@ namespace Game.World
         {
             all.Clear();
             bool session = mode == Mode.Session, index = mode == Mode.Index;
-            foreach (var member in Roster)
+            // Pack Mode shows every card the packs can give (the race is to fill them all in), missing ones faded.
+            foreach (var member in session ? PackModeRun.KitOwners(Roster) : Roster)
             {
                 if (member == null) continue;
                 foreach (var card in CardCollection.AbilitiesOf(member))
-                    if (!all.Exists(e => e.Card == card) && (!session || CardCollection.Copies(card) > 0) && (!Picking || pickFrom.Contains(card)))
+                    if (!all.Exists(e => e.Card == card) && (!Picking || pickFrom.Contains(card)))
                         all.Add(new Entry { Kind = EntryKind.Ability, Card = card, Owner = member, Element = ElementOf(member, card) });
             }
             if (Picking) return;   // only the cards the slot can take
             foreach (var kind in new[] { CardBinding.Sun, CardBinding.Moon, CardBinding.Star })
-                if (index || CardCollection.Found(kind) > 0) all.Add(new Entry { Kind = EntryKind.Arcana, Arcana = kind });
+                if (index || session || CardCollection.Found(kind) > 0) all.Add(new Entry { Kind = EntryKind.Arcana, Arcana = kind });
             foreach (var member in Roster)
             {
                 if (member == null || member.ritual == null) continue;
@@ -385,12 +394,12 @@ namespace Game.World
                         if (kit != null && kit.ultimate != null && !all.Exists(e => e.Card == kit.ultimate))
                             all.Add(new Entry { Kind = EntryKind.Soul, Card = kit.ultimate, Owner = member, Element = kit.element });
                 }
-                else if (!session || CardCollection.SoulLevel(member) > 0)
+                else
                     all.Add(new Entry { Kind = EntryKind.Soul, Card = WorldSession.UltimateOf(member) ?? member.ritual, Owner = member, Element = WorldSession.ElementOf(member) });
             }
         }
 
-        /// <summary>A card's resonance: the kit it belongs to; for the protagonist's other cards (the Physical card pool)
+        /// <summary>A card's resonance: the kit it belongs to; for the protagonist's other cards (the Basic card pool)
         /// the card's own pool; else its owner's own element.</summary>
         static Resonance ElementOf(CharacterDefinition member, CardDefinition card)
         {
@@ -413,6 +422,12 @@ namespace Game.World
 
         bool Passes(Entry e)
         {
+            // Pack Mode: exactly the selected shelf tab's cards (a pack's set, or the Soul tab's Soul / Sun / Moon / Star).
+            if (mode == Mode.Session && PackModeRun.Packs.Count > 0)
+            {
+                var pack = SelectedPack;
+                return pack == null ? e.Kind != EntryKind.Ability : e.Kind == EntryKind.Ability && e.Card.pool == pack.pool;
+            }
             if (SpecialShown) return e.Kind != EntryKind.Ability;
             if (e.Kind != EntryKind.Ability) return false;   // Special cards are kept under Kind: Special
             var element = ResonanceChoices()[Mathf.Clamp(resonanceFilter, 0, ResonanceChoices().Count - 1)];
@@ -422,12 +437,74 @@ namespace Game.World
             return true;
         }
 
-        void CycleFilter(ref int filter, int count)
+        /// <summary>Opens a filter / sort dropdown under its top-bar button.</summary>
+        void OpenDropdown(Text label, List<string> choices, int selected, System.Action<int> pick)
         {
-            filter = (filter + 1) % Mathf.Max(1, count);
-            Rebuild(0);
-            SaveSort();
+            if (book.Busy || closing || opening) return;
+            InkDropdown.Open((RectTransform)label.transform.parent, choices, selected, pick, 300f);
         }
+
+        List<string> ResonanceNames()
+        {
+            return ResonanceChoices().ConvertAll(e => e.HasValue ? ResonanceInfo.Display(e.Value) : UIText.Get("cards.filter.all"));
+        }
+
+        List<string> KindNames()
+        {
+            var list = new List<string>();
+            foreach (var k in Kinds) list.Add(k.HasValue ? UnitView.KindLabel(k.Value) : UIText.Get("cards.filter.all"));
+            list.Add(UIText.Get("cards.special"));
+            return list;
+        }
+
+        // ITEMS > CARDS > SORTING (the Sort dropdown: resonance is the default; the rest break ties by it)
+
+        enum SortBy { Resonance, Pack, Kind, Name, LevelHigh, LevelLow, CopiesMost, CopiesFewest }
+        int sortMode;
+        Text sortLabel;
+
+        static readonly string[] SortKeys = { "resonance", "pack", "kind", "name", "level_high", "level_low", "copies_most", "copies_fewest" };
+
+        List<string> SortNames()
+        {
+            var list = new List<string>();
+            foreach (var k in SortKeys) list.Add(UIText.Get("cards.sort." + k));
+            return list;
+        }
+
+        int CompareEntries(Entry a, Entry b)
+        {
+            if (a.Kind != b.Kind) return a.Kind.CompareTo(b.Kind);   // abilities, then Sun / Moon / Star, then Soul cards
+            if (a.Kind == EntryKind.Ability)
+            {
+                int c = 0;
+                switch ((SortBy)sortMode)
+                {
+                    case SortBy.Kind: c = a.Card.kind.CompareTo(b.Card.kind); break;
+                    case SortBy.Pack: c = PackOrder(a.Card).CompareTo(PackOrder(b.Card)); break;
+                    case SortBy.Name: c = string.CompareOrdinal(a.Card.DisplayName, b.Card.DisplayName); break;
+                    case SortBy.LevelHigh: c = LevelOf(b).CompareTo(LevelOf(a)); break;
+                    case SortBy.LevelLow: c = LevelOf(a).CompareTo(LevelOf(b)); break;
+                    case SortBy.CopiesMost: c = CardCollection.Copies(b.Card).CompareTo(CardCollection.Copies(a.Card)); break;
+                    case SortBy.CopiesFewest: c = CardCollection.Copies(a.Card).CompareTo(CardCollection.Copies(b.Card)); break;
+                }
+                if (c != 0) return c;
+            }
+            if (a.Element != b.Element) return a.Element.CompareTo(b.Element);
+            if (a.Kind == EntryKind.Ability && a.Card.kind != b.Card.kind) return a.Card.kind.CompareTo(b.Card.kind);
+            return a.Kind == EntryKind.Arcana ? a.Arcana.CompareTo(b.Arcana) : string.CompareOrdinal(a.Card.DisplayName, b.Card.DisplayName);
+        }
+
+        /// <summary>Which pack a card comes from, in the packs' order (Basic, Arc, Root, Cryo, Cinder, Prism).</summary>
+        static int PackOrder(CardDefinition card)
+        {
+            var packs = PackModeRun.Packs;
+            for (int i = 0; i < packs.Count; i++) if (packs[i] != null && packs[i].pool == card.pool) return i;
+            return packs.Count;
+        }
+
+        /// <summary>The card's level as the book shows it (its copy upgrades), then its own level.</summary>
+        static int LevelOf(Entry e) { return CardCollection.UpgradeLevel(e.Card) * 100 + e.Card.level; }
 
         // The filters are remembered between visits (and games), per page: the resonance by its element, so it still
         // finds it when the list of resonances changes.
@@ -441,6 +518,7 @@ namespace Game.World
                 var element = choices[Mathf.Clamp(resonanceFilter, 0, choices.Count - 1)];
                 PlayerPrefs.SetInt(SortKey("Resonance"), element.HasValue ? (int)element.Value : -1);
                 PlayerPrefs.SetInt(SortKey("Kind"), kindFilter);
+                PlayerPrefs.SetInt(SortKey("Sort"), sortMode);
                 PlayerPrefs.Save();
             }
             catch (System.Exception) { }   // no storage (e.g. a blocked browser): just not remembered
@@ -454,6 +532,7 @@ namespace Game.World
                 int saved = PlayerPrefs.GetInt(SortKey("Resonance"), -1);
                 resonanceFilter = Mathf.Max(0, ResonanceChoices().FindIndex(c => saved >= 0 ? c.HasValue && (int)c.Value == saved : !c.HasValue));
                 kindFilter = Mathf.Clamp(PlayerPrefs.GetInt(SortKey("Kind"), 0), 0, Kinds.Length);
+                sortMode = Mathf.Clamp(PlayerPrefs.GetInt(SortKey("Sort"), 0), 0, SortKeys.Length - 1);
             }
             catch (System.Exception) { }
         }
@@ -466,14 +545,11 @@ namespace Game.World
             if (resonanceFilter >= ResonanceChoices().Count) resonanceFilter = 0;
             shown.Clear();
             foreach (var e in all) if (Passes(e)) shown.Add(e);
-            // Abilities by resonance, then kind, then name; Sun / Moon / Star and Soul cards after them.
-            shown.Sort((a, b) =>
-            {
-                if (a.Kind != b.Kind) return a.Kind.CompareTo(b.Kind);
-                if (a.Element != b.Element) return a.Element.CompareTo(b.Element);
-                if (a.Kind == EntryKind.Ability && a.Card.kind != b.Card.kind) return a.Card.kind.CompareTo(b.Card.kind);
-                return a.Kind == EntryKind.Arcana ? a.Arcana.CompareTo(b.Arcana) : string.CompareOrdinal(a.Card.DisplayName, b.Card.DisplayName);
-            });
+            // Abilities by the Sort choice (ties by resonance, kind, name); Sun / Moon / Star and Soul cards after them.
+            int sortBefore = sortMode;
+            if (mode == Mode.Session) sortMode = (int)SortBy.Kind;   // a set reads by kind, then name
+            shown.Sort(CompareEntries);
+            sortMode = sortBefore;
 
             book.PageCount = Mathf.Max(2, Mathf.CeilToInt(shown.Count / (float)PerPage));
             index = Mathf.Clamp(select, 0, Mathf.Max(0, shown.Count - 1));
@@ -481,6 +557,7 @@ namespace Game.World
             var element = ResonanceChoices()[resonanceFilter];
             resonanceLabel.text = UIText.Get("cards.filter.resonance", "value",
                 element.HasValue ? ResonanceInfo.Display(element.Value) : UIText.Get("cards.filter.all"));
+            sortLabel.text = UIText.Get("cards.filter.sort", "value", UIText.Get("cards.sort." + SortKeys[Mathf.Clamp(sortMode, 0, SortKeys.Length - 1)]));
             var kind = SpecialShown ? null : Kinds[kindFilter];
             kindLabel.text = UIText.Get("cards.filter.kind", "value", SpecialShown ? UIText.Get("cards.special")
                 : kind.HasValue ? UnitView.KindLabel(kind.Value) : UIText.Get("cards.filter.all"));
@@ -511,7 +588,9 @@ namespace Game.World
             else CardView.BuildFace(face, Instance(e), FaceScale);
             foreach (var g in face.GetComponentsInChildren<Graphic>()) g.raycastTarget = false;
             // Hover picks it up and leans it; a soft glint by rarity.
-            if (e.Kind == EntryKind.Ability && mode != Mode.Session && CardCollection.Copies(e.Card) <= 0) Unowned(face);
+            if (e.Kind == EntryKind.Ability && (mode == Mode.Session ? CardCollection.Copies(e.Card) <= 0 : !CardCollection.Owned(e.Card, Roster))) Unowned(face);
+            if (mode == Mode.Session && e.Kind == EntryKind.Soul && CardCollection.SoulLevel(e.Owner) <= 0) Unowned(face);
+            if (mode == Mode.Session && e.Kind == EntryKind.Arcana && CardCollection.Found(e.Arcana) <= 0) Unowned(face);
             e.Lift = CardLift.Add(rt, face);
             if (CardCollection.IsNew(KeyOf(e))) NewBadge(rt);
             e.Lift.Selected = i == index && !opening;   // no selection while the book opens
@@ -521,13 +600,21 @@ namespace Game.World
                 e.Kind == EntryKind.Soul ? CardHolo.Kind.Soul : e.Kind == EntryKind.Arcana ? CardHolo.Kind.Rare : CardHolo.Kind.Common,
                 null, e.Kind == EntryKind.Ability ? e.Card.kind : (CardKind?)null);
             holo.Strength = 0.35f;
+            GameObject ownerTag = null;
             if (e.Kind == EntryKind.Ability)
             {
                 var ultForm = CardCollection.UltFormOf(e.Owner, e.Card);
-                if (ultForm != null)
+                if (ultForm != null && CardCollection.SoulFormKnown(e.Owner, e.Card))
                 {
                     var soul = new Entry { Kind = EntryKind.Soul, Card = ultForm, Owner = e.Owner, Element = e.Element };
-                    SoulFormPreview.Attach(rt.gameObject, (f, s) => CardView.BuildFace(f, Instance(soul), s), FaceScale);
+                    SoulFormPreview.Attach(rt.gameObject, (f, s) => CardView.BuildFace(f, Instance(soul), s, true), FaceScale);
+                }
+                else if (ultForm != null) SoulFormPreview.AttachHidden(rt.gameObject, FaceScale);   // not met / unlocked yet
+                if (mode == Mode.Collection)
+                {
+                    var who = CardCollection.EquippedBy(e.Card, Roster);
+                    OwnerBorder(face, who);
+                    ownerTag = OwnerTag(face, who);
                 }
             }
 
@@ -550,7 +637,8 @@ namespace Game.World
                 else if (e.Kind == EntryKind.Soul) { stars = CardCollection.SoulLevel(e.Owner); under = e.Owner.DisplayName; }
                 else under = UIText.Get("cards.copies", "n", CardCollection.Found(e.Arcana).ToString());
             }
-            UnderRow(rt, under, stars, e.Kind == EntryKind.Ability && mode != Mode.Session ? NextLevelProgress(e.Card) : -1f);
+            UnderRow(rt, under, stars, e.Kind == EntryKind.Ability && mode != Mode.Session
+                ? (CardCollection.Copies(e.Card) > 0 ? Mathf.Max(0.001f, NextLevelProgress(e.Card)) : 0f) : -1f);   // no copies: an empty bar
             var binding = e.Kind == EntryKind.Ability && PackRates.Current.bindingOn ? CardCollection.BindingOf(e.Card) : CardBinding.None;
             if (binding != CardBinding.None) BindingFlare(rt, face, binding);
 
@@ -565,6 +653,17 @@ namespace Game.World
                 if (captured == index) Zoom(); else Select(captured);
             });
             trigger.triggers.Add(click);
+            if (ownerTag != null)
+            {
+                // Hover: who has it equipped.
+                var tag = ownerTag;
+                var enter = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter };
+                enter.callback.AddListener(_ => { if (tag != null) { tag.transform.SetAsLastSibling(); tag.SetActive(true); } });
+                trigger.triggers.Add(enter);
+                var exit = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit };
+                exit.callback.AddListener(_ => { if (tag != null) tag.SetActive(false); });
+                trigger.triggers.Add(exit);
+            }
         }
 
         static readonly Color UnderInk = new Color(0.2f, 0.12f, 0.07f);
@@ -580,12 +679,13 @@ namespace Game.World
         }
 
         /// <summary>A thin bar along the top of the line under a card, right below the card: copies toward the next star
-        /// (gold when full).</summary>
+        /// (gold when full) on a solid track. No copies yet: an empty bar (only copies fill it), so it never looks like
+        /// progress was lost.</summary>
         const float BarGap = 9f, BarHeight = 5f, MinBarFill = 0.2f;
 
         static void ProgressBar(RectTransform row, float progress)
         {
-            var back = UIFactory.CreateImage(row, "Progress", UIFactory.WithAlpha(UnderInk, 0.2f));
+            var back = UIFactory.CreateImage(row, "Progress", Color.Lerp(UnderInk, Color.white, 0.6f));   // a solid, pale track
             back.raycastTarget = false;
             back.rectTransform.anchorMin = new Vector2(0f, 1f);
             back.rectTransform.anchorMax = new Vector2(1f, 1f);
@@ -595,8 +695,10 @@ namespace Game.World
             var fill = UIFactory.CreateImage(back.rectTransform, "Fill", progress >= 1f ? InkStyle.Gold : UnderInk);
             fill.raycastTarget = false;
             fill.rectTransform.anchorMin = Vector2.zero;
-            // Never looks empty: at least 20% filled until the real progress is past that.
-            fill.rectTransform.anchorMax = new Vector2(Mathf.Max(MinBarFill, Mathf.Clamp01(progress)), 1f);
+            // Some copies: at least 20% filled so a little progress still shows. None: empty.
+            float filled = progress <= 0f ? 0f : Mathf.Max(MinBarFill, Mathf.Clamp01(progress));
+            fill.rectTransform.anchorMax = new Vector2(filled, 1f);
+            fill.gameObject.SetActive(filled > 0f);
             fill.rectTransform.offsetMin = fill.rectTransform.offsetMax = Vector2.zero;
         }
 
@@ -628,7 +730,7 @@ namespace Game.World
             {
                 if (e.Kind != EntryKind.Ability) continue;
                 total++;
-                if (CardCollection.Copies(e.Card) > 0) owned++;
+                if (CardCollection.Owned(e.Card, Roster)) owned++;
             }
             string line = UIText.Get("cards.count", "have", owned.ToString(), "all", total.ToString());
             line += "      " + UIText.Get("cards.blanks", "n", CardCollection.Blanks.ToString());   // always shown
@@ -662,6 +764,42 @@ namespace Game.World
             icon.raycastTarget = false;
             icon.rectTransform.Place(new Vector2(1f, 1f), new Vector2(0.5f, 0.5f), new Vector2(-4f, -4f), new Vector2(50f, 50f));
             icon.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -12f);
+        }
+
+        /// <summary>
+        /// A card in someone's deck wears a border in that unit's colour: their resonance's (the protagonist's
+        /// current one; Basic is grey). It sits on the card face, so it lifts and tilts with it.
+        /// </summary>
+        static void OwnerBorder(RectTransform face, List<CharacterDefinition> who)
+        {
+            if (who.Count == 0) return;
+            var color = ResonanceInfo.Color(WorldSession.ElementOf(who[0]));
+            var border = UIFactory.CreateRect("OwnerBorder", face);
+            border.anchorMin = Vector2.zero;
+            border.anchorMax = Vector2.one;
+            border.offsetMin = new Vector2(-9f, -9f);
+            border.offsetMax = new Vector2(9f, 9f);
+            border.SetAsFirstSibling();   // behind the card's own art
+            InkStyle.Frame(border, color, 5f, 2f);
+            foreach (var g in border.GetComponentsInChildren<Graphic>()) g.raycastTarget = false;
+        }
+
+        /// <summary>A small name tag over an equipped card's top edge (who has it in their deck), shown on hover; null
+        /// when no one has it.</summary>
+        static GameObject OwnerTag(RectTransform face, List<CharacterDefinition> who)
+        {
+            if (who.Count == 0) return null;
+            var names = new List<string>();
+            foreach (var m in who) if (m != null) names.Add(m.DisplayName);
+            var tag = InkStyle.Panel(face, "OwnerTag", InkStyle.InkPanel);
+            InkStyle.Frame(tag.rectTransform, ResonanceInfo.Color(WorldSession.ElementOf(who[0])), 2f);
+            var t = UIFactory.CreateText(tag.rectTransform, "Text", string.Join(", ", names.ToArray()), UIFactory.TextSize.Small, InkStyle.Paper, TextAnchor.MiddleCenter);
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.rectTransform.Fill();
+            tag.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(t.preferredWidth + 28f, 38f));
+            foreach (var g in tag.GetComponentsInChildren<Graphic>()) g.raycastTarget = false;
+            tag.gameObject.SetActive(false);
+            return tag.gameObject;
         }
 
         /// <summary>How see-through a card you have no copies of is in the book (its art and text still show).</summary>
@@ -812,6 +950,7 @@ namespace Game.World
 
         void RefreshSession()
         {
+            RefreshShelf();
             var s = CardCollection.Current;
             packLabel.text = UIText.Get("cards.open_pack.free");
             packButton.interactable = true;
@@ -928,7 +1067,7 @@ namespace Game.World
             }
             var instance = Instance(e);
             CardDetailPopup.Open(root, instance.Owner, e.Card, instance.Rank, e.Rect, null,
-                e.Kind == EntryKind.Ability ? CardCollection.UltFormOf(e.Owner, e.Card) : null);
+                e.Kind == EntryKind.Ability && CardCollection.SoulFormKnown(e.Owner, e.Card) ? CardCollection.UltFormOf(e.Owner, e.Card) : null);
         }
 
         void OpenBindPicker()
@@ -1084,13 +1223,211 @@ namespace Game.World
         {
             if (Picking) { if (pickCanRemove) Pick(null); return; }
             if (mode == Mode.Index || (mode == Mode.Collection && WorldSession.Packs <= 0)) return;
+            if (mode == Mode.Session && PackModeRun.Packs.Count > 0)
+            {
+                OpenSelected();   // O: the selected tab's pack (the Soul tab: a random one)
+                return;
+            }
             PackOpening.Open(root, Roster, () => Rebuild(index));
+        }
+
+        // ITEMS > CARDS > PACK MODE (the race: a shelf of packs, a timer, splits)
+
+        const float SessionInfoWidth = 440f;
+        float shelfWidth = 960f;
+        /// <summary>The selected shelf tab: a pack's index, or Packs.Count for the Soul tab.</summary>
+        int shelfTab;
+        readonly List<Text> shelfLines = new List<Text>();
+        readonly List<Image> shelfPlates = new List<Image>();
+        /// <summary>Each tab's extra line (OPEN, its best, the packs it took, "random pack"), shown above it on hover.</summary>
+        readonly List<string> shelfTips = new List<string>();
+        RectTransform shelfTip;
+        int shelfTipFor = -1;
+        Text timerText, bestText;
+
+        PackKind SelectedPack { get { var packs = PackModeRun.Packs; return shelfTab >= 0 && shelfTab < packs.Count ? packs[shelfTab] : null; } }
+
+        /// <summary>A shelf tab clicked: the first click selects it (the book shows that set), a click on the selected
+        /// one opens its pack.</summary>
+        void ClickShelf(int tab)
+        {
+            if (book.Busy || closing || opening || PackOpening.IsOpen) return;
+            if (tab == shelfTab) { OpenSelected(); return; }
+            shelfTab = tab;
+            Rebuild(0);
+        }
+
+        void OpenSelected()
+        {
+            if (book.Busy || closing || opening || PackOpening.IsOpen) return;
+            HideShelfTip();
+            // The Soul tab opens a random pack: every pack has the same Soul chance.
+            PackOpening.Open(root, Roster, () => Rebuild(index), SelectedPack ?? PackRates.Current.RandomKind());
+        }
+
+        /// <summary>The pack shelf: every pack in its own art with its set's progress (14/20), then once complete its
+        /// split time in green (ahead of your best) or red (behind) and the packs it took. Click one to open it.</summary>
+        void BuildShelf(Vector2 at, float height)
+        {
+            var bottom = new Vector2(0.5f, 0f);
+            var shelf = InkStyle.Panel(root, "Shelf", InkStyle.InkPanel).rectTransform;
+            shelf.Place(bottom, bottom, at, new Vector2(shelfWidth, height));
+            InkStyle.Frame(shelf, InkStyle.Rule, 2f);
+            var packs = PackModeRun.Packs;
+            int tabs = packs.Count + 1;   // every pack, then the Soul tab
+            float w = shelfWidth / Mathf.Max(1, tabs);
+            shelfLines.Clear();
+            shelfPlates.Clear();
+            shelfTips.Clear();
+            for (int i = 0; i < tabs; i++)
+            {
+                var kind = i < packs.Count ? packs[i] : null;
+                var tl = new Vector2(0f, 1f);
+                var slot = UIFactory.CreateImage(shelf, kind != null ? "Pack_" + kind.id : "Soul", new Color(1f, 1f, 1f, 0f), true);
+                slot.rectTransform.Place(tl, tl, new Vector2(i * w + 3f, -3f), new Vector2(w - 6f, height - 6f));
+                var b = slot.gameObject.AddComponent<Button>();
+                b.transition = Selectable.Transition.None;
+                int captured = i;
+                b.onClick.AddListener(() => ClickShelf(captured));
+                slot.gameObject.AddComponent<ButtonHover>();
+                var hover = slot.gameObject.AddComponent<EventTrigger>();
+                var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+                enter.callback.AddListener(_ => ShowShelfTip(captured));
+                hover.triggers.Add(enter);
+                var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+                exit.callback.AddListener(_ => HideShelfTip());
+                hover.triggers.Add(exit);
+                var art = UIFactory.CreateImage(slot.rectTransform, "Art", Color.white);
+                art.sprite = CardArt.Picture(kind != null ? "Cards/Packs/Pack_" + kind.id : "Cards/CardBack");
+                art.preserveAspect = true;
+                art.raycastTarget = false;
+                art.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(6f, 0f), new Vector2(44f, height - 24f));
+                var text = UIFactory.CreateText(slot.rectTransform, "Progress", "", UIFactory.TextSize.Medium, InkStyle.Paper, TextAnchor.MiddleLeft);
+                text.supportRichText = true;
+                text.raycastTarget = false;
+                text.lineSpacing = 1.1f;
+                text.rectTransform.Fill();
+                text.rectTransform.offsetMin = new Vector2(54f, 0f);
+                text.rectTransform.offsetMax = new Vector2(-4f, 0f);
+                // Shrinks to fit the tab ("Cinder" is the longest), never wrapping into a third line.
+                text.horizontalOverflow = HorizontalWrapMode.Wrap;
+                text.verticalOverflow = VerticalWrapMode.Truncate;
+                text.resizeTextForBestFit = true;
+                text.resizeTextMinSize = UIFactory.Px(UIFactory.TextSize.Min);
+                text.resizeTextMaxSize = UIFactory.Px(UIFactory.TextSize.Medium);
+                shelfLines.Add(text);
+                shelfPlates.Add(slot);
+                shelfTips.Add("");
+            }
+            RefreshShelf();
+        }
+
+        void RefreshShelf()
+        {
+            var packs = PackModeRun.Packs;
+            string open = "{gold}" + UIText.Get("packmode.open") + "{/c}";
+            for (int i = 0; i < shelfPlates.Count; i++)
+            {
+                bool on = i == shelfTab;
+                shelfPlates[i].color = on ? UIFactory.WithAlpha(InkStyle.Gold, 0.3f) : new Color(1f, 1f, 1f, 0.03f);
+                var frame = shelfPlates[i].transform.Find("SelectedFrame");
+                if (on && frame == null) InkStyle.Frame(shelfPlates[i].rectTransform, InkStyle.GoldBright, 2f).name = "SelectedFrame";
+                else if (!on && frame != null) Destroy(frame.gameObject);
+            }
+            if (shelfLines.Count > packs.Count)
+            {
+                // The Soul tab: Soul cards pulled; a random pack opens from it.
+                int souls = 0;
+                foreach (var m in Roster) if (m != null) souls += CardCollection.SoulLevel(m);
+                shelfLines[packs.Count].text = UIText.Markup(UIText.Get("packmode.soul"));
+                shelfTips[packs.Count] = UIText.Markup((shelfTab == packs.Count ? open + "  " : "") + UIText.Get("packmode.souls", "n", souls.ToString())
+                    + "  " + UIText.Get("packmode.random"));
+            }
+            for (int i = 0; i < packs.Count && i < shelfLines.Count; i++)
+            {
+                var kind = packs[i];
+                int have = PackModeRun.Have(kind, Roster), all = PackModeRun.SetOf(kind, Roster).Count;
+                var split = PackModeRun.SplitOf(kind);
+                float best = PackModeRun.Records.BestSplitTime(kind.id);
+                string head = "<color=#" + ColorUtility.ToHtmlStringRGB(ResonanceInfo.Color(kind.pool)) + ">" + kind.pool + "</color>";
+                if (split != null)
+                {
+                    bool ahead = split.PrevBest < 0f || split.Time <= split.PrevBest;
+                    string col = ahead ? "#7FE08A" : "#FF7A6A";
+                    shelfLines[i].text = head + "\n<color=" + col + ">" + PackModeRun.Format(split.Time) + "</color>";
+                    shelfTips[i] = UIText.Markup((i == shelfTab ? open + "  " : "") + "{gold}" + UIText.Get("packmode.done") + "{/c}  "
+                        + UIText.Get("packmode.packs", "n", split.Packs.ToString()));
+                }
+                else
+                {
+                    shelfLines[i].text = head + "\n" + have + "/" + all;
+                    shelfTips[i] = UIText.Markup((i == shelfTab ? open + "  " : "")
+                        + (best >= 0f ? UIText.Get("packmode.best", "time", PackModeRun.Format(best)) : UIText.Get("packmode.no_best")));
+                }
+                shelfLines[i].text = UIText.Markup(shelfLines[i].text);
+            }
+            if (shelfTipFor >= 0) ShowShelfTip(shelfTipFor);   // keep a showing tip up to date
+        }
+
+        /// <summary>A tab's extra line in a small ink box just above it.</summary>
+        void ShowShelfTip(int i)
+        {
+            HideShelfTip();
+            if (i < 0 || i >= shelfPlates.Count || string.IsNullOrEmpty(shelfTips[i])) return;
+            shelfTipFor = i;
+            var tab = shelfPlates[i].rectTransform;
+            Vector3 top = root.InverseTransformPoint(tab.TransformPoint(new Vector3(tab.rect.center.x, tab.rect.yMax, 0f)));
+            shelfTip = InkStyle.Panel(root, "ShelfTip", InkStyle.InkPanel).rectTransform;
+            InkStyle.Frame(shelfTip, InkStyle.Gold, 2f);
+            shelfTip.anchorMin = shelfTip.anchorMax = new Vector2(0.5f, 0.5f);
+            shelfTip.pivot = new Vector2(0.5f, 0f);
+            var t = UIFactory.CreateText(shelfTip, "Text", shelfTips[i], UIFactory.TextSize.Medium, InkStyle.Paper, TextAnchor.MiddleCenter);
+            t.supportRichText = true;
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.raycastTarget = false;
+            t.rectTransform.Fill();
+            float w = t.preferredWidth + 40f;
+            var half = root.rect.size / 2f;
+            shelfTip.sizeDelta = new Vector2(w, 52f);
+            shelfTip.anchoredPosition = new Vector2(Mathf.Clamp(top.x, -half.x + w / 2f, half.x - w / 2f), top.y + 8f);
+            foreach (var g in shelfTip.GetComponentsInChildren<Graphic>()) g.raycastTarget = false;
+        }
+
+        void HideShelfTip()
+        {
+            if (shelfTip != null) Destroy(shelfTip.gameObject);
+            shelfTip = null;
+            shelfTipFor = -1;
+        }
+
+        /// <summary>The race's timer at the top: running time, and the best full run under it.</summary>
+        void BuildTimer()
+        {
+            var tr = new Vector2(1f, 1f);
+            timerText = InkStyle.Title(root, "Timer", "0:00.0", UIFactory.TextSize.Title, InkStyle.GoldBright, TextAnchor.UpperRight);
+            timerText.rectTransform.Place(tr, tr, new Vector2(-60f, -34f), new Vector2(560f, 90f));
+            timerText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            bestText = UIFactory.CreateText(root, "Best", "", UIFactory.TextSize.Medium, InkStyle.Paper, TextAnchor.UpperRight);
+            bestText.rectTransform.Place(tr, tr, new Vector2(-60f, -126f), new Vector2(900f, 40f));
+            bestText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        }
+
+        void UpdateTimer()
+        {
+            if (timerText == null) return;
+            timerText.text = PackModeRun.Format(PackModeRun.Elapsed);
+            timerText.color = PackModeRun.RunComplete ? new Color(0.5f, 1f, 0.55f) : InkStyle.GoldBright;
+            float best = PackModeRun.Records.BestRunTime;
+            int bestPacks = PackModeRun.Records.BestRunPacks;
+            bestText.text = best >= 0f ? UIText.Get("packmode.best_run", "time", PackModeRun.Format(best), "packs", bestPacks.ToString())
+                : UIText.Get("packmode.goal");
         }
 
         // ITEMS > CARDS > INPUT + MOTION
 
         void Update()
         {
+            if (mode == Mode.Session) UpdateTimer();
             if (book.Busy || closing || opening) return;   // opening, turning or closing
             // A card the mouse came to rest on while the book was busy (it can't report the hover then) gets selected now.
             // Only when the hovered card changes, so the arrow keys still work with the mouse resting on a card.
@@ -1098,6 +1435,7 @@ namespace Game.World
             if (over != lastHovered && over >= 0) Select(over);
             lastHovered = over;
             if (Time.frameCount == openedFrame || picker.IsOpen || picker.ClosedFrame == Time.frameCount) return;
+            if (InkDropdown.IsOpen || InkDropdown.ClosedFrame == Time.frameCount) return;   // the dropdown reads its own keys
             if (CardDetailPopup.IsOpen || CardZoom.IsOpen || PackOpening.IsOpen) return;
             if (CardZoom.ClosedFrame == Time.frameCount || PackOpening.ClosedFrame == Time.frameCount) return;
             // The wheel turns a whole spread; the arrows move around the open pages.

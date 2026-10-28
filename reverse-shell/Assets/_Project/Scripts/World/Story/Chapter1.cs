@@ -8,12 +8,14 @@ namespace Game.World
     {
         public const string Named = "ch1.named";                 // the opening asked for a name
         public const string Awake = "ch1.awake";                 // woke up beside the procedure pod
-        public const string Binder = "ch1.binder";               // found the card binder on waking (the Cards book)
+        public const string Binder = "ch1.binder";               // picked up the card binder by the capsule (the Cards book)
         public const string Memory1 = "ch1.memory.1";            // optional memory fragments
         public const string Memory2 = "ch1.memory.2";
         public const string Memory3 = "ch1.memory.3";
         public const string Scanner = "ch1.scanner";             // picked up the optical scanner
         public const string LanguageChip = "ch1.chip";           // picked up the language chip (card words read)
+        public const string NumbersChip = "ch1.chip.numbers";    // picked up the numbers chip (card numbers read), in the tunnel
+        public const string ColoursChip = "ch1.chip.colours";    // picked up the colours chip (card text colours), in the city
         public const string CollectorMet = "ch1.collector.met";  // the Collector stopped you
         public const string CollectorBeaten = "ch1.collector.beaten";
         public const string Route = "ch1.route";                 // the scanner opened the hidden route
@@ -26,7 +28,8 @@ namespace Game.World
         /// <summary>Every flag in story order (the debug panel lists them).</summary>
         public static readonly string[] All =
         {
-            Named, Awake, Binder, Memory1, Memory2, Memory3, Scanner, LanguageChip, CollectorMet, CollectorBeaten, Route, Tunnel,
+            Named, Awake, Binder, Memory1, Memory2, Memory3, LanguageChip, Scanner, ColoursChip, CollectorMet, CollectorBeaten, Route, Tunnel,
+            NumbersChip,
             DragonSeen, DragonBeaten, ResonanceArc, Complete,
         };
 

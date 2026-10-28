@@ -18,7 +18,7 @@ namespace Combat
         public CardDefinition ritual;
 
         [Header("Innate card (from the card sheet's Enemies tab)")]
-        [Tooltip("A Physical card the enemy always has, played Innate Levels higher; the Ult above is its Soul form.")]
+        [Tooltip("A Basic card the enemy always has, played Innate Levels higher; the Ult above is its Soul form.")]
         public CardDefinition innate;
         [Min(0)] public int innateLevels = 3;
         [Tooltip("Its weight among the skills when the AI picks a move.")]

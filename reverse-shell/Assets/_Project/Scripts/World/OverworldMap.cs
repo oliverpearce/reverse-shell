@@ -76,7 +76,19 @@ namespace Game.World
                    || c == 'K' || c == 'O' || c == 'U' || c == 'V' || (c >= '1' && c <= '7');
         }
 
-        public bool IsSolidCell(int x, int row) { return !InBounds(x, row) || IsSolidChar(cells[x, row]); }
+        public bool IsSolidCell(int x, int row) { return !InBounds(x, row) || (IsSolidChar(cells[x, row]) && !passable.Contains(new Vector2Int(x, row))); }
+
+        /// <summary>Items you've used (story props, loot chests, rune stones): their squares stop blocking the player.</summary>
+        readonly HashSet<Vector2Int> passable = new HashSet<Vector2Int>();
+
+        public void MakePassable(int x, int row) { if (InBounds(x, row)) passable.Add(new Vector2Int(x, row)); }
+
+        /// <summary>The items that become walkable once used: K the pod, 1-7 fragments and records, O the scanner, U the
+        /// pedestal, c loot chests, G rune stones (not the cracked wall V, which opens on its own terms).</summary>
+        public static bool IsItemChar(char c)
+        {
+            return c == 'K' || c == 'O' || c == 'U' || c == 'c' || c == 'G' || (c >= '1' && c <= '7');
+        }
 
         /// <summary>Height of a tree's canopy, for the camera rule (trees are props, not blocks).</summary>
         const float TreeHeight = 3f;

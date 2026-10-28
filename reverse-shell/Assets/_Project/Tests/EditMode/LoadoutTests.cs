@@ -134,7 +134,7 @@ namespace Combat.Tests
             catalog.parts.Add(core);
             catalog.starterCore = core;
             WorldSession.GiveStarterParts();   // also hands out the spare plating
-            var mc = TestFactory.Character(WorldSession.StartingMember, Resonance.Physical, 100f, null, strike);
+            var mc = TestFactory.Character(WorldSession.StartingMember, Resonance.Basic, 100f, null, strike);
             Assert.IsTrue(WorldSession.IsBound(WorldSession.PartIn(mc, PartSlot.Core)));
             WorldSession.Unequip(mc, PartSlot.Core);
             Assert.AreEqual(core, WorldSession.PartIn(mc, PartSlot.Core), "your own Core never comes out");
@@ -219,7 +219,7 @@ namespace Combat.Tests
         {
             Assert.AreEqual("Cryo", ResonanceInfo.Display(Resonance.Cryo));
             Assert.AreEqual("Arc", ResonanceInfo.Display(Resonance.Arc));
-            Assert.AreEqual("Physical", ResonanceInfo.Display(Resonance.Physical));
+            Assert.AreEqual("Basic", ResonanceInfo.Display(Resonance.Basic));
 
             hero.neutralGlow = true;
             hero.glowColor = Color.white;

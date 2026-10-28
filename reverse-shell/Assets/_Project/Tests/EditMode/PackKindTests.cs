@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace Combat.Tests
 {
-    /// <summary>Chapter packs (the card sheet's Packs tab): the resonance / Physical split and the rarity tiers.</summary>
+    /// <summary>Chapter packs (the card sheet's Packs tab): the resonance / Basic split and the rarity tiers.</summary>
     public class PackKindTests
     {
         CardDefinition Card(string name, Resonance pool, CardRarity rarity)
@@ -17,7 +17,7 @@ namespace Combat.Tests
 
         List<CharacterDefinition> Roster(params CardDefinition[] cards)
         {
-            return new List<CharacterDefinition> { TestFactory.Character("Hero", Resonance.Physical, 100f, null, cards) };
+            return new List<CharacterDefinition> { TestFactory.Character("Hero", Resonance.Basic, 100f, null, cards) };
         }
 
         static PackKind Kind(Resonance pool, float share, float common, float rare, float epic)
@@ -27,11 +27,11 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void PoolShare_PicksResonanceOrPhysical_AndNeverOtherResonances()
+        public void PoolShare_PicksResonanceOrBasic_AndNeverOtherResonances()
         {
             var arc = Card("Arc1", Resonance.Arc, CardRarity.Common);
             var arc2 = Card("Arc2", Resonance.Arc, CardRarity.Common);
-            var phys = Card("Phys", Resonance.Physical, CardRarity.Common);
+            var phys = Card("Phys", Resonance.Basic, CardRarity.Common);
             var root = Card("Root", Resonance.Root, CardRarity.Common);
             var roster = Roster(arc, arc2, phys, root);
             var rng = new System.Random(7);
@@ -41,8 +41,8 @@ namespace Combat.Tests
                     {
                         Assert.AreNotEqual(root, pull.Card, "another resonance's card never comes");
                     }
-            var onlyPhysical = CardPacks.Roll(roster, rng, Kind(Resonance.Arc, 0f, 1f, 0f, 0f));
-            Assert.AreEqual(phys, onlyPhysical[0].Card, "0% resonance: Physical first");
+            var onlyBasic = CardPacks.Roll(roster, rng, Kind(Resonance.Arc, 0f, 1f, 0f, 0f));
+            Assert.AreEqual(phys, onlyBasic[0].Card, "0% resonance: Basic first");
         }
 
         [Test]

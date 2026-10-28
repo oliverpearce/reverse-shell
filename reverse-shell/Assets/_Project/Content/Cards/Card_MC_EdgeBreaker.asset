@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 84f16ca0de16a4d48be9e44684662a8b, type: 3}
   m_Name: Card_MC_EdgeBreaker
   m_EditorClassIdentifier: 
-  displayName: Prism Burst
+  displayName: Edge Breaker
   kind: 0
   targetMode: 0
   isRitual: 1

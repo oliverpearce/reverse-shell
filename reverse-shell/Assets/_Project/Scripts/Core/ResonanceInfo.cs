@@ -20,7 +20,7 @@ namespace Combat
                 case "Fire": resonance = Resonance.Cinder; return true;
                 case "Toxin": case "Earth": resonance = Resonance.Root; return true;
                 case "Light": resonance = Resonance.Prism; return true;
-                case "Void": case "None": resonance = Resonance.Physical; return true;
+                case "Physical": case "Void": case "None": resonance = Resonance.Basic; return true;
             }
             return System.Enum.TryParse(name, out resonance) && System.Enum.IsDefined(typeof(Resonance), resonance);
         }
@@ -35,18 +35,18 @@ namespace Combat
                 case Resonance.Root: return new Color(0.5f, 0.92f, 0.45f);   // moss green
                 case Resonance.Cryo: return new Color(0.55f, 0.85f, 1f);     // ice blue
                 case Resonance.Prism: return new Color(0.9f, 0.82f, 1f);     // pale lilac-white (apart from Arc's yellow)
-                case Resonance.Physical: return new Color(0.78f, 0.76f, 0.72f);  // plain steel
+                case Resonance.Basic: return new Color(0.78f, 0.76f, 0.72f);  // plain steel
             }
             return UnityEngine.Color.white;
         }
 
         /// <summary>
         /// A unit's colour (card swirls, HUD lines, flashes) under a resonance: the element's colour, or the unit's own
-        /// colour with no resonance or the Physical one.
+        /// colour with no resonance or the Basic one.
         /// </summary>
         public static Color ResonanceColor(Color own, Resonance? resonance)
         {
-            return resonance.HasValue && resonance.Value != Resonance.Physical ? Color(resonance.Value) : own;
+            return resonance.HasValue && resonance.Value != Resonance.Basic ? Color(resonance.Value) : own;
         }
 
         /// <summary>

@@ -186,8 +186,8 @@ namespace Combat.View
             // 64 px frames at exactly 6x keep pixels crisp (a boss is drawn at 9x); the feet sit ~2 px above the frame bottom.
             float size = unit.IsBoss ? SpriteSize * BossScale : SpriteSize;
             var images = new List<Image>();
-            // A resonance (the protagonist's Arc) glows in its element; Physical keeps the character's own glow.
-            Resonance? resonance = unit.Character != null && unit.Character.resonances.Count > 0 && unit.Resonance != Resonance.Physical
+            // A resonance (the protagonist's Arc) glows in its element; Basic keeps the character's own glow.
+            Resonance? resonance = unit.Character != null && unit.Character.resonances.Count > 0 && unit.Resonance != Resonance.Basic
                 ? unit.Resonance : (Resonance?)null;
             var glowColor = Color.Lerp(unit.Character != null ? ResonanceInfo.GlowFor(unit.Character, resonance) : unit.Definition.color, Color.white, 0.45f);
             glowColor.a = 0.16f;

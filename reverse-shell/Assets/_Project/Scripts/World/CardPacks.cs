@@ -72,7 +72,7 @@ namespace Game.World
 
         /// <summary>
         /// A chapter pack: each common card is from the pack's resonance (<see cref="PackKind.poolShare"/>) or the
-        /// Physical cards, then of a rarity rolled with the pack's tier odds (an empty tier or pool falls back to the
+        /// Basic cards, then of a rarity rolled with the pack's tier odds (an empty tier or pool falls back to the
         /// others). Resonance cards come even before the resonance is unlocked: collecting them is part of the chapter.
         /// </summary>
         static List<Pull> RollKind(IList<CharacterDefinition> roster, System.Random rng, PackKind kind)
@@ -80,10 +80,10 @@ namespace Game.World
             var pulls = new List<Pull>();
             var resonance = new List<CardDefinition>();
             var physical = new List<CardDefinition>();
-            foreach (var member in roster)
+            foreach (var member in PackModeRun.KitOwners(roster))
                 foreach (var card in CardCollection.AbilitiesOf(member))
                 {
-                    if (card.pool == Resonance.Physical) { if (!physical.Contains(card)) physical.Add(card); }
+                    if (card.pool == Resonance.Basic) { if (!physical.Contains(card)) physical.Add(card); }
                     else if (card.pool == kind.pool && !resonance.Contains(card)) resonance.Add(card);
                 }
 
@@ -204,7 +204,7 @@ namespace Game.World
             }
             var id = WorldSession.TakePack();
             if (id == null) return false;
-            kind = rates.Pack(id) ?? rates.PackForArea(WorldSession.CurrentArea);
+            kind = id == PackRates.RandomPack ? rates.RandomKind() : rates.Pack(id) ?? rates.PackForArea(WorldSession.CurrentArea);
             return true;
         }
     }

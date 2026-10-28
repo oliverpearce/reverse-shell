@@ -1,12 +1,12 @@
 namespace Combat
 {
     /// <summary>
-    /// The five resonances plus Physical (bible v0.6 §3). Values are serialized as numbers, so keep
+    /// The five resonances plus Basic (bible v0.6 §3). Values are serialized as numbers, so keep
     /// the order: renaming is safe, reordering is not. Wheel: Cinder > Cryo > Root > Arc > Cinder; Prism is neutral to
-    /// all but crits more (see ResonanceChart). Physical: no element, neutral in every matchup (the protagonist's
+    /// all but crits more (see ResonanceChart). Basic: no element, neutral in every matchup (the protagonist's
     /// starting Core).
     /// </summary>
-    public enum Resonance { Arc, Cinder, Root, Cryo, Prism, Physical }
+    public enum Resonance { Arc, Cinder, Root, Cryo, Prism, Basic }
 
     public enum DamageType { Physical, Special }
 

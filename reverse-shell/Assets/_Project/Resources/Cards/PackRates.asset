@@ -18,8 +18,8 @@ MonoBehaviour:
   blankChance: 0.1
   packsPerWin: 1
   packs:
-  - id: Physical
-    displayName: Physical Pack
+  - id: Basic
+    displayName: Basic Pack
     pool: 5
     cardsPerPack: 3
     packsPerWin: 1
@@ -92,13 +92,13 @@ MonoBehaviour:
     blankChance: 0.1
   areaPacks:
   - area: city
-    pack: Arc
+    pack: Basic
   - area: tunnel
-    pack: Arc
+    pack: Basic
   - area: chamber
     pack: Arc
   - area: sandbox
-    pack: Physical
+    pack: Random
   upgradeCopies: 050000000a00000014000000
   bindingOn: 1
   maxPerBinding: 2

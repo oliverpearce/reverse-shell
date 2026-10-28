@@ -37,3 +37,6 @@ MonoBehaviour:
     weight: 0.5
   xpReward: 120
   ritual: {fileID: 11400000, guid: 0f77c530dcce411e933dabbecd4b6034, type: 2}
+  innate: {fileID: 11400000, guid: 009db1dd1bd0709479ade68e67178080, type: 2}
+  innateLevels: 3
+  innateWeight: 1

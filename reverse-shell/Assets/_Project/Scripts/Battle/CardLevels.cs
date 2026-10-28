@@ -28,7 +28,7 @@ namespace Combat
             {
                 level += c.levelsPerUpgrade * card.Owner.UpgradesOf(card.Definition);
                 if (card.Owner.IsBoss) level += c.bossCardLevels;
-                // An enemy's innate card is a Physical card it plays a few levels up.
+                // An enemy's innate card is a Basic card it plays a few levels up.
                 var enemy = card.Owner.Enemy;
                 if (enemy != null && enemy.innate == card.Definition) level += enemy.innateLevels;
             }

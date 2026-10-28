@@ -274,7 +274,8 @@ namespace Game.World
             var plate = plates[i].transform;
             Func<string, int, Color, TextAnchor, Text> part = (text, size, color, anchor) =>
             {
-                var t = InkStyle.Label(plate, "Part", text, size, isEnabled ? color : UIFactory.WithAlpha(color, 0.45f), anchor);
+                // Plain text (not the small-caps label style), big enough to read from the couch.
+                var t = UIFactory.CreateText(plate, "Part", text, size, isEnabled ? color : UIFactory.WithAlpha(color, 0.45f), anchor);
                 t.supportRichText = true;
                 t.horizontalOverflow = HorizontalWrapMode.Overflow;
                 t.raycastTarget = false;
@@ -284,22 +285,22 @@ namespace Game.World
             int level;
             if (!SaveGame.SlotParts(slot, out who, out level, out area, out when))
             {
-                var empty = part(UIText.Get("save.empty"), UIFactory.TextSize.Medium, InkStyle.PaperDim, TextAnchor.MiddleLeft);
+                var empty = part(UIText.Get("save.empty"), UIFactory.TextSize.Large, InkStyle.PaperDim, TextAnchor.MiddleLeft);
                 empty.rectTransform.Fill();
                 empty.rectTransform.offsetMin = new Vector2(250f, 0f);
                 return;
             }
             string line = who + "    <color=#C2A061>" + UIText.Get("common.lv") + " " + level + "</color>    " + area;
-            var details = part(line, UIFactory.TextSize.Medium, InkStyle.Paper, TextAnchor.MiddleLeft);
+            var details = part(line, UIFactory.TextSize.Large, InkStyle.Paper, TextAnchor.MiddleLeft);
             details.rectTransform.Fill();
             details.rectTransform.offsetMin = new Vector2(250f, 0f);
-            details.rectTransform.offsetMax = new Vector2(-240f, 0f);
+            details.rectTransform.offsetMax = new Vector2(-250f, 0f);
             details.horizontalOverflow = HorizontalWrapMode.Wrap;   // clipped by its width rather than running into the time
             details.verticalOverflow = VerticalWrapMode.Truncate;
             details.resizeTextForBestFit = true;
-            details.resizeTextMinSize = UIFactory.TextSize.Small;
-            details.resizeTextMaxSize = UIFactory.TextSize.Medium;
-            var time = part(when, UIFactory.TextSize.Small, InkStyle.PaperDim, TextAnchor.MiddleRight);
+            details.resizeTextMinSize = UIFactory.Px(UIFactory.TextSize.Medium);   // only shrinks for a very long name or area
+            details.resizeTextMaxSize = UIFactory.Px(UIFactory.TextSize.Large);
+            var time = part(when, UIFactory.TextSize.Medium, InkStyle.PaperDim, TextAnchor.MiddleRight);
             time.rectTransform.Fill();
             time.rectTransform.offsetMax = new Vector2(-36f, 0f);
         }
