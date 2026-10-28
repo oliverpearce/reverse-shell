@@ -12,5 +12,11 @@ namespace Combat
         public Afflatus? Element;
         /// <summary>The active resonance's Ult card (null = the definition's ritual).</summary>
         public CardDefinition Ultimate;
+        /// <summary>The rank each card starts at when drawn (from copies owned; missing = rank I).</summary>
+        public Dictionary<CardDefinition, int> StartRanks = new Dictionary<CardDefinition, int>();
+        /// <summary>Sun / Moon / Star bound onto cards (missing = none).</summary>
+        public Dictionary<CardDefinition, CardBinding> Bindings = new Dictionary<CardDefinition, CardBinding>();
+        /// <summary>Soul level (0-3): extra Ult power (PackRates.ultPowerPerSoul each).</summary>
+        public int SoulLevel;
     }
 }

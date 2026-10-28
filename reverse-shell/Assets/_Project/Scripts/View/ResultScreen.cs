@@ -42,6 +42,9 @@ namespace Combat.View
             public Text Level, Xp, Tag;
         }
 
+        /// <summary>Card packs this win gives (set by the HUD; 0 = no line).</summary>
+        public static int PacksWon;
+
         public static IEnumerator Play(RectTransform content, bool victory, BattleResult result, GameObject button)
         {
             UIFactory.ClearChildren(content);
@@ -68,6 +71,13 @@ namespace Combat.View
             var xp = InkStyle.Title(content, "Xp", UIText.Get("result.xp", "n", result.XpGained.ToString()), 54, Up, TextAnchor.MiddleCenter);
             xp.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 420f), new Vector2(800f, 70f));
             yield return Tween.Punch(xp.rectTransform, 0.15f, 0.2f);
+            if (PacksWon > 0)
+            {
+                // The card packs this win gave (opened in Items → Cards).
+                var packs = InkStyle.Title(content, "Packs", UIText.Get("result.packs", "n", PacksWon.ToString()), 40, InkStyle.GoldBright, TextAnchor.MiddleCenter);
+                packs.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 362f), new Vector2(800f, 56f));
+                yield return Tween.Punch(packs.rectTransform, 0.12f, 0.18f);
+            }
 
             // 2. Rows
             var rows = new List<Row>();

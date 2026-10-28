@@ -1,6 +1,6 @@
 # Character sprites
 
-Every folder here (MC, HealBot, Lucy, RustSentry, ScrapStalker, NoodleVendor, Courier, Drifter) is **original pixel
+Every folder here (MC, Ashe, Lucy, RustSentry, ScrapStalker, NoodleVendor, Courier, Drifter) is **original pixel
 art**, drawn in code by `Tools/ChibiForge/chibi_forge.py` (no third-party assets, no license strings):
 
 - Chibi proportions in 64×64 frames, a bold plum outline, 4-tone ramps and a limited warm palette.

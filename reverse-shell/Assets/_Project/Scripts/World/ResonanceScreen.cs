@@ -161,14 +161,11 @@ namespace Game.World
                 var icon = UIFactory.CreateImage(e.Rect, "Icon", Color.white);
                 icon.sprite = art;
                 icon.preserveAspect = true;
-                CardArt.PlacePixels(icon.rectTransform, CardArt.ArtX, CardArt.ArtY, CardArt.ArtSize, CardArt.ArtSize, u);
+                CardArt.PlaceIcon(icon.rectTransform, u);
             }
 
-            var plate = CardArt.NamePlate;
-            string label = e.Open ? AfflatusInfo.Display(e.Element).ToUpperInvariant() : UIText.Get("resonance.locked");
-            var name = UIFactory.CreateText(e.Rect, "Name", label, Mathf.RoundToInt(26 * s), e.Open ? InkStyle.Paper : InkStyle.Muted, TextAnchor.MiddleCenter)
-                .BestFitCardPlate(Mathf.RoundToInt(8 * s), Mathf.RoundToInt(26 * s));
-            CardArt.PlacePixels(name.rectTransform, plate.x, plate.y - 1, plate.width, plate.height + 2, u);
+            string label = e.Open ? AfflatusInfo.Display(e.Element) : UIText.Get("resonance.locked");
+            CardArt.NameLabel(e.Rect, label, e.Open ? InkStyle.Paper : InkStyle.Muted, s);
 
             e.ActiveFrame = UIFactory.CreateRect("Active", e.Rect).Fill();
             e.ActiveFrame.offsetMin = new Vector2(-12f, -12f);   // just outside the card

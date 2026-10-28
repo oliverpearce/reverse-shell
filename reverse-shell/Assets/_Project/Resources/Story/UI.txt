@@ -59,6 +59,8 @@ title.sandbox = Sandbox Mode
 title.settings = Settings
 title.credits = Credits
 title.quit = Quit
+title.card_packs = Pack Mode
+title.card_index = Cards
 
 # {slot} = the slot number
 title.overwrite = Overwrite slot {slot}?
@@ -67,7 +69,7 @@ title.overwrite.yes = Yes, start a new game
 title.sandbox.enter = Enter Sandbox Mode
 title.sandbox.help = Go straight to the Sandbox with your latest save: practice fights at any enemy level, and the whole test crew. Leave Sandbox Mode (Esc, Settings) takes you back.
 
-title.credits.text = <size=40>Credits</size>\n\nMade by {gold}Oliver Pearce{/c}. A free, non-commercial fan game inspired by Reverse: 1999\n(not affiliated with Bluepoch).\n\n{gold}Icons{/c}   Raven Fantasy Icons by Clockwork Raven Studios\n{gold}Character sprites{/c}   Fantasy Knight by aamatniekss\n{gold}Effects{/c}   Super Pixel Effects Gigapack by Will Tice / unTied Games\n{gold}Font{/c}   monogram by datagoblin\n\nThank you for playing!
+title.credits.text = <size=40>Credits</size>\n\nMade by {gold}Oliver Pearce{/c}. A free, non-commercial fan game inspired by Reverse: 1999\n(not affiliated with Bluepoch).\n\n{gold}Icons{/c}   Raven Fantasy Icons by Clockwork Raven Studios\n{gold}Character sprites{/c}   Fantasy Knight by aamatniekss\n{gold}Effects{/c}   Super Pixel Effects Gigapack by Will Tice / unTied Games\n{gold}Font{/c}   monogram by datagoblin\n{gold}Card packs{/c}   Free Card Packs by argametina\n\nThank you for playing!
 
 # ------------------------------------------------------------------ Settings (title, Esc menu and battle pause menu)
 
@@ -99,6 +101,8 @@ settings.tutorials.help = Every key, and the battle tutorials: turns and AP, mer
 
 pause.title = PAUSED
 pause.keys = {gold}← →{/c}  Choose      {gold}Enter{/c}  Select      {gold}Esc{/c}  Resume
+pause.keys.binder = {gold}← →{/c}  Choose      {gold}↓{/c}  Cards      {gold}Enter{/c}  Select      {gold}Esc{/c}  Resume
+pause.binder = Cards
 
 pause.card.quit = Quit
 pause.card.save = Save
@@ -143,6 +147,15 @@ units.deck = Deck
 units.ult = Ult
 units.remove = Remove
 units.no_spare = No spare items
+# The deck row: the locked card (always brought), the extra slot you fill, the Soul card
+units.locked = Locked
+units.extra = Extra
+units.extra.pick = CHOOSE A CARD
+# {owner} = whose card it is, {kind} = Attack / Buff / ...
+units.extra.detail = {owner} · {kind}
+units.extra.remove = Remove
+units.extra.remove.detail = Leave the slot empty: just the locked card and the Soul card.
+units.extra.none = No other cards yet (open packs!)
 
 # ------------------------------------------------------------------ Party (Esc → Party, and Prepare for Battle)
 
@@ -296,3 +309,110 @@ result.defeat = DEFEAT
 # {n} = the XP gained
 result.xp = +{n} XP
 result.level_up = LEVEL UP
+# {n} = card packs won (opened in Items → Cards)
+result.packs = +{n} Card Pack
+
+# ------------------------------------------------------------------ Card collection (Items → Cards)
+
+items.tab.parts = Parts
+items.tab.cards = Cards
+
+cards.title = Cards
+cards.keys = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c}  Zoom      {gold}O{/c}  Open Pack      {gold}Tab{/c}  Parts      {gold}Esc{/c}  Back
+# The top-bar buttons: a caption, then the current choice in gold. {value} = an element / kind / frame style, or cards.filter.all
+cards.filter.resonance = Resonance\n{gold}{value}{/c}
+cards.filter.kind = Kind\n{gold}{value}{/c}
+cards.filter.all = All
+# Under each card. {n} = how many, {max} = the cap
+cards.copies = ×{n}
+cards.found = {n} / {max}
+cards.soul = Soul {n} / {max}
+# {n} = unopened packs
+cards.open_pack = Open Pack ({n})
+# {sun} {moon} {star} = found / cap, {souls} = each unit's Soul level
+cards.counters = {c=#FF9A33}Sun{/c} {sun}     {c=#FF9A33}Moon{/c} {moon}     {c=#FF9A33}Star{/c} {star}          {gold}Soul{/c}  {souls}
+cards.empty = No cards match these filters.
+# The selected card's panel. {name} {copies} {rank} {next} {binding}
+cards.info.ability = {gold}{name}{/c}\nCopies: {copies}      {next}
+# {n} = copies still needed, {rank} = the next rank
+cards.info.next = {n} more for Lv {level}
+cards.info.top = Top level
+cards.info.unbound = No binding (B to bind Sun, Moon or Star)
+# {name} {effect} {free} = not on a card yet, {found}
+cards.info.arcana = {c=#FF9A33}{name}{/c}\nRare card      Found {found} of {max}
+# {name} = the unit, {card} = their Soul card, {level} / {max}, {pct} = extra Ult power
+cards.info.soul = {gold}{name}{/c}  {card}\nSoul Lv {level} / {max}      Ult +{pct}% damage and healing
+cards.bind = Bind
+# {name} = the card
+cards.bind.title = BIND {name}
+# {name} = Sun / Moon / Star, {free} = how many are free
+cards.bind.row = {name}  ({free} free)
+cards.bind.on = {gold}(on this card){/c}
+cards.unbind = Remove binding
+
+# ------------------------------------------------------------------ Card Packs mode (title screen; nothing is kept)
+
+cards.title.session = Pack Mode
+cards.keys.session = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c}  Zoom      {gold}O{/c}  Open Pack      {gold}Esc{/c}  Leave
+cards.open_pack.free = Open Pack
+# {packs} {souls} {rares} {commons} = counts this session
+cards.session.stats = Packs {packs}    {gold}Soul{/c} {souls}    {c=#FF9A33}Rare{/c} {rares}    Cards {commons}
+cards.session.empty = Open a pack! Nothing here is kept: it's just for fun.
+# {name} = the card, {n} = how many this session
+cards.info.session = {gold}{name}{/c}\nPulled this session: ×{n}
+# {name} = the unit
+cards.rarest.soul = {name}'s Soul card
+cards.leave.title = LEAVE PACK MODE
+# {n} = cards pulled this session
+cards.leave.warning = You'll lose all {n} cards from this session.
+# {name} = the rarest card
+cards.leave.rarest = Your rarest: {gold}{name}{/c}
+# After the rarest, if pulled more than once. {n} = how many
+cards.rarest.count = (×{n})
+cards.leave.yes = Leave
+cards.leave.stay = Stay
+
+# ------------------------------------------------------------------ Card Index (title screen)
+
+cards.title.index = Cards
+cards.keys.index = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c}  Zoom (scroll for ranks)      {gold}Esc{/c}  Back
+# Under Sun / Moon / Star in the index
+cards.index.rare = Rare
+# Stands in for "whoever the card targets" in index text
+cards.index.target = the target
+# {name} {owner} {kind} {element} {text} = the card's rank I effect
+cards.info.index.ability = {gold}{name}{/c}   {owner} · {kind} · {element}\n{text}
+# {name} {owner} {element} {text} {pct} = Ult power per Soul level, {max} = Soul cap
+cards.info.index.soul = {gold}{name}{/c}   {owner}'s Soul card · {element}\n{text}\nEach Soul level: Ult +{pct}% (up to {max})
+# {name} {effect} {max}
+cards.info.index.arcana = {c=#FF9A33}{name}{/c}   Rare\nYou can own {max}.
+
+# Sun, Moon, Star. {pct} {turns} {n} come from PackRates
+arcana.sun = Sun
+arcana.moon = Moon
+arcana.star = Star
+arcana.sun.effect = the user heals {pct}% of their max HP
+arcana.moon.effect = the user gets DEF Up for {turns} turn
+arcana.star.effect = the user gains {n} Ult point
+
+# Zoomed cards
+card.hint.tilt = Drag to tilt     Click outside or Esc to close
+
+# ------------------------------------------------------------------ Opening a pack
+
+pack.name = CARD PACK
+pack.hint.open = Click (or Enter) to tear it open
+pack.hint.reveal = Click (or Enter) to hurry the next card along
+pack.hint.zoom = Click a card to look closer
+pack.reveal_all = Reveal All
+pack.done = Done
+# {n} = packs left
+pack.again = Open Another ({n})
+pack.again.free = Open Another
+# Under revealed cards. {n} = copies owned / Soul level, {rank} = I-III, {name} = Sun / Moon / Star
+pack.copy = ×{n}
+pack.rank_up = Rank {rank}!
+pack.rare = {name}!
+pack.soul_up = Soul Lv {n}!
+# The SOUL card's big title. {name} = the unit, {n} = their new Soul level
+pack.soul_title = {name}  ·  Soul Lv {n}

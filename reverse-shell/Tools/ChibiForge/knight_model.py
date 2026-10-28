@@ -65,8 +65,8 @@ SKINS = {
     # white robot plating, dark joints with orange highlights, an orange collar and visor
     'MC': skin(('#F4F0EE', '#C4C0CA', '#5E5A70'), '#FF9A3A', ('#302838', '#1E1826'), ('#E8641E', '#A8401A'),
                '#FF8A2A', ('#A8401A', '#E8641E', '#FF9A3A', '#FFE2B0')),
-    # Heal Bot: pale sage plating, dark joints with green lights, a green collar and visor
-    'HealBot': skin(('#E6F2DE', '#A6C29E', '#4E6A50'), '#8EF070', ('#22302A', '#141C18'), ('#5EB03A', '#2E6A1E'),
+    # Ashe: pale sage plating, dark joints with green lights, a green collar and visor
+    'Ashe': skin(('#E6F2DE', '#A6C29E', '#4E6A50'), '#8EF070', ('#22302A', '#141C18'), ('#5EB03A', '#2E6A1E'),
                     '#8EF070', ('#2E6A1E', '#5EB03A', '#8EF070', '#E4FFD0')),
     # Lucy: violet-grey plating, dark joints with purple lights, a purple collar and visor
     'Lucy': skin(('#C8C0DC', '#867CA6', '#3E3452'), '#D07AFF', ('#24182E', '#140C1C'), ('#9A48D8', '#5A1E8A'),
@@ -211,6 +211,9 @@ def frames_for(name):
     sheets['hurt'] = [clip([reskin(f, name) for f in strip('_Hit') + strip('_DeathNoMovement')])]
     stand = crop(idle[0], ox, oy)
     sheets['sit'] = rows([stand, kneel(stand, name, 0.5), kneel(stand, name, 1.0), kneel(stand, name, 1.0), kneel(stand, name, 1.0)])
+    # The Cards book: from the kneel, the book comes up closed, opens halfway, then lies open (holds the last frame).
+    knelt = kneel(stand, name, 1.0)
+    sheets['read'] = rows([read(knelt, name, 0), read(knelt, name, 0.5), read(knelt, name, 1), read(knelt, name, 1)])
     return sheets
 
 
@@ -266,6 +269,63 @@ def kneel(stand, name, t):
             c = stand[y][x]
             if c is not None and 0 <= y + drop < F:
                 out[y + drop][x] = c
+    return out
+
+
+# The read pose (the Cards book): kneeling, a small book held up in front of the chest that opens over the clip.
+# Leather and page colours are shared by every skin; the hands take the skin's light plating.
+BOOK_LEATHER = [hx('#6E3A28'), hx('#4A2418'), hx('#2E140E')]
+BOOK_GOLD = hx('#E0B04A')
+BOOK_PAGE = [hx('#F4E8C8'), hx('#D8C8A0')]
+BOOK_X, BOOK_Y = 40, 46   # the book's centre in the 64 px frame (facing right), at full kneel: held at the chest
+
+
+def read(kneeling, name, opened):
+    """A kneeling frame with the book held in front (opened: 0 closed, 0.5 half open, 1 open)."""
+    sk = SKINS[name]['map']
+    hand = sk[STEEL[0]]
+    out = [row[:] for row in kneeling]
+    book = {}
+
+    def px(x, y, c):
+        if 0 <= x < F and 0 <= y < F:
+            book[(x, y)] = c
+
+    if opened <= 0:
+        # Closed: a small upright book, the spine toward the body with a gold line, a gold clasp.
+        for y in range(BOOK_Y - 4, BOOK_Y + 5):
+            for x in range(BOOK_X - 3, BOOK_X + 4):
+                px(x, y, BOOK_LEATHER[0] if x > BOOK_X - 3 else BOOK_LEATHER[1])
+        for y in range(BOOK_Y - 4, BOOK_Y + 5):
+            px(BOOK_X - 2, y, BOOK_GOLD)
+        px(BOOK_X + 3, BOOK_Y, BOOK_GOLD)
+    else:
+        # Open: two pages either side of the spine; half open, the right page is still narrow (turning).
+        right_w = 6 if opened >= 1 else 3
+        for y in range(BOOK_Y - 3, BOOK_Y + 4):
+            for x in range(BOOK_X - 6, BOOK_X):
+                px(x, y, BOOK_PAGE[0] if y < BOOK_Y + 2 else BOOK_PAGE[1])
+            for x in range(BOOK_X + 1, BOOK_X + 1 + right_w):
+                px(x, y, BOOK_PAGE[0] if y < BOOK_Y + 2 else BOOK_PAGE[1])
+            px(BOOK_X, y, BOOK_LEATHER[2])                                      # the spine
+        for x in range(BOOK_X - 7, BOOK_X + 2 + right_w):                     # the cover's edge under the pages
+            px(x, BOOK_Y + 4, BOOK_LEATHER[0])
+        for x in (BOOK_X - 4, BOOK_X - 3, BOOK_X + 3, BOOK_X + 4):              # a few printed lines
+            if x < BOOK_X + 1 + right_w:
+                px(x, BOOK_Y - 1, BOOK_PAGE[1])
+    # Hands at the bottom corners, holding it.
+    for hx_, hy in ((BOOK_X - 6, BOOK_Y + 4), (BOOK_X + 4, BOOK_Y + 4)):
+        for dx in range(2):
+            for dy in range(2):
+                px(hx_ + dx, hy + dy, hand)
+    # Outline the book and hands where they meet anything else.
+    for (x, y), c in book.items():
+        out[y][x] = c
+    for (x, y) in list(book):
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < F and 0 <= ny < F and (nx, ny) not in book:
+                out[ny][nx] = OUTLINE
     return out
 
 

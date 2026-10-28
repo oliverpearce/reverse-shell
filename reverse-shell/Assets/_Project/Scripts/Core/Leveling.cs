@@ -20,6 +20,12 @@ namespace Combat
         public List<string> Cards = new List<string>();
         /// <summary>Fitted Parts by slot (index = <see cref="PartSlot"/>), by asset name; "" = empty slot.</summary>
         public List<string> Parts = new List<string>();
+        /// <summary>Soul level from Soul cards pulled in packs (0 to PackRates.maxSoulLevel): more Ult power.</summary>
+        public int SoulLevel;
+        /// <summary>The cards chosen for the deck's extra slots (asset names; "" = an empty slot), once the player has
+        /// edited them (<see cref="ExtrasChosen"/>); until then the default applies (CardCollection.Extras).</summary>
+        public List<string> ExtraCards = new List<string>();
+        public bool ExtrasChosen;
 
         public MemberProgress Clone()
         {
@@ -27,7 +33,10 @@ namespace Combat
             {
                 Level = Level, Xp = Xp, HP = HP,
                 Cards = Cards != null ? new List<string>(Cards) : new List<string>(),
-                Parts = Parts != null ? new List<string>(Parts) : new List<string>()
+                Parts = Parts != null ? new List<string>(Parts) : new List<string>(),
+                SoulLevel = SoulLevel,
+                ExtraCards = ExtraCards != null ? new List<string>(ExtraCards) : new List<string>(),
+                ExtrasChosen = ExtrasChosen,
             };
         }
     }

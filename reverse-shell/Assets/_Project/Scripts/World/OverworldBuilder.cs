@@ -78,6 +78,12 @@ namespace Game.World
             }
         }
 
+        /// <summary>Every playable character, joined or not (the title's Card Packs and Card Index).</summary>
+        public List<CharacterDefinition> AllCharacters
+        {
+            get { return encounterSetup != null ? new List<CharacterDefinition>(encounterSetup.party) : new List<CharacterDefinition>(); }
+        }
+
         /// <summary>Everyone who has joined (the Units screen, the formation pick list).</summary>
         public List<CharacterDefinition> Roster
         {
@@ -102,6 +108,7 @@ namespace Game.World
         PauseCards pauseCards;
         ResonanceScreen resonance;
         ItemsScreen items;
+        CardsScreen cardPacks, cardIndex;   // the title's Card Packs and Card Index
         EnemyLevelPanel chestPanel;
         ScannerHud scannerHud;
 
@@ -133,6 +140,7 @@ namespace Game.World
         void Start()
         {
             WorldSession.Catalog = partCatalog;
+            if (encounterSetup != null) CardCollection.Register(encounterSetup.party);   // saved deck choices by name
 #if UNITY_EDITOR
             if (WorldSession.Catalog == null) // scenes generated before Parts existed
                 WorldSession.Catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<PartCatalog>("Assets/_Project/Content/Parts/PartCatalog.asset");
@@ -190,6 +198,8 @@ namespace Game.World
             formation = FormationScreen.Create((RectTransform)UI.transform, this);
             resonance = ResonanceScreen.Create((RectTransform)UI.transform, this);
             items = ItemsScreen.Create((RectTransform)UI.transform, this);
+            cardPacks = CardsScreen.Create((RectTransform)UI.transform, this, null, CardsScreen.Mode.Session);
+            cardIndex = CardsScreen.Create((RectTransform)UI.transform, this, null, CardsScreen.Mode.Index);
             pauseCards = PauseCards.Create((RectTransform)UI.transform, this, menu, formation, resonance, items);
             chestPanel = EnemyLevelPanel.Create((RectTransform)UI.transform);
             scannerHud = ScannerHud.Create((RectTransform)UI.transform);
@@ -198,6 +208,7 @@ namespace Game.World
             if (!WorldSession.TitleDone)
             {
                 title = TitleScreen.Create((RectTransform)UI.transform, Party);
+                title.SetCardModes(cardPacks.Open, cardIndex.Open);
                 // The title's ink wash covers the world, so don't draw it meanwhile (the camera only clears).
                 if (cam != null)
                 {
@@ -1106,6 +1117,7 @@ namespace Game.World
                     case BattleOutcome.Victory:
                         WorldSession.DefeatedEncounters.Add(id);
                         if (winFlag != null) StoryState.Set(winFlag);
+                        WorldSession.Packs += Combat.PackRates.Current.packsPerWin;   // every win gives card packs (Items > Cards)
                         // The results screen already shows XP and level ups: only story fights say anything after
                         // (plus the Part a story fight gives).
                         if (!string.IsNullOrEmpty(reward))

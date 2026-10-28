@@ -56,7 +56,7 @@ namespace Combat
 
     public static class DeckGenerator
     {
-        /// <summary>Random rank-1 incantation from a random living party member.</summary>
+        /// <summary>A random incantation from a random living party member, at the rank its copies give it (I by default).</summary>
         public static CardInstance Draw(IList<BattleUnit> party, System.Random rng)
         {
             var owners = new List<BattleUnit>();
@@ -67,7 +67,8 @@ namespace Combat
 
             var owner = owners[rng.Next(owners.Count)];
             var cards = owner.Incantations.FindAll(c => c != null);
-            return new CardInstance(cards[rng.Next(cards.Count)], owner, 1);
+            var card = cards[rng.Next(cards.Count)];
+            return new CardInstance(card, owner, owner.StartRankOf(card));
         }
     }
 

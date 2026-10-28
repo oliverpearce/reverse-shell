@@ -2,7 +2,7 @@
 Card model: the crew's overworld and battle sprites are their card art (reference/MC.png, 48 x 63, recoloured per
 member by chibi_forge.reference_pixels), animated by layers at native 64 px.
 
-    python Tools/ChibiForge/card_model.py [MC HealBot Lucy] [--sheet out.png]
+    python Tools/ChibiForge/card_model.py [MC Ashe Lucy] [--sheet out.png]
 
 The sword is taken out (SWORD = False): its blade pixels in the top-left are cleared, leaving the raised gauntlet.
 Layers on the art: the far leg (x >= 30, from row 45), the near leg (x <= 29, from row 46) and the body. A moved

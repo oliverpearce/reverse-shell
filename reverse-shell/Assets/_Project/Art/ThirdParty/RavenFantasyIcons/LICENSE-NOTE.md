@@ -36,6 +36,9 @@
 | Go button chevrons (turned to point right) | fb649 |
 | Close X | fb656 |
 | Battle queue: moved-card slot (tinted gray) | fb2061 |
+| Sun card (rare binding) | fb990 |
+| Moon card (rare binding) | fb978 |
+| Star card (rare binding) | fb986 |
 | Pause sign (drawn by the script in fb647's silvers, fb656's outline) | fb647, fb656 |
 
 ## Card icons

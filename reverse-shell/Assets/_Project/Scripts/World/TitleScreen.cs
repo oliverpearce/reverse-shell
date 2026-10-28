@@ -42,6 +42,17 @@ namespace Game.World
 
         public bool IsOpen { get { return gameObject.activeSelf; } }
 
+        /// <summary>The Card Packs and Card Index pages (set by the overworld); each takes what to do when it closes.</summary>
+        public Action<Action> OpenCardPacks, OpenCardIndex;
+
+        /// <summary>Adds the Card Packs and Card Index rows (the menu is rebuilt with them).</summary>
+        public void SetCardModes(Action<Action> packs, Action<Action> index)
+        {
+            OpenCardPacks = packs;
+            OpenCardIndex = index;
+            ShowMain();
+        }
+
         /// <param name="party">Whose cards fall in the background.</param>
         public static TitleScreen Create(RectTransform parent, IEnumerable<CharacterDefinition> party = null)
         {
@@ -100,6 +111,8 @@ namespace Game.World
             Row(UIText.Get("title.new_game"), () => ShowSlots(true), true);
             Row(UIText.Get("title.load"), () => ShowSlots(false), latest > 0);
             Row(UIText.Get("title.sandbox"), StartSandbox, true);
+            if (OpenCardIndex != null) Row(UIText.Get("title.card_index"), () => OpenCardIndex(ShowMain), true);   // "Cards"
+            if (OpenCardPacks != null) Row(UIText.Get("title.card_packs"), () => OpenCardPacks(ShowMain), true);   // "Pack Mode"
             Row(UIText.Get("title.settings"), ShowSettings, true);
             Row(UIText.Get("title.credits"), ShowCredits, true);
             if (Application.platform != RuntimePlatform.WebGLPlayer) Row(UIText.Get("title.quit"), Quit, true);   // a browser tab can't quit
@@ -158,7 +171,7 @@ namespace Game.World
         void ShowCredits()
         {
             Page(ShowMain);
-            InfoPanel(UIText.Get("title.credits.text"), 440f);
+            InfoPanel(UIText.Get("title.credits.text"), 600f);   // tall enough for every credit line
             Row(UIText.Get("menu.back"), ShowMain, true);
             Select(0);
         }
@@ -306,6 +319,7 @@ namespace Game.World
         {
             GrowSelected();
             if (Time.frameCount == openedFrame || ScreenFade.Busy || GuideBook.Blocking) return;   // the guide is over it
+            if (CardsScreen.AnyOpen || PackOpening.IsOpen || CardZoom.IsOpen || CardDetailPopup.IsOpen) return;   // Card Packs / Index
             if (UIKeys.Pressed(KeyCode.UpArrow) || UIKeys.Pressed(KeyCode.W)) Move(-1);
             if (UIKeys.Pressed(KeyCode.DownArrow) || UIKeys.Pressed(KeyCode.S)) Move(1);
             bool confirm = UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.Space) || UIKeys.Pressed(KeyCode.F);

@@ -43,6 +43,8 @@ namespace Combat
         public override void Apply(EffectContext ctx)
         {
             float amount = ctx.Caster.GetStat(StatType.Attack) * multiplier * (1f + ctx.Caster.GetStat(StatType.HealingBonus));
+            // An Ult's healing grows with Ult power (Soul levels), like its damage does.
+            if (ctx.Card != null && ctx.Card.IsRitual) amount *= 1f + Mathf.Max(0f, ctx.Caster.GetStat(StatType.RitualMight));
             foreach (var t in ctx.Resolve(target))
                 ctx.Battle.Heal(ctx.Caster, t, Mathf.RoundToInt(amount));
         }

@@ -14,7 +14,8 @@ namespace Game.World
     /// and gets corner brackets, and the panel under the mat says what it is: name, slot, how many, who has it fitted,
     /// and what it does. Enter / F / Space / a click on an item opens a picker of the party: choosing a member fits it
     /// (their old part goes back to the spares), or takes it off if they already have it. Esc / Backspace closes, back
-    /// to the Esc cards.
+    /// to the Esc cards. The Parts | Cards tabs at the top (or Tab) switch to the card collection (<see cref="CardsScreen"/>),
+    /// which counts as part of this screen (IsOpen, LastToggleFrame).
     /// </summary>
     public class ItemsScreen : MonoBehaviour
     {
@@ -41,13 +42,21 @@ namespace Game.World
         int openedFrame;
         System.Action onClosed;
         RowMenu picker;                            // who to fit the selected item on
+        CardsScreen cards;                         // the Cards tab
+        int lastToggle;
 
         static Sprite glowSprite;
 
-        public bool IsOpen { get { return gameObject.activeSelf; } }
+        /// <summary>Open on either tab (Parts or Cards).</summary>
+        public bool IsOpen { get { return gameObject.activeSelf || (cards != null && cards.IsOpen); } }
 
-        /// <summary>The frame it last opened or closed (so the Esc that closes it doesn't reopen the pause menu).</summary>
-        public int LastToggleFrame { get; private set; }
+        /// <summary>The frame it (or the Cards tab) last opened or closed (so the Esc that closes it doesn't reopen the
+        /// pause menu).</summary>
+        public int LastToggleFrame
+        {
+            get { return Mathf.Max(lastToggle, cards != null ? cards.LastToggleFrame : 0); }
+            private set { lastToggle = value; }
+        }
 
         public static ItemsScreen Create(RectTransform parent, OverworldBuilder world)
         {
@@ -65,13 +74,53 @@ namespace Game.World
             keys.supportRichText = true;
             keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1600f, 50f));
             screen.picker = RowMenu.Create(rt);
+            Tabs(rt, true, null, screen.ShowCards);
+            screen.cards = CardsScreen.Create(parent, world, screen);
             rt.gameObject.SetActive(false);
             return screen;
         }
 
+        /// <summary>The Parts | Cards tabs at the top of both pages; the current one is gold and does nothing.</summary>
+        public static void Tabs(RectTransform root, bool partsActive, System.Action onParts, System.Action onCards)
+        {
+            Tab(root, UIText.Get("items.tab.parts"), partsActive, onParts, new Vector2(-120f, -44f));
+            Tab(root, UIText.Get("items.tab.cards"), !partsActive, onCards, new Vector2(120f, -44f));
+        }
+
+        static void Tab(RectTransform root, string label, bool active, System.Action onClick, Vector2 at)
+        {
+            var top = new Vector2(0.5f, 1f);
+            var b = InkStyle.Button(root, "Tab_" + label, label, () => { if (!active && onClick != null) onClick(); }, false, 36);
+            b.GetComponent<RectTransform>().Place(top, top, at, new Vector2(220f, 72f));
+            var text = b.GetComponentInChildren<Text>();
+            text.color = active ? InkStyle.GoldBright : InkStyle.PaperDim;
+            if (active)
+            {
+                var rule = InkStyle.Line(b.transform, "Underline", InkStyle.Gold);
+                rule.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 6f), new Vector2(140f, 3f));
+            }
+        }
+
+        /// <summary>The Cards book straight from the Esc menu (its binder); closing it calls <paramref name="whenClosed"/>.</summary>
+        public void OpenCards(System.Action whenClosed)
+        {
+            if (cards != null) cards.Open(whenClosed);
+        }
+
+        /// <summary>The Cards tab: this page hides and the collection opens (closing it still goes back to the Esc menu).</summary>
+        void ShowCards()
+        {
+            var then = onClosed;
+            onClosed = null;
+            picker.Hide();
+            LastToggleFrame = Time.frameCount;
+            gameObject.SetActive(false);
+            cards.Open(then);
+        }
+
         public void Open(System.Action whenClosed)
         {
-            if (IsOpen) return;
+            if (gameObject.activeSelf) return;
             onClosed = whenClosed;
             gameObject.SetActive(true);
             transform.SetAsLastSibling();
@@ -327,6 +376,11 @@ namespace Game.World
             if (UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.Space) || UIKeys.Pressed(KeyCode.F))
             {
                 OpenPicker();
+                return;
+            }
+            if (UIKeys.Pressed(KeyCode.Tab))
+            {
+                ShowCards();
                 return;
             }
             if (UIKeys.Pressed(KeyCode.LeftArrow) || UIKeys.Pressed(KeyCode.A)) Select(index - 1);

@@ -77,6 +77,9 @@ namespace Game.World
             yield return new WaitForSeconds(0.8f);
             yield return b.UI.FadeTo(new Color(0f, 0f, 0f, 0f), 2.6f);
             yield return Talk(b, Script("awakening"));
+            // The card binder at their hip: the Cards book, opened from the Esc menu from now on.
+            yield return Talk(b, Script("awakening.binder"));
+            StoryState.Set(Chapter1.Binder);
             StoryState.Set(Chapter1.Awake);
             SaveGame.Save();
             b.SetCutscene(false);
@@ -126,6 +129,7 @@ namespace Game.World
                 var item = StoryProps.ScannerItem(b.transform, map.CellCenter(cell.x, cell.y));
                 Prop(b, item, w => TakeScanner(w, item));
             }
+            SpawnChip(b);
 
             if (!StoryState.Has(Chapter1.Route))
                 foreach (var cell in map.FindAll('V'))
@@ -170,6 +174,31 @@ namespace Game.World
                 StoryState.Set(Chapter1.Scanner);
                 SaveGame.Save();
                 if (item != null) Object.Destroy(item);
+                SpawnChip(b);   // the scanner shows the language chip back in the pod room
+            });
+        }
+
+        // ------------------------------------------------------------------ The language chip
+
+        /// <summary>The language chip (map 'Y', the pod room): only there once you have the scanner, until you take it.</summary>
+        static void SpawnChip(OverworldBuilder b)
+        {
+            if (!StoryState.Has(Chapter1.Scanner) || StoryState.Has(Chapter1.LanguageChip)) return;
+            foreach (var cell in b.Map.FindAll('Y'))
+            {
+                var chip = StoryProps.LanguageChip(b.transform, b.Map.CellCenter(cell.x, cell.y));
+                Prop(b, chip, w => TakeChip(w, chip));
+            }
+        }
+
+        static void TakeChip(OverworldBuilder b, GameObject chip)
+        {
+            if (StoryState.Has(Chapter1.LanguageChip)) return;
+            Say(b, "chip.pickup", () =>
+            {
+                StoryState.Set(Chapter1.LanguageChip);
+                SaveGame.Save();
+                if (chip != null) Object.Destroy(chip);
             });
         }
 

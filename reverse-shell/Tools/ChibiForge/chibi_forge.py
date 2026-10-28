@@ -279,7 +279,7 @@ SPECS = {
                trim=ramp('#894B32', '#D2641E', '#FF8A2A', '#FFC060'), under=REF_SLATE, accent=REF_CRIMSON,
                glow=hx('#FF8A2A'), eye=hx('#FF9A3A'), headgear='earpiece', lines=False,
                joint=ramp('#14101A', '#221C2A', '#302838', '#443A4E'), hi=ORANGE_HI),
-    'HealBot': Spec(skin=REF_SKIN, hair=ramp('#2E5232', '#3C6E36', '#5E9A48', '#8EC468'),
+    'Ashe': Spec(skin=REF_SKIN, hair=ramp('#2E5232', '#3C6E36', '#5E9A48', '#8EC468'),
                     hair_style='long', armor=REF_WHITE,
                     trim=ramp('#1E4A1A', '#3E8A2E', '#6EC04A', '#B4EC7A'), under=REF_SLATE,
                     accent=ramp('#5A1E3A', '#B8406A', '#E07A9A', '#F4B4C8'), glow=hx('#8EF070'), eye=hx('#6EC04A'),
@@ -307,7 +307,7 @@ SPECS = {
                     armor=CLOTH_GREEN, under=CLOTH_BROWN, trim=CLOTH_BROWN, headgear='hood', eye=hx('#4A5A6A')),
 }
 
-PARTY = ['MC', 'HealBot', 'Lucy']
+PARTY = ['MC', 'Ashe', 'Lucy']
 
 
 # ---------------------------------------------------------------------------------------------------- poses

@@ -22,6 +22,10 @@ namespace Combat
         public readonly List<PartDefinition> Parts = new List<PartDefinition>();
 
         List<CardDefinition> incantations;
+        readonly Dictionary<CardDefinition, int> startRanks = new Dictionary<CardDefinition, int>();
+        readonly Dictionary<CardDefinition, CardBinding> bindings = new Dictionary<CardDefinition, CardBinding>();
+        /// <summary>Party only: the Soul level's extra Ult power (added to RitualMight).</summary>
+        public float UltPowerBonus { get; private set; }
 
         public BattleUnit(UnitDefinition definition, Team team)
         {
@@ -107,12 +111,32 @@ namespace Combat
             incantations = null;
             elementOverride = null;
             ultimateOverride = null;
+            startRanks.Clear();
+            bindings.Clear();
+            UltPowerBonus = 0f;
             if (loadout == null) return;
+            if (loadout.StartRanks != null) foreach (var e in loadout.StartRanks) if (e.Key != null) startRanks[e.Key] = e.Value;
+            if (loadout.Bindings != null) foreach (var e in loadout.Bindings) if (e.Key != null) bindings[e.Key] = e.Value;
+            UltPowerBonus = Mathf.Max(0, loadout.SoulLevel) * PackRates.Current.ultPowerPerSoul;
             elementOverride = loadout.Element;
             ultimateOverride = loadout.Ultimate;
             foreach (var part in loadout.Parts) if (part != null) Parts.Add(part);
             if (loadout.Cards != null && loadout.Cards.Exists(c => c != null)) incantations = loadout.Cards.FindAll(c => c != null);
             HP = MaxHP;
+        }
+
+        /// <summary>The rank this card starts at when drawn (copies owned rank it up; at least I, at most its max).</summary>
+        public int StartRankOf(CardDefinition card)
+        {
+            int rank;
+            return card != null && startRanks.TryGetValue(card, out rank) ? Mathf.Clamp(rank, 1, card.MaxRank) : 1;
+        }
+
+        /// <summary>The Sun / Moon / Star bound onto this card, if any.</summary>
+        public CardBinding BindingOf(CardDefinition card)
+        {
+            CardBinding binding;
+            return card != null && bindings.TryGetValue(card, out binding) ? binding : CardBinding.None;
         }
 
         public float HPPercent { get { return (float)HP / MaxHP; } }
@@ -141,6 +165,7 @@ namespace Combat
                     else percent += mod.value;
                 }
             }
+            if (stat == StatType.RitualMight) flat += UltPowerBonus;   // Soul levels
             float baseValue = Definition.stats.Get(stat);
             var character = Character;
             if (character != null && Leveling.Grows(stat)) baseValue *= Leveling.StatScale(Level, character.growthPerLevel);

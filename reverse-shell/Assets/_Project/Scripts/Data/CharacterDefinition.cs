@@ -7,7 +7,7 @@ namespace Combat
     [CreateAssetMenu(menuName = "Combat/Character", fileName = "Char_New")]
     public class CharacterDefinition : UnitDefinition
     {
-        [Tooltip("The character's class / archetype, e.g. Cantor, Bruiser, Medic. Shown under their name.")]
+        [Tooltip("The character's class / archetype, e.g. Cantor, Bruiser, Druid. Shown under their name.")]
         public string archetype;
 
         [Tooltip("Incantation cards dealt into the hand (Reverse: 1999 characters have two). The default deck.")]

@@ -9,10 +9,13 @@ Writes into Assets/_Project/Resources/Cards/ (imported point-filtered by PixelAr
     CardSwirl.png   48x64  the swirl background in greys; the game tints it with the card owner's colour
     CardFrame.png   48x64  rim, pip strip and name plate, drawn over the swirl (never tinted)
     CardPips.png    10x5   a lit and an unlit rank pip (5x5 diamonds)
+    CardTypes.png   42x7   the six card-type icons (Attack, Debuff, Buff, Counter, Heal, Ultimate), 7x7 each, drawn
+                           at the card's own pixel size so they sit in the pip strip as crisply as the pips
     CardArt.png     32 px cells, one centre icon per card; CardArt.txt lists "cell asset_name" (read by CardArt.cs)
     Ult_<Char>.png  48x64  full-art Ult cards: a 2x bust of the character's battle sprite over their own tinted swirl
 
-Layout (card pixels, y from the top) is mirrored in CardArt.cs: interior 4..43 x 4..59, pips at x 6/12/18, y 4,
+Layout (card pixels, y from the top) is mirrored in CardArt.cs: interior 4..43 x 4..59, pip strip 4..12 with pips at
+x 6/12/18, y 6 and the type icon at 35..41 x 5..11,
 art window 8..39 x 13..44, name plate 6..41 x 51..59.
 """
 import math
@@ -28,6 +31,7 @@ from pngtool import write_png  # noqa: E402
 OUT = os.path.join(ROOT, 'Assets', '_Project', 'Resources', 'Cards')
 W, H = 48, 64
 CELL = 32
+ICON_CELL = 34   # an icon's 32 px drawing plus 1 px all round, so its plum outline is always whole
 OUTLINE = (0x20, 0x02, 0x1D, 255)     # the sprites' plum outline
 CLEAR = (0, 0, 0, 0)
 
@@ -197,11 +201,11 @@ def make_frame():
     for (x, y) in ((1, 1), (W - 2, 1), (1, H - 2), (W - 2, H - 2)):
         c.px[y][x] = OUTLINE
     # pip strip: a dark translucent band under the top rim
-    for y in range(4, 10):
+    for y in range(4, 13):
         for x in range(4, W - 4):
             c.put(x, y, STRIP)
     for x in range(4, W - 4):
-        c.put(x, 10, (0x14, 0x0E, 0x1C, 60))
+        c.put(x, 13, (0x14, 0x0E, 0x1C, 60))
     # name plate
     x0, x1, y0, y1 = 6, W - 7, 51, 59
     for y in range(y0, y1 + 1):
@@ -236,6 +240,81 @@ def make_pips():
                 else:
                     col = pal[2]
                 c.px[y][ox + x] = col
+    return c
+
+
+# The card-type icons, 7x7 at card pixel size (a light / b main / c dark, outlined in plum): the same order as
+# CardIcons.Type. Colours follow UnitView.KindColor (Ultimate in gold).
+TYPE_SHAPES = [
+    ('Attack', (0.84, 0.3, 0.27), [      # a sword, point up-right
+        '.......',
+        '....aa.',
+        '...abb.',
+        '.b.bb..',
+        '..bb...',
+        '.c.b...',
+        '.......']),
+    ('Debuff', (0.62, 0.46, 0.9), [      # an arrow down (no outline: it would fill in the barbs)
+        '...a...',
+        '...a...',
+        '...b...',
+        'a..b..b',
+        '.a.b.b.',
+        '..bbb..',
+        '...c...']),
+    ('Buff', (0.4, 0.62, 0.95), [        # an arrow up
+        '...a...',
+        '..aab..',
+        '.a.b.b.',
+        'a..b..b',
+        '...b...',
+        '...b...',
+        '...c...']),
+    ('Counter', (0.76, 0.58, 0.2), [     # a shield
+        '.......',
+        '.aaabb.',
+        '.abbbc.',
+        '.abbbc.',
+        '..bbc..',
+        '...c...',
+        '.......']),
+    ('Heal', (0.35, 0.72, 0.48), [       # a plus
+        '.......',
+        '...a...',
+        '...a...',
+        '.aabbc.',
+        '...b...',
+        '...c...',
+        '.......']),
+    ('Ultimate', (1.0, 0.8, 0.3), [      # a star
+        '.......',
+        '.......',
+        '...a...',
+        '.aabbc.',
+        '..abc..',
+        '..b.c..',
+        '.......']),
+]
+TYPE_SIZE = 7
+
+
+def make_types():
+    c = Canvas(TYPE_SIZE * len(TYPE_SHAPES), TYPE_SIZE)
+    for k, (name, rgb, rows) in enumerate(TYPE_SHAPES):
+        cell = Canvas(TYPE_SIZE, TYPE_SIZE)
+        base = tuple(int(v * 255) for v in rgb)
+        pal = {
+            'a': tuple(min(255, int(v + (255 - v) * 0.55)) for v in base) + (255,),
+            'b': base + (255,),
+            'c': tuple(int(v * 0.6) for v in base) + (255,),
+        }
+        for y, row in enumerate(rows):
+            for x, ch in enumerate(row):
+                if ch in pal:
+                    cell.px[y][x] = pal[ch]
+        if name not in ('Debuff', 'Buff'):
+            cell.outline()
+        c.paste(cell, k * TYPE_SIZE, 0)
     return c
 
 
@@ -598,7 +677,7 @@ def icon_menu_quit():
 
 def icon_menu_party():
     c = Canvas(CELL, CELL)
-    for (x, y, pal) in ((8, 15, GREEN), (24, 15, VIOLET), (16, 12, STEEL)):   # Heal Bot, Lucy, MC in front
+    for (x, y, pal) in ((8, 15, GREEN), (24, 15, VIOLET), (16, 12, STEEL)):   # Ashe, Lucy, MC in front
         c.disc(x, y + 8, 6.5, pal[2])             # shoulders
         c.disc(x, y, 5.2, pal[2])                 # helmet
         c.disc(x - 1, y - 1, 3.4, pal[1])
@@ -829,7 +908,7 @@ RAVEN_DIR = os.path.join(ROOT, 'Assets', '_Project', 'Art', 'ThirdParty', 'Raven
 RAVEN_PICKS = {
     'Card_MC_EdgeStrike': 724, 'Card_MC_CrossSlash': 155, 'Card_MC_SyncField': 1047, 'Card_MC_ArcEdge': 731,
     'Card_MC_StaticField': 1039,
-    'Card_HealBot_BrambleLash': 1067, 'Card_HealBot_Overgrowth': 1110, 'Card_HealBot_SapMend': 1073,
+    'Card_Ashe_BrambleLash': 1067, 'Card_Ashe_Overgrowth': 1110, 'Card_Ashe_SapMend': 1073,
     'Card_Lucy_VirusSpike': 741, 'Card_Lucy_Corrupt': 1117, 'Card_Lucy_Worm': 342,
     'Card_Blue_ShieldBash': 1811, 'Card_Blue_Bulwark': 2151,
     'Card_Enemy_CorrodedBlade': 722, 'Card_Enemy_MissileVolley': 1017, 'Card_Enemy_NetworkLink': 905,
@@ -846,16 +925,22 @@ RAVEN_PICKS = {
 
 
 def raven_icon(n):
-    """A picked Raven icon as a 32 x 32 Canvas: its own colours, plus the cards' 1 px plum outline around it so pale
-    icons still read on pale card swirls."""
+    """A picked Raven icon as a 32 x 32 Canvas in its own colours (<see framed> adds the outline)."""
     from pngtool import read_png
     w, h, px = read_png(os.path.join(RAVEN_DIR, 'fb%d.png' % n))
     c = Canvas(CELL, CELL)
     for y in range(min(h, CELL)):
         for x in range(min(w, CELL)):
-            p = px[y][x]
-            if p[3] > 0:
-                c.px[y][x] = tuple(p)
+            if px[y][x][3] > 0:
+                c.px[y][x] = tuple(px[y][x])
+    return c
+
+
+def framed(icon):
+    """An icon in its 34 px cell: the 32 px drawing 1 px in from every side and the cards' 1 px plum outline all the
+    way round it, so every icon has the same whole border (pale icons still read on pale swirls)."""
+    c = Canvas(ICON_CELL, ICON_CELL)
+    c.paste(icon, 1, 1)
     c.outline()
     return c
 
@@ -870,9 +955,9 @@ ICONS = [
     ('Card_MC_EdgeStrike', icon_edge_strike),
     ('Card_MC_CrossSlash', icon_cross_slash),
     ('Card_MC_SyncField', icon_sync_field),
-    ('Card_HealBot_BrambleLash', icon_bramble_lash),
-    ('Card_HealBot_Overgrowth', icon_overgrowth),
-    ('Card_HealBot_SapMend', icon_sap_mend),
+    ('Card_Ashe_BrambleLash', icon_bramble_lash),
+    ('Card_Ashe_Overgrowth', icon_overgrowth),
+    ('Card_Ashe_SapMend', icon_sap_mend),
     ('Card_Lucy_VirusSpike', icon_virus_spike),
     ('Card_Lucy_Corrupt', icon_corrupt),
     ('Card_Lucy_Worm', icon_worm),
@@ -920,7 +1005,7 @@ def sprite_art(folder):
 # Party members' card colours (Char_*.asset "color"), used to bake the Ult cards' swirl.
 ULT_OWNERS = [
     ('Char_MC', 'MC', (0.92, 0.92, 0.95)),
-    ('Char_HealBot', 'HealBot', (0.5, 0.86, 0.45)),
+    ('Char_Ashe', 'Ashe', (0.5, 0.86, 0.45)),
     ('Char_Lucy', 'Lucy', (0.72, 0.45, 0.95)),
     ('Char_Blue', 'Blue', (0.45, 0.65, 1.0)),
 ]
@@ -1005,9 +1090,30 @@ def build_normal(swirl, frame, pips, icon, color, rank, max_rank):
             for x in range(5):
                 p = pips.px[y][x + (0 if on else 5)]
                 if p[3]:
-                    card.put(6 + i * 6 + x, 5 + y, p)
-    card.paste(icon, 8, 15)
+                    card.put(6 + i * 6 + x, 6 + y, p)
+    card.paste(icon, 7, 14)
     return card
+
+
+def build_atlas():
+    """CardArt.png (one 34 px centre icon cell per card, see framed) and CardArt.txt (cell -> card asset name)."""
+    cols = 4
+    entries = ICONS + MENU_ICONS + BLUE_ICONS + CH1_ICONS + UI_ICONS
+    entries = entries + raven_only_icons(entries)
+    rows_n = (len(entries) + cols - 1) // cols
+    atlas = Canvas(cols * ICON_CELL, rows_n * ICON_CELL)
+    icons = {}
+    lines = []
+    for i, (name, fn) in enumerate(entries):
+        icon = framed(raven_icon(RAVEN_PICKS[name]) if name in RAVEN_PICKS else fn())
+        icons[name] = icon
+        atlas.paste(icon, (i % cols) * ICON_CELL, (i // cols) * ICON_CELL)
+        lines.append('%d %s' % (i, name))
+    save(atlas, 'CardArt.png')
+    with open(os.path.join(OUT, 'CardArt.txt'), 'w', newline='\n') as f:
+        f.write('# cell (left to right, top to bottom, %d px, %d per row) and card asset name; written by Tools/CardForge\n' % (ICON_CELL, cols))
+        f.write('\n'.join(lines) + '\n')
+    return entries, icons
 
 
 def main():
@@ -1016,23 +1122,9 @@ def main():
     save(swirl, 'CardSwirl.png')
     save(frame, 'CardFrame.png')
     save(pips, 'CardPips.png')
+    save(make_types(), 'CardTypes.png')
 
-    cols = 4
-    entries = ICONS + MENU_ICONS + BLUE_ICONS + CH1_ICONS + UI_ICONS
-    entries = entries + raven_only_icons(entries)
-    rows_n = (len(entries) + cols - 1) // cols
-    atlas = Canvas(cols * CELL, rows_n * CELL)
-    icons = {}
-    lines = []
-    for i, (name, fn) in enumerate(entries):
-        icon = raven_icon(RAVEN_PICKS[name]) if name in RAVEN_PICKS else fn()
-        icons[name] = icon
-        atlas.paste(icon, (i % cols) * CELL, (i // cols) * CELL)
-        lines.append('%d %s' % (i, name))
-    save(atlas, 'CardArt.png')
-    with open(os.path.join(OUT, 'CardArt.txt'), 'w', newline='\n') as f:
-        f.write('# cell (left to right, top to bottom, %d px, %d per row) and card asset name; written by Tools/CardForge\n' % (CELL, cols))
-        f.write('\n'.join(lines) + '\n')
+    entries, icons = build_atlas()
 
     ults = []
     for asset, char, color in ULT_OWNERS:
@@ -1057,7 +1149,7 @@ def main():
 
     if '--preview' in sys.argv:
         out = sys.argv[sys.argv.index('--preview') + 1]
-        owners = {'MC': (0.92, 0.92, 0.95), 'HealBot': (0.5, 0.86, 0.45), 'Lucy': (0.72, 0.45, 0.95),
+        owners = {'MC': (0.92, 0.92, 0.95), 'Ashe': (0.5, 0.86, 0.45), 'Lucy': (0.72, 0.45, 0.95),
                   'Enemy': (0.66, 0.46, 0.3)}
         cards = []
         owners['Menu'] = (0.6, 0.55, 0.75)

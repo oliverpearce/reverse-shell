@@ -53,7 +53,7 @@ CUSTOM = {
     'rei_white': ['#2A2833', '#5C5A6E', '#9C9BB0', '#C9C8D8', '#E6E6F0', '#FFFFFF'],
     'yorha_white': ['#3A3C46', '#6E7180', '#A5A8B4', '#CDD0D8', '#E8EAEE', '#FFFFFF'],
     # Machine lifeform plating: sun-baked rust over brown steel, and a moss-grown variant.
-    # Party robots (MC, Heal Bot, Lucy): clean white and charcoal plating, plus element accents.
+    # Party robots (MC, Ashe, Lucy): clean white and charcoal plating, plus element accents.
     'android_white': ['#2A2C34', '#5A5E6A', '#9599A6', '#C4C7D0', '#E4E6EC', '#FFFFFF'],
     'android_dark': ['#0E0F13', '#1C1E25', '#2D3039', '#41454F', '#5C616C', '#8A909C'],
     'eye_moss': ['#1E4A1A', '#6ED04E', '#D8FFB8'],
@@ -118,9 +118,9 @@ RECIPES = {
         ],
     },
     # Party robots: fully plated LPC bodies, helmets for heads.
-    # The shared party robot (Heal Bot and Lucy are the same model): white plates, element-colored arms,
+    # The shared party robot (Ashe and Lucy are the same model): white plates, element-colored arms,
     # two glowing eyes in the element color (the 'eyes' mask) and scale trims along the armour ('trim' overlay).
-    'HealBot': {
+    'Ashe': {
         'body': 'male', 'skin': 'fur_grey', 'eyes': 'eye_moss', 'head': 'sheet_definitions/head/heads/human/heads_human_male.json',
         'overlay': ['trim:#8EE070', 'overgrowth'],
         'layers': [
@@ -517,7 +517,7 @@ def frame_box(canvas, r, c):
 def apply_overlay(canvas, overlay, anim):
     """Per-frame decorations anchored to the body (positions are relative to the frame's head top and center,
     so they move with the character instead of flickering).
-    'overgrowth': leaves and moss along the upper outline plus a flower on the head (Heal Bot).
+    'overgrowth': leaves and moss along the upper outline plus a flower on the head (Ashe).
     'glitch': a few purple corrupted pixels along the outline (Lucy).
     'trim:#RRGGBB': scale trims, a staggered pattern of glowing pixels just inside the armour's outline on the
     body below the head, alternating bright and dim like overlapping scales."""

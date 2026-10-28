@@ -451,45 +451,119 @@ namespace Game.World
             var center = new Vector2(0.5f, 0.5f);
             var tl = new Vector2(0f, 1f);
             var unit = UnitFor(member, progress, true);
-            var deck = WorldSession.DeckOf(member);
-            var groups = new List<KeyValuePair<string, List<CardDefinition>>>
-            {
-                new KeyValuePair<string, List<CardDefinition>>("Deck", deck.Count > 2 ? deck.GetRange(0, 2) : deck),
-                new KeyValuePair<string, List<CardDefinition>>("Ult", WorldSession.UltimateOf(member) != null ? new List<CardDefinition> { WorldSession.UltimateOf(member) } : new List<CardDefinition>()),
-            };
-            groups.RemoveAll(g => g.Value.Count == 0 && g.Key != "Deck");
+            // The deck row: the locked card (always brought), the extra slot(s) the player fills from cards they own
+            // (empty is fine: just the locked card and the Ult), then the Soul card (locked too).
+            var locked = CardCollection.LockedCard(member);
+            var ult = WorldSession.UltimateOf(member);
+            int extraSlots = PackRates.Current.extraDeckSlots;
 
             float x0 = InfoX + 96f;
             var cardSize = CardView.Size * RowCardScale;
-            const float cardGap = 16f, groupGap = 40f, pad = 18f, labelH = 26f;
+            const float cardGap = 16f, groupGap = 40f, pad = 18f, labelH = 30f;
             var bracket = UIFactory.CreateRect("Cards", detail).Place(center, tl, new Vector2(x0, y), new Vector2(Right - x0, cardSize.y + labelH + pad * 2f));
             InkStyle.Frame(bracket, UIFactory.WithAlpha(InkStyle.Gold, 0.4f), 1f);
 
             float x = pad;
-            foreach (var g in groups)
+            System.Action<string, float> groupLabel = (key, width) =>
             {
-                float groupW = g.Value.Count * cardSize.x + Mathf.Max(0, g.Value.Count - 1) * cardGap;
-                var label = InkStyle.Label(bracket, g.Key, UIText.Get(g.Key == "Deck" ? "units.deck" : "units.ult"), 28, InkStyle.Gold, TextAnchor.LowerLeft);
-                label.rectTransform.Place(tl, tl, new Vector2(x, -pad + 6f), new Vector2(Mathf.Max(groupW, 120f), labelH));
-                for (int i = 0; i < g.Value.Count; i++)
+                var label = InkStyle.Label(bracket, key, UIText.Get(key), UIFactory.TextSize.Small, InkStyle.Gold, TextAnchor.LowerLeft);
+                label.rectTransform.Place(tl, tl, new Vector2(x, -pad + 6f), new Vector2(Mathf.Max(width, 140f), labelH));
+            };
+
+            // Locked card.
+            groupLabel("units.locked", cardSize.x);
+            if (locked != null)
+            {
+                var rt = CardSlot(bracket, unit, locked, new Vector2(x, -pad - labelH), cardSize);
+                var captured = locked;
+                Clickable(rt, () => { SetFocus(Slots.Length); OpenCard(captured, rt); });
+                focusTargets.Add(rt);
+            }
+            x += cardSize.x + groupGap;
+
+            // Extra slot(s).
+            if (extraSlots > 0)
+            {
+                groupLabel("units.extra", extraSlots * cardSize.x + (extraSlots - 1) * cardGap);
+                for (int s = 0; s < extraSlots; s++)
                 {
-                    var card = g.Value[i];
-                    var holder = UIFactory.CreateRect("Slot", bracket).Place(tl, tl, new Vector2(x, -pad - labelH), cardSize);
-                    var ability = AbilityCard.Create(holder, unit, card, 0, RowCardScale, true);   // icon only: the text is in the popup
-                    var rt = (RectTransform)ability.transform;
-                    rt.Fill();
-                    var captured = card;
-                    if (g.Key == "Deck")
+                    int slot = s;
+                    var card = CardCollection.ExtraIn(member, s);
+                    RectTransform rt;
+                    if (card != null) rt = CardSlot(bracket, unit, card, new Vector2(x, -pad - labelH), cardSize);
+                    else
                     {
-                        int slot = i;
-                        Clickable(rt, () => { SetFocus(Slots.Length + slot); OpenCard(captured, rt); });
-                        focusTargets.Add(rt);
+                        // Empty: a faint frame with a "+".
+                        rt = UIFactory.CreateRect("EmptyExtra", bracket).Place(tl, tl, new Vector2(x, -pad - labelH), cardSize);
+                        var bg = UIFactory.CreateImage(rt, "Bg", new Color(1f, 1f, 1f, 0.04f), true);
+                        bg.rectTransform.Fill();
+                        InkStyle.Frame(rt, UIFactory.WithAlpha(InkStyle.Gold, 0.45f), 2f);
+                        var plus = InkStyle.Title(rt, "Plus", "+", UIFactory.TextSize.XLarge, InkStyle.PaperDim, TextAnchor.MiddleCenter);
+                        plus.rectTransform.Fill();
                     }
-                    else Clickable(rt, () => OpenCard(captured, rt));
+                    int focusIndex = Slots.Length + 1 + s;
+                    var target = rt;
+                    Clickable(rt, () => { SetFocus(focusIndex); OpenExtraPicker(member, slot); });
+                    focusTargets.Add(target);
                     x += cardSize.x + cardGap;
                 }
                 x += groupGap - cardGap;
             }
+
+            // The Soul card.
+            if (ult != null)
+            {
+                groupLabel("units.ult", cardSize.x);
+                var rt = CardSlot(bracket, unit, ult, new Vector2(x, -pad - labelH), cardSize);
+                Clickable(rt, () => OpenCard(ult, rt));
+            }
+        }
+
+        /// <summary>One card in the deck row (icon only: the text is in the popup).</summary>
+        static RectTransform CardSlot(RectTransform bracket, BattleUnit unit, CardDefinition card, Vector2 at, Vector2 size)
+        {
+            var tl = new Vector2(0f, 1f);
+            var holder = UIFactory.CreateRect("Slot", bracket).Place(tl, tl, at, size);
+            var ability = AbilityCard.Create(holder, unit, card, 0, RowCardScale, true);
+            var rt = (RectTransform)ability.transform;
+            rt.Fill();
+            return rt;
+        }
+
+        /// <summary>The extra slot's picker: every card you own that this unit can bring (its own first), and Remove.</summary>
+        void OpenExtraPicker(CharacterDefinition member, int slot)
+        {
+            var options = new List<PickerOption>();
+            var current = CardCollection.ExtraIn(member, slot);
+            foreach (var card in CardCollection.Eligible(member, party))
+            {
+                if (card == current) continue;
+                var captured = card;
+                string owner = OwnerName(card);
+                options.Add(new PickerOption(card.DisplayName, UIText.Get("units.extra.detail", "owner", owner, "kind", UnitView.KindLabel(card.kind)), () =>
+                {
+                    CardCollection.SetExtra(member, slot, captured);
+                    SaveGame.Save();
+                    BuildDetail();
+                }));
+            }
+            if (current != null)
+                options.Add(new PickerOption(UIText.Get("units.extra.remove"), UIText.Get("units.extra.remove.detail"), () =>
+                {
+                    CardCollection.SetExtra(member, slot, null);
+                    SaveGame.Save();
+                    BuildDetail();
+                }));
+            if (options.Count == 0) options.Add(new PickerOption(UIText.Get("units.extra.none"), null, ClosePicker));
+            OpenPicker(UIText.Get("units.extra.pick"), options);
+        }
+
+        /// <summary>Whose card this is (the first member who has it), for the picker.</summary>
+        string OwnerName(CardDefinition card)
+        {
+            foreach (var m in party)
+                if (m != null && CardCollection.AbilitiesOf(m).Contains(card)) return m.DisplayName;
+            return "";
         }
 
         static BattleUnit UnitFor(CharacterDefinition member, MemberProgress progress, bool withParts)
@@ -537,13 +611,13 @@ namespace Game.World
             var member = Member;
             if (member == null) return;
             if (index < Slots.Length) OpenPartPicker(member, Slots[index]);
-            else
+            else if (index == Slots.Length)
             {
-                // A deck card: open it (swapping deck cards is shelved for now, along with spare cards).
-                var deck = WorldSession.DeckOf(member);
-                int slot = index - Slots.Length;
-                if (slot < deck.Count) OpenCard(deck[slot], focusTargets[index]);
+                // The locked card: look at it.
+                var locked = CardCollection.LockedCard(member);
+                if (locked != null) OpenCard(locked, focusTargets[index]);
             }
+            else OpenExtraPicker(member, index - Slots.Length - 1);   // an extra slot: choose a card or Remove
         }
 
         /// <summary>One row of the item picker: a name, an optional description under it, and what choosing it does.</summary>

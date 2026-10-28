@@ -64,6 +64,8 @@ namespace Game.World
         }
 
         readonly List<Sprite> souls = new List<Sprite>();
+        /// <summary>The party's Soul cards (each character's own and its resonances' Ults), drawn as real card faces.</summary>
+        readonly List<KeyValuePair<CharacterDefinition, CardDefinition>> soulCards = new List<KeyValuePair<CharacterDefinition, CardDefinition>>();
         readonly List<Faller> fallers = new List<Faller>();
         readonly List<Sparkle> sparkles = new List<Sparkle>();
         RectTransform area, sparkleLayer;
@@ -72,7 +74,8 @@ namespace Game.World
 
         static Sprite star, ray, diamond, dot;
 
-        /// <param name="party">Unused (every Soul Card falls); kept so callers don't change.</param>
+        /// <param name="party">Whose Soul cards fall (each character's own and its resonances' Ults); with none, the old
+        /// full-art Ult_ pictures fall instead.</param>
         public static FallingCards Create(RectTransform parent, IEnumerable<CharacterDefinition> party)
         {
             var rt = UIFactory.CreateRect("FallingCards", parent).Fill();
@@ -93,13 +96,25 @@ namespace Game.World
             sg.blocksRaycasts = false;
             sg.interactable = false;
 
-            foreach (var tex in Resources.LoadAll<Texture2D>("Cards"))
-            {
-                if (tex == null || !tex.name.StartsWith("Ult_")) continue;
-                tex.filterMode = FilterMode.Point;
-                falling.souls.Add(Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect));
-            }
+            // The party's Soul cards in the card format (the character's own sprite); without a party, the old pictures.
+            if (party != null)
+                foreach (var member in party)
+                {
+                    if (member == null || member.ritual == null || CardArt.SoulSprite(member) == null) continue;
+                    falling.soulCards.Add(new KeyValuePair<CharacterDefinition, CardDefinition>(member, member.ritual));
+                    foreach (var kit in member.resonances)
+                        if (kit != null && kit.ultimate != null && kit.ultimate != member.ritual)
+                            falling.soulCards.Add(new KeyValuePair<CharacterDefinition, CardDefinition>(member, kit.ultimate));
+                }
+            if (falling.soulCards.Count == 0)
+                foreach (var tex in Resources.LoadAll<Texture2D>("Cards"))
+                {
+                    if (tex == null || !tex.name.StartsWith("Ult_")) continue;
+                    tex.filterMode = FilterMode.Point;
+                    falling.souls.Add(Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect));
+                }
             Shuffle(falling.souls);
+            Shuffle(falling.soulCards);
             // Start with the screen already part-filled rather than empty.
             for (int i = 0; i < 6; i++) falling.Spawn(Random.Range(0.1f, 0.9f));
             return falling;
@@ -119,16 +134,32 @@ namespace Game.World
         /// <param name="startHeight">Where it starts, 1 = just above the top edge, 0 = the bottom.</param>
         void Spawn(float startHeight)
         {
-            if (souls.Count == 0) return;
-            var art = souls[next++ % souls.Count];
+            if (souls.Count == 0 && soulCards.Count == 0) return;
             float s = Scales[Random.Range(0, Scales.Length)];
             var tint = Tints[Random.Range(0, Tints.Length)];
-            var rt = UIFactory.CreateRect("Soul_" + art.texture.name, area);
-            rt.sizeDelta = CardView.Size * s;
-            var face = UIFactory.CreateImage(rt, "Art", Color.Lerp(Color.white, tint, 0.55f));
-            face.sprite = art;
-            face.rectTransform.Fill();
-            UltShine.Add(rt, art, CardArt.HandPixel * s);
+            RectTransform rt;
+            if (soulCards.Count > 0)
+            {
+                // A real Soul card face (the character's sprite in the card format), tinted like the old ones.
+                var pick = soulCards[next++ % soulCards.Count];
+                rt = UIFactory.CreateRect("Soul_" + pick.Value.name, area);
+                rt.sizeDelta = CardView.Size * s;
+                var unit = new BattleUnit(pick.Key, Team.Player);
+                foreach (var kit in pick.Key.resonances)
+                    if (kit != null && kit.ultimate == pick.Value) unit.ApplyLoadout(new Loadout { Element = kit.element, Ultimate = kit.ultimate });
+                CardView.BuildFace(rt, new CardInstance(pick.Value, unit, 1), s, true);
+                foreach (var g in rt.GetComponentsInChildren<Graphic>()) g.color = g.color * Color.Lerp(Color.white, tint, 0.35f);
+            }
+            else
+            {
+                var art = souls[next++ % souls.Count];
+                rt = UIFactory.CreateRect("Soul_" + art.texture.name, area);
+                rt.sizeDelta = CardView.Size * s;
+                var face = UIFactory.CreateImage(rt, "Art", Color.Lerp(Color.white, tint, 0.55f));
+                face.sprite = art;
+                face.rectTransform.Fill();
+                UltShine.Add(rt, art, CardArt.HandPixel * s);
+            }
             foreach (var g in rt.GetComponentsInChildren<Graphic>()) g.raycastTarget = false;
             // Smaller cards are further away: slower and further back.
             rt.SetSiblingIndex(s < 0.7f ? 0 : rt.GetSiblingIndex());

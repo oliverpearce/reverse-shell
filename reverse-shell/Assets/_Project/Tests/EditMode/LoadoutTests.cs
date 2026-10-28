@@ -83,14 +83,20 @@ namespace Combat.Tests
             }
         }
 
+        /// <summary>A deck is the locked (leftmost) card plus the chosen extra; Remove leaves just the locked card.</summary>
         [Test]
-        public void SetDeckCard_SwapsPoolCardIn_AndSwapsPlacesWhenAlreadyInDeck()
+        public void Deck_IsLockedCardPlusChosenExtra_AndRemoveEmptiesIt()
         {
-            CollectionAssert.AreEqual(new[] { strike, guard }, WorldSession.DeckOf(hero));
-            WorldSession.SetDeckCard(hero, 0, sweep);
-            CollectionAssert.AreEqual(new[] { sweep, guard }, WorldSession.DeckOf(hero));
-            WorldSession.SetDeckCard(hero, 0, guard);
-            CollectionAssert.AreEqual(new[] { guard, sweep }, WorldSession.DeckOf(hero));
+            var expected = PackRates.Current.startWithSecondCard ? new[] { strike, guard } : new[] { strike };
+            CollectionAssert.AreEqual(expected, WorldSession.DeckOf(hero), "the default deck");
+            CardCollection.SetExtra(hero, 0, sweep);
+            CollectionAssert.AreEqual(new[] { strike, sweep }, WorldSession.DeckOf(hero));
+            CardCollection.SetExtra(hero, 0, guard);
+            CollectionAssert.AreEqual(new[] { strike, guard }, WorldSession.DeckOf(hero), "choosing again replaces it");
+            CardCollection.SetExtra(hero, 0, null);
+            CollectionAssert.AreEqual(new[] { strike }, WorldSession.DeckOf(hero), "Remove: just the locked card");
+            CardCollection.SetExtra(hero, 0, strike);
+            CollectionAssert.AreEqual(new[] { strike }, WorldSession.DeckOf(hero), "the locked card can't fill the extra slot too");
         }
 
         [Test]
@@ -165,7 +171,7 @@ namespace Combat.Tests
         {
             WorldSession.GiveStarterParts();
             WorldSession.Equip(hero, blade);
-            WorldSession.SetDeckCard(hero, 1, sweep);
+            CardCollection.SetExtra(hero, 0, sweep);
 
             string json = JsonUtility.ToJson(SaveGame.Capture());
             WorldSession.Party.Clear();
@@ -191,7 +197,7 @@ namespace Combat.Tests
             SaveGame.Restore(data);
 
             Assert.AreEqual(5, WorldSession.Party["Char_MC"].Level);
-            Assert.AreEqual(3, WorldSession.Party["Char_HealBot"].Level);
+            Assert.AreEqual(3, WorldSession.Party["Char_Ashe"].Level);
             Assert.AreEqual(2, WorldSession.Party["Char_Lucy"].Level);
             CollectionAssert.AreEqual(new[] { "Char_Lucy" }, WorldSession.PartyOrder);
             Assert.IsFalse(WorldSession.StarterPartsGiven, "an old save gets the starter parts");

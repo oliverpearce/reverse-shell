@@ -177,6 +177,14 @@ namespace Game.World
         /// <summary>Spare Parts (not fitted to anyone): asset name to count.</summary>
         public static readonly Dictionary<string, int> Inventory = new Dictionary<string, int>();
 
+        /// <summary>The card collection (rules in <see cref="CardCollection"/>): extra copies of ability cards by asset
+        /// name, Sun / Moon / Star bound onto cards (card name to kind), how many of each kind were ever found, and
+        /// unopened card packs.</summary>
+        public static readonly Dictionary<string, int> CardCopies = new Dictionary<string, int>();
+        public static readonly Dictionary<string, string> Bindings = new Dictionary<string, string>();
+        public static readonly Dictionary<string, int> BindingsFound = new Dictionary<string, int>();
+        public static int Packs;
+
         /// <summary>True once a new game has been handed the catalog's starter Parts (saved, so it happens once).</summary>
         public static bool StarterPartsGiven;
 
@@ -375,6 +383,10 @@ namespace Game.World
         /// <summary>The Esc menu's Resonance card: after Chapter One, and always in Sandbox Mode.</summary>
         public static bool ResonanceMenuUnlocked { get { return InSandbox || StoryState.Has(Chapter1.Complete); } }
 
+        /// <summary>The card binder (the Cards book, peeking out of the Esc menu): found on waking in Chapter 1 (saves from
+        /// before it existed count waking as finding it).</summary>
+        public static bool BinderUnlocked { get { return InSandbox || StoryState.Has(Chapter1.Binder) || StoryState.Has(Chapter1.Awake); } }
+
         /// <summary>
         /// The resonances <paramref name="member"/> can switch to now, in kit order (empty = no kits). Sandbox Mode
         /// lends every kit, so they can be tried before the story unlocks them.
@@ -423,7 +435,20 @@ namespace Game.World
             return kit != null ? kit.element : (member != null ? member.afflatus : Afflatus.None);
         }
 
+        /// <summary>A unit's deck: its locked card plus the extra cards chosen for it (CardCollection), no repeats. Its
+        /// Soul card comes separately (<see cref="UltimateOf"/>).</summary>
         public static List<CardDefinition> DeckOf(CharacterDefinition member)
+        {
+            var deck = new List<CardDefinition>();
+            if (member == null) return deck;
+            var locked = CardCollection.LockedCard(member);
+            if (locked != null) deck.Add(locked);
+            foreach (var c in CardCollection.Extras(member)) if (c != null && !deck.Contains(c)) deck.Add(c);
+            return deck;
+        }
+
+        /// <summary>The deck before deck building (kept for reference; nothing calls it now).</summary>
+        static List<CardDefinition> OldDeckOf(CharacterDefinition member)
         {
             var deck = new List<CardDefinition>();
             // A resonance kit sets the innate cards outright.
@@ -590,13 +615,15 @@ namespace Game.World
                 if (member != null)
                 {
                     var kit = ActiveKit(member);
-                    loadouts[member] = new Loadout
+                    var loadout = new Loadout
                     {
                         Cards = DeckOf(member),
                         Parts = PartsOf(member),
                         Element = kit != null ? kit.element : (Afflatus?)null,
                         Ultimate = kit != null ? kit.ultimate : null,
                     };
+                    CardCollection.FillLoadout(member, loadout);   // start ranks, bindings, Soul level
+                    loadouts[member] = loadout;
                 }
             return loadouts;
         }
@@ -655,6 +682,10 @@ namespace Game.World
             Party.Clear();
             PartyOrder.Clear();
             Inventory.Clear();
+            CardCopies.Clear();
+            Bindings.Clear();
+            BindingsFound.Clear();
+            Packs = 0;
             StarterPartsGiven = false;
             Catalog = null;
             HasReturnPoint = false;
