@@ -284,5 +284,56 @@ namespace Combat.Tests
             Assert.AreEqual(3, WorldSession.Packs);
             Assert.AreEqual(1, CardCollection.SoulLevel(hero));
         }
+
+        [Test]
+        public void NewTags_SurviveASave_UntilSeen()
+        {
+            CardCollection.AddCopy(guard);
+            Assert.IsTrue(CardCollection.IsNew(guard.name));
+
+            var data = SaveGame.Capture();
+            SaveGame.Restore(null);
+            Assert.IsFalse(CardCollection.IsNew(guard.name), "a new game has no NEW tags");
+            SaveGame.Restore(data);
+            Assert.IsTrue(CardCollection.IsNew(guard.name), "still NEW after loading");
+
+            CardCollection.Seen(guard.name);
+            SaveGame.Restore(SaveGame.Capture());
+            Assert.IsFalse(CardCollection.IsNew(guard.name), "looked at: stays seen");
+        }
+
+        [Test]
+        public void Session_NewTags_StayInTheSession()
+        {
+            CardCollection.BeginSession();
+            try
+            {
+                CardCollection.AddCopy(guard);
+                Assert.IsTrue(CardCollection.IsNew(guard.name));
+            }
+            finally { CardCollection.EndSession(); }
+            Assert.IsFalse(CardCollection.IsNew(guard.name), "Pack Mode's NEW tags never reach the real collection");
+        }
+
+        [Test]
+        public void Sets_CompleteOnceEveryCardIsOwned()
+        {
+            var roster = new List<CharacterDefinition> { hero };
+            var element = CardCollection.ElementOf(hero, guard);
+            if (!Rates.startWithSecondCard) Assert.IsFalse(CardCollection.CompleteSets(roster).Contains(element), "guard isn't owned yet");
+            CardCollection.AddCopy(guard);
+            Assert.IsTrue(CardCollection.CompleteSets(roster).Contains(element), "the locked card and a copy of the other");
+        }
+
+        [Test]
+        public void LevelPreview_EachUpgradeAddsLevels()
+        {
+            var config = CombatConfig.Default;
+            strike.level = 6;
+            Assert.AreEqual(6, CardLevels.WithUpgrades(strike, 0));
+            Assert.AreEqual(6 + config.levelsPerUpgrade, CardLevels.WithUpgrades(strike, 1));
+            Assert.AreEqual(config.maxCardLevel, CardLevels.WithUpgrades(strike, 100), "capped at the top card level");
+            Assert.AreEqual(0f, CardLevels.MainPower(strike, 6), "no hit or heal: no power to preview");
+        }
     }
 }

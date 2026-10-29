@@ -30,6 +30,8 @@ namespace Combat
         [Range(0f, 1f)] public float spreadShare = 0.6f;
         [Tooltip("Levels a merge adds: rank II, and rank III in all.")]
         public int rankIILevels = 2, rankIIILevels = 5;
+        [Tooltip("Turns each merge adds to the statuses a card gives (rank II +1, rank III +2 at 1). Not to statuses that stop the target acting (Stunned, Frozen).")]
+        [Min(0)] public int turnsPerMerge = 1;
         [Tooltip("Levels each copy upgrade (from packs) adds.")]
         public int levelsPerUpgrade = 2;
         [Tooltip("Levels a boss's cards get.")]

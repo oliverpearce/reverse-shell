@@ -9,6 +9,7 @@ namespace Combat.View
     /// with the angle, and pixel sparkles twinkle brighter the further it leans. Scaled by rarity:
     ///   Common  a soft white glint
     ///   Rare    an orange holo band and warm sparkles (Sun, Moon, Star)
+    ///   Legendary  a rippling gold sheen, a bright gold band and gold-white sparkles (a Legendary ability card)
     ///   Soul    a rainbow sheen whose hues slide with the tilt, a bright band and dense sparkles
     /// It sits inside the card (masked to its shape), so it tilts with it. Unscaled time.
     /// </summary>
@@ -16,7 +17,13 @@ namespace Combat.View
     {
         /// <summary>Blank: the fanciest, a pearl sheen, two bands sweeping on their own and many pastel twinkles; it
         /// shines even with no tilt (a blank card lying on the pack table).</summary>
-        public enum Kind { Common, Rare, Soul, Blank }
+        public enum Kind { Common, Rare, Soul, Blank, Legendary }
+
+        /// <summary>An ability card's shine: Legendary's gold for a Legendary card, else the plain one (by its type).</summary>
+        public static Kind KindFor(CardDefinition card)
+        {
+            return card != null && card.rarity == CardRarity.Legendary ? Kind.Legendary : Kind.Common;
+        }
 
         /// <summary>
         /// An ability card's shine by its type (Common cards only; Soul keeps its rainbow, Sun / Moon / Star their gold):
@@ -66,7 +73,7 @@ namespace Combat.View
         float[] sparklePhase;
         float width, height;
 
-        static Texture2D bandTexture, rainbowTexture, pearlTexture;
+        static Texture2D bandTexture, rainbowTexture, pearlTexture, goldTexture;
         static Sprite sparkleSprite;
 
         /// <param name="card">The card face (the shine fills it and is masked to it).</param>
@@ -94,13 +101,14 @@ namespace Combat.View
         {
             width = rt.rect.width;
             height = rt.rect.height;
-            if (kind == Kind.Soul || kind == Kind.Blank)
+            if (kind == Kind.Soul || kind == Kind.Blank || kind == Kind.Legendary)
             {
-                // A full-card rainbow sheen (Blank: a soft pearl one); its hues slide sideways with the tilt (uvRect).
+                // A full-card rainbow sheen (Blank: a soft pearl one, Legendary: rippling gold); it slides sideways
+                // with the tilt (uvRect).
                 var go = new GameObject("Rainbow", typeof(RectTransform));
                 go.transform.SetParent(rt, false);
                 rainbow = go.AddComponent<RawImage>();
-                rainbow.texture = kind == Kind.Blank ? PearlTexture() : RainbowTexture();
+                rainbow.texture = kind == Kind.Blank ? PearlTexture() : kind == Kind.Legendary ? GoldTexture() : RainbowTexture();
                 rainbow.raycastTarget = false;
                 rainbowRect = rainbow.rectTransform;
                 rainbowRect.Fill();
@@ -132,7 +140,7 @@ namespace Combat.View
                 band2.localRotation = Quaternion.Euler(0f, 0f, -BandAngle - 14f);
             }
 
-            int count = kind == Kind.Blank ? 22 : kind == Kind.Soul ? 14 : kind == Kind.Rare ? 9 : 5;
+            int count = kind == Kind.Blank ? 22 : kind == Kind.Soul ? 14 : kind == Kind.Legendary ? 11 : kind == Kind.Rare ? 9 : 5;
             sparkles = new Image[count];
             sparkleSpots = new Vector2[count];
             sparklePhase = new float[count];
@@ -163,6 +171,7 @@ namespace Combat.View
             switch (kind)
             {
                 case Kind.Rare: return new Color(1f, 0.62f, 0.22f, alpha);
+                case Kind.Legendary: return new Color(1f, 0.88f, 0.45f, alpha);
                 case Kind.Soul: return new Color(1f, 1f, 1f, alpha);
                 case Kind.Blank: return new Color(0.95f, 0.98f, 1f, alpha);
                 default: return new Color(1f, 0.97f, 0.9f, alpha);
@@ -171,7 +180,7 @@ namespace Combat.View
 
         void Update()
         {
-            if (band == null || (tilt == null && kind != Kind.Blank)) return;
+            if (band == null || (tilt == null && kind != Kind.Blank && kind != Kind.Legendary)) return;   // these two glint lying still
             // Stay on top of a face that's rebuilt under the same parent (scrolling through ranks).
             if (transform.GetSiblingIndex() != transform.parent.childCount - 1) transform.SetAsLastSibling();
             float time = Time.unscaledTime;
@@ -184,8 +193,9 @@ namespace Combat.View
             float across = (a.x * 0.9f + a.y * 0.35f) * width;
             if (blank) across += Mathf.Sin(time * 0.9f) * width * 0.75f;
             band.anchoredPosition = new Vector2(across, 0f);
-            float baseAlpha = blank ? 0.2f : shine.HasValue ? 0.09f : kind == Kind.Common ? 0.05f : kind == Kind.Rare ? 0.1f : 0.12f;
-            float gain = kind == Kind.Common ? 0.28f : kind == Kind.Rare ? 0.45f : 0.55f;
+            bool gold = kind == Kind.Legendary;
+            float baseAlpha = blank ? 0.2f : shine.HasValue ? 0.09f : kind == Kind.Common ? 0.05f : kind == Kind.Rare ? 0.1f : gold ? 0.11f : 0.12f;
+            float gain = kind == Kind.Common ? 0.28f : kind == Kind.Rare ? 0.45f : gold ? 0.5f : 0.55f;
             bandRaw.color = BandColor((baseAlpha + gain * amount) * Strength);
             if (band2 != null)
             {
@@ -197,11 +207,12 @@ namespace Combat.View
             if (rainbow != null)
             {
                 // Hues slide with the tilt (and drift a little on their own), stronger as it leans. Pearl drifts faster.
-                rainbow.uvRect = new Rect(a.x * 0.6f + a.y * 0.25f + time * (blank ? 0.08f : 0.03f), blank ? time * 0.04f : 0f, 1.2f, 1f);
-                rainbow.color = new Color(1f, 1f, 1f, ((blank ? 0.3f : 0.16f) + 0.3f * amount) * Strength);
+                // Gold ripples slowly on its own, so it glints a little even lying still; a bit fainter than Soul's.
+                rainbow.uvRect = new Rect(a.x * 0.6f + a.y * 0.25f + time * (blank ? 0.08f : gold ? 0.05f : 0.03f), blank ? time * 0.04f : 0f, 1.2f, 1f);
+                rainbow.color = new Color(1f, 1f, 1f, ((blank ? 0.3f : gold ? 0.12f : 0.16f) + (gold ? 0.24f : 0.3f) * amount) * Strength);
             }
 
-            float sparkleGain = kind == Kind.Common ? 0.35f : kind == Kind.Rare ? 0.7f : 1f;
+            float sparkleGain = kind == Kind.Common ? 0.35f : kind == Kind.Rare ? 0.7f : gold ? 0.85f : 1f;
             for (int i = 0; i < sparkles.Length; i++)
             {
                 float twinkle = Mathf.Max(0f, Mathf.Sin(time * 3.1f + sparklePhase[i]));
@@ -221,7 +232,8 @@ namespace Combat.View
                 var c = shine.HasValue ? shine.Value.Sparkle
                       : blank ? Color.HSVToRGB(Mathf.Repeat(time * 0.15f + i * 0.21f, 1f), 0.22f, 1f)
                       : kind == Kind.Soul ? Color.HSVToRGB(Mathf.Repeat(time * 0.2f + i * 0.13f, 1f), 0.45f, 1f)
-                      : kind == Kind.Rare ? new Color(1f, 0.8f, 0.45f) : Color.white;
+                      : kind == Kind.Rare ? new Color(1f, 0.8f, 0.45f)
+                      : gold ? (i % 3 == 0 ? Color.white : new Color(1f, 0.86f, 0.42f)) : Color.white;
                 c.a = alpha * Strength;
                 sparkles[i].color = c;
             }
@@ -280,6 +292,26 @@ namespace Combat.View
                 }
             pearlTexture.Apply();
             return pearlTexture;
+        }
+
+        /// <summary>Rippling gold (a Legendary's sheen): diagonal bands from deep gold to pale gold, seamless both ways
+        /// so sliding the uvRect never shows where it wraps.</summary>
+        static Texture GoldTexture()
+        {
+            if (goldTexture != null) return goldTexture;
+            const int w = 128, h = 128;
+            goldTexture = new Texture2D(w, h, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };
+            var deep = new Color(1f, 0.66f, 0.16f);
+            var pale = new Color(1f, 0.96f, 0.72f);
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    float u = (float)x / w, v = (float)y / h;
+                    float t = 0.5f + 0.5f * Mathf.Sin((u * 2f + v) * Mathf.PI * 2f + 0.8f * Mathf.Sin(v * Mathf.PI * 2f));
+                    goldTexture.SetPixel(x, y, Color.Lerp(deep, pale, t * t));
+                }
+            goldTexture.Apply();
+            return goldTexture;
         }
 
         /// <summary>A 5x5 pixel plus-shaped glint (point filtered, so it stays pixel art at any size).</summary>

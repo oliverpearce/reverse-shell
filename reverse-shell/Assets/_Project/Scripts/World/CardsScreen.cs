@@ -127,13 +127,13 @@ namespace Game.World
             panel.rectTransform.Place(bottom, bottom, new Vector2(-bookHalf + panelW / 2f, panelY), new Vector2(panelW, panelH));
             InkStyle.Frame(panel.rectTransform, InkStyle.Rule, 2f);
             info = UIFactory.CreateText(panel.rectTransform, "Text", "", UIFactory.TextSize.Large, InkStyle.Paper, TextAnchor.MiddleLeft)
-                .BestFit(UIFactory.TextSize.Small, UIFactory.TextSize.Large);   // shrinks to fit the panel, never below Small
+                .BestFit(UIFactory.TextSize.Min, UIFactory.TextSize.Large);   // shrinks to fit the panel (a deck-check note's third line)
             info.supportRichText = true;
-            info.lineSpacing = 1.15f;
-            // Centred top to bottom with a little room, so the second line isn't clipped.
+            info.lineSpacing = 1.05f;
+            // Centred top to bottom with a little room, so the last line isn't clipped.
             info.rectTransform.Fill();
-            info.rectTransform.offsetMin = new Vector2(Margin + 4f, 14f);   // room under the second line
-            info.rectTransform.offsetMax = new Vector2(-(Margin + 4f), -10f);
+            info.rectTransform.offsetMin = new Vector2(Margin + 4f, 10f);   // room under the last line
+            info.rectTransform.offsetMax = new Vector2(-(Margin + 4f), -8f);
             infoRunes = UIFactory.CreateRect("NameRunes", panel.rectTransform).Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
                 new Vector2(Margin + 4f, 22f), new Vector2(700f, 36f));   // over the first of the two centred lines
             // Top: the counters on one line under the title, clear of it and of the book.
@@ -182,12 +182,17 @@ namespace Game.World
             return label;
         }
 
-        /// <summary>The Units screen's extra slot: the book shows only <paramref name="choices"/>; Enter or a click on
-        /// a card uses it (<paramref name="pick"/>, then the book closes), and Open Pack's place is Remove
-        /// (pick(null)) when <paramref name="canRemove"/>.</summary>
-        public void OpenToPick(List<CardDefinition> choices, bool canRemove, System.Action<CardDefinition> pick, System.Action whenClosed)
+        /// <summary>The Units screen's extra slot: Enter or a click on one of <paramref name="choices"/> uses it
+        /// (<paramref name="pick"/>, then the book closes), and Open Pack's place is Remove (pick(null)) when
+        /// <paramref name="canRemove"/>. With <paramref name="member"/> (the deck check) the book shows every ability
+        /// card: the ones the slot can't take are greyed and the info panel says why, and a card in another unit's deck
+        /// shows their name and "Moves from …'s deck". Without it, only the choices show.</summary>
+        public void OpenToPick(List<CardDefinition> choices, bool canRemove, System.Action<CardDefinition> pick, System.Action whenClosed,
+            CharacterDefinition member = null, CardDefinition current = null)
         {
             pickFrom = choices ?? new List<CardDefinition>();
+            pickMember = member;
+            pickCurrent = current;
             onPick = pick;
             pickCanRemove = canRemove;
             Show(whenClosed);
@@ -196,12 +201,19 @@ namespace Game.World
         public void Open(System.Action whenClosed)
         {
             pickFrom = null;
+            pickMember = null;
             onPick = null;
             Show(whenClosed);
         }
 
         bool Picking { get { return pickFrom != null; } }
+        /// <summary>Picking a unit's Alt card with the deck check: every ability card shows, the others greyed.</summary>
+        bool DeckPicking { get { return Picking && pickMember != null; } }
+        /// <summary>A card the slot can't take (deck check only).</summary>
+        bool Blocked(Entry e) { return DeckPicking && e.Kind == EntryKind.Ability && !pickFrom.Contains(e.Card); }
         List<CardDefinition> pickFrom;
+        CharacterDefinition pickMember;
+        CardDefinition pickCurrent;
         System.Action<CardDefinition> onPick;
         bool pickCanRemove;
         Text titleText, keysText;
@@ -237,6 +249,7 @@ namespace Game.World
                 foreach (var card in CardCollection.AbilitiesOf(member))
                     if (!owned.Contains(card) && CardCollection.Owned(card, Roster)) owned.Add(card);
             pickFrom = owned;
+            pickMember = null;
             pickCanRemove = false;
             useReturn = true;
             kindBeforeUse = kindFilter;
@@ -272,6 +285,7 @@ namespace Game.World
                 keysText.FitOneLine(1360f);
             }
             if (mode == Mode.Session && !CardCollection.InSession) { CardCollection.BeginSession(); PackModeRun.Reset(); }
+            if (mode == Mode.Session) PackModeRun.Select(SelectedPack);   // the selected tab's race is the one on the clock
             if (mode == Mode.Index) CardCollection.IndexOpen = true;
             // From the title no game is loaded yet: the index shows the latest save's copies and levels.
             if (mode == Mode.Index && !WorldSession.TitleDone) SaveGame.Preview(SaveGame.LatestSlot());
@@ -340,6 +354,11 @@ namespace Game.World
         void Hide()
         {
             if (mode == Mode.Index) CardCollection.IndexOpen = false;
+            if (mode == Mode.Collection && CardCollection.SeenChanged)
+            {
+                CardCollection.SeenChanged = false;   // the NEW tags looked at stay gone after a reload
+                SaveGame.Save();
+            }
             picker.Hide();
             LastToggleFrame = Time.frameCount;
             gameObject.SetActive(false);
@@ -377,10 +396,10 @@ namespace Game.World
             {
                 if (member == null) continue;
                 foreach (var card in CardCollection.AbilitiesOf(member))
-                    if (!all.Exists(e => e.Card == card) && (!Picking || pickFrom.Contains(card)))
-                        all.Add(new Entry { Kind = EntryKind.Ability, Card = card, Owner = member, Element = ElementOf(member, card) });
+                    if (!all.Exists(e => e.Card == card) && (!Picking || DeckPicking || pickFrom.Contains(card)))
+                        all.Add(new Entry { Kind = EntryKind.Ability, Card = card, Owner = member, Element = CardCollection.ElementOf(member, card) });
             }
-            if (Picking) return;   // only the cards the slot can take
+            if (Picking) return;   // ability cards only
             foreach (var kind in new[] { CardBinding.Sun, CardBinding.Moon, CardBinding.Star })
                 if (index || session || CardCollection.Found(kind) > 0) all.Add(new Entry { Kind = EntryKind.Arcana, Arcana = kind });
             foreach (var member in Roster)
@@ -397,15 +416,6 @@ namespace Game.World
                 else
                     all.Add(new Entry { Kind = EntryKind.Soul, Card = WorldSession.UltimateOf(member) ?? member.ritual, Owner = member, Element = WorldSession.ElementOf(member) });
             }
-        }
-
-        /// <summary>A card's resonance: the kit it belongs to; for the protagonist's other cards (the Basic card pool)
-        /// the card's own pool; else its owner's own element.</summary>
-        static Resonance ElementOf(CharacterDefinition member, CardDefinition card)
-        {
-            foreach (var kit in member.resonances)
-                if (kit != null && kit.cards.Contains(card)) return kit.element;
-            return member.resonances.Count > 0 ? card.pool : member.resonance;
         }
 
         List<Resonance?> ResonanceChoices()
@@ -446,7 +456,18 @@ namespace Game.World
 
         List<string> ResonanceNames()
         {
-            return ResonanceChoices().ConvertAll(e => e.HasValue ? ResonanceInfo.Display(e.Value) : UIText.Get("cards.filter.all"));
+            return ResonanceChoices().ConvertAll(e => e.HasValue ? ResonanceName(e.Value) : UIText.Get("cards.filter.all"));
+        }
+
+        /// <summary>Resonances whose every card you own (worked out on each <see cref="Rebuild"/>).</summary>
+        HashSet<Resonance> completeSets = new HashSet<Resonance>();
+
+        /// <summary>A resonance's name for the filter: gold with a tick once you own its whole set (not in Pack Mode,
+        /// whose shelf shows its own sets).</summary>
+        string ResonanceName(Resonance element)
+        {
+            string name = ResonanceInfo.Display(element);
+            return mode != Mode.Session && completeSets.Contains(element) ? UIText.Get("cards.filter.complete", "name", name) : name;
         }
 
         List<string> KindNames()
@@ -457,10 +478,10 @@ namespace Game.World
             return list;
         }
 
-        // ITEMS > CARDS > SORTING (the Sort dropdown: resonance is the default; the rest break ties by it)
+        // ITEMS > CARDS > SORTING (the Sort dropdown: name is the default; the rest break ties by name)
 
         enum SortBy { Resonance, Pack, Kind, Name, LevelHigh, LevelLow, CopiesMost, CopiesFewest }
-        int sortMode;
+        int sortMode = (int)SortBy.Name;
         Text sortLabel;
 
         static readonly string[] SortKeys = { "resonance", "pack", "kind", "name", "level_high", "level_low", "copies_most", "copies_fewest" };
@@ -472,28 +493,45 @@ namespace Game.World
             return list;
         }
 
+        /// <summary>By the Sort choice first (it always wins), then the deck check (cards the slot can take first), then
+        /// by name. Sun / Moon / Star and Soul cards come after the abilities and sort among themselves the same way
+        /// (copies = how many found / the Soul level).</summary>
         int CompareEntries(Entry a, Entry b)
         {
             if (a.Kind != b.Kind) return a.Kind.CompareTo(b.Kind);   // abilities, then Sun / Moon / Star, then Soul cards
-            if (a.Kind == EntryKind.Ability)
+            bool ability = a.Kind == EntryKind.Ability;
+            int c = 0;
+            switch ((SortBy)sortMode)
             {
-                int c = 0;
-                switch ((SortBy)sortMode)
-                {
-                    case SortBy.Kind: c = a.Card.kind.CompareTo(b.Card.kind); break;
-                    case SortBy.Pack: c = PackOrder(a.Card).CompareTo(PackOrder(b.Card)); break;
-                    case SortBy.Name: c = string.CompareOrdinal(a.Card.DisplayName, b.Card.DisplayName); break;
-                    case SortBy.LevelHigh: c = LevelOf(b).CompareTo(LevelOf(a)); break;
-                    case SortBy.LevelLow: c = LevelOf(a).CompareTo(LevelOf(b)); break;
-                    case SortBy.CopiesMost: c = CardCollection.Copies(b.Card).CompareTo(CardCollection.Copies(a.Card)); break;
-                    case SortBy.CopiesFewest: c = CardCollection.Copies(a.Card).CompareTo(CardCollection.Copies(b.Card)); break;
-                }
-                if (c != 0) return c;
+                case SortBy.Resonance: c = a.Element.CompareTo(b.Element); break;
+                case SortBy.Kind: if (ability) c = a.Card.kind.CompareTo(b.Card.kind); break;
+                case SortBy.Pack: if (ability) c = PackOrder(a.Card).CompareTo(PackOrder(b.Card)); break;
+                case SortBy.LevelHigh: c = LevelOf(b).CompareTo(LevelOf(a)); break;
+                case SortBy.LevelLow: c = LevelOf(a).CompareTo(LevelOf(b)); break;
+                case SortBy.CopiesMost: c = HaveOf(b).CompareTo(HaveOf(a)); break;
+                case SortBy.CopiesFewest: c = HaveOf(a).CompareTo(HaveOf(b)); break;
             }
-            if (a.Element != b.Element) return a.Element.CompareTo(b.Element);
-            if (a.Kind == EntryKind.Ability && a.Card.kind != b.Card.kind) return a.Card.kind.CompareTo(b.Card.kind);
-            return a.Kind == EntryKind.Arcana ? a.Arcana.CompareTo(b.Arcana) : string.CompareOrdinal(a.Card.DisplayName, b.Card.DisplayName);
+            if (c != 0) return c;
+            if (Blocked(a) != Blocked(b)) return Blocked(a) ? 1 : -1;   // the deck check: cards the slot can take first
+            if (a.Kind == EntryKind.Arcana) return a.Arcana.CompareTo(b.Arcana);   // Sun, Moon, Star
+            return NameOrder(a.Card.DisplayName, b.Card.DisplayName);
         }
+
+        /// <summary>How many you have, for the Copies sorts: an ability's copies, Sun / Moon / Star found, a Soul
+        /// card's level. Doubled, plus one if you own it, so a starter / innate card with no copies yet still sorts
+        /// above the cards you don't have at all.</summary>
+        int HaveOf(Entry e)
+        {
+            switch (e.Kind)
+            {
+                case EntryKind.Ability: return CardCollection.Copies(e.Card) * 2 + (CardCollection.Owned(e.Card, Roster) ? 1 : 0);
+                case EntryKind.Arcana: return CardCollection.Found(e.Arcana) * 2;
+                default: return CardCollection.SoulLevel(e.Owner) * 2;
+            }
+        }
+
+        /// <summary>Alphabetical, ignoring case.</summary>
+        static int NameOrder(string a, string b) { return string.Compare(a, b, System.StringComparison.OrdinalIgnoreCase); }
 
         /// <summary>Which pack a card comes from, in the packs' order (Basic, Arc, Root, Cryo, Cinder, Prism).</summary>
         static int PackOrder(CardDefinition card)
@@ -503,8 +541,17 @@ namespace Game.World
             return packs.Count;
         }
 
-        /// <summary>The card's level as the book shows it (its copy upgrades), then its own level.</summary>
-        static int LevelOf(Entry e) { return CardCollection.UpgradeLevel(e.Card) * 100 + e.Card.level; }
+        /// <summary>The level as the book shows it (an ability's copy upgrades, a Soul card's Soul level; Sun / Moon /
+        /// Star by how many found); 0 for a card you don't have, so those sort below Lv 1.</summary>
+        int LevelOf(Entry e)
+        {
+            switch (e.Kind)
+            {
+                case EntryKind.Ability: return CardCollection.Owned(e.Card, Roster) ? CardCollection.UpgradeLevel(e.Card) : 0;
+                case EntryKind.Arcana: return CardCollection.Found(e.Arcana);
+                default: return CardCollection.SoulLevel(e.Owner);
+            }
+        }
 
         // The filters are remembered between visits (and games), per page: the resonance by its element, so it still
         // finds it when the list of resonances changes.
@@ -532,7 +579,7 @@ namespace Game.World
                 int saved = PlayerPrefs.GetInt(SortKey("Resonance"), -1);
                 resonanceFilter = Mathf.Max(0, ResonanceChoices().FindIndex(c => saved >= 0 ? c.HasValue && (int)c.Value == saved : !c.HasValue));
                 kindFilter = Mathf.Clamp(PlayerPrefs.GetInt(SortKey("Kind"), 0), 0, Kinds.Length);
-                sortMode = Mathf.Clamp(PlayerPrefs.GetInt(SortKey("Sort"), 0), 0, SortKeys.Length - 1);
+                sortMode = Mathf.Clamp(PlayerPrefs.GetInt(SortKey("Sort"), (int)SortBy.Name), 0, SortKeys.Length - 1);
             }
             catch (System.Exception) { }
         }
@@ -542,10 +589,11 @@ namespace Game.World
         void Rebuild(int select)
         {
             Gather();
+            completeSets = CardCollection.CompleteSets(Roster);
             if (resonanceFilter >= ResonanceChoices().Count) resonanceFilter = 0;
             shown.Clear();
             foreach (var e in all) if (Passes(e)) shown.Add(e);
-            // Abilities by the Sort choice (ties by resonance, kind, name); Sun / Moon / Star and Soul cards after them.
+            // Abilities by the Sort choice (ties by name); Sun / Moon / Star and Soul cards after them.
             int sortBefore = sortMode;
             if (mode == Mode.Session) sortMode = (int)SortBy.Kind;   // a set reads by kind, then name
             shown.Sort(CompareEntries);
@@ -556,7 +604,7 @@ namespace Game.World
             book.ShowSpread(index / PerSpread);
             var element = ResonanceChoices()[resonanceFilter];
             resonanceLabel.text = UIText.Get("cards.filter.resonance", "value",
-                element.HasValue ? ResonanceInfo.Display(element.Value) : UIText.Get("cards.filter.all"));
+                element.HasValue ? ResonanceName(element.Value) : UIText.Get("cards.filter.all"));
             sortLabel.text = UIText.Get("cards.filter.sort", "value", UIText.Get("cards.sort." + SortKeys[Mathf.Clamp(sortMode, 0, SortKeys.Length - 1)]));
             var kind = SpecialShown ? null : Kinds[kindFilter];
             kindLabel.text = UIText.Get("cards.filter.kind", "value", SpecialShown ? UIText.Get("cards.special")
@@ -588,7 +636,10 @@ namespace Game.World
             else CardView.BuildFace(face, Instance(e), FaceScale);
             foreach (var g in face.GetComponentsInChildren<Graphic>()) g.raycastTarget = false;
             // Hover picks it up and leans it; a soft glint by rarity.
-            if (e.Kind == EntryKind.Ability && (mode == Mode.Session ? CardCollection.Copies(e.Card) <= 0 : !CardCollection.Owned(e.Card, Roster))) Unowned(face);
+            bool missing = RaceMissing(e);
+            if (missing) Unowned(face);   // faded, like an unowned card in the collection
+            else if (e.Kind == EntryKind.Ability && (mode == Mode.Session ? CardCollection.Copies(e.Card) <= 0 : !CardCollection.Owned(e.Card, Roster))) Unowned(face);
+            else if (Blocked(e)) Unowned(face);   // the deck check: owned, but this slot can't take it
             if (mode == Mode.Session && e.Kind == EntryKind.Soul && CardCollection.SoulLevel(e.Owner) <= 0) Unowned(face);
             if (mode == Mode.Session && e.Kind == EntryKind.Arcana && CardCollection.Found(e.Arcana) <= 0) Unowned(face);
             e.Lift = CardLift.Add(rt, face);
@@ -597,7 +648,7 @@ namespace Game.World
             int hovered = i;
             e.Lift.Hovered = () => { if (!book.Busy) Select(hovered); };
             var holo = CardHolo.Add(face, face.GetComponent<CardTilt>(),
-                e.Kind == EntryKind.Soul ? CardHolo.Kind.Soul : e.Kind == EntryKind.Arcana ? CardHolo.Kind.Rare : CardHolo.Kind.Common,
+                e.Kind == EntryKind.Soul ? CardHolo.Kind.Soul : e.Kind == EntryKind.Arcana ? CardHolo.Kind.Rare : CardHolo.KindFor(e.Card),
                 null, e.Kind == EntryKind.Ability ? e.Card.kind : (CardKind?)null);
             holo.Strength = 0.35f;
             GameObject ownerTag = null;
@@ -615,6 +666,7 @@ namespace Game.World
                     var who = CardCollection.EquippedBy(e.Card, Roster);
                     OwnerBorder(face, who);
                     ownerTag = OwnerTag(face, who);
+                    if (DeckPicking && ownerTag != null) ownerTag.SetActive(true);   // picking an Alt: whose deck it's in, always
                 }
             }
 
@@ -637,6 +689,7 @@ namespace Game.World
                 else if (e.Kind == EntryKind.Soul) { stars = CardCollection.SoulLevel(e.Owner); under = e.Owner.DisplayName; }
                 else under = UIText.Get("cards.copies", "n", CardCollection.Found(e.Arcana).ToString());
             }
+            if (missing) under = UIText.Get("cards.copies", "n", "0");
             UnderRow(rt, under, stars, e.Kind == EntryKind.Ability && mode != Mode.Session
                 ? (CardCollection.Copies(e.Card) > 0 ? Mathf.Max(0.001f, NextLevelProgress(e.Card)) : 0f) : -1f);   // no copies: an empty bar
             var binding = e.Kind == EntryKind.Ability && PackRates.Current.bindingOn ? CardCollection.BindingOf(e.Card) : CardBinding.None;
@@ -653,7 +706,7 @@ namespace Game.World
                 if (captured == index) Zoom(); else Select(captured);
             });
             trigger.triggers.Add(click);
-            if (ownerTag != null)
+            if (ownerTag != null && !DeckPicking)
             {
                 // Hover: who has it equipped.
                 var tag = ownerTag;
@@ -813,6 +866,13 @@ namespace Game.World
             group.blocksRaycasts = false;
         }
 
+        /// <summary>Pack Mode: a card of the selected pack's set that this race hasn't pulled yet.</summary>
+        bool RaceMissing(Entry e)
+        {
+            var pack = mode == Mode.Session ? SelectedPack : null;
+            return pack != null && e.Kind == EntryKind.Ability && e.Card.pool == pack.pool && !PackModeRun.Has(pack, e.Card);
+        }
+
         /// <summary>"#RRGGBB" for rich text.</summary>
         static string Hex(Color c) { return "#" + ColorUtility.ToHtmlStringRGB(c); }
 
@@ -923,6 +983,9 @@ namespace Game.World
 
             // Without the language chip the card's name is runes (the info line keeps its place, blank).
             UIFactory.ClearChildren(infoRunes);
+            // Two lines, or three when picking an Alt and the deck check has something to say.
+            string deckLine = DeckPicking && e.Kind == EntryKind.Ability ? DeckLine(e.Card) : null;
+            infoRunes.anchoredPosition = new Vector2(infoRunes.anchoredPosition.x, deckLine != null ? 34f : 22f);
             bool read = CardCollection.Translated;
             if (!read && e.Kind != EntryKind.Arcana)
                 RuneText.Build(infoRunes, e.Card.DisplayName, InkStyle.GoldBright, 700f, 40f, 24f, true);
@@ -934,7 +997,8 @@ namespace Game.World
                     info.text = UIText.Get("cards.info.ability",
                         "name", cardName,
                         "copies", CardCollection.Copies(e.Card).ToString(),
-                        "next", next > 0 ? UIText.Get("cards.info.next", "n", next.ToString(), "level", (CardCollection.UpgradeLevel(e.Card) + 1).ToString()) : UIText.Get("cards.info.top"));
+                        "next", next > 0 ? UIText.Get("cards.info.next", "n", next.ToString(), "level", (CardCollection.UpgradeLevel(e.Card) + 1).ToString()) : UIText.Get("cards.info.top"),
+                        "power", deckLine != null ? "\n" + deckLine : PowerSuffix(e.Card));
                     break;
                 case EntryKind.Arcana:
                     info.text = UIText.Get("cards.info.arcana", "name", ArcanaCards.Name(e.Arcana),
@@ -971,7 +1035,7 @@ namespace Game.World
             var e = shown[index];
             string name = e.Kind == EntryKind.Arcana ? ArcanaCards.Name(e.Arcana) : e.Kind == EntryKind.Soul
                 ? UIText.Get("cards.rarest.soul", "name", e.Owner.DisplayName) : e.Card.DisplayName;
-            int n = e.Kind == EntryKind.Ability ? CardCollection.Copies(e.Card) : e.Kind == EntryKind.Arcana
+            int n = RaceMissing(e) ? 0 : e.Kind == EntryKind.Ability ? CardCollection.Copies(e.Card) : e.Kind == EntryKind.Arcana
                 ? CardCollection.Found(e.Arcana) : CardCollection.SoulLevel(e.Owner);
             info.text = UIText.Get("cards.info.session", "name", name, "n", n.ToString());
         }
@@ -1000,11 +1064,54 @@ namespace Game.World
                         "kind", UnitView.KindLabel(e.Card.kind), "element", ResonanceInfo.Display(e.Element),
                         "owner_c", Hex(e.Owner.color), "kind_c", Hex(UnitView.KindColor(e.Card.kind)), "element_c", Hex(ResonanceInfo.Color(e.Element)),
                         "copies", CardCollection.Copies(e.Card).ToString(),
-                        "level", CardCollection.UpgradeLevel(e.Card).ToString(), "max", CardCollection.MaxUpgradeLevel.ToString(),
-                        "next", next > 0 ? UIText.Get("cards.info.next", "n", next.ToString(), "level", (CardCollection.UpgradeLevel(e.Card) + 1).ToString()) : UIText.Get("cards.info.top"));
+                        "next", next > 0 ? UIText.Get("cards.info.next", "n", next.ToString(), "level", (CardCollection.UpgradeLevel(e.Card) + 1).ToString()) : UIText.Get("cards.info.top"),
+                        "power", PowerSuffix(e.Card));
                     break;
             }
         }
+
+        /// <summary>Picking an Alt (the deck check): why the slot can't take <paramref name="card"/>, or that taking it
+        /// moves it out of another unit's deck; null when neither (the level preview shows instead).</summary>
+        string DeckLine(CardDefinition card)
+        {
+            if (pickFrom.Contains(card))
+            {
+                foreach (var m in Roster)
+                    if (m != null && m != pickMember && CardCollection.Extras(m).Contains(card))
+                        return UIText.Get("cards.pick.moves", "name", m.DisplayName);
+                return null;
+            }
+            if (card == pickCurrent) return UIText.Get("cards.pick.current");
+            foreach (var m in Roster)
+                if (m != null && CardCollection.LockedCard(m) == card) return UIText.Get("cards.pick.innate", "name", m.DisplayName);
+            if (!CardCollection.Owned(card, Roster)) return UIText.Get("cards.pick.unowned");
+            if (!CardCollection.UsableNow(pickMember, card))
+                return UIText.Get("cards.pick.resonance", "element", ResonanceInfo.Display(CardCollection.ElementOf(card, Roster)));
+            return UIText.Get("cards.pick.cant");
+        }
+
+        /// <summary>What the next star changes: the card's main hit / heal (a multiple of ATK), now and after the next
+        /// upgrade ("150% → 200% ATK"); at the top, just today's. The card's level in battle stays hidden; cards with no
+        /// hit or heal show nothing.</summary>
+        static string PowerLine(CardDefinition card)
+        {
+            int upgrades = CardCollection.Upgrades(card);
+            int from = CardLevels.WithUpgrades(card, upgrades);
+            float now = CardLevels.MainPower(card, from);
+            if (now <= 0f) return "";
+            if (upgrades >= PackRates.Current.MaxUpgrades) return UIText.Get("cards.info.power", "pct", AtkPercent(now));
+            int to = CardLevels.WithUpgrades(card, upgrades + 1);
+            return UIText.Get("cards.info.power.up", "pf", AtkPercent(now), "pt", AtkPercent(CardLevels.MainPower(card, to)));
+        }
+
+        /// <summary><see cref="PowerLine"/> to follow "N more for Lv X" on the same line (nothing if the card has none).</summary>
+        static string PowerSuffix(CardDefinition card)
+        {
+            string power = PowerLine(card);
+            return power.Length > 0 ? "      " + power : "";
+        }
+
+        static string AtkPercent(float multiple) { return Mathf.RoundToInt(multiple * 100f) + "%"; }
 
         /// <summary>Card Pack mode's Esc: with cards pulled, a warning that they'll be lost and the session's rarest.</summary>
         void ConfirmLeave()
@@ -1058,7 +1165,7 @@ namespace Game.World
         {
             if (shown.Count == 0) return;
             var e = shown[index];
-            if (Picking) { Pick(e.Card); return; }
+            if (Picking) { if (!Blocked(e)) Pick(e.Card); return; }   // a greyed card only shows why in the info panel
             if (e.Kind == EntryKind.Arcana)
             {
                 var kind = e.Arcana;
@@ -1148,30 +1255,85 @@ namespace Game.World
             ((RectTransform)odds.transform.parent).Place(topLeft, topLeft, new Vector2(60f, -176f), new Vector2(OddsWidth, 100f));
         }
 
-        /// <summary>The pack odds for one stat (1 Soul, 2 Rare, 3 Cards; 0 hides them), from PackRates. Only a pack's
-        /// last card can be a Soul or rare card; each ability card's chance is its chance to be in a pack at all.</summary>
+        /// <summary>The pack odds for one stat (1 Soul, 2 Sun / Moon / Star, 3 Cards, 4 Blank; 0 hides them), from the
+        /// pack the selected shelf tab opens (<see cref="OddsOf"/>). Only a pack's last card can be a Soul card or Sun /
+        /// Moon / Star; each ability card's chance is its chance to be in a pack at all.</summary>
         void ShowOdds(int kind)
         {
             var panel = odds.transform.parent.gameObject;
             panel.SetActive(kind > 0);
             if (kind <= 0) return;
-            var rates = PackRates.Current;
+            var o = OddsOf(SelectedPack);
             switch (kind)
             {
-                case 1: odds.text = UIText.Get("cards.odds.soul", "pct", Percent(rates.soulChance)); break;
-                case 2: odds.text = UIText.Get("cards.odds.rare", "pct", Percent(rates.rareChance), "each", Percent(rates.rareChance / 3f)); break;
-                case 4: odds.text = UIText.Get("cards.odds.blank", "pct", Percent(rates.blankChance)); break;
+                case 1: odds.text = UIText.Get("cards.odds.soul", "pct", Percent(o.Soul)); break;
+                case 2: odds.text = UIText.Get("cards.odds.arcana", "pct", Percent(o.Arcana), "each", Percent(o.Arcana / 3f)); break;
+                case 4: odds.text = UIText.Get("cards.odds.blank", "pct", Percent(o.Blank)); break;
                 default:
-                    var abilities = new List<CardDefinition>();
-                    foreach (var member in Roster)
-                        foreach (var card in CardCollection.AbilitiesOf(member))
-                            if (!abilities.Contains(card)) abilities.Add(card);
-                    float slots = rates.cardsPerPack - 2 + Mathf.Clamp01(1f - rates.blankChance) + Mathf.Clamp01(1f - rates.soulChance - rates.rareChance);
-                    odds.text = UIText.Get("cards.odds.cards", "n", abilities.Count.ToString(),
-                        "pct", Percent(Mathf.Min(1f, slots / Mathf.Max(1, abilities.Count))));
+                    // A pack's set (its resonance's cards, or the Basic cards) gets PackKind.poolShare of the ability
+                    // slots; the Soul tab opens any pack, so every card shares every slot.
+                    var pack = SelectedPack;
+                    var cards = new List<CardDefinition>();
+                    float share = 1f;
+                    if (pack != null)
+                    {
+                        cards = PackModeRun.SetOf(pack, Roster);
+                        if (pack.pool != Resonance.Basic) share = pack.poolShare;
+                    }
+                    else
+                        foreach (var member in PackModeRun.KitOwners(Roster))
+                            foreach (var card in CardCollection.AbilitiesOf(member))
+                                if (!cards.Contains(card)) cards.Add(card);
+                    odds.text = UIText.Get("cards.odds.cards", "n", cards.Count.ToString(),
+                        "pct", Percent(Mathf.Min(1f, o.Slots * share / Mathf.Max(1, cards.Count))));
+                    if (o.Legendary > 0f)   // each ability card rolls it; at least one in the pack
+                        odds.text += "\n" + UIText.Get("cards.odds.legendary",
+                            "pct", Percent(1f - Mathf.Pow(1f - o.Legendary, o.Slots)), "each", Percent(o.Legendary));
                     break;
             }
             panel.transform.SetAsLastSibling();
+        }
+
+        struct PackOdds { public float Soul, Arcana, Blank, Slots, Legendary; }
+
+        /// <summary>The odds a pack really rolls with (CardPacks.RollKind): <paramref name="pack"/>'s own; no pack (the
+        /// Soul tab, which opens a random one) the average over every pack; no packs set up at all, PackRates' own.
+        /// Slots = the ability cards a pack holds on average.</summary>
+        static PackOdds OddsOf(PackKind pack)
+        {
+            var rates = PackRates.Current;
+            var list = new List<PackKind>();
+            if (pack != null) list.Add(pack);
+            else list.AddRange(rates.packs.FindAll(p => p != null));
+            if (list.Count == 0)
+            {
+                var plain = Odds(rates.cardsPerPack, rates.soulChance, rates.arcanaChance, rates.blankChance);
+                plain.Legendary = rates.legendaryChance;
+                return plain;
+            }
+            var sum = new PackOdds();
+            foreach (var p in list)
+            {
+                var one = Odds(p.cardsPerPack, p.soulChance, p.arcanaChance, p.blankChance);
+                sum.Soul += one.Soul; sum.Arcana += one.Arcana; sum.Blank += one.Blank; sum.Slots += one.Slots;
+                float tiers = p.commonShare + p.rareShare + p.epicShare + p.legendaryShare;
+                sum.Legendary += tiers > 0f ? p.legendaryShare / tiers : 0f;   // each ability card's chance
+            }
+            return new PackOdds { Soul = sum.Soul / list.Count, Arcana = sum.Arcana / list.Count, Blank = sum.Blank / list.Count,
+                Slots = sum.Slots / list.Count, Legendary = sum.Legendary / list.Count };
+        }
+
+        static PackOdds Odds(int cardsPerPack, float soul, float arcana, float blank)
+        {
+            int count = Mathf.Max(1, cardsPerPack);
+            // Only the second card can be blank (when it isn't also the last); only the last can be Soul / Sun / Moon / Star.
+            float blankChance = count >= 3 ? blank : 0f;
+            float last = Mathf.Clamp01(soul + arcana);
+            return new PackOdds
+            {
+                Soul = Mathf.Min(soul, 1f), Arcana = Mathf.Clamp01(last - soul), Blank = blankChance,
+                Slots = count - 1 - blankChance + (1f - last),
+            };
         }
 
         /// <summary>0.05 as "5%", 0.0167 as "1.7%".</summary>
@@ -1231,7 +1393,7 @@ namespace Game.World
             PackOpening.Open(root, Roster, () => Rebuild(index));
         }
 
-        // ITEMS > CARDS > PACK MODE (the race: a shelf of packs, a timer, splits)
+        // ITEMS > CARDS > PACK MODE (a race per pack: a shelf of packs, the selected one's clock, results)
 
         const float SessionInfoWidth = 440f;
         float shelfWidth = 960f;
@@ -1244,6 +1406,7 @@ namespace Game.World
         RectTransform shelfTip;
         int shelfTipFor = -1;
         Text timerText, bestText;
+        Button restartButton;
 
         PackKind SelectedPack { get { var packs = PackModeRun.Packs; return shelfTab >= 0 && shelfTab < packs.Count ? packs[shelfTab] : null; } }
 
@@ -1254,6 +1417,7 @@ namespace Game.World
             if (book.Busy || closing || opening || PackOpening.IsOpen) return;
             if (tab == shelfTab) { OpenSelected(); return; }
             shelfTab = tab;
+            PackModeRun.Select(SelectedPack);   // the old pack's clock pauses
             Rebuild(0);
         }
 
@@ -1261,12 +1425,76 @@ namespace Game.World
         {
             if (book.Busy || closing || opening || PackOpening.IsOpen) return;
             HideShelfTip();
+            var race = PackModeRun.Of(SelectedPack);
+            if (race != null && race.Finished) { ShowResults(SelectedPack); return; }   // done: its results, with Retry
             // The Soul tab opens a random pack: every pack has the same Soul chance.
-            PackOpening.Open(root, Roster, () => Rebuild(index), SelectedPack ?? PackRates.Current.RandomKind());
+            PackOpening.Open(root, Roster, AfterSessionPack, SelectedPack ?? PackRates.Current.RandomKind());
         }
 
-        /// <summary>The pack shelf: every pack in its own art with its set's progress (14/20), then once complete its
-        /// split time in green (ahead of your best) or red (behind) and the packs it took. Click one to open it.</summary>
+        /// <summary>Back from a Pack Mode opening: the book catches up, then a race that just finished shows its results.</summary>
+        void AfterSessionPack()
+        {
+            Rebuild(index);
+            var finished = PackModeRun.JustFinished;
+            PackModeRun.JustFinished = null;
+            if (finished != null) ShowResults(finished);
+        }
+
+        /// <summary>The results card of a finished race: its time and packs against the records, then Retry, the next
+        /// pack still to race, or back to the shelf.</summary>
+        void ShowResults(PackKind kind)
+        {
+            var race = PackModeRun.Of(kind);
+            if (race == null || !race.Finished) return;
+            string timeLine = UIText.Get("packmode.result.time", "time", PackModeRun.Format(race.Elapsed))
+                + (race.PrevBestTime >= 0f ? "  " + UIText.Get(race.TimeRecord ? "packmode.result.ahead" : "packmode.result.behind",
+                    "delta", PackModeRun.Delta(race.Elapsed, race.PrevBestTime)) : "")
+                + (race.TimeRecord ? "  " + UIText.Get("packmode.record") : "");
+            string packsLine = UIText.Get("packmode.result.packs", "n", race.Packs.ToString())
+                + (race.PacksRecord ? "  " + UIText.Get("packmode.record") : "");
+            string bestLine = UIText.Get("packmode.result.best", "time", PackModeRun.Format(PackModeRun.Records.BestTime(kind.id)),
+                "packs", PackModeRun.Records.BestPacks(kind.id).ToString());
+            var rows = new List<RowMenu.Row>
+            {
+                new RowMenu.Row { Label = UIText.Markup(timeLine), Enabled = false },
+                new RowMenu.Row { Label = UIText.Markup(packsLine), Enabled = false },
+                new RowMenu.Row { Label = UIText.Markup(bestLine), Enabled = false },
+                new RowMenu.Row { Label = UIText.Get("packmode.result.retry"), Action = () => { picker.Hide(); RestartSelected(true); } },
+            };
+            int next = NextUnfinishedTab();
+            if (next >= 0)
+                rows.Add(new RowMenu.Row { Label = UIText.Get("packmode.result.next", "pack", PackModeRun.Packs[next].displayName),
+                    Action = () => { picker.Hide(); ClickShelf(next); } });
+            rows.Add(new RowMenu.Row { Label = UIText.Get("packmode.result.back"), Action = picker.Hide });
+            picker.Show(UIText.Get("packmode.result.title", "pack", kind.displayName.ToUpperInvariant()), rows, picker.Hide, 3);
+        }
+
+        /// <summary>The first pack after the selected one (wrapping) whose race isn't finished; -1 if every one is.</summary>
+        int NextUnfinishedTab()
+        {
+            var packs = PackModeRun.Packs;
+            for (int k = 1; k < packs.Count; k++)
+            {
+                int i = (shelfTab + k) % packs.Count;
+                if (packs[i] != null && !PackModeRun.Of(packs[i]).Finished) return i;
+            }
+            return -1;
+        }
+
+        /// <summary>R / Restart: the selected pack's race from zero, its set's cards gone from the book; with
+        /// <paramref name="open"/> its first pack opens straight away.</summary>
+        void RestartSelected(bool open)
+        {
+            var pack = SelectedPack;
+            if (pack == null || book.Busy || closing || opening || PackOpening.IsOpen) return;
+            if (!PackModeRun.Of(pack).Started && !open) return;   // nothing to restart
+            PackModeRun.Restart(pack, Roster);
+            Rebuild(0);
+            if (open) OpenSelected();
+        }
+
+        /// <summary>The pack shelf: every pack in its own art with its race's progress (14/20), then once complete its
+        /// time in green (a new best) or red and the packs it took. Click one to select it, again to open it.</summary>
         void BuildShelf(Vector2 at, float height)
         {
             var bottom = new Vector2(0.5f, 0f);
@@ -1347,22 +1575,23 @@ namespace Game.World
             {
                 var kind = packs[i];
                 int have = PackModeRun.Have(kind, Roster), all = PackModeRun.SetOf(kind, Roster).Count;
-                var split = PackModeRun.SplitOf(kind);
-                float best = PackModeRun.Records.BestSplitTime(kind.id);
+                var race = PackModeRun.Of(kind);
+                float best = PackModeRun.Records.BestTime(kind.id);
                 string head = "<color=#" + ColorUtility.ToHtmlStringRGB(ResonanceInfo.Color(kind.pool)) + ">" + kind.pool + "</color>";
-                if (split != null)
+                string bests = best >= 0f ? UIText.Get("packmode.best", "time", PackModeRun.Format(best),
+                    "packs", PackModeRun.Records.BestPacks(kind.id).ToString()) : UIText.Get("packmode.no_best");
+                if (race.Finished)
                 {
-                    bool ahead = split.PrevBest < 0f || split.Time <= split.PrevBest;
-                    string col = ahead ? "#7FE08A" : "#FF7A6A";
-                    shelfLines[i].text = head + "\n<color=" + col + ">" + PackModeRun.Format(split.Time) + "</color>";
-                    shelfTips[i] = UIText.Markup((i == shelfTab ? open + "  " : "") + "{gold}" + UIText.Get("packmode.done") + "{/c}  "
-                        + UIText.Get("packmode.packs", "n", split.Packs.ToString()));
+                    // Done: its time in green (a new best) or red, and the results on a click.
+                    shelfLines[i].text = head + "\n<color=#" + ColorUtility.ToHtmlStringRGB(PackModeRun.PaceColor(kind)) + ">"
+                        + PackModeRun.Format(race.Elapsed) + "</color>";
+                    shelfTips[i] = UIText.Markup((i == shelfTab ? "{gold}" + UIText.Get("packmode.results") + "{/c}  " : "")
+                        + "{gold}" + UIText.Get("packmode.done") + "{/c}  " + UIText.Get("packmode.packs", "n", race.Packs.ToString()) + "   " + bests);
                 }
                 else
                 {
                     shelfLines[i].text = head + "\n" + have + "/" + all;
-                    shelfTips[i] = UIText.Markup((i == shelfTab ? open + "  " : "")
-                        + (best >= 0f ? UIText.Get("packmode.best", "time", PackModeRun.Format(best)) : UIText.Get("packmode.no_best")));
+                    shelfTips[i] = UIText.Markup((i == shelfTab ? open + "  " : "") + bests);
                 }
                 shelfLines[i].text = UIText.Markup(shelfLines[i].text);
             }
@@ -1400,7 +1629,7 @@ namespace Game.World
             shelfTipFor = -1;
         }
 
-        /// <summary>The race's timer at the top: running time, and the best full run under it.</summary>
+        /// <summary>The selected race's clock at the top, its two records under it, and Restart beside it.</summary>
         void BuildTimer()
         {
             var tr = new Vector2(1f, 1f);
@@ -1410,17 +1639,32 @@ namespace Game.World
             bestText = UIFactory.CreateText(root, "Best", "", UIFactory.TextSize.Medium, InkStyle.Paper, TextAnchor.UpperRight);
             bestText.rectTransform.Place(tr, tr, new Vector2(-60f, -126f), new Vector2(900f, 40f));
             bestText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            bestText.supportRichText = true;
+            // Restart, left of the clock: the selected pack's race from zero (R).
+            restartButton = InkStyle.Button(root, "Restart", UIText.Get("packmode.restart"), () => RestartSelected(false), false, UIFactory.TextSize.Medium);
+            restartButton.GetComponent<RectTransform>().Place(tr, tr, new Vector2(-640f, -48f), new Vector2(220f, 60f));
         }
 
         void UpdateTimer()
         {
             if (timerText == null) return;
-            timerText.text = PackModeRun.Format(PackModeRun.Elapsed);
-            timerText.color = PackModeRun.RunComplete ? new Color(0.5f, 1f, 0.55f) : InkStyle.GoldBright;
-            float best = PackModeRun.Records.BestRunTime;
-            int bestPacks = PackModeRun.Records.BestRunPacks;
-            bestText.text = best >= 0f ? UIText.Get("packmode.best_run", "time", PackModeRun.Format(best), "packs", bestPacks.ToString())
-                : UIText.Get("packmode.goal");
+            // The selected pack's race: its clock in pace colour (green at or under its best, red past it), and just
+            // its two records under it (blank dashes before the first finish). The Soul tab races nothing.
+            var pack = SelectedPack;
+            var race = PackModeRun.Of(pack);
+            if (restartButton != null) restartButton.gameObject.SetActive(race != null && race.Started);
+            if (race == null)
+            {
+                timerText.text = "";
+                bestText.text = "";
+                return;
+            }
+            timerText.text = PackModeRun.Format(race.Elapsed);
+            timerText.color = race.Started ? PackModeRun.PaceColor(pack) : InkStyle.GoldBright;
+            float bestTime = PackModeRun.Records.BestTime(pack.id);
+            int bestPacks = PackModeRun.Records.BestPacks(pack.id);
+            bestText.text = UIText.Get("packmode.best_pack", "time", bestTime >= 0f ? PackModeRun.Format(bestTime) : "-:--.-",
+                "packs", bestPacks >= 0 ? bestPacks.ToString() : "--");
         }
 
         // ITEMS > CARDS > INPUT + MOTION
@@ -1459,6 +1703,7 @@ namespace Game.World
                 }
             }
             if (UIKeys.Pressed(KeyCode.O)) OpenPack();
+            if (mode == Mode.Session && UIKeys.Pressed(KeyCode.R)) RestartSelected(false);
             if (mode == Mode.Collection && UIKeys.Pressed(KeyCode.C)) ImprintSelected();
             if (mode == Mode.Collection && UIKeys.Pressed(KeyCode.Tab)) { SwitchToParts(); return; }
             if (UIKeys.Back || UIKeys.Pressed(KeyCode.Backspace))

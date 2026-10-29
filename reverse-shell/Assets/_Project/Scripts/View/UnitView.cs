@@ -397,7 +397,7 @@ namespace Combat.View
 
             // Big icons, no numbers; hover one for what it does and the turns left (StatusChip / StatusTooltip).
             foreach (var s in statuses)
-                StatusChip.Create(statusRow, s, StatusSize, false);
+                StatusChip.Create(statusRow, s, StatusSize);
         }
 
         /// <summary>Red lock-on: this enemy is the current target.</summary>

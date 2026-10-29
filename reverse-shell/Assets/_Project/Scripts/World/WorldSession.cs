@@ -187,6 +187,9 @@ namespace Game.World
         /// opened (packs from older saves). Saved.</summary>
         public static readonly List<string> PackQueue = new List<string>();
         public static int Packs { get { return PackQueue.Count; } }
+        /// <summary>Cards pulled but not looked at in the book yet (CardCollection.IsNew keys: card name, "Soul:member",
+        /// "Arcana:kind"); they wear a NEW tag. Saved.</summary>
+        public static readonly HashSet<string> UnseenCards = new HashSet<string>();
 
         /// <summary>Items the player has used ("area:x:row"), whose squares are walkable from then on. Saved.</summary>
         public static readonly HashSet<string> UsedItems = new HashSet<string>();
@@ -707,6 +710,7 @@ namespace Game.World
             Bindings.Clear();
             BindingsFound.Clear();
             PackQueue.Clear();
+            UnseenCards.Clear();
             UsedItems.Clear();
             StarterPartsGiven = false;
             Catalog = null;

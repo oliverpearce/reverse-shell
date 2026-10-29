@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 84f16ca0de16a4d48be9e44684662a8b, type: 3}
   m_Name: Card_Physical_Interrupt
   m_EditorClassIdentifier: 
-  displayName: Interrupt
-  kind: 2
+  displayName: Stagger
+  kind: 0
   targetMode: 0
   isRitual: 0
   level: 4
@@ -24,27 +24,66 @@ MonoBehaviour:
   - description: 
     effects:
     - id: 0
-  - description: 
-    effects:
     - id: 1
   - description: 
     effects:
     - id: 2
+    - id: 3
+  - description: 
+    effects:
+    - id: 4
+    - id: 5
   castSequence: {fileID: 0}
   references:
     version: 1
     00000000:
-      type: {class: InterruptEffect, ns: Combat, asm: Combat.Runtime}
+      type: {class: DamageEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
-        attacksOnly: 1
+        multiplier: 1
+        hits: 1
+        bonusVs: {fileID: 0}
+        bonusPerStack: 0
+        consumeBonus: 0
     00000001:
-      type: {class: InterruptEffect, ns: Combat, asm: Combat.Runtime}
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
-        attacksOnly: 1
+        status: {fileID: 11400000, guid: 28257566785a530408a00303d7931991, type: 2}
+        duration: 1
+        stacks: 1
+        chance: 0.3
     00000002:
-      type: {class: InterruptEffect, ns: Combat, asm: Combat.Runtime}
+      type: {class: DamageEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
-        attacksOnly: 1
+        multiplier: 1
+        hits: 1
+        bonusVs: {fileID: 0}
+        bonusPerStack: 0
+        consumeBonus: 0
+    00000003:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        status: {fileID: 11400000, guid: 28257566785a530408a00303d7931991, type: 2}
+        duration: 1
+        stacks: 1
+        chance: 0.4
+    00000004:
+      type: {class: DamageEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        multiplier: 1
+        hits: 1
+        bonusVs: {fileID: 0}
+        bonusPerStack: 0
+        consumeBonus: 0
+    00000005:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        status: {fileID: 11400000, guid: 28257566785a530408a00303d7931991, type: 2}
+        duration: 1
+        stacks: 1
+        chance: 0.5

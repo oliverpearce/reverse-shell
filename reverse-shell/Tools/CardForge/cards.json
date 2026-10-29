@@ -1555,7 +1555,7 @@
    "enemy": false,
    "starter": false,
    "asset": "Card_Arc_ShortCircuit",
-   "rarity": "Common",
+   "rarity": "Legendary",
    "rank1": [
     {
      "type": "interrupt",
@@ -1587,6 +1587,25 @@
      "stacks": 1,
      "chance": 1.0,
      "status": "",
+     "bonusVs": "",
+     "bonusPerStack": 0.0,
+     "consume": false,
+     "triggers": 1,
+     "lowhp": 0.0,
+     "onHit": "",
+     "onHitTurns": 2,
+     "attacksOnly": false,
+     "amount": 1
+    },
+    {
+     "type": "status",
+     "target": "card",
+     "mult": 1.0,
+     "hits": 1,
+     "turns": 1,
+     "stacks": 1,
+     "chance": 0.5,
+     "status": "Stunned",
      "bonusVs": "",
      "bonusPerStack": 0.0,
      "consume": false,
@@ -1625,7 +1644,7 @@
      "hits": 1,
      "turns": 1,
      "stacks": 1,
-     "chance": 1.0,
+     "chance": 0.75,
      "status": "Stunned",
      "bonusVs": "",
      "bonusPerStack": 0.0,
@@ -1655,25 +1674,6 @@
    "rarity": "Common",
    "rank1": [
     {
-     "type": "interrupt",
-     "target": "card",
-     "mult": 1.0,
-     "hits": 1,
-     "turns": 2,
-     "stacks": 1,
-     "chance": 1.0,
-     "status": "",
-     "bonusVs": "",
-     "bonusPerStack": 0.0,
-     "consume": false,
-     "triggers": 1,
-     "lowhp": 0.0,
-     "onHit": "",
-     "onHitTurns": 2,
-     "attacksOnly": true,
-     "amount": 1
-    },
-    {
      "type": "status",
      "target": "card",
      "mult": 1.0,
@@ -1682,6 +1682,25 @@
      "stacks": 1,
      "chance": 1.0,
      "status": "ATK Down",
+     "bonusVs": "",
+     "bonusPerStack": 0.0,
+     "consume": false,
+     "triggers": 1,
+     "lowhp": 0.0,
+     "onHit": "",
+     "onHitTurns": 2,
+     "attacksOnly": false,
+     "amount": 1
+    },
+    {
+     "type": "status",
+     "target": "card",
+     "mult": 1.0,
+     "hits": 1,
+     "turns": 1,
+     "stacks": 1,
+     "chance": 0.25,
+     "status": "Stunned",
      "bonusVs": "",
      "bonusPerStack": 0.0,
      "consume": false,
@@ -1695,14 +1714,14 @@
    ],
    "rank2": [
     {
-     "type": "interrupt",
+     "type": "status",
      "target": "card",
      "mult": 1.0,
      "hits": 1,
      "turns": 2,
      "stacks": 1,
      "chance": 1.0,
-     "status": "",
+     "status": "ATK Down",
      "bonusVs": "",
      "bonusPerStack": 0.0,
      "consume": false,
@@ -1710,9 +1729,30 @@
      "lowhp": 0.0,
      "onHit": "",
      "onHitTurns": 2,
-     "attacksOnly": true,
+     "attacksOnly": false,
      "amount": 1
     },
+    {
+     "type": "status",
+     "target": "card",
+     "mult": 1.0,
+     "hits": 1,
+     "turns": 1,
+     "stacks": 1,
+     "chance": 0.35,
+     "status": "Stunned",
+     "bonusVs": "",
+     "bonusPerStack": 0.0,
+     "consume": false,
+     "triggers": 1,
+     "lowhp": 0.0,
+     "onHit": "",
+     "onHitTurns": 2,
+     "attacksOnly": false,
+     "amount": 1
+    }
+   ],
+   "rank3": [
     {
      "type": "status",
      "target": "card",
@@ -1731,37 +1771,16 @@
      "onHitTurns": 2,
      "attacksOnly": false,
      "amount": 1
-    }
-   ],
-   "rank3": [
-    {
-     "type": "interrupt",
-     "target": "card",
-     "mult": 1.0,
-     "hits": 1,
-     "turns": 2,
-     "stacks": 1,
-     "chance": 1.0,
-     "status": "",
-     "bonusVs": "",
-     "bonusPerStack": 0.0,
-     "consume": false,
-     "triggers": 1,
-     "lowhp": 0.0,
-     "onHit": "",
-     "onHitTurns": 2,
-     "attacksOnly": true,
-     "amount": 1
     },
     {
      "type": "status",
      "target": "card",
      "mult": 1.0,
      "hits": 1,
-     "turns": 2,
+     "turns": 1,
      "stacks": 1,
-     "chance": 1.0,
-     "status": "ATK Down",
+     "chance": 0.45,
+     "status": "Stunned",
      "bonusVs": "",
      "bonusPerStack": 0.0,
      "consume": false,
@@ -2814,7 +2833,7 @@
    "enemy": false,
    "starter": false,
    "asset": "Card_Root_SapBurst",
-   "rarity": "Epic",
+   "rarity": "Legendary",
    "rank1": [
     {
      "type": "dmg",
@@ -6418,7 +6437,7 @@
    "enemy": false,
    "starter": false,
    "asset": "Card_Cryo_GlacialMirror",
-   "rarity": "Epic",
+   "rarity": "Legendary",
    "rank1": [
     {
      "type": "counter",
@@ -7637,7 +7656,7 @@
    "enemy": false,
    "starter": false,
    "asset": "Card_Cinder_InfernoLance",
-   "rarity": "Epic",
+   "rarity": "Legendary",
    "rank1": [
     {
      "type": "dmg",
@@ -9691,7 +9710,7 @@
    "enemy": false,
    "starter": false,
    "asset": "Card_Prism_Judgment",
-   "rarity": "Epic",
+   "rarity": "Legendary",
    "rank1": [
     {
      "type": "counter",
@@ -10256,7 +10275,7 @@
    "enemy": false,
    "starter": false,
    "asset": "Card_Physical_GroundSlam",
-   "rarity": "Epic",
+   "rarity": "Legendary",
    "rank1": [
     {
      "type": "dmg",
@@ -10789,7 +10808,7 @@
   },
   {
    "id": "PHY-13",
-   "name": "Interrupt",
+   "name": "Stagger",
    "pool": "Basic",
    "category": "Debuff",
    "target": "SingleEnemy",
@@ -10803,7 +10822,7 @@
    "rarity": "Common",
    "rank1": [
     {
-     "type": "interrupt",
+     "type": "dmg",
      "target": "card",
      "mult": 1.0,
      "hits": 1,
@@ -10818,13 +10837,32 @@
      "lowhp": 0.0,
      "onHit": "",
      "onHitTurns": 2,
-     "attacksOnly": true,
+     "attacksOnly": false,
+     "amount": 1
+    },
+    {
+     "type": "status",
+     "target": "card",
+     "mult": 1.0,
+     "hits": 1,
+     "turns": 1,
+     "stacks": 1,
+     "chance": 0.3,
+     "status": "Stunned",
+     "bonusVs": "",
+     "bonusPerStack": 0.0,
+     "consume": false,
+     "triggers": 1,
+     "lowhp": 0.0,
+     "onHit": "",
+     "onHitTurns": 2,
+     "attacksOnly": false,
      "amount": 1
     }
    ],
    "rank2": [
     {
-     "type": "interrupt",
+     "type": "dmg",
      "target": "card",
      "mult": 1.0,
      "hits": 1,
@@ -10839,13 +10877,32 @@
      "lowhp": 0.0,
      "onHit": "",
      "onHitTurns": 2,
-     "attacksOnly": true,
+     "attacksOnly": false,
+     "amount": 1
+    },
+    {
+     "type": "status",
+     "target": "card",
+     "mult": 1.0,
+     "hits": 1,
+     "turns": 1,
+     "stacks": 1,
+     "chance": 0.4,
+     "status": "Stunned",
+     "bonusVs": "",
+     "bonusPerStack": 0.0,
+     "consume": false,
+     "triggers": 1,
+     "lowhp": 0.0,
+     "onHit": "",
+     "onHitTurns": 2,
+     "attacksOnly": false,
      "amount": 1
     }
    ],
    "rank3": [
     {
-     "type": "interrupt",
+     "type": "dmg",
      "target": "card",
      "mult": 1.0,
      "hits": 1,
@@ -10860,7 +10917,26 @@
      "lowhp": 0.0,
      "onHit": "",
      "onHitTurns": 2,
-     "attacksOnly": true,
+     "attacksOnly": false,
+     "amount": 1
+    },
+    {
+     "type": "status",
+     "target": "card",
+     "mult": 1.0,
+     "hits": 1,
+     "turns": 1,
+     "stacks": 1,
+     "chance": 0.5,
+     "status": "Stunned",
+     "bonusVs": "",
+     "bonusPerStack": 0.0,
+     "consume": false,
+     "triggers": 1,
+     "lowhp": 0.0,
+     "onHit": "",
+     "onHitTurns": 2,
+     "attacksOnly": false,
      "amount": 1
     }
    ]
@@ -11799,7 +11875,7 @@
    "id": "ULT-03",
    "name": "Bramble Storm",
    "pool": "Ult",
-   "category": "Heal",
+   "category": "Attack",
    "target": "SingleEnemy",
    "level": 15,
    "main": false,
@@ -12673,11 +12749,12 @@
    "cardsPerPack": 3,
    "packsPerWin": 1,
    "poolShare": 0.0,
-   "common": 0.7,
-   "rare": 0.25,
-   "epic": 0.05,
+   "common": 0.68,
+   "rare": 0.3,
+   "epic": 0.0,
+   "legendary": 0.02,
    "soulChance": 0.01,
-   "rareChance": 0.05,
+   "arcanaChance": 0.05,
    "blankChance": 0.1
   },
   {
@@ -12689,11 +12766,12 @@
    "cardsPerPack": 3,
    "packsPerWin": 1,
    "poolShare": 0.7,
-   "common": 0.7,
+   "common": 0.68,
    "rare": 0.25,
    "epic": 0.05,
+   "legendary": 0.02,
    "soulChance": 0.01,
-   "rareChance": 0.05,
+   "arcanaChance": 0.05,
    "blankChance": 0.1
   },
   {
@@ -12705,11 +12783,12 @@
    "cardsPerPack": 3,
    "packsPerWin": 1,
    "poolShare": 0.7,
-   "common": 0.7,
-   "rare": 0.25,
-   "epic": 0.05,
+   "common": 0.68,
+   "rare": 0.3,
+   "epic": 0.0,
+   "legendary": 0.02,
    "soulChance": 0.01,
-   "rareChance": 0.05,
+   "arcanaChance": 0.05,
    "blankChance": 0.1
   },
   {
@@ -12721,11 +12800,12 @@
    "cardsPerPack": 3,
    "packsPerWin": 1,
    "poolShare": 0.7,
-   "common": 0.7,
+   "common": 0.68,
    "rare": 0.25,
    "epic": 0.05,
+   "legendary": 0.02,
    "soulChance": 0.01,
-   "rareChance": 0.05,
+   "arcanaChance": 0.05,
    "blankChance": 0.1
   },
   {
@@ -12737,11 +12817,12 @@
    "cardsPerPack": 3,
    "packsPerWin": 1,
    "poolShare": 0.7,
-   "common": 0.7,
+   "common": 0.68,
    "rare": 0.25,
    "epic": 0.05,
+   "legendary": 0.02,
    "soulChance": 0.01,
-   "rareChance": 0.05,
+   "arcanaChance": 0.05,
    "blankChance": 0.1
   },
   {
@@ -12753,11 +12834,12 @@
    "cardsPerPack": 3,
    "packsPerWin": 1,
    "poolShare": 0.7,
-   "common": 0.7,
-   "rare": 0.25,
-   "epic": 0.05,
+   "common": 0.68,
+   "rare": 0.3,
+   "epic": 0.0,
+   "legendary": 0.02,
    "soulChance": 0.01,
-   "rareChance": 0.05,
+   "arcanaChance": 0.05,
    "blankChance": 0.1
   }
  ],

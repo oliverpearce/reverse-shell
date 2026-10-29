@@ -41,6 +41,7 @@ namespace Game.World
             public readonly Dictionary<string, int> Copies = new Dictionary<string, int>();
             public readonly Dictionary<string, int> Found = new Dictionary<string, int>();
             public readonly Dictionary<string, int> Souls = new Dictionary<string, int>();
+            public readonly HashSet<string> Unseen = new HashSet<string>();
             public int PacksOpened;
             public readonly Dictionary<CharacterDefinition, int> SoulPulls = new Dictionary<CharacterDefinition, int>();
             public readonly Dictionary<CardBinding, int> RarePulls = new Dictionary<CardBinding, int>();
@@ -89,6 +90,19 @@ namespace Game.World
 
         public static void BeginSession() { session = new Session(); }
         public static void EndSession() { session = null; }
+
+        /// <summary>Pack Mode's Restart: these cards go back to unpulled in the throwaway collection.</summary>
+        public static void ForgetSessionCards(IEnumerable<CardDefinition> cards)
+        {
+            if (session == null || cards == null) return;
+            foreach (var card in cards)
+            {
+                if (card == null) continue;
+                session.Copies.Remove(card.name);
+                session.CommonPulls.Remove(card);
+                session.Unseen.Remove(card.name);
+            }
+        }
 
         /// <summary>The rarest pull of the session: a Soul card (the unit pulled most), else the rare pulled most, else
         /// the common with the most copies. False if nothing was pulled.</summary>
@@ -160,16 +174,19 @@ namespace Game.World
             return true;
         }
 
-        // CARD COLLECTION > NEW (cards pulled but not looked at yet in the book; this play session only)
+        // CARD COLLECTION > NEW (cards pulled but not looked at yet in the book; saved, so they stay NEW after a reload)
 
-        static readonly HashSet<string> fresh = new HashSet<string>();
+        static HashSet<string> fresh { get { return session != null ? session.Unseen : WorldSession.UnseenCards; } }
+
+        /// <summary>A NEW mark was cleared since the last save (the book saves when it closes).</summary>
+        public static bool SeenChanged;
 
         public static string SoulKey(CharacterDefinition member) { return member == null ? "" : "Soul:" + member.name; }
         public static string ArcanaKey(CardBinding kind) { return "Arcana:" + kind; }
 
         public static void MarkNew(string key) { if (!string.IsNullOrEmpty(key)) fresh.Add(key); }
         public static bool IsNew(string key) { return !string.IsNullOrEmpty(key) && fresh.Contains(key); }
-        public static void Seen(string key) { fresh.Remove(key); }
+        public static void Seen(string key) { if (fresh.Remove(key) && session == null) SeenChanged = true; }
 
         /// <summary>This card's copy upgrades (0-3), from its copies: +2 card levels each in battle.</summary>
         public static int Upgrades(CardDefinition card)
@@ -512,6 +529,47 @@ namespace Game.World
             foreach (var kit in member.resonances)
                 if (kit != null && (open.Count == 0 || open.Contains(kit.element))) foreach (var c in kit.cards) add(c);
             return list;
+        }
+
+        // CARD COLLECTION > SETS (every ability card of one resonance, as the Cards book files them)
+
+        /// <summary>A card's resonance: the kit it belongs to; for the protagonist's other cards (the Basic card pool)
+        /// the card's own pool; else its owner's own element.</summary>
+        public static Resonance ElementOf(CharacterDefinition member, CardDefinition card)
+        {
+            foreach (var kit in member.resonances)
+                if (kit != null && kit.cards.Contains(card)) return kit.element;
+            return member.resonances.Count > 0 ? card.pool : member.resonance;
+        }
+
+        /// <summary><see cref="ElementOf(CharacterDefinition, CardDefinition)"/> for the first unit in
+        /// <paramref name="roster"/> who can use the card (the one the Cards book files it under).</summary>
+        public static Resonance ElementOf(CardDefinition card, IList<CharacterDefinition> roster)
+        {
+            foreach (var m in roster)
+                if (m != null && AbilitiesOf(m).Contains(card)) return ElementOf(m, card);
+            return card != null ? card.pool : Resonance.Basic;
+        }
+
+        /// <summary>The resonances whose every ability card (every one the Cards book shows) you own: their names turn
+        /// gold in the book.</summary>
+        public static HashSet<Resonance> CompleteSets(IList<CharacterDefinition> roster)
+        {
+            var complete = new HashSet<Resonance>();
+            var missing = new HashSet<Resonance>();
+            var seen = new HashSet<CardDefinition>();
+            if (roster == null) return complete;
+            foreach (var m in roster)
+            {
+                if (m == null) continue;
+                foreach (var card in AbilitiesOf(m))
+                {
+                    if (!seen.Add(card)) continue;
+                    (Owned(card, roster) ? complete : missing).Add(ElementOf(m, card));
+                }
+            }
+            complete.ExceptWith(missing);
+            return complete;
         }
 
         /// <summary>Fills a loadout's copy upgrades, bindings and Soul level for this member.</summary>

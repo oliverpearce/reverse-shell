@@ -1,27 +1,41 @@
 using System;
 using System.Collections.Generic;
 using Combat;
+using Combat.View;
 using UnityEngine;
 
 namespace Game.World
 {
     /// <summary>
-    /// Pack Mode as a race: collect every card of every pack's set, as fast as you can.
+    /// Pack Mode as bite-sized races: each pack is its own speedrun to collect every card of its set.
     ///   A pack's set is its resonance's cards (the Basic pack's: the Basic cards); Soul cards, Sun / Moon / Star
-    ///   and blank cards never count. A Basic card pulled from any pack still counts for the Basic set.
-    ///   The timer starts with the first pack you open (from the shelf); finishing a set is a split: the time and the
-    ///   packs opened so far ("Arc ★ 4:02, 37 packs"), against your best split for that pack. All the stars is a full run.
-    ///   Records (best split per pack, best full run, each by time and by packs) are kept in PlayerPrefs.
-    /// The run starts fresh every time Pack Mode opens (<see cref="Reset"/>).
+    ///   and blank cards never count. Only cards pulled from that pack's own openings count for its set.
+    ///   Each pack has its own clock, which runs only while its shelf tab is selected (switching tabs pauses it). The
+    ///   clock starts with that pack's first opening and stops when its set is complete. Restart wipes the pack's
+    ///   run and its set's cards from the throwaway book.
+    ///   Records (per pack: fastest time and fewest packs) are kept in PlayerPrefs.
+    /// Every run starts fresh when Pack Mode opens (<see cref="Reset"/>).
     /// </summary>
     public static class PackModeRun
     {
-        public class Split
+        /// <summary>One pack's race.</summary>
+        public class Run
         {
-            public float Time;
+            public bool Started, Finished;
             public int Packs;
-            /// <summary>The best split for this pack before this run (-1 = none), for the ahead / behind colour.</summary>
-            public float PrevBest = -1f;
+            public int Streak;
+            /// <summary>Seconds banked before the current stretch on the clock.</summary>
+            public float Banked;
+            /// <summary>When the current stretch began (-1 = the clock isn't running).</summary>
+            public float RunningSince = -1f;
+            public bool SoClose;
+            /// <summary>The bests before this run's finish (-1 = none), for the ahead / behind colour and the delta.</summary>
+            public float PrevBestTime = -1f;
+            public int PrevBestPacks = -1;
+            public bool TimeRecord, PacksRecord;
+            public readonly HashSet<CardDefinition> Got = new HashSet<CardDefinition>();
+
+            public float Elapsed { get { return Banked + (RunningSince >= 0f ? Time.realtimeSinceStartup - RunningSince : 0f); } }
         }
 
         /// <summary>What a card's reveal did: a new card, the streak of new cards in a row, the set it completed.</summary>
@@ -30,44 +44,63 @@ namespace Game.World
             public bool NewCard;
             public int Streak;
             public PackKind Completed;
-            public bool RunComplete;
         }
 
-        public static bool Started { get; private set; }
-        public static int PacksOpened { get; private set; }
-        public static string StartPack { get; private set; }
-        static float startedAt, finishedAt = -1f;
-        static int streak;
-        static readonly HashSet<CardDefinition> got = new HashSet<CardDefinition>();
-        static readonly Dictionary<string, Split> splits = new Dictionary<string, Split>();
-        static readonly HashSet<string> soClose = new HashSet<string>();
+        static readonly Dictionary<string, Run> runs = new Dictionary<string, Run>();
+        static PackKind active;
 
-        /// <summary>A fresh run: no time, no cards, no stars.</summary>
-        public static void Reset()
-        {
-            Started = false;
-            PacksOpened = 0;
-            StartPack = null;
-            finishedAt = -1f;
-            streak = 0;
-            got.Clear();
-            splits.Clear();
-            soClose.Clear();
-        }
+        /// <summary>The pack whose race the shelf has selected (null: the Soul tab, which races nothing).</summary>
+        public static PackKind Active { get { return active; } }
 
-        /// <summary>Seconds since the first pack (frozen once every set is done).</summary>
-        public static float Elapsed
-        {
-            get
-            {
-                if (!Started) return 0f;
-                return (finishedAt >= 0f ? finishedAt : Time.realtimeSinceStartup) - startedAt;
-            }
-        }
-
-        public static bool RunComplete { get { return finishedAt >= 0f; } }
+        /// <summary>Set when a race finishes; the Cards page shows its results once the pack opening closes.</summary>
+        public static PackKind JustFinished;
 
         public static List<PackKind> Packs { get { return PackRates.Current.packs; } }
+
+        /// <summary>Every race back to zero (Pack Mode opened).</summary>
+        public static void Reset()
+        {
+            runs.Clear();
+            active = null;
+            JustFinished = null;
+        }
+
+        public static Run Of(PackKind kind)
+        {
+            if (kind == null) return null;
+            Run run;
+            if (!runs.TryGetValue(kind.id, out run)) runs[kind.id] = run = new Run();
+            return run;
+        }
+
+        /// <summary>The shelf picked <paramref name="kind"/>: the old race's clock pauses, this one's carries on.</summary>
+        public static void Select(PackKind kind)
+        {
+            if (kind == active) return;
+            Pause(Of(active));
+            active = kind;
+            var run = Of(kind);
+            if (run != null && run.Started && !run.Finished) run.RunningSince = Time.realtimeSinceStartup;
+        }
+
+        static void Pause(Run run)
+        {
+            if (run == null || run.RunningSince < 0f) return;
+            run.Banked += Time.realtimeSinceStartup - run.RunningSince;
+            run.RunningSince = -1f;
+        }
+
+        /// <summary>The active race's time (0 on the Soul tab).</summary>
+        public static float Elapsed { get { var run = Of(active); return run != null ? run.Elapsed : 0f; } }
+
+        /// <summary>A fresh run for <paramref name="kind"/>: no time, no packs, and its set's cards gone from the book.</summary>
+        public static void Restart(PackKind kind, IList<CharacterDefinition> roster)
+        {
+            if (kind == null) return;
+            runs.Remove(kind.id);
+            if (JustFinished == kind) JustFinished = null;
+            CardCollection.ForgetSessionCards(SetOf(kind, roster));
+        }
 
         /// <summary>The cards of <paramref name="kind"/>'s set, from the units with resonance kits (the protagonist; the
         /// Sandbox crew's own cards aren't in any pack).</summary>
@@ -92,62 +125,75 @@ namespace Game.World
 
         public static int Have(PackKind kind, IList<CharacterDefinition> roster)
         {
+            var run = Of(kind);
             int n = 0;
-            foreach (var c in SetOf(kind, roster)) if (got.Contains(c)) n++;
+            if (run != null) foreach (var c in SetOf(kind, roster)) if (run.Got.Contains(c)) n++;
             return n;
         }
 
-        public static Split SplitOf(PackKind kind) { Split s; return kind != null && splits.TryGetValue(kind.id, out s) ? s : null; }
+        /// <summary>This race has pulled <paramref name="card"/> (the book shows the others as "?").</summary>
+        public static bool Has(PackKind kind, CardDefinition card) { var run = Of(kind); return run != null && run.Got.Contains(card); }
 
         /// <summary>True the first time this run that <paramref name="kind"/>'s set is one card short (its SO CLOSE
         /// banner shows once, not after every pack).</summary>
         public static bool NoteSoClose(PackKind kind)
         {
-            return kind != null && soClose.Add(kind.id);
+            var run = Of(kind);
+            if (run == null || run.SoClose) return false;
+            return run.SoClose = true;
         }
 
-        /// <summary>A pack opened from the shelf: the first one starts the timer.</summary>
+        /// <summary>A pack opened: if it's the active race's pack, the first one starts its clock.</summary>
         public static void OnPackOpened(PackKind kind)
         {
-            if (!Started)
+            if (kind == null || kind != active) return;
+            var run = Of(kind);
+            if (run.Finished) return;
+            if (!run.Started)
             {
-                Started = true;
-                startedAt = Time.realtimeSinceStartup;
-                StartPack = kind != null ? kind.id : null;
+                run.Started = true;
+                run.RunningSince = Time.realtimeSinceStartup;
             }
-            PacksOpened++;
+            run.Packs++;
         }
 
-        /// <summary>A card turned face up: counts it toward its set, the streak, and the splits.</summary>
-        public static RevealResult OnReveal(CardPacks.Pull pull, IList<CharacterDefinition> roster)
+        /// <summary>A card from a <paramref name="kind"/> pack turned face up: counts it toward that race's set and streak.</summary>
+        public static RevealResult OnReveal(CardPacks.Pull pull, PackKind kind, IList<CharacterDefinition> roster)
         {
             var result = new RevealResult();
-            if (pull == null || pull.Tier != CardPacks.Tier.Common || pull.Card == null)
-            {
-                result.Streak = streak;   // Soul / rare / blank: no card for a set, the streak holds
-                return result;
-            }
-            result.NewCard = got.Add(pull.Card);
-            streak = result.NewCard ? streak + 1 : 0;
-            result.Streak = streak;
+            var run = kind == active ? Of(kind) : null;
+            if (run == null || !run.Started || run.Finished) return result;
+            result.Streak = run.Streak;
+            if (pull == null || pull.Tier != CardPacks.Tier.Common || pull.Card == null || pull.Card.pool != kind.pool)
+                return result;   // Soul / rare / blank / another set's card: the streak holds
+            result.NewCard = run.Got.Add(pull.Card);
+            run.Streak = result.NewCard ? run.Streak + 1 : 0;
+            result.Streak = run.Streak;
             if (!result.NewCard) return result;
-            foreach (var kind in Packs)
-            {
-                if (kind == null || kind.pool != pull.Card.pool || splits.ContainsKey(kind.id)) continue;
-                var set = SetOf(kind, roster);
-                if (set.Count == 0 || Have(kind, roster) < set.Count) continue;
-                splits[kind.id] = new Split { Time = Elapsed, Packs = PacksOpened, PrevBest = Records.BestSplitTime(kind.id) };
-                result.Completed = kind;
-                Records.NoteSplit(kind.id, Elapsed, PacksOpened);
-                if (splits.Count >= Packs.Count)
-                {
-                    finishedAt = Time.realtimeSinceStartup;
-                    result.RunComplete = true;
-                    Records.NoteRun(Elapsed, PacksOpened);
-                }
-            }
+            var set = SetOf(kind, roster);
+            if (set.Count == 0 || Have(kind, roster) < set.Count) return result;
+            Pause(run);
+            run.Finished = true;
+            run.PrevBestTime = Records.BestTime(kind.id);
+            run.PrevBestPacks = Records.BestPacks(kind.id);
+            Records.Note(kind.id, run.Elapsed, run.Packs, out run.TimeRecord, out run.PacksRecord);
+            result.Completed = kind;
+            JustFinished = kind;
             return result;
         }
+
+        /// <summary>The colour a race's clock reads in: gold with no best yet, green while at or under the best,
+        /// red past it.</summary>
+        public static Color PaceColor(PackKind kind)
+        {
+            var run = Of(kind);
+            if (run == null) return InkStyle.GoldBright;
+            float best = run.Finished ? run.PrevBestTime : Records.BestTime(kind.id);
+            if (best < 0f) return run.Finished ? Ahead : InkStyle.GoldBright;
+            return run.Elapsed <= best ? Ahead : Behind;
+        }
+
+        public static readonly Color Ahead = new Color(0.5f, 0.88f, 0.54f), Behind = new Color(1f, 0.48f, 0.42f);
 
         /// <summary>"4:02.3"</summary>
         public static string Format(float seconds)
@@ -181,14 +227,10 @@ namespace Game.World
             class Data
             {
                 public List<Best> splits = new List<Best>();
-                public float runTime = -1f;
-                public int runPacks = -1;
             }
 
             const string Key = "PackMode.Records";
             static Data data;
-            /// <summary>Set by the last split / run if it beat the record (for the NEW RECORD flash).</summary>
-            public static bool LastWasRecord { get; private set; }
 
             static Data Load()
             {
@@ -205,34 +247,19 @@ namespace Game.World
                 catch (Exception) { }   // no storage: records just aren't kept
             }
 
-            static Best For(string pack)
+            public static float BestTime(string pack) { var b = Load().splits.Find(x => x.pack == pack); return b != null ? b.time : -1f; }
+            public static int BestPacks(string pack) { var b = Load().splits.Find(x => x.pack == pack); return b != null ? b.packs : -1; }
+
+            /// <summary>A finished run: keeps whichever of its time and pack count beat the record.</summary>
+            public static void Note(string pack, float time, int packs, out bool timeRecord, out bool packsRecord)
             {
                 var d = Load();
                 var b = d.splits.Find(x => x.pack == pack);
                 if (b == null) d.splits.Add(b = new Best { pack = pack });
-                return b;
-            }
-
-            public static float BestSplitTime(string pack) { var b = Load().splits.Find(x => x.pack == pack); return b != null ? b.time : -1f; }
-            public static int BestSplitPacks(string pack) { var b = Load().splits.Find(x => x.pack == pack); return b != null ? b.packs : -1; }
-            public static float BestRunTime { get { return Load().runTime; } }
-            public static int BestRunPacks { get { return Load().runPacks; } }
-
-            public static void NoteSplit(string pack, float time, int packs)
-            {
-                var b = For(pack);
-                LastWasRecord = b.time < 0f || time < b.time;
-                if (LastWasRecord) b.time = time;
-                if (b.packs < 0 || packs < b.packs) b.packs = packs;
-                Save();
-            }
-
-            public static void NoteRun(float time, int packs)
-            {
-                var d = Load();
-                LastWasRecord = d.runTime < 0f || time < d.runTime;
-                if (LastWasRecord) d.runTime = time;
-                if (d.runPacks < 0 || packs < d.runPacks) d.runPacks = packs;
+                timeRecord = b.time < 0f || time < b.time;
+                packsRecord = b.packs < 0 || packs < b.packs;
+                if (timeRecord) b.time = time;
+                if (packsRecord) b.packs = packs;
                 Save();
             }
         }

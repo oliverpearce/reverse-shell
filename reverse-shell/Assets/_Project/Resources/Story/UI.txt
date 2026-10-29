@@ -158,7 +158,7 @@ units.alt.replace = Replace
 units.alt.choose = Choose a card
 units.extra.pick = CHOOSE A CARD
 # {owner} = whose card it is, {kind} = Attack / Buff / ...
-units.extra.detail = {owner} · {kind}
+units.extra.detail = {owner} - {kind}
 units.extra.remove = Remove
 units.extra.remove.detail = Leave the slot empty: just the locked card and the Soul card.
 units.extra.none = No other cards yet (open packs!)
@@ -343,6 +343,13 @@ cards.title.use = Use {name} on...
 cards.keys.use = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c} / click  Put it on this card      {gold}Esc{/c}  Back
 # The book opened from the Units screen's extra slot, to choose the card it brings
 cards.title.pick = Choose a Card
+# Picking a unit's Alt card (the deck check): the info panel's last line. {name} = a unit, {element} = a resonance
+cards.pick.moves = {gold}Moves from {name}'s deck{/c}
+cards.pick.current = {gray}Already in this slot{/c}
+cards.pick.innate = {gray}{name}'s Innate card{/c}
+cards.pick.unowned = {gray}You don't have this card yet{/c}
+cards.pick.resonance = {gray}Only while {element} is active{/c}
+cards.pick.cant = {gray}This slot can't take it{/c}
 cards.keys.pick = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c} / click  Use this card      {gold}Esc{/c}  Back
 # The top-bar buttons: a caption, then the current choice in gold. {value} = an element / kind / frame style, or cards.filter.all
 cards.filter.resonance = Resonance\n{gold}{value}{/c}
@@ -358,15 +365,29 @@ cards.sort.level_low = Level ↑
 cards.sort.copies_most = Copies ↓
 cards.sort.copies_fewest = Copies ↑
 cards.filter.all = All
+# A resonance whose every card you own (Resonance filter and its dropdown). {name} = the resonance
+cards.filter.complete = {gold}{name} ✓{/c}
 # The Kind filter's last choice, and the tag on Soul cards and Sun / Moon / Star (kept apart from the ability cards)
 cards.special = Special
-# Pack Mode, the race: collect every card of every pack's set (Soul / Sun / Moon / Star / blank cards don't count)
+# Pack Mode: each pack is its own race to collect its set (Soul / Sun / Moon / Star / blank cards don't count).
+# A pack's clock runs only while its tab is selected. {pack} = the pack's name, e.g. "Arc Pack"
 packmode.done = SET
 packmode.packs = {n} packs
-packmode.best = best {time}
+packmode.best = best {time} - {packs} packs
 packmode.no_best = best xx:xx:xx
-packmode.best_run = Best run {time}   {packs} packs
-packmode.goal = Fill every set to stop the clock
+packmode.best_pack = Best {time} - fewest {packs} packs
+packmode.restart = Restart
+packmode.results = RESULTS
+# The results card when a pack's set is complete. {delta} = the gap to your best before this run
+packmode.result.title = {pack} SET!
+packmode.result.time = Time {gold}{time}{/c}
+packmode.result.ahead = {green}{delta}{/c}
+packmode.result.behind = {red}{delta}{/c}
+packmode.result.packs = Packs {gold}{n}{/c}
+packmode.result.best = Best {time} - fewest {packs} packs
+packmode.result.retry = Retry
+packmode.result.next = Next: {pack}
+packmode.result.back = Back to the shelf
 packmode.open = OPEN
 packmode.soul = Soul
 packmode.souls = {n} pulled
@@ -375,8 +396,6 @@ packmode.streak = NEW x{n}!
 packmode.jackpot = JACKPOT!
 packmode.set_done = {pack} SET   {time}   {packs} packs
 packmode.record = {gold}NEW RECORD!{/c}
-packmode.all_sets = ALL SETS!
-packmode.run_done = Every set in {time}, {packs} packs
 packmode.so_close = SO CLOSE!
 packmode.one_left = 1 card left in the {pack} set
 # Under each card (the level shows as stars beside it). {n} = how many, {max} = the cap
@@ -398,10 +417,15 @@ cards.open_pack = Open Pack ({n})
 cards.counters = {c=#FF9A33}Sun{/c} {sun}     {c=#FF9A33}Moon{/c} {moon}     {c=#FF9A33}Star{/c} {star}          {gold}Soul{/c}  {souls}
 cards.empty = No cards match these filters.
 # The selected card's panel. {name} {copies} {rank} {next} {binding}
-cards.info.ability = {gold}{name}{/c}\nCopies: {copies}      {next}
+# {power} = the hit / heal preview on the same line (spacing included), or a deck-check note on a line of its own
+cards.info.ability = {gold}{name}{/c}\nCopies: {copies}      {next}{power}
 # {n} = copies still needed, {rank} = the next rank
 cards.info.next = {n} more for Lv {level}
 cards.info.top = Top level
+# The level-up preview (third line): the card's main hit / heal as a multiple of ATK, now and at the next star.
+# {pf} {pt} = percents. Cards with no hit or heal leave the line blank (the card's level in battle stays hidden).
+cards.info.power.up = {pf} → {gold}{pt}{/c} ATK
+cards.info.power = {pct} ATK
 cards.info.unbound = No binding (B to bind Sun, Moon or Star)
 # {name} {effect} {free} = not on a card yet, {found}
 cards.info.arcana = {c=#FF9A33}{name}{/c}\nSpecial      Found {found} of {max}
@@ -422,7 +446,7 @@ cards.bind.none = No Sun, Moon or Star yet: they come from packs
 # ------------------------------------------------------------------ Card Packs mode (title screen; nothing is kept)
 
 cards.title.session = Pack Mode
-cards.keys.session = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c}  Zoom      {gold}O{/c}  Open Pack      {gold}Esc{/c}  Leave
+cards.keys.session = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c}  Zoom      {gold}O{/c}  Open Pack      {gold}R{/c}  Restart      {gold}Esc{/c}  Leave
 cards.open_pack.free = Open Pack
 # The stats line under Pack Mode's title, one piece each. {n} = the count this session
 cards.stat.packs = Packs {n}
@@ -435,8 +459,10 @@ cards.session.empty = Open a pack! Nothing here is kept: it's just for fun.
 cards.info.session = {gold}{name}{/c}\nPulled: {n}
 # Hovering Soul / Rare / Cards in the stats line: the pack odds. {pct} {each} = percents, {n} = ability cards
 cards.odds.soul = {gold}Soul card{/c}: {pct} a pack\n(only a pack's last card can be one)
-cards.odds.rare = {c=#FF9A33}Rare{/c}: {pct} a pack, {each} each for Sun, Moon and Star\n(only a pack's last card can be one)
+cards.odds.arcana = {c=#FF9A33}Sun / Moon / Star{/c}: {pct} a pack, {each} each\n(only a pack's last card can be one)
 cards.odds.cards = Each of the {n} ability cards: {pct} a pack
+# The line under it: {pct} = a Legendary in a pack, {each} = each card slot's chance
+cards.odds.legendary = {gold}Legendary{/c}: {pct} a pack ({each} each card)
 cards.odds.blank = {c=#B8D1F2}Blank card{/c}: {pct} a pack\n(only a pack's second card can be one)
 # {name} = the unit
 cards.rarest.soul = {name}'s Soul card
@@ -455,10 +481,10 @@ cards.leave.stay = Stay
 cards.title.index = Cards
 cards.keys.index = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c}  Zoom (scroll for ranks)      {gold}Esc{/c}  Back
 # Hovering a card in the title's Cards book: who uses it, its class, its resonance beside the name, then the latest
-# save's copies and level (the card text is in the inspect view).
-# {name} {owner} {kind} {element} {copies} {level} {max} {next} (cards.info.next / cards.info.top);
+# save's copies, the next level and the hit / heal preview (the card text is in the inspect view; the stars show the level).
+# {name} {owner} {kind} {element} {copies} {next} (cards.info.next / cards.info.top) {power} (spacing included);
 # {owner_c} {kind_c} {element_c} = their colours (the unit's, the kind's, the resonance's) as #RRGGBB
-cards.info.index.ability = {gold}{name}{/c}   <color={owner_c}>{owner}</color>  -  <color={kind_c}>{kind}</color>  -  <color={element_c}>{element}</color>\nCopies: {copies}      Lv {level} / {max}      {next}
+cards.info.index.ability = {gold}{name}{/c}   <color={owner_c}>{owner}</color>  -  <color={kind_c}>{kind}</color>  -  <color={element_c}>{element}</color>\nCopies: {copies}      {next}{power}
 # {name} {owner} {element} {level} {max} = Soul level and cap; {owner_c} {element_c} as above
 cards.info.index.soul = {gold}{name}{/c}   <color={owner_c}>{owner}</color>  -  Special  -  <color={element_c}>{element}</color>\nSoul Lv {level} / {max}
 # {name} {effect} {max}
@@ -483,12 +509,27 @@ pack.hint.open = Click (or Enter) to tear it open
 pack.skip = Skip
 # Under a pulled card: it gained a star / it was already at the top level, so it became a blank card
 pack.level_up = Level up!
-pack.blank = Blank card!
+pack.blank = Maxed: +1 Blank
+pack.blank.pop = +1 Blank
+# A pack card that finished a resonance's set (you own every card of it). {element} = the resonance
+pack.set_complete = SET COMPLETE!
+pack.set_complete.sub = Every {element} card is yours
 # A pack's second card, sometimes (PackRates.blankChance): its name under it
 pack.blank_card = Blank Card
+# Rises over a Legendary card when it flips
+pack.legendary = LEGENDARY!
 pack.hint.zoom = Click to inspect
 pack.reveal_all = Reveal All
 pack.done = Done
 # {n} = packs left
 pack.again = Open ({n})
 pack.again.free = Open
+# Open All: every pack left at once, then one summary. {n} = packs / cards; {element} = a resonance
+pack.open_all = Open All ({n})
+pack.all.title = OPENED {n} PACKS
+pack.all.copies = +{n} copies
+pack.all.level_ups = {gold}Level up ×{n}{/c}
+pack.all.new = {gold}New ×{n}{/c}
+pack.all.set = {gold}{element} set complete!{/c}
+pack.all.count = ×{n}
+pack.all.level_up = {gold}Lv up{/c}

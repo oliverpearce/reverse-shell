@@ -1,6 +1,6 @@
 """Card sheet -> cards.json for the Unity card importer.
 
-    py Tools/CardForge/sheet_to_json.py [Planning/CARDS.xlsx]
+    py Tools/CardForge/sheet_to_json.py [../design/CARDS.xlsx]
 
 Reads the Cards, Packs, Areas and Enemies tabs of the card sheet and writes Tools/CardForge/cards.json, which Unity's
 "Reverse Shell / Import Cards From Sheet" (Editor/CardImporter.cs) turns into card assets. Rows without a name are
@@ -9,7 +9,8 @@ written. Each pack's picture is cut from its Art column / row of Art/ThirdParty/
 Resources/Cards/Packs/Pack_<Pack ID>.png.
 
 The Effects, Rank II adds and Rank III adds columns use the effect language on the sheet's "Effects key" tab. Rank II
-is Effects + Rank II adds; Rank III is all three.
+is Effects + Rank II adds; Rank III is all three. In the adds, "raise Stunned 10%" raises the chance of a status the
+card already gives instead of adding another roll.
 """
 import json
 import os
@@ -19,12 +20,12 @@ import sys
 import openpyxl
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SHEET = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', '..', 'Planning', 'CARDS.xlsx')
+SHEET = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', '..', '..', 'design', 'CARDS.xlsx')
 OUT = os.path.join(HERE, 'cards.json')
 PROJECT = os.path.normpath(os.path.join(HERE, '..', '..', 'Assets', '_Project'))
 PACK_SHEET = os.path.join(PROJECT, 'Art', 'ThirdParty', 'CardPacks', 'CardPacks.png')
 PACK_OUT = os.path.join(PROJECT, 'Resources', 'Cards', 'Packs')
-RARITIES = ['Common', 'Rare', 'Epic']
+RARITIES = ['Common', 'Rare', 'Epic', 'Legendary']
 
 POOLS = ['Arc', 'Root', 'Cryo', 'Cinder', 'Prism', 'Basic', 'Ult']
 CATEGORIES = ['Attack', 'Buff', 'Debuff', 'Defense', 'Counter', 'Heal']
@@ -60,6 +61,11 @@ def parse_effect(text):
     if not tokens:
         raise ValueError('empty effect')
     kind = tokens[0].lower()
+    if kind == 'raise':   # rank adds only: "raise Stunned 10%" = the card's Stunned chance goes up 10 points
+        status, i = take_status(tokens, 1)
+        if i != len(tokens) - 1 or not re.match(r'^\d+%$', tokens[i]):
+            raise ValueError('write raise like "raise Stunned 10%"')
+        return {'type': 'raise', 'status': status, 'chance': int(tokens[i][:-1]) / 100.0}
     fx = {'type': kind, 'target': 'card', 'mult': 1.0, 'hits': 1, 'turns': 2, 'stacks': 1, 'chance': 1.0,
           'status': '', 'bonusVs': '', 'bonusPerStack': 0.0, 'consume': False, 'triggers': 1, 'lowhp': 0.0,
           'onHit': '', 'onHitTurns': 2, 'attacksOnly': False, 'amount': 1}
@@ -134,6 +140,23 @@ def parse_list(text):
     return [parse_effect(part.strip()) for part in str(text).split(';') if part.strip()]
 
 
+def add_rank(effects, adds):
+    """The next rank's effects: these plus the rank's adds. A "raise" add changes the chance of the status already
+    on the card (its last one of that status) instead of adding a second roll."""
+    out = [dict(f) for f in effects]
+    for a in adds:
+        if a['type'] != 'raise':
+            out.append(a)
+            continue
+        for f in reversed(out):
+            if f['type'] == 'status' and f['status'] == a['status']:
+                f['chance'] = min(1.0, round(f['chance'] + a['chance'], 4))
+                break
+        else:
+            raise ValueError('raise %s: the card has no %s to raise' % (a['status'], a['status']))
+    return out
+
+
 def main():
     wb = openpyxl.load_workbook(SHEET, data_only=True)
     ws = wb['Cards']
@@ -169,7 +192,10 @@ def main():
             assets.add(asset)
             base, r2, r3 = parse_list(get('Effects')), parse_list(get('Rank II adds')), parse_list(get('Rank III adds'))
             if not base: raise ValueError('Effects is empty')
-            if effect_count(base + r2 + r3) > MAX_EFFECTS:
+            if any(f['type'] == 'raise' for f in base): raise ValueError('raise is only for Rank II / III adds')
+            rank2 = add_rank(base, r2)
+            rank3 = add_rank(rank2, r3)
+            if effect_count(rank3) > MAX_EFFECTS:
                 raise ValueError('more than %d effects (counting its rank adds); a card has at most %d' % (MAX_EFFECTS, MAX_EFFECTS))
             ult = pool == 'Ult'
             rarity = get('Rarity') or 'Common'
@@ -183,7 +209,7 @@ def main():
             cards.append({'id': get('ID') or '', 'name': name, 'pool': pool, 'category': cat, 'target': TARGETS[target],
                           'level': int(level), 'main': str(get('Main') or '').strip().upper() == 'Y', 'ult': ult,
                           'resonance': resonance, 'enemy': enemy, 'starter': starter, 'asset': asset, 'rarity': rarity,
-                          'rank1': base, 'rank2': base + r2, 'rank3': base + r2 + r3})
+                          'rank1': base, 'rank2': rank2, 'rank3': rank3})
         except (ValueError, IndexError) as e:
             problems.append('%s: %s' % (where, e))
     packs, areas = read_packs(wb, problems), read_areas(wb, problems)
@@ -214,11 +240,13 @@ def read_packs(wb, problems):
             res = get('Resonance')
             if res not in POOLS[:6]: raise ValueError('Resonance "%s" should be one of %s' % (res, POOLS[:6]))
             nums = {}
-            for h in ('Resonance %', 'Common %', 'Rare %', 'Epic %', 'Soul card %', 'Sun/Moon/Star %', 'Blank card %'):
+            for h in ('Resonance %', 'Common %', 'Rare %', 'Epic %', 'Legendary %', 'Soul card %', 'Sun/Moon/Star %', 'Blank card %'):
                 v = get(h)
+                if h == 'Legendary %' and v is None: v = 0   # sheets from before Legendary cards
                 if not isinstance(v, (int, float)) or not 0 <= v <= 1: raise ValueError('%s must be 0%%-100%%' % h)
                 nums[h] = float(v)
-            if abs(nums['Common %'] + nums['Rare %'] + nums['Epic %'] - 1) > 1e-4: raise ValueError('Common + Rare + Epic must add up to 100%')
+            if abs(nums['Common %'] + nums['Rare %'] + nums['Epic %'] + nums['Legendary %'] - 1) > 1e-4:
+                raise ValueError('Common + Rare + Epic + Legendary must add up to 100%')
             if nums['Soul card %'] + nums['Sun/Moon/Star %'] > 1: raise ValueError('Soul + Sun/Moon/Star are over 100%')
             ac, ar = get('Art column'), get('Art row')
             if not (isinstance(ac, (int, float)) and 1 <= ac <= 9 and isinstance(ar, (int, float)) and 1 <= ar <= 20):
@@ -228,8 +256,8 @@ def read_packs(wb, problems):
             if not isinstance(wins, (int, float)) or wins < 0: raise ValueError('Packs per win must be 0 or more')
             packs.append({'id': str(pid), 'name': get('Name') or str(pid), 'pool': res, 'artColumn': int(ac), 'artRow': int(ar),
                           'cardsPerPack': int(cards), 'packsPerWin': int(wins), 'poolShare': nums['Resonance %'],
-                          'common': nums['Common %'], 'rare': nums['Rare %'], 'epic': nums['Epic %'],
-                          'soulChance': nums['Soul card %'], 'rareChance': nums['Sun/Moon/Star %'], 'blankChance': nums['Blank card %']})
+                          'common': nums['Common %'], 'rare': nums['Rare %'], 'epic': nums['Epic %'], 'legendary': nums['Legendary %'],
+                          'soulChance': nums['Soul card %'], 'arcanaChance': nums['Sun/Moon/Star %'], 'blankChance': nums['Blank card %']})
         except ValueError as e:
             problems.append('%s: %s' % (where, e))
     if not packs: problems.append('Packs: no packs')

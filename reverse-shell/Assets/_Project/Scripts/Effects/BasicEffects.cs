@@ -90,10 +90,11 @@ namespace Combat
         public override void Apply(EffectContext ctx)
         {
             if (status == null) return;
+            int turns = CardLevels.Turns(ctx.Card, this);   // longer for each merge
             foreach (var t in ctx.Resolve(target))
             {
                 if (chance < 1f && ctx.Battle.State.Rng.NextDouble() >= chance) continue;
-                ctx.Battle.ApplyStatus(ctx.Caster, t, status, duration, stacks);
+                ctx.Battle.ApplyStatus(ctx.Caster, t, status, turns, stacks);
             }
         }
 

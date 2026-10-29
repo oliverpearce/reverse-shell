@@ -188,6 +188,8 @@ namespace Game.World
             public int packs;
             /// <summary>Each unopened pack's id (older saves only have the count).</summary>
             public List<string> packKinds = new List<string>();
+            /// <summary>Cards pulled but not looked at yet (their NEW tags); empty in older saves.</summary>
+            public List<string> unseenCards = new List<string>();
             /// <summary>Items used ("area:x:row"): walkable from then on.</summary>
             public List<string> usedItems = new List<string>();
             /// <summary>The overworld area you were in (WorldAreas id); empty in older saves = the city.</summary>
@@ -290,6 +292,7 @@ namespace Game.World
                 if (entry.Value > 0) data.bindingsFound.Add(new PartStack { id = entry.Key, count = entry.Value });
             data.packs = WorldSession.Packs;
             data.packKinds.AddRange(WorldSession.PackQueue);
+            data.unseenCards.AddRange(WorldSession.UnseenCards);
             data.usedItems.AddRange(WorldSession.UsedItems);
             data.area = WorldSession.CurrentArea;
             data.members.AddRange(WorldSession.Members);
@@ -319,6 +322,7 @@ namespace Game.World
             WorldSession.Bindings.Clear();
             WorldSession.BindingsFound.Clear();
             WorldSession.PackQueue.Clear();
+            WorldSession.UnseenCards.Clear();
             WorldSession.StarterPartsGiven = false;
             WorldSession.UsedItems.Clear();   // picked-up chips and items come back on a new game
             WorldSession.Members.Clear();
@@ -382,6 +386,8 @@ namespace Game.World
             WorldSession.PackQueue.Clear();
             if (data.packKinds != null && data.packKinds.Count > 0) WorldSession.PackQueue.AddRange(data.packKinds);
             else WorldSession.AddPacks("", Mathf.Max(0, data.packs));
+            if (data.unseenCards != null)
+                foreach (var key in data.unseenCards) if (!string.IsNullOrEmpty(key)) WorldSession.UnseenCards.Add(MigrateCard(key));
             if (data.usedItems != null) foreach (var key in data.usedItems) WorldSession.UsedItems.Add(key);
         }
 

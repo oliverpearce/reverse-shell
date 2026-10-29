@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardsPerPack: 3
   soulChance: 0.01
-  rareChance: 0.05
+  arcanaChance: 0.05
   blankChance: 0.1
+  legendaryChance: 0.02
   packsPerWin: 1
   packs:
   - id: Basic
@@ -24,9 +25,10 @@ MonoBehaviour:
     cardsPerPack: 3
     packsPerWin: 1
     poolShare: 0
-    commonShare: 0.7
+    commonShare: 0.68
     rareShare: 0.25
     epicShare: 0.05
+    legendaryShare: 0.02
     soulChance: 0.01
     arcanaChance: 0.05
     blankChance: 0.1
@@ -36,9 +38,10 @@ MonoBehaviour:
     cardsPerPack: 3
     packsPerWin: 1
     poolShare: 0.7
-    commonShare: 0.7
+    commonShare: 0.68
     rareShare: 0.25
     epicShare: 0.05
+    legendaryShare: 0.02
     soulChance: 0.01
     arcanaChance: 0.05
     blankChance: 0.1
@@ -48,9 +51,10 @@ MonoBehaviour:
     cardsPerPack: 3
     packsPerWin: 1
     poolShare: 0.7
-    commonShare: 0.7
+    commonShare: 0.68
     rareShare: 0.25
     epicShare: 0.05
+    legendaryShare: 0.02
     soulChance: 0.01
     arcanaChance: 0.05
     blankChance: 0.1
@@ -60,9 +64,10 @@ MonoBehaviour:
     cardsPerPack: 3
     packsPerWin: 1
     poolShare: 0.7
-    commonShare: 0.7
+    commonShare: 0.68
     rareShare: 0.25
     epicShare: 0.05
+    legendaryShare: 0.02
     soulChance: 0.01
     arcanaChance: 0.05
     blankChance: 0.1
@@ -72,9 +77,10 @@ MonoBehaviour:
     cardsPerPack: 3
     packsPerWin: 1
     poolShare: 0.7
-    commonShare: 0.7
+    commonShare: 0.68
     rareShare: 0.25
     epicShare: 0.05
+    legendaryShare: 0.02
     soulChance: 0.01
     arcanaChance: 0.05
     blankChance: 0.1
@@ -84,9 +90,10 @@ MonoBehaviour:
     cardsPerPack: 3
     packsPerWin: 1
     poolShare: 0.7
-    commonShare: 0.7
+    commonShare: 0.68
     rareShare: 0.25
     epicShare: 0.05
+    legendaryShare: 0.02
     soulChance: 0.01
     arcanaChance: 0.05
     blankChance: 0.1

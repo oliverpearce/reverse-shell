@@ -211,7 +211,7 @@ namespace Combat.View
             layout.childControlHeight = false;
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
-            foreach (var s in statuses) StatusChip.Create(row, s, size, true, 1.2f);
+            foreach (var s in statuses) StatusChip.Create(row, s, size);
             return y + size + 6f;
         }
 

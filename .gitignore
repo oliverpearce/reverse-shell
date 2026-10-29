@@ -65,9 +65,7 @@ reverse-shell/[Cc]rashes/
 .idea/
 
 # Planning and internal documents stay on this computer (the repo is a code backup)
-reverse-shell/Planning/
-reverse-shell/GAME_BIBLE.md
-reverse-shell/HANDOFF.md
+design/
 itch/
 
 # Secrets, just in case

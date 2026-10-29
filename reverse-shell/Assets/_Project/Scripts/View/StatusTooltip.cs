@@ -87,15 +87,14 @@ namespace Combat.View
     }
 
     /// <summary>
-    /// One status as an icon with the turns left in its corner ("2x3" = 2 stacks, 3 turns), or a short label plate when
-    /// the status has no icon; hovering it shows the <see cref="StatusTooltip"/>. Used under units in battle and by the
-    /// HP bar on the inspect (zoom-in) screen.
+    /// One status as a clean icon (no numbers), or a short label plate when the status has no icon; hovering it shows
+    /// the <see cref="StatusTooltip"/> with the turns left and the amount. Used under units in battle and by the HP bar
+    /// on the inspect (zoom-in) screen.
     /// </summary>
     public static class StatusChip
     {
-        /// <param name="numbers">Show the turns left and the total amount (off under units in battle: hover for them).</param>
-        /// <param name="numberScale">Extra size for those numbers (the inspect sheet makes them bigger).</param>
-        public static RectTransform Create(Transform parent, StatusSnapshot s, float size, bool numbers = true, float numberScale = 1f)
+        /// <summary>Just the icon, everywhere: the turns left and the amount are in the hover box.</summary>
+        public static RectTransform Create(Transform parent, StatusSnapshot s, float size)
         {
             float k = size / 52f;
             var iconSprite = CardIcons.Status(s.Definition);
@@ -115,14 +114,6 @@ namespace Combat.View
                 plate.rectTransform.Fill();
                 UIFactory.CreateText(chip, "Label", s.Definition.shortLabel, Mathf.RoundToInt(20f * k), Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).rectTransform.Fill();
                 hit = plate;
-            }
-            if (numbers && CardTranslation.Numbers)   // turns and amounts come with the numbers chip
-            {
-                float n = k * numberScale;
-                var turns = UIFactory.CreateText(chip, "Turns", s.Remaining.ToString(), Mathf.RoundToInt(22f * n), InkStyle.Paper, TextAnchor.LowerRight, FontStyle.Bold);
-                turns.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
-                turns.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(6f, -6f) * k, new Vector2(60f, 28f) * n);
-                AddAmount(chip, s.Definition, s.Stacks, n, s.Power);
             }
             StatusTooltip.Attach(hit.gameObject, s);
             return chip;

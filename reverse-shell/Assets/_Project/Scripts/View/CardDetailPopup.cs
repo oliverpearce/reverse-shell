@@ -144,7 +144,7 @@ namespace Combat.View
             tilt.Keyboard = true;
             if (holder.GetComponent<CardTiltDrag>() == null) CardTiltDrag.Add(holder.gameObject, tilt);
             else holder.GetComponent<CardTiltDrag>().Tilt = tilt;
-            CardHolo.Add((RectTransform)detailed.transform, tilt, shown.isRitual ? CardHolo.Kind.Soul : CardHolo.Kind.Common,
+            CardHolo.Add((RectTransform)detailed.transform, tilt, shown.isRitual ? CardHolo.Kind.Soul : CardHolo.KindFor(shown),
                 null, shown.isRitual ? (CardKind?)null : shown.kind);
         }
 

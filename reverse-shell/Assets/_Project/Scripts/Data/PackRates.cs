@@ -6,11 +6,6 @@ namespace Combat
     /// <summary>A card's binding: a Major Arcana card fixed onto an ability card, which adds a small bonus whenever it's used.</summary>
     public enum CardBinding { None, Sun, Moon, Star }
 
-    /// <summary>
-    /// Every number of the card collection in one asset (Resources/Cards/PackRates.asset), so they can be tuned without
-    /// code: what a pack holds and how often each tier drops, how many copies rank a card up, the binding and Soul
-    /// caps, and what Sun / Moon / Star and Soul levels do. The generator makes the asset only if it's missing.
-    /// </summary>
     /// <summary>One kind of pack (the card sheet's Packs tab): its resonance, how many cards and wins, and its odds.</summary>
     [System.Serializable]
     public class PackKind
@@ -24,9 +19,11 @@ namespace Combat
         [Min(0)] public int packsPerWin = 1;
         [Tooltip("Chance each common card is from the resonance; the rest are Basic cards (0.7 = 70%).")]
         [Range(0f, 1f)] public float poolShare = 0.7f;
-        [Range(0f, 1f)] public float commonShare = 0.7f;
+        [Range(0f, 1f)] public float commonShare = 0.68f;
         [Range(0f, 1f)] public float rareShare = 0.25f;
         [Range(0f, 1f)] public float epicShare = 0.05f;
+        [Tooltip("Chance each ability card is a Legendary (0.02 = 2%).")]
+        [Range(0f, 1f)] public float legendaryShare = 0.02f;
         [Tooltip("Chance the last card is a Soul card.")]
         [Range(0f, 1f)] public float soulChance = 0.01f;
         [Tooltip("Chance the last card is Sun, Moon or Star.")]
@@ -43,18 +40,26 @@ namespace Combat
         public string pack;
     }
 
+    /// <summary>
+    /// Every number of the card collection in one asset (Resources/Cards/PackRates.asset), so they can be tuned without
+    /// code: what a pack holds and how often each tier drops, how many copies rank a card up, the binding and Soul
+    /// caps, and what Sun / Moon / Star and Soul levels do. The generator makes the asset only if it's missing.
+    /// </summary>
     [CreateAssetMenu(menuName = "Combat/Pack Rates", fileName = "PackRates")]
     public class PackRates : ScriptableObject
     {
-        [Header("Packs")]
+        [Header("Packs (only when no packs are set up below; each pack has its own odds)")]
         [Tooltip("Cards in one pack (never the same card twice in one pack). The last one is revealed slowest and is the only one that can be a rare or SOUL card.")]
         [Min(1)] public int cardsPerPack = 3;
         [Tooltip("Chance that a pack's last card is a SOUL card (0.1 = 10%). Only for units below the Soul level cap.")]
         [Range(0f, 1f)] public float soulChance = 0.01f;
-        [Tooltip("Chance that a pack's last card is a rare (Sun, Moon or Star). Only kinds found fewer than the cap.")]
-        [Range(0f, 1f)] public float rareChance = 0.05f;
+        [Tooltip("Chance that a pack's last card is Sun, Moon or Star. Only kinds found fewer than the cap.")]
+        [UnityEngine.Serialization.FormerlySerializedAs("rareChance")]
+        [Range(0f, 1f)] public float arcanaChance = 0.05f;
         [Tooltip("Chance that a pack's second card is a blank card (0.1 = 10%), with its own reveal.")]
         [Range(0f, 1f)] public float blankChance = 0.1f;
+        [Tooltip("Chance each ability card may be a Legendary (0.02 = 2%); otherwise Legendaries are left out.")]
+        [Range(0f, 1f)] public float legendaryChance = 0.02f;
         [Tooltip("Packs given after every won fight.")]
         [Min(0)] public int packsPerWin = 1;
 
@@ -67,7 +72,7 @@ namespace Combat
         public int[] upgradeCopies = { 5, 10, 20 };
 
         [Header("Bindings (Sun, Moon, Star)")]
-        [Tooltip("Off for now (2026-10-28): no Bind button, no binding text, and bindings do nothing in battle. Sun / Moon / Star are still collected.")]
+        [Tooltip("Off: no Use / Bind, no binding text, and bindings do nothing in battle. Sun / Moon / Star are still collected.")]
         public bool bindingOn = true;
         [Tooltip("The most of each binding kind you can ever own.")]
         [Min(0)] public int maxPerBinding = 2;

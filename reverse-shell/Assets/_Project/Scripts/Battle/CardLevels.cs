@@ -36,6 +36,42 @@ namespace Combat
             return Mathf.Clamp(level, 1, c.maxCardLevel);
         }
 
+        /// <summary>A player card's level out of battle (rank I, no boss): its own plus <paramref name="upgrades"/> copy
+        /// upgrades. The Cards book's level-up preview.</summary>
+        public static int WithUpgrades(CardDefinition card, int upgrades)
+        {
+            if (card == null) return 1;
+            return Mathf.Clamp(card.level + Config.levelsPerUpgrade * upgrades, 1, Config.maxCardLevel);
+        }
+
+        /// <summary>The main hit or heal's multiple of ATK at rank I and <paramref name="level"/> (less when it hits
+        /// everyone), or 0 when the card has neither (pure buffs and debuffs).</summary>
+        public static float MainPower(CardDefinition card, int level)
+        {
+            var rank = card != null ? card.GetRank(1) : null;
+            if (rank == null) return 0f;
+            CardEffect main = null;
+            float best = 0f;
+            foreach (var e in rank.effects)
+            {
+                var p = e as IPoweredEffect;
+                if (p != null && p.Multiplier > best) { best = p.Multiplier; main = e; }
+            }
+            if (main == null) return 0f;
+            bool all = main.target == EffectTarget.AllEnemies || main.target == EffectTarget.AllAllies
+                || (main.target == EffectTarget.CardTargets && (card.targetMode == TargetMode.AllEnemies || card.targetMode == TargetMode.AllAllies));
+            return Power(level) * (all ? Config.spreadShare : 1f);
+        }
+
+        /// <summary>How long a status from <paramref name="card"/> lasts: the authored turns plus
+        /// <see cref="CombatConfig.turnsPerMerge"/> per merge, so buffs and debuffs grow too (not Ults, nor statuses that
+        /// stop the target acting, like Stunned). Null card: the authored turns.</summary>
+        public static int Turns(CardInstance card, ApplyStatusEffect effect)
+        {
+            if (card == null || card.IsRitual || (effect.status != null && effect.status.preventsAction)) return effect.duration;
+            return effect.duration + Config.turnsPerMerge * Mathf.Max(0, card.Rank - 1);
+        }
+
         /// <summary>The main hit's multiple of ATK at a level (0.25 x level by default).</summary>
         public static float Power(int level)
         {

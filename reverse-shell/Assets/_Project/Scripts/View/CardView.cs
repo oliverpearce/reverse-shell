@@ -405,8 +405,8 @@ namespace Combat.View
 
         /// <summary>
         /// A small chip per status the card's rank applies (each status once, at most <see cref="MaxChips"/>), at the
-        /// right end of the kind line going left: the status icon with its turns in the corner ("x2" stacks over it when
-        /// more than one). Returns the width used (unscaled), 0 if none.
+        /// right end of the kind line going left: just the status icon (its turns and stacks are in the hover box).
+        /// Returns the width used (unscaled), 0 if none.
         /// </summary>
         static float StatusChips(RectTransform root, CardInstance card, float s)
         {
@@ -437,15 +437,11 @@ namespace Combat.View
                     plate.rectTransform.Fill();
                     UIFactory.CreateText(holder, "Label", apply.status.shortLabel, Mathf.RoundToInt(20f * s), Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).rectTransform.Fill();
                 }
-                // Hover the chip for what the status does (the box says how long it lasts).
+                // Just the icon: hover it for what the status does, how long it lasts and how many stacks.
                 var hitArea = holder.gameObject.AddComponent<Image>();
                 hitArea.color = new Color(0f, 0f, 0f, 0f);
-                StatusTooltip.Attach(holder.gameObject, new StatusSnapshot(apply.status, apply.duration, apply.stacks), true);
-                if (!CardTranslation.Numbers) { x += chip + gap; continue; }   // the turns and amount come with the numbers chip
-                StatusChip.AddAmount(holder, apply.status, apply.stacks, s * 0.75f);
-                var turns = UIFactory.CreateText(holder, "Turns", apply.duration.ToString(), Mathf.RoundToInt(15f * s), InkStyle.Paper, TextAnchor.LowerRight, FontStyle.Bold);
-                turns.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
-                turns.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(5f, -5f) * s, new Vector2(44f, 22f) * s);
+                int duration = CardLevels.Turns(card, apply);   // merges add turns
+                StatusTooltip.Attach(holder.gameObject, new StatusSnapshot(apply.status, duration, apply.stacks), true);
                 x += chip + gap;
             }
             return x > 10f ? x : 0f;

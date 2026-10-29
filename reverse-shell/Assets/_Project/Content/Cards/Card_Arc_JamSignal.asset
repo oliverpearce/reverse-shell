@@ -37,37 +37,38 @@ MonoBehaviour:
   references:
     version: 1
     00000000:
-      type: {class: InterruptEffect, ns: Combat, asm: Combat.Runtime}
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
-        attacksOnly: 1
+        status: {fileID: 11400000, guid: 4b7cb35d7557c2646b49516119a5c4ed, type: 2}
+        duration: 2
+        stacks: 1
+        chance: 1
     00000001:
       type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
+        status: {fileID: 11400000, guid: 28257566785a530408a00303d7931991, type: 2}
+        duration: 1
+        stacks: 1
+        chance: 0.25
+    00000002:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
         status: {fileID: 11400000, guid: 4b7cb35d7557c2646b49516119a5c4ed, type: 2}
         duration: 2
         stacks: 1
         chance: 1
-    00000002:
-      type: {class: InterruptEffect, ns: Combat, asm: Combat.Runtime}
-      data:
-        target: 0
-        attacksOnly: 1
     00000003:
       type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
-        status: {fileID: 11400000, guid: 4b7cb35d7557c2646b49516119a5c4ed, type: 2}
-        duration: 2
+        status: {fileID: 11400000, guid: 28257566785a530408a00303d7931991, type: 2}
+        duration: 1
         stacks: 1
-        chance: 1
+        chance: 0.35
     00000004:
-      type: {class: InterruptEffect, ns: Combat, asm: Combat.Runtime}
-      data:
-        target: 0
-        attacksOnly: 1
-    00000005:
       type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
       data:
         target: 0
@@ -75,3 +76,11 @@ MonoBehaviour:
         duration: 2
         stacks: 1
         chance: 1
+    00000005:
+      type: {class: ApplyStatusEffect, ns: Combat, asm: Combat.Runtime}
+      data:
+        target: 0
+        status: {fileID: 11400000, guid: 28257566785a530408a00303d7931991, type: 2}
+        duration: 1
+        stacks: 1
+        chance: 0.45

@@ -54,13 +54,17 @@ namespace Game.World
                     // The last card: the only one that can be a SOUL or rare card.
                     double roll = rng.NextDouble();
                     if (roll < rates.soulChance) pull = RollSoul(roster, pulls, rng);
-                    if (pull == null && roll < rates.soulChance + rates.rareChance) pull = RollRare(pulls, rng);
+                    if (pull == null && roll < rates.soulChance + rates.arcanaChance) pull = RollRare(pulls, rng);
                 }
                 if (pull == null && commons.Count > 0)
                 {
-                    // A card not already in this pack (repeats only if there aren't enough different cards).
-                    var fresh = commons.FindAll(c => !taken.Contains(c));
-                    var from = fresh.Count > 0 ? fresh : commons;
+                    // A card not already in this pack (repeats only if there aren't enough different cards). Legendaries
+                    // only on a PackRates.legendaryChance roll.
+                    bool legendary = rng.NextDouble() < rates.legendaryChance;
+                    var allowed = legendary ? commons : commons.FindAll(c => c.rarity != CardRarity.Legendary);
+                    if (allowed.Count == 0) allowed = commons;
+                    var fresh = allowed.FindAll(c => !taken.Contains(c));
+                    var from = fresh.Count > 0 ? fresh : allowed;
                     var card = from[rng.Next(from.Count)];
                     taken.Add(card);
                     pull = new Pull { Tier = Tier.Common, Card = card };
@@ -116,25 +120,26 @@ namespace Game.World
 
         static CardRarity RollRarity(PackKind kind, System.Random rng)
         {
-            float total = kind.commonShare + kind.rareShare + kind.epicShare;
+            float total = kind.commonShare + kind.rareShare + kind.epicShare + kind.legendaryShare;
             if (total <= 0f) return CardRarity.Common;
             double roll = rng.NextDouble() * total;
-            if (roll < kind.commonShare) return CardRarity.Common;
-            return roll < kind.commonShare + kind.rareShare ? CardRarity.Rare : CardRarity.Epic;
+            if ((roll -= kind.commonShare) < 0) return CardRarity.Common;
+            if ((roll -= kind.rareShare) < 0) return CardRarity.Rare;
+            return roll - kind.epicShare < 0 ? CardRarity.Epic : CardRarity.Legendary;
         }
 
         /// <summary>A card of <paramref name="rarity"/> not in the pack yet, from <paramref name="pool"/>; falling back to
-        /// any rarity, then the other pool, then repeats.</summary>
+        /// any rarity, then the other pool, then repeats. The fallbacks never give a Legendary unless one was rolled.</summary>
         static CardDefinition PickCommon(List<CardDefinition> pool, List<CardDefinition> other, List<CardDefinition> taken, CardRarity rarity)
         {
             foreach (var from in new[] { pool, other })
             {
-                var fresh = from.FindAll(c => !taken.Contains(c));
+                var fresh = from.FindAll(c => !taken.Contains(c) && (rarity == CardRarity.Legendary || c.rarity != CardRarity.Legendary));
                 var tier = fresh.FindAll(c => c.rarity == rarity);
                 var list = tier.Count > 0 ? tier : fresh;
                 if (list.Count > 0) return list[Rng.Next(list.Count)];
             }
-            var any = pool.Count > 0 ? pool : other;
+            var any = (pool.Count > 0 ? pool : other).FindAll(c => rarity == CardRarity.Legendary || c.rarity != CardRarity.Legendary);
             return any.Count > 0 ? any[Rng.Next(any.Count)] : null;
         }
 

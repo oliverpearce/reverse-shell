@@ -8,13 +8,14 @@ using UnityEngine;
 namespace Combat.EditorTools
 {
     /// <summary>
-    /// Builds the card assets from the card sheet (Planning/CARDS.xlsx). Tools/CardForge/sheet_to_json.py turns the sheet
-    /// into Tools/CardForge/cards.json; this reads that file and, for every row, creates or updates its CardDefinition
+    /// Builds the card assets from the card sheet (design/CARDS.xlsx at the repo root, git-ignored).
+    /// Tools/CardForge/sheet_to_json.py (run by CardSheetWatcher when the sheet is saved) turns the sheet into
+    /// Tools/CardForge/cards.json; this reads that file and, for every row, creates or updates its CardDefinition
     /// (name, kind, target, level and each rank's effects; icons and cast sequences are kept). It then fills the
     /// protagonist's resonance kits: each pool's cards (its Main card first) and its Ult, with the Basic cards as the
     /// card pool every resonance can use. The Packs and Areas tabs go into Resources/Cards/PackRates (the pack pictures
     /// are cut by the script). The new statuses (Burn, Chill, Frozen, Shield, Counter, Covered) are made if
-    /// missing; existing status assets keep their tuning.
+    /// missing; existing status assets keep their tuning. Then CardChecker lists any problems in the Console.
     ///   Menu: Reverse Shell / Import Cards From Sheet
     ///   Batch: Unity -batchmode -quit -projectPath . -executeMethod Combat.EditorTools.CardImporter.Import
     /// </summary>
@@ -32,7 +33,8 @@ namespace Combat.EditorTools
 
         static string HashKey { get { return "ReverseShell.CardsJsonHash." + Application.dataPath; } }
 
-        static void ImportIfChanged()
+        /// <summary>Imports cards.json if it changed since the last import (also called by <see cref="CardSheetWatcher"/>).</summary>
+        public static void ImportIfChanged()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode || !File.Exists(JsonPath)) return;
             string hash;
@@ -77,7 +79,7 @@ namespace Combat.EditorTools
         {
             public string id, name, pool;
             public int cardsPerPack = 3, packsPerWin = 1;
-            public float poolShare, common, rare, epic, soulChance, rareChance, blankChance;
+            public float poolShare, common, rare, epic, legendary, soulChance, arcanaChance, blankChance;
         }
 
         [Serializable] class AreaRow { public string area, pack; }
@@ -131,6 +133,7 @@ namespace Combat.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("CardImporter: " + built.Count + " cards imported from " + JsonPath);
+            CardChecker.CheckAfterImport();
         }
 
         static CardDefinition Build(Row row, Func<string, StatusDefinition> status)
@@ -231,8 +234,8 @@ namespace Combat.EditorTools
             {
                 id = p.id, displayName = p.name, pool = (Resonance)Enum.Parse(typeof(Resonance), p.pool),
                 cardsPerPack = Mathf.Max(1, p.cardsPerPack), packsPerWin = Mathf.Max(0, p.packsPerWin), poolShare = p.poolShare,
-                commonShare = p.common, rareShare = p.rare, epicShare = p.epic,
-                soulChance = p.soulChance, arcanaChance = p.rareChance, blankChance = p.blankChance
+                commonShare = p.common, rareShare = p.rare, epicShare = p.epic, legendaryShare = p.legendary,
+                soulChance = p.soulChance, arcanaChance = p.arcanaChance, blankChance = p.blankChance
             }).ToList();
             rates.areaPacks = sheet.areas.Select(a => new AreaPack { area = a.area, pack = a.pack }).ToList();
             EditorUtility.SetDirty(rates);

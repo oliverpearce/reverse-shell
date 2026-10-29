@@ -558,7 +558,7 @@ namespace Game.World
                 {
                     CardCollection.SetExtra(member, slot, card, party);
                     SaveGame.Save();
-                }, BuildDetail);
+                }, BuildDetail, member, current);
                 return;
             }
             OpenExtraList(member, slot);

@@ -18,7 +18,7 @@ MonoBehaviour:
   isRitual: 0
   level: 6
   pool: 4
-  rarity: 2
+  rarity: 3
   icon: {fileID: 0}
   ranks:
   - description: 

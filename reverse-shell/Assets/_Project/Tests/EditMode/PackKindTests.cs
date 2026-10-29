@@ -23,7 +23,22 @@ namespace Combat.Tests
         static PackKind Kind(Resonance pool, float share, float common, float rare, float epic)
         {
             return new PackKind { id = "Test", pool = pool, cardsPerPack = 3, poolShare = share, commonShare = common,
-                rareShare = rare, epicShare = epic, soulChance = 0f, arcanaChance = 0f, blankChance = 0f };
+                rareShare = rare, epicShare = epic, legendaryShare = 0f, soulChance = 0f, arcanaChance = 0f, blankChance = 0f };
+        }
+
+        [Test]
+        public void Legendary_OnlyComesWhenRolled_NotAsAFallback()
+        {
+            var common = Card("Common", Resonance.Cinder, CardRarity.Common);
+            var legendary = Card("Legendary", Resonance.Cinder, CardRarity.Legendary);
+            var roster = Roster(common, legendary);
+            var rng = new System.Random(5);
+            for (int i = 0; i < 50; i++)
+                foreach (var pull in CardPacks.Roll(roster, rng, Kind(Resonance.Cinder, 1f, 0f, 0f, 1f)))
+                    Assert.AreNotEqual(legendary, pull.Card, "100% Epic with no Epic cards: never a Legendary");
+            var always = Kind(Resonance.Cinder, 1f, 0f, 0f, 0f);
+            always.legendaryShare = 1f;
+            Assert.AreEqual(legendary, CardPacks.Roll(roster, rng, always)[0].Card, "100% Legendary: the Legendary first");
         }
 
         [Test]

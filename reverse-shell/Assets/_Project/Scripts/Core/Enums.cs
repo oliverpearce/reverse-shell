@@ -42,7 +42,9 @@ namespace Combat
     public enum CardKind { Attack, Buff, Debuff, Heal, Counter, Defense }
 
     /// <summary>How often packs give a card (each pack's odds per tier are in PackRates.packs).</summary>
-    public enum CardRarity { Common, Rare, Epic }
+    /// <summary>A card's rarity: how often packs give it. Legendary is each resonance's one or two strongest cards, with
+    /// a gold shine (CardHolo).</summary>
+    public enum CardRarity { Common, Rare, Epic, Legendary }
 
     /// <summary>A status the battle rules treat specially (its numbers live on the StatusInstance).</summary>
     public enum StatusSpecial

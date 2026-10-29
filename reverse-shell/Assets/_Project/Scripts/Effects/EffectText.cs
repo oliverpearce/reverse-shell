@@ -48,9 +48,42 @@ namespace Combat
             }
         }
 
+        /// <summary>The targets swapped in, then every sentence started with a capital letter (a sentence that begins
+        /// with the target, like "all allies gain...", or a hand-written description in lower case).</summary>
         static string WithTargets(CardDefinition card, string text)
         {
-            return text.Replace(CardTargetToken, TargetPhrase(card.targetMode));
+            return Capitalized(text.Replace(CardTargetToken, TargetPhrase(card.targetMode)));
+        }
+
+        /// <summary>
+        /// The first letter of every sentence as a capital: at the start, and after ". ", "! ", "? ", ": " or a new
+        /// line. Rich-text tags (&lt;color=...&gt;) and colour tags ({gold}) are stepped over; a sentence that starts with
+        /// a number is left alone. "1.5" isn't a sentence end (no space after the dot).
+        /// </summary>
+        public static string Capitalized(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            var chars = text.ToCharArray();
+            bool start = true;
+            for (int i = 0; i < chars.Length; i++)
+            {
+                char c = chars[i];
+                if (c == '<' || c == '{')
+                {
+                    int close = text.IndexOf(c == '<' ? '>' : '}', i);
+                    if (close > i) { i = close; continue; }
+                }
+                if (c == '\n') { start = true; continue; }
+                if ((c == '.' || c == '!' || c == '?' || c == ':') && (i + 1 >= chars.Length || char.IsWhiteSpace(chars[i + 1])))
+                {
+                    start = true;
+                    continue;
+                }
+                if (!start) continue;
+                if (char.IsLetter(c)) { chars[i] = char.ToUpperInvariant(c); start = false; }
+                else if (char.IsDigit(c)) start = false;
+            }
+            return new string(chars);
         }
         public static string Roman(int rank)
         {
@@ -68,7 +101,7 @@ namespace Combat
         {
             var data = card.GetRank(rank);
             if (data == null) return "";
-            if (!string.IsNullOrEmpty(data.description)) return data.description;
+            if (!string.IsNullOrEmpty(data.description)) return Capitalized(data.description);
             var sentences = Sentences(data).Select(t => t.Format()).ToArray();
             return WithTargets(card, string.Join(" ", sentences));
         }

@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace Combat.Tests
 {
-    /// <summary>Pack Mode's race: sets, streaks, splits and the full run.</summary>
+    /// <summary>Pack Mode's races: one per pack, with its own set, clock, streak and so close.</summary>
     public class PackModeRunTests
     {
         List<PackKind> savedPacks;
@@ -31,7 +31,7 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void FinishingASet_IsASplit_AndEverySet_FinishesTheRun()
+        public void EachPack_IsItsOwnRace()
         {
             var arc1 = Card("Arc1", Resonance.Arc);
             var arc2 = Card("Arc2", Resonance.Arc);
@@ -46,30 +46,54 @@ namespace Combat.Tests
             var arcPack = new PackKind { id = "TestArc", displayName = "Arc Pack", pool = Resonance.Arc };
             var physPack = new PackKind { id = "TestBasic", displayName = "Basic Pack", pool = Resonance.Basic };
             PackRates.Current.packs = new List<PackKind> { physPack, arcPack };
-
             Assert.AreEqual(2, PackModeRun.SetOf(arcPack, roster).Count);
-            PackModeRun.OnPackOpened(arcPack);
-            Assert.IsTrue(PackModeRun.Started, "the first pack starts the timer");
 
-            var first = PackModeRun.OnReveal(new CardPacks.Pull { Tier = CardPacks.Tier.Common, Card = arc1 }, roster);
+            PackModeRun.OnPackOpened(arcPack);
+            Assert.IsFalse(PackModeRun.Of(arcPack).Started, "only the selected pack races");
+            PackModeRun.Select(arcPack);
+            PackModeRun.OnPackOpened(arcPack);
+            Assert.IsTrue(PackModeRun.Of(arcPack).Started, "its first pack starts its clock");
+            Assert.AreEqual(1, PackModeRun.Of(arcPack).Packs);
+
+            var first = PackModeRun.OnReveal(Common(arc1), arcPack, roster);
             Assert.IsTrue(first.NewCard);
             Assert.IsNull(first.Completed);
-            var again = PackModeRun.OnReveal(new CardPacks.Pull { Tier = CardPacks.Tier.Common, Card = arc1 }, roster);
+            var again = PackModeRun.OnReveal(Common(arc1), arcPack, roster);
             Assert.IsFalse(again.NewCard);
             Assert.AreEqual(0, again.Streak, "a repeat breaks the streak");
-            var done = PackModeRun.OnReveal(new CardPacks.Pull { Tier = CardPacks.Tier.Common, Card = arc2 }, roster);
-            Assert.AreSame(arcPack, done.Completed, "the last missing card completes the set");
-            Assert.IsNotNull(PackModeRun.SplitOf(arcPack));
-            Assert.IsFalse(done.RunComplete);
-
-            var soul = PackModeRun.OnReveal(new CardPacks.Pull { Tier = CardPacks.Tier.Soul }, roster);
+            var basicCard = PackModeRun.OnReveal(Common(phys), arcPack, roster);
+            Assert.IsFalse(basicCard.NewCard, "another set's card from this pack doesn't count");
+            Assert.IsFalse(PackModeRun.Has(physPack, phys));
+            var soul = PackModeRun.OnReveal(new CardPacks.Pull { Tier = CardPacks.Tier.Soul }, arcPack, roster);
             Assert.IsFalse(soul.NewCard, "Soul cards don't count for a set");
 
-            var last = PackModeRun.OnReveal(new CardPacks.Pull { Tier = CardPacks.Tier.Common, Card = phys }, roster);
-            Assert.AreSame(physPack, last.Completed);
-            Assert.IsTrue(last.RunComplete, "every set done: the run is over");
-            Assert.IsTrue(PackModeRun.RunComplete);
+            var done = PackModeRun.OnReveal(Common(arc2), arcPack, roster);
+            Assert.AreSame(arcPack, done.Completed, "the last missing card completes the set");
+            Assert.IsTrue(PackModeRun.Of(arcPack).Finished);
+            Assert.AreSame(arcPack, PackModeRun.JustFinished);
+            Assert.IsFalse(PackModeRun.Of(physPack).Started, "the other pack's race is untouched");
         }
+
+        [Test]
+        public void SwitchingTabs_PausesTheClock_AndRestartClearsTheRace()
+        {
+            var arcPack = new PackKind { id = "TestArc", pool = Resonance.Arc };
+            var physPack = new PackKind { id = "TestBasic", pool = Resonance.Basic };
+            PackModeRun.Select(arcPack);
+            PackModeRun.OnPackOpened(arcPack);
+            var arc = PackModeRun.Of(arcPack);
+            Assert.GreaterOrEqual(arc.RunningSince, 0f, "running while selected");
+            PackModeRun.Select(physPack);
+            Assert.Less(arc.RunningSince, 0f, "paused once another tab is picked");
+            PackModeRun.Select(arcPack);
+            Assert.GreaterOrEqual(arc.RunningSince, 0f, "and carries on when picked again");
+
+            PackModeRun.Restart(arcPack, new List<CharacterDefinition>());
+            Assert.IsFalse(PackModeRun.Of(arcPack).Started);
+            Assert.AreEqual(0, PackModeRun.Of(arcPack).Packs);
+        }
+
+        static CardPacks.Pull Common(CardDefinition card) { return new CardPacks.Pull { Tier = CardPacks.Tier.Common, Card = card }; }
 
         [Test]
         public void SoClose_ShowsOncePerSet_UntilTheRunResets()
