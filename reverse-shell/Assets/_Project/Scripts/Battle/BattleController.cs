@@ -345,11 +345,113 @@ namespace Combat
             return result;
         }
 
+        /// <summary>A card hit. A Cover on the target sends it to the coverer; a Shield soaks it before HP; a Counter on
+        /// whoever got hit hits back (counter hits never trigger counters).</summary>
         public void DealDamage(BattleUnit source, BattleUnit target, float multiplier, bool isRitual)
         {
+            DealDamage(source, target, multiplier, isRitual, false);
+        }
+
+        void DealDamage(BattleUnit source, BattleUnit target, float multiplier, bool isRitual, bool isCounter)
+        {
             if (!target.IsAlive || IsOver) return;
+            target = CoveredBy(source, target);
             var result = DamageCalculator.Compute(source, target, multiplier, isRitual, Config, State.Rng);
-            ApplyDamage(source, target, result.Amount, result.Crit, result.Relation, false);
+            int amount = result.Amount, blocked = 0;
+            var shield = target.Statuses.Find(s => s.Definition.special == StatusSpecial.Shield && s.Power > 0f);
+            if (shield != null)
+            {
+                blocked = Mathf.Min(amount, Mathf.RoundToInt(shield.Power));
+                shield.Power -= blocked;
+                amount -= blocked;
+                if (shield.Power <= 0f) target.Statuses.Remove(shield);
+                EmitStatuses(target);
+            }
+            ApplyDamage(source, target, amount, result.Crit, result.Relation, false, blocked, isCounter);
+            if (!isCounter && !IsOver) TryCounter(target, source);
+        }
+
+        /// <summary>Who really takes a hit on <paramref name="target"/>: its living coverer on the other side from the
+        /// attacker, else the target.</summary>
+        BattleUnit CoveredBy(BattleUnit source, BattleUnit target)
+        {
+            var cover = target.Statuses.Find(s => s.Definition.special == StatusSpecial.Cover);
+            if (cover == null || cover.Source == null || cover.Source == target || !cover.Source.IsAlive) return target;
+            if (source != null && cover.Source.Team == source.Team) return target;
+            return cover.Source;
+        }
+
+        void TryCounter(BattleUnit holder, BattleUnit attacker)
+        {
+            if (holder == null || attacker == null || !holder.IsAlive || !attacker.IsAlive || holder.Team == attacker.Team) return;
+            var counter = holder.Statuses.Find(s => s.Definition.special == StatusSpecial.Counter && s.Stacks > 0);
+            if (counter == null) return;
+            float power = counter.Power * (holder.HPPercent < 0.5f ? 1f + counter.Bonus : 1f);
+            counter.Stacks--;
+            if (counter.Stacks <= 0) holder.Statuses.Remove(counter);
+            EmitStatuses(holder);
+            Log(holder.Name + " counters!");
+            DealDamage(holder, attacker, power, false, true);
+            if (counter.Payload != null && attacker.IsAlive && !IsOver) ApplyStatus(holder, attacker, counter.Payload, counter.PayloadTurns, 1);
+        }
+
+        /// <summary>Adds <paramref name="amount"/> shield HP to the target (shields stack and refresh).</summary>
+        public void GiveShield(BattleUnit source, BattleUnit target, StatusDefinition status, int amount, int duration)
+        {
+            if (!target.IsAlive || status == null || amount <= 0) return;
+            var existing = target.FindStatus(status);
+            if (existing == null) target.Statuses.Add(existing = new StatusInstance(status, source, duration, 1));
+            existing.Power += amount;
+            existing.Remaining = Mathf.Max(existing.Remaining, duration);
+            Log(target.Name + " shields " + amount);
+            Emit(new FxCueEvent { Unit = target, Cue = FxCueEvent.Shield });
+            EmitStatuses(target);
+        }
+
+        /// <summary>Readies a counter on the target: <paramref name="triggers"/> hits back of <paramref name="power"/> ATK.
+        /// Counters add their triggers; the stronger one's numbers win.</summary>
+        public void GiveCounter(BattleUnit source, BattleUnit target, StatusDefinition status, float power, int triggers,
+            float lowHPBonus, StatusDefinition onHit, int onHitTurns, int duration)
+        {
+            if (!target.IsAlive || status == null) return;
+            var existing = target.FindStatus(status);
+            if (existing == null) target.Statuses.Add(existing = new StatusInstance(status, source, duration, 0));
+            existing.Stacks += Mathf.Max(1, triggers);
+            existing.Remaining = Mathf.Max(existing.Remaining, duration);
+            if (power >= existing.Power)
+            {
+                existing.Power = power;
+                existing.Bonus = lowHPBonus;
+                existing.Payload = onHit;
+                existing.PayloadTurns = onHitTurns;
+            }
+            EmitStatuses(target);
+        }
+
+        /// <summary>Cancels an enemy's shown intent: it does nothing this round.</summary>
+        public void CancelIntent(BattleUnit unit)
+        {
+            if (unit == null || unit.Intent == null) return;
+            unit.Intent = null;
+            Emit(new IntentChosenEvent { Unit = unit, Intent = null });
+            Emit(new FxCueEvent { Unit = unit, Cue = FxCueEvent.Interrupt });
+            Log(unit.Name + " is interrupted!");
+        }
+
+        /// <summary>Clears a unit's debuffs (with the cleanse effect when there were any).</summary>
+        public void Cleanse(BattleUnit unit)
+        {
+            if (unit == null || !unit.Statuses.Exists(s => s.Definition.isDebuff)) return;
+            Emit(new FxCueEvent { Unit = unit, Cue = FxCueEvent.Cleanse });
+            RemoveStatuses(unit, s => s.Definition.isDebuff);
+        }
+
+        /// <summary>Removes the matching statuses from a unit.</summary>
+        public void RemoveStatuses(BattleUnit unit, Predicate<StatusInstance> match)
+        {
+            if (unit == null || unit.Statuses.RemoveAll(match) == 0) return;
+            unit.HP = Mathf.Min(unit.HP, unit.MaxHP);
+            EmitStatuses(unit);
         }
 
         public void Heal(BattleUnit source, BattleUnit target, int amount)
@@ -363,6 +465,8 @@ namespace Combat
         public void ApplyStatus(BattleUnit source, BattleUnit target, StatusDefinition status, int duration, int stacks)
         {
             if (!target.IsAlive || status == null) return;
+            if (status.special == StatusSpecial.Cover && source != null && source != target)
+                Emit(new FxCueEvent { Unit = source, Cue = FxCueEvent.Cover });
             int maxStacks = Mathf.Max(1, status.maxStacks);
             var existing = target.FindStatus(status);
             if (existing == null)
@@ -385,6 +489,14 @@ namespace Combat
                         existing.Remaining = duration;
                         break;
                 }
+            }
+            // Chill at 3 stacks becomes Frozen, and so on.
+            var now = target.FindStatus(status);
+            if (status.becomesAtMaxStacks != null && now != null && now.Stacks >= maxStacks)
+            {
+                target.Statuses.Remove(now);
+                ApplyStatus(source, target, status.becomesAtMaxStacks, status.becomesTurns, 1);
+                Log(target.Name + ": " + status.becomesAtMaxStacks.DisplayName + "!");
             }
             target.HP = Mathf.Min(target.HP, target.MaxHP);
             EmitStatuses(target);
@@ -553,7 +665,13 @@ namespace Combat
                     if (def.damagePerRoundPercentMaxHP > 0f && unit.IsAlive)
                     {
                         int dmg = Mathf.Max(1, Mathf.RoundToInt(unit.MaxHP * def.damagePerRoundPercentMaxHP * status.Stacks));
-                        ApplyDamage(status.Source, unit, dmg, false, AfflatusRelation.Neutral, true);
+                        ApplyDamage(status.Source, unit, dmg, false, ResonanceRelation.Neutral, true, tick: def);
+                        if (IsOver) return;
+                    }
+                    if (def.damagePerRoundSourceATK > 0f && unit.IsAlive && status.Source != null)
+                    {
+                        int dmg = Mathf.Max(1, Mathf.RoundToInt(status.Source.GetStat(StatType.Attack) * def.damagePerRoundSourceATK * status.Stacks));
+                        ApplyDamage(status.Source, unit, dmg, false, ResonanceRelation.Neutral, true, tick: def);
                         if (IsOver) return;
                     }
                     if (def.healPerRoundPercentMaxHP > 0f && unit.IsAlive)
@@ -568,7 +686,8 @@ namespace Combat
             }
         }
 
-        void ApplyDamage(BattleUnit source, BattleUnit target, int amount, bool crit, AfflatusRelation relation, bool isTick)
+        void ApplyDamage(BattleUnit source, BattleUnit target, int amount, bool crit, ResonanceRelation relation, bool isTick,
+            int blocked = 0, bool isCounter = false, StatusDefinition tick = null)
         {
             target.HP = Mathf.Max(0, target.HP - amount);
             Emit(new DamageEvent
@@ -576,8 +695,11 @@ namespace Combat
                 Source = source,
                 Target = target,
                 Amount = amount,
+                Blocked = blocked,
                 Crit = crit,
                 IsTick = isTick,
+                IsCounter = isCounter,
+                TickStatus = tick,
                 Relation = relation,
                 HPAfter = target.HP,
                 MaxHP = target.MaxHP

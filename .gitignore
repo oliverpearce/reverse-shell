@@ -65,9 +65,7 @@ reverse-shell/[Cc]rashes/
 .idea/
 
 # Planning and internal documents stay on this computer (the repo is a code backup)
-reverse-shell/Planning/
-reverse-shell/GAME_BIBLE.md
-reverse-shell/HANDOFF.md
+design/
 itch/
 
 # Secrets, just in case
@@ -85,3 +83,6 @@ builds/
 # reverse-shell/Assets/_Project/Art/ThirdParty/RavenFantasyIcons.meta
 # Card overhaul packs (itch.io; no redistribution): argametina Free Card Packs.
 # reverse-shell/Assets/_Project/Art/ThirdParty/CardPacks/
+# Card back (itch.io; credit required, no redistribution): Stars in a Box Major Arcana Tarot Cards.
+# reverse-shell/Assets/_Project/Art/ThirdParty/MajorArcana/
+# reverse-shell/Assets/_Project/Art/ThirdParty/MajorArcana.meta

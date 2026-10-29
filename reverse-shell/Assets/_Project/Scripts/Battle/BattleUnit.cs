@@ -22,7 +22,7 @@ namespace Combat
         public readonly List<PartDefinition> Parts = new List<PartDefinition>();
 
         List<CardDefinition> incantations;
-        readonly Dictionary<CardDefinition, int> startRanks = new Dictionary<CardDefinition, int>();
+        readonly Dictionary<CardDefinition, int> upgrades = new Dictionary<CardDefinition, int>();
         readonly Dictionary<CardDefinition, CardBinding> bindings = new Dictionary<CardDefinition, CardBinding>();
         /// <summary>Party only: the Soul level's extra Ult power (added to RitualMight).</summary>
         public float UltPowerBonus { get; private set; }
@@ -85,14 +85,14 @@ namespace Combat
         }
 
         /// <summary>Fits a loadout's cards and Parts. HP is refilled to the (possibly new) max; set HP afterwards to carry damage.</summary>
-        Afflatus? elementOverride;
+        Resonance? elementOverride;
         CardDefinition ultimateOverride;
 
         /// <summary>This unit's element in battle: its active resonance, else its definition's.</summary>
-        public Afflatus Afflatus { get { return elementOverride ?? Definition.afflatus; } }
+        public Resonance Resonance { get { return elementOverride ?? Definition.resonance; } }
 
         /// <summary>This unit's colour (card swirls, queue chips, flashes): its resonance's, else its definition's.</summary>
-        public Color Color { get { return AfflatusInfo.ResonanceColor(Definition.color, elementOverride); } }
+        public Color Color { get { return ResonanceInfo.ResonanceColor(Definition.color, elementOverride); } }
 
         /// <summary>The Ult card it can spawn: its active resonance's, else its definition's ritual.</summary>
         public CardDefinition Ultimate
@@ -111,11 +111,11 @@ namespace Combat
             incantations = null;
             elementOverride = null;
             ultimateOverride = null;
-            startRanks.Clear();
+            upgrades.Clear();
             bindings.Clear();
             UltPowerBonus = 0f;
             if (loadout == null) return;
-            if (loadout.StartRanks != null) foreach (var e in loadout.StartRanks) if (e.Key != null) startRanks[e.Key] = e.Value;
+            if (loadout.Upgrades != null) foreach (var e in loadout.Upgrades) if (e.Key != null) upgrades[e.Key] = e.Value;
             if (loadout.Bindings != null) foreach (var e in loadout.Bindings) if (e.Key != null) bindings[e.Key] = e.Value;
             UltPowerBonus = Mathf.Max(0, loadout.SoulLevel) * PackRates.Current.ultPowerPerSoul;
             elementOverride = loadout.Element;
@@ -125,11 +125,11 @@ namespace Combat
             HP = MaxHP;
         }
 
-        /// <summary>The rank this card starts at when drawn (copies owned rank it up; at least I, at most its max).</summary>
-        public int StartRankOf(CardDefinition card)
+        /// <summary>This card's copy upgrades (0-3, from copies owned): +2 card levels each (<see cref="CardLevels"/>).</summary>
+        public int UpgradesOf(CardDefinition card)
         {
-            int rank;
-            return card != null && startRanks.TryGetValue(card, out rank) ? Mathf.Clamp(rank, 1, card.MaxRank) : 1;
+            int n;
+            return card != null && upgrades.TryGetValue(card, out n) ? Mathf.Max(0, n) : 0;
         }
 
         /// <summary>The Sun / Moon / Star bound onto this card, if any.</summary>
@@ -157,7 +157,7 @@ namespace Combat
             }
             foreach (var part in Parts)
             {
-                if (!part.AppliesTo(Afflatus)) continue;
+                if (!part.AppliesTo(Resonance)) continue;
                 foreach (var mod in part.modifiers)
                 {
                     if (mod.stat != stat) continue;
@@ -185,7 +185,7 @@ namespace Combat
 
         public List<StatusSnapshot> SnapshotStatuses()
         {
-            return Statuses.ConvertAll(s => new StatusSnapshot(s.Definition, s.Remaining, s.Stacks));
+            return Statuses.ConvertAll(s => new StatusSnapshot(s.Definition, s.Remaining, s.Stacks, s.Power));
         }
 
         public override string ToString() { return Name; }
@@ -197,6 +197,13 @@ namespace Combat
         public readonly BattleUnit Source;
         public int Remaining;
         public int Stacks;
+        /// <summary>Shield: HP it still soaks. Counter: the counter hit's multiple of the holder's ATK.</summary>
+        public float Power;
+        /// <summary>Counter: extra share of Power while the holder is below half HP (1 = double).</summary>
+        public float Bonus;
+        /// <summary>Counter: a status the counter hit also gives the attacker (and for how many turns).</summary>
+        public StatusDefinition Payload;
+        public int PayloadTurns;
 
         public StatusInstance(StatusDefinition definition, BattleUnit source, int remaining, int stacks)
         {
@@ -212,12 +219,15 @@ namespace Combat
         public readonly StatusDefinition Definition;
         public readonly int Remaining;
         public readonly int Stacks;
+        /// <summary>A shield's HP left (0 for other statuses).</summary>
+        public readonly float Power;
 
-        public StatusSnapshot(StatusDefinition definition, int remaining, int stacks)
+        public StatusSnapshot(StatusDefinition definition, int remaining, int stacks, float power = 0f)
         {
             Definition = definition;
             Remaining = remaining;
             Stacks = stacks;
+            Power = power;
         }
     }
 }

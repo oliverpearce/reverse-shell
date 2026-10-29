@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Resonant Core
   slot: 3
   color: {r: 0.45, g: 0.78, b: 1, a: 1}
-  description: Your Core, bound with the Soul Card. +10% damage while Electric.
+  description: Your Core, bound with the Soul Card. +10% damage while Arc.
   modifiers:
   - stat: 6
     kind: 0

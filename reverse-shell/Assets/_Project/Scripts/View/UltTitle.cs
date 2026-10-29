@@ -17,7 +17,8 @@ namespace Combat.View
         const float BandHeight = 190f;
         const float LetterStagger = 0.045f, LetterIn = 0.26f, Hold = 0.45f, Out = 0.3f;
 
-        public static IEnumerator Play(RectTransform layer, string name, Color color)
+        /// <param name="unscaled">Real time instead (Pack Mode runs over the paused title screen).</param>
+        public static IEnumerator Play(RectTransform layer, string name, Color color, bool unscaled = false)
         {
             var center = new Vector2(0.5f, 0.5f);
             var host = layer.gameObject.AddComponent<CanvasGroup>();
@@ -79,7 +80,7 @@ namespace Combat.View
                 band.rectTransform.localScale = new Vector3(1f, p, 1f);
                 for (int i = 0; i < lines.Count; i++)
                     lines[i].anchoredPosition = new Vector2(Mathf.Lerp(i == 0 ? -width : width, 0f, p), lines[i].anchoredPosition.y);
-            }, Tween.OutCubic);
+            }, Tween.OutCubic, unscaled);
 
             // The letters slam in one after another: big, tilted and raised, dropping into place.
             float inTime = LetterIn + LetterStagger * Mathf.Max(0, letters.Count - 1);
@@ -99,7 +100,7 @@ namespace Combat.View
                     rt.localRotation = Quaternion.Euler(0f, 0f, Mathf.LerpUnclamped(tilts[i], 0f, e));
                     letters[i].color = new Color(1f, 1f, 1f, Mathf.Clamp01(k * 3f));
                 }
-            }, Tween.Linear);
+            }, Tween.Linear, unscaled);
 
             // A glint runs along the word: each letter flashes from the owner's colour to white as it passes.
             Color tint = Color.Lerp(color, Color.white, 0.55f);
@@ -112,7 +113,7 @@ namespace Combat.View
                     float d = Mathf.Abs(head - i);
                     letters[i].color = Color.Lerp(tint, Color.white, Mathf.Clamp01(1f - d / 2f));
                 }
-            }, Tween.Linear);
+            }, Tween.Linear, unscaled);
 
             // Out: the letters peel off to the right, one after another, and the band closes.
             float outTime = Out + 0.02f * letters.Count;
@@ -130,7 +131,7 @@ namespace Combat.View
                 }
                 band.rectTransform.localScale = new Vector3(1f, 1f - Tween.OutCubic(p), 1f);
                 host.alpha = 1f - Mathf.Clamp01((p - 0.6f) / 0.4f);
-            }, Tween.Linear);
+            }, Tween.Linear, unscaled);
         }
     }
 }

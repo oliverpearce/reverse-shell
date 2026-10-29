@@ -24,7 +24,7 @@ namespace Combat.View
         // CARDS > BOOK > TUNING
         public static readonly Vector2 PageSize = new Vector2(560f, 580f);
         const float Spine = 28f, Margin = 22f;                  // the gap between the pages; the boards beyond the pages
-        const float OpenSeconds = 0.4f, CloseSeconds = 0.35f, TurnSeconds = 0.42f;
+        const float OpenSeconds = 0.28f, CloseSeconds = 0.35f, TurnSeconds = 0.42f;   // open: quick, so the page follows straight on
         const float FirstPageSeconds = 0.36f;                   // the first page turning over (with the cards) as it opens
         const float CurlLag = 0.45f;                            // how far the outer edge trails the spine side (the curl)
         const float CoverLag = 0.08f;                           // the cover is stiff: almost no curl
@@ -444,7 +444,12 @@ namespace Combat.View
 
         static float Smooth(float t) { return t * t * (3f - 2f * t); }
         static float Ease(float t) { t = 1f - t; return 1f - t * t * t; }
-        static float OverBack(float t) { return Tween.OutBack(t); }
+        /// <summary>The cover's swing: a small overshoot that settles fast (a big one made a pause before the page turned).</summary>
+        static float OverBack(float t)
+        {
+            const float c1 = 0.6f, c3 = c1 + 1f;
+            return 1f + c3 * Mathf.Pow(t - 1f, 3f) + c1 * Mathf.Pow(t - 1f, 2f);
+        }
 
         static IEnumerator Run(float seconds, Action<float> step)
         {

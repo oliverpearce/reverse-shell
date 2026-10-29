@@ -78,7 +78,7 @@ namespace Game.EditorTools
                     Objective(Chapter1.Tunnel, "objective.tunnel"),
                     Objective(Chapter1.DragonSeen, "objective.guardian"),
                     Objective(Chapter1.DragonBeaten, "objective.card"),
-                    Objective(Chapter1.ResonanceVolt, "objective.leave"),
+                    Objective(Chapter1.ResonanceArc, "objective.leave"),
                     Objective(Chapter1.Complete, "objective.complete"),
                 };
                 AssetDatabase.CreateAsset(chapter, chapterPath);

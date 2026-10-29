@@ -19,7 +19,7 @@ MonoBehaviour:
   spriteSheet: {fileID: 0}
   sheetColumns: 3
   sheetRows: 4
-  afflatus: 0
+  resonance: 0
   damageType: 1
   stats:
     maxHP: 2700
@@ -40,3 +40,6 @@ MonoBehaviour:
     weight: 1
   xpReward: 300
   ritual: {fileID: 11400000, guid: 24235566bf1c5054288be25e26d09822, type: 2}
+  innate: {fileID: 11400000, guid: 0a9f10b068c3d5b4dac30534a0894bbf, type: 2}
+  innateLevels: 3
+  innateWeight: 1

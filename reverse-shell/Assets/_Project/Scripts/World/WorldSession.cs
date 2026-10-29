@@ -183,7 +183,32 @@ namespace Game.World
         public static readonly Dictionary<string, int> CardCopies = new Dictionary<string, int>();
         public static readonly Dictionary<string, string> Bindings = new Dictionary<string, string>();
         public static readonly Dictionary<string, int> BindingsFound = new Dictionary<string, int>();
-        public static int Packs;
+        /// <summary>Unopened packs, oldest first: each a pack id (PackRates.packs); "" = whatever the area gives when it's
+        /// opened (packs from older saves). Saved.</summary>
+        public static readonly List<string> PackQueue = new List<string>();
+        public static int Packs { get { return PackQueue.Count; } }
+        /// <summary>Cards pulled but not looked at in the book yet (CardCollection.IsNew keys: card name, "Soul:member",
+        /// "Arcana:kind"); they wear a NEW tag. Saved.</summary>
+        public static readonly HashSet<string> UnseenCards = new HashSet<string>();
+
+        /// <summary>Items the player has used ("area:x:row"), whose squares are walkable from then on. Saved.</summary>
+        public static readonly HashSet<string> UsedItems = new HashSet<string>();
+
+        public static string ItemKey(string area, int x, int row) { return area + ":" + x + ":" + row; }
+
+        public static void AddPacks(string id, int count)
+        {
+            for (int i = 0; i < count; i++) PackQueue.Add(id ?? "");
+        }
+
+        /// <summary>Takes the oldest unopened pack's id, or null if there are none.</summary>
+        public static string TakePack()
+        {
+            if (PackQueue.Count == 0) return null;
+            var id = PackQueue[0];
+            PackQueue.RemoveAt(0);
+            return id;
+        }
 
         /// <summary>True once a new game has been handed the catalog's starter Parts (saved, so it happens once).</summary>
         public static bool StarterPartsGiven;
@@ -373,27 +398,26 @@ namespace Game.World
         // ------------------------------------------------------------------ Resonance (the protagonist)
 
         /// <summary>Resonances unlocked by absorbing Soul Cards (the starting one is always available). Saved.</summary>
-        public static readonly HashSet<Afflatus> UnlockedResonances = new HashSet<Afflatus>();
+        public static readonly HashSet<Resonance> UnlockedResonances = new HashSet<Resonance>();
 
         /// <summary>The protagonist's active resonance (free to switch outside combat). Saved.</summary>
-        public static Afflatus ActiveResonance = Afflatus.None;
+        public static Resonance ActiveResonance = Resonance.Basic;
 
-        public static void UnlockResonance(Afflatus element) { UnlockedResonances.Add(element); }
+        public static void UnlockResonance(Resonance element) { UnlockedResonances.Add(element); }
 
         /// <summary>The Esc menu's Resonance card: after Chapter One, and always in Sandbox Mode.</summary>
         public static bool ResonanceMenuUnlocked { get { return InSandbox || StoryState.Has(Chapter1.Complete); } }
 
-        /// <summary>The card binder (the Cards book, peeking out of the Esc menu): found on waking in Chapter 1 (saves from
-        /// before it existed count waking as finding it).</summary>
-        public static bool BinderUnlocked { get { return InSandbox || StoryState.Has(Chapter1.Binder) || StoryState.Has(Chapter1.Awake); } }
+        /// <summary>The card binder (the Cards book, peeking out of the Esc menu): picked up beside the capsule in Chapter 1.</summary>
+        public static bool BinderUnlocked { get { return InSandbox || StoryState.Has(Chapter1.Binder); } }
 
         /// <summary>
         /// The resonances <paramref name="member"/> can switch to now, in kit order (empty = no kits). Sandbox Mode
         /// lends every kit, so they can be tried before the story unlocks them.
         /// </summary>
-        public static List<Afflatus> AvailableResonances(CharacterDefinition member)
+        public static List<Resonance> AvailableResonances(CharacterDefinition member)
         {
-            var list = new List<Afflatus>();
+            var list = new List<Resonance>();
             if (member == null) return list;
             for (int i = 0; i < member.resonances.Count; i++)
             {
@@ -408,7 +432,7 @@ namespace Game.World
         {
             if (member == null) return Color.white;
             var kit = ActiveKit(member);
-            return AfflatusInfo.ResonanceColor(member.color, kit != null ? kit.element : (Afflatus?)null);
+            return ResonanceInfo.ResonanceColor(member.color, kit != null ? kit.element : (Resonance?)null);
         }
 
         /// <summary>The kit in use: the active resonance if unlocked, else the first. Null for members without kits.</summary>
@@ -419,7 +443,7 @@ namespace Game.World
             return member.resonances[0];
         }
 
-        public static void SetResonance(Afflatus element) { ActiveResonance = element; }
+        public static void SetResonance(Resonance element) { ActiveResonance = element; }
 
         /// <summary>The Ult card a member brings: their active resonance's, else their ritual.</summary>
         public static CardDefinition UltimateOf(CharacterDefinition member)
@@ -429,10 +453,10 @@ namespace Game.World
         }
 
         /// <summary>A member's element: their active resonance's, else their definition's.</summary>
-        public static Afflatus ElementOf(CharacterDefinition member)
+        public static Resonance ElementOf(CharacterDefinition member)
         {
             var kit = ActiveKit(member);
-            return kit != null ? kit.element : (member != null ? member.afflatus : Afflatus.None);
+            return kit != null ? kit.element : (member != null ? member.resonance : Resonance.Basic);
         }
 
         /// <summary>A unit's deck: its locked card plus the extra cards chosen for it (CardCollection), no repeats. Its
@@ -619,7 +643,7 @@ namespace Game.World
                     {
                         Cards = DeckOf(member),
                         Parts = PartsOf(member),
-                        Element = kit != null ? kit.element : (Afflatus?)null,
+                        Element = kit != null ? kit.element : (Resonance?)null,
                         Ultimate = kit != null ? kit.ultimate : null,
                     };
                     CardCollection.FillLoadout(member, loadout);   // start ranks, bindings, Soul level
@@ -685,7 +709,9 @@ namespace Game.World
             CardCopies.Clear();
             Bindings.Clear();
             BindingsFound.Clear();
-            Packs = 0;
+            PackQueue.Clear();
+            UnseenCards.Clear();
+            UsedItems.Clear();
             StarterPartsGiven = false;
             Catalog = null;
             HasReturnPoint = false;

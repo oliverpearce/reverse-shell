@@ -244,6 +244,19 @@ namespace Game.World
             return blobMat;
         }
 
+        static readonly Dictionary<Color, Material> matte = new Dictionary<Color, Material>();
+
+        /// <summary>A plain lit material in one colour (leather, cloth).</summary>
+        public static Material Matte(Color color, float glossiness = 0.2f)
+        {
+            Material m;
+            if (matte.TryGetValue(color, out m) && m != null) return m;
+            m = new Material(FindShader("Standard")) { color = color };
+            m.SetFloat("_Glossiness", glossiness);
+            matte[color] = m;
+            return m;
+        }
+
         public static Material DarkMetal()
         {
             if (darkMetal == null)

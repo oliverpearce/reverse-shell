@@ -7,13 +7,13 @@ namespace Combat
     {
         public int Amount;
         public bool Crit;
-        public AfflatusRelation Relation;
+        public ResonanceRelation Relation;
     }
 
     public static class DamageCalculator
     {
         /// <summary>
-        /// ATK x multiplier x (1 - mitigation) x afflatus x (1 + might) x (1 + damage taken) x crit.
+        /// ATK x multiplier x (1 - mitigation) x resonance x (1 + might) x (1 + damage taken) x crit.
         /// Pass rng = null to disable crits (handy for tests and previews).
         /// </summary>
         public static DamageResult Compute(BattleUnit attacker, BattleUnit defender, float multiplier, bool isRitual,
@@ -24,27 +24,28 @@ namespace Combat
             float def = Mathf.Max(0f, defender.GetStat(defStat));
             float mitigation = def / (def + Mathf.Max(1f, config.defenseScale));
 
-            var relation = AfflatusChart.Relation(attacker.Afflatus, defender.Afflatus);
-            float afflatus = 1f, critBonus = 0f;
-            if (relation == AfflatusRelation.Advantage)
+            var relation = ResonanceChart.Relation(attacker.Resonance, defender.Resonance);
+            float resonance = 1f, critBonus = 0f;
+            if (relation == ResonanceRelation.Advantage)
             {
-                afflatus = config.advantageDamage;
+                resonance = config.advantageDamage;
                 critBonus = config.advantageCritBonus;
             }
-            else if (relation == AfflatusRelation.Disadvantage)
+            else if (relation == ResonanceRelation.Disadvantage)
             {
-                afflatus = config.disadvantageDamage;
+                resonance = config.disadvantageDamage;
             }
 
             float might = 1f + attacker.GetStat(StatType.DamageBonus)
                              + attacker.GetStat(isRitual ? StatType.RitualMight : StatType.IncantationMight);
             float taken = 1f + defender.GetStat(StatType.DamageTaken);
 
+            if (attacker.Resonance == Resonance.Prism) critBonus += config.prismCritBonus;
             float critRate = Mathf.Clamp01(attacker.GetStat(StatType.CritRate) + critBonus);
             bool crit = rng != null && rng.NextDouble() < critRate;
             float critMult = crit ? Mathf.Max(1f, attacker.GetStat(StatType.CritDamage)) : 1f;
 
-            float total = atk * multiplier * (1f - mitigation) * afflatus * Mathf.Max(0f, might) * Mathf.Max(0f, taken) * critMult;
+            float total = atk * multiplier * (1f - mitigation) * resonance * Mathf.Max(0f, might) * Mathf.Max(0f, taken) * critMult;
             return new DamageResult
             {
                 Amount = Mathf.Max(1, Mathf.RoundToInt(total)),
@@ -56,7 +57,7 @@ namespace Combat
 
     public static class DeckGenerator
     {
-        /// <summary>A random incantation from a random living party member, at the rank its copies give it (I by default).</summary>
+        /// <summary>A random incantation from a random living party member, at rank I (copies add levels, not ranks).</summary>
         public static CardInstance Draw(IList<BattleUnit> party, System.Random rng)
         {
             var owners = new List<BattleUnit>();
@@ -68,7 +69,7 @@ namespace Combat
             var owner = owners[rng.Next(owners.Count)];
             var cards = owner.Incantations.FindAll(c => c != null);
             var card = cards[rng.Next(cards.Count)];
-            return new CardInstance(card, owner, owner.StartRankOf(card));
+            return new CardInstance(card, owner, 1);
         }
     }
 
@@ -81,14 +82,17 @@ namespace Combat
             if (def == null) return null;
             if (def.ritual != null && enemy.Moxie >= moxieCap) return new CardInstance(def.ritual, enemy, 1);
 
+            // The skills plus the innate card, weighted.
+            var moves = new List<EnemySkill>(def.skills);
+            if (def.innate != null) moves.Add(new EnemySkill { card = def.innate, rank = 1, weight = def.innateWeight });
             float total = 0f;
-            foreach (var s in def.skills)
+            foreach (var s in moves)
                 if (s.card != null) total += s.weight;
             if (total <= 0f) return null;
 
             double roll = rng.NextDouble() * total;
             EnemySkill pick = null;
-            foreach (var s in def.skills)
+            foreach (var s in moves)
             {
                 if (s.card == null) continue;
                 pick = s;

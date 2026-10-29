@@ -14,7 +14,7 @@ namespace Game.World
     /// </summary>
     public static class CardPacks
     {
-        public enum Tier { Common, Rare, Soul }
+        public enum Tier { Common, Rare, Soul, Blank }
 
         public class Pull
         {
@@ -24,6 +24,8 @@ namespace Game.World
             public CharacterDefinition Member;   // Soul: whose Soul card
             /// <summary>Set by Claim: the card's start rank went up (Common), or the new Soul level (Soul).</summary>
             public bool RankedUp;
+            /// <summary>Set by Claim: the card was already at its top level, so it became a blank card.</summary>
+            public bool Blank;
             public int SoulLevelAfter;
         }
 
@@ -31,31 +33,38 @@ namespace Game.World
 
         /// <summary>One pack's cards for this roster. Caps count the pack's own earlier cards, so one pack can't give a
         /// third Sun or push a unit past the Soul cap.</summary>
-        public static List<Pull> Roll(IList<CharacterDefinition> roster, System.Random rng)
+        public static List<Pull> Roll(IList<CharacterDefinition> roster, System.Random rng, PackKind kind = null)
         {
+            if (kind != null) return RollKind(roster, rng, kind);
             var rates = PackRates.Current;
             var pulls = new List<Pull>();
             var commons = new List<CardDefinition>();
             foreach (var member in roster)
-                foreach (var card in CardCollection.AbilitiesOf(member))
+                foreach (var card in CardCollection.PackPoolOf(member))
                     if (!commons.Contains(card)) commons.Add(card);
 
             var taken = new List<CardDefinition>();
             for (int i = 0; i < rates.cardsPerPack; i++)
             {
                 Pull pull = null;
+                // The second card: sometimes a blank card (imprint it with any card in the Cards book).
+                if (i == 1 && i < rates.cardsPerPack - 1 && rng.NextDouble() < rates.blankChance) pull = new Pull { Tier = Tier.Blank };
                 if (i == rates.cardsPerPack - 1)
                 {
                     // The last card: the only one that can be a SOUL or rare card.
                     double roll = rng.NextDouble();
                     if (roll < rates.soulChance) pull = RollSoul(roster, pulls, rng);
-                    if (pull == null && roll < rates.soulChance + rates.rareChance) pull = RollRare(pulls, rng);
+                    if (pull == null && roll < rates.soulChance + rates.arcanaChance) pull = RollRare(pulls, rng);
                 }
                 if (pull == null && commons.Count > 0)
                 {
-                    // A card not already in this pack (repeats only if there aren't enough different cards).
-                    var fresh = commons.FindAll(c => !taken.Contains(c));
-                    var from = fresh.Count > 0 ? fresh : commons;
+                    // A card not already in this pack (repeats only if there aren't enough different cards). Legendaries
+                    // only on a PackRates.legendaryChance roll.
+                    bool legendary = rng.NextDouble() < rates.legendaryChance;
+                    var allowed = legendary ? commons : commons.FindAll(c => c.rarity != CardRarity.Legendary);
+                    if (allowed.Count == 0) allowed = commons;
+                    var fresh = allowed.FindAll(c => !taken.Contains(c));
+                    var from = fresh.Count > 0 ? fresh : allowed;
                     var card = from[rng.Next(from.Count)];
                     taken.Add(card);
                     pull = new Pull { Tier = Tier.Common, Card = card };
@@ -64,6 +73,77 @@ namespace Game.World
             }
             return pulls;
         }
+
+        /// <summary>
+        /// A chapter pack: each common card is from the pack's resonance (<see cref="PackKind.poolShare"/>) or the
+        /// Basic cards, then of a rarity rolled with the pack's tier odds (an empty tier or pool falls back to the
+        /// others). Resonance cards come even before the resonance is unlocked: collecting them is part of the chapter.
+        /// </summary>
+        static List<Pull> RollKind(IList<CharacterDefinition> roster, System.Random rng, PackKind kind)
+        {
+            var pulls = new List<Pull>();
+            var resonance = new List<CardDefinition>();
+            var physical = new List<CardDefinition>();
+            foreach (var member in PackModeRun.KitOwners(roster))
+                foreach (var card in CardCollection.AbilitiesOf(member))
+                {
+                    if (card.pool == Resonance.Basic) { if (!physical.Contains(card)) physical.Add(card); }
+                    else if (card.pool == kind.pool && !resonance.Contains(card)) resonance.Add(card);
+                }
+
+            var taken = new List<CardDefinition>();
+            int count = UnityEngine.Mathf.Max(1, kind.cardsPerPack);
+            for (int i = 0; i < count; i++)
+            {
+                Pull pull = null;
+                if (i == 1 && i < count - 1 && rng.NextDouble() < kind.blankChance) pull = new Pull { Tier = Tier.Blank };
+                if (i == count - 1)
+                {
+                    double roll = rng.NextDouble();
+                    if (roll < kind.soulChance) pull = RollSoul(roster, pulls, rng);
+                    if (pull == null && roll < kind.soulChance + kind.arcanaChance) pull = RollRare(pulls, rng);
+                }
+                if (pull == null)
+                {
+                    bool fromResonance = resonance.Count > 0 && (physical.Count == 0 || rng.NextDouble() < kind.poolShare);
+                    var card = PickCommon(fromResonance ? resonance : physical, fromResonance ? physical : resonance, taken, RollRarity(kind, rng));
+                    if (card != null)
+                    {
+                        taken.Add(card);
+                        pull = new Pull { Tier = Tier.Common, Card = card };
+                    }
+                }
+                if (pull != null) pulls.Add(pull);
+            }
+            return pulls;
+        }
+
+        static CardRarity RollRarity(PackKind kind, System.Random rng)
+        {
+            float total = kind.commonShare + kind.rareShare + kind.epicShare + kind.legendaryShare;
+            if (total <= 0f) return CardRarity.Common;
+            double roll = rng.NextDouble() * total;
+            if ((roll -= kind.commonShare) < 0) return CardRarity.Common;
+            if ((roll -= kind.rareShare) < 0) return CardRarity.Rare;
+            return roll - kind.epicShare < 0 ? CardRarity.Epic : CardRarity.Legendary;
+        }
+
+        /// <summary>A card of <paramref name="rarity"/> not in the pack yet, from <paramref name="pool"/>; falling back to
+        /// any rarity, then the other pool, then repeats. The fallbacks never give a Legendary unless one was rolled.</summary>
+        static CardDefinition PickCommon(List<CardDefinition> pool, List<CardDefinition> other, List<CardDefinition> taken, CardRarity rarity)
+        {
+            foreach (var from in new[] { pool, other })
+            {
+                var fresh = from.FindAll(c => !taken.Contains(c) && (rarity == CardRarity.Legendary || c.rarity != CardRarity.Legendary));
+                var tier = fresh.FindAll(c => c.rarity == rarity);
+                var list = tier.Count > 0 ? tier : fresh;
+                if (list.Count > 0) return list[Rng.Next(list.Count)];
+            }
+            var any = (pool.Count > 0 ? pool : other).FindAll(c => rarity == CardRarity.Legendary || c.rarity != CardRarity.Legendary);
+            return any.Count > 0 ? any[Rng.Next(any.Count)] : null;
+        }
+
+        static readonly System.Random Rng = new System.Random();
 
         static Pull RollSoul(IList<CharacterDefinition> roster, List<Pull> already, System.Random rng)
         {
@@ -95,30 +175,41 @@ namespace Game.World
             switch (pull.Tier)
             {
                 case Tier.Common:
-                    int before = CardCollection.StartRank(pull.Card);
+                    int before = CardCollection.Upgrades(pull.Card), copies = CardCollection.Copies(pull.Card);
                     CardCollection.AddCopy(pull.Card);
-                    pull.RankedUp = CardCollection.StartRank(pull.Card) > before;
+                    pull.RankedUp = CardCollection.Upgrades(pull.Card) > before;
+                    pull.Blank = CardCollection.Copies(pull.Card) == copies;   // already at the top: it became a blank card
                     break;
                 case Tier.Rare:
                     CardCollection.AddFound(pull.Binding);
+                    CardCollection.MarkNew(CardCollection.ArcanaKey(pull.Binding));
+                    break;
+                case Tier.Blank:
+                    CardCollection.AddBlank();
                     break;
                 case Tier.Soul:
+                    CardCollection.MarkNew(CardCollection.SoulKey(pull.Member));
                     CardCollection.AddSoul(pull.Member);
                     pull.SoulLevelAfter = CardCollection.SoulLevel(pull.Member);
                     break;
             }
         }
 
-        /// <summary>Uses up one unopened pack. False if there are none. Card Pack mode never runs out.</summary>
-        public static bool TakePack()
+        /// <summary>Uses up one unopened pack and says which kind it is (null = no packs set up). False if there are none.
+        /// Card Pack mode never runs out and opens a random kind each time.</summary>
+        public static bool TakePack(out PackKind kind)
         {
+            var rates = PackRates.Current;
+            kind = null;
             if (CardCollection.InSession)
             {
                 CardCollection.Current.PacksOpened++;
+                if (rates.packs.Count > 0) kind = rates.packs[Rng.Next(rates.packs.Count)];
                 return true;
             }
-            if (WorldSession.Packs <= 0) return false;
-            WorldSession.Packs--;
+            var id = WorldSession.TakePack();
+            if (id == null) return false;
+            kind = id == PackRates.RandomPack ? rates.RandomKind() : rates.Pack(id) ?? rates.PackForArea(WorldSession.CurrentArea);
             return true;
         }
     }

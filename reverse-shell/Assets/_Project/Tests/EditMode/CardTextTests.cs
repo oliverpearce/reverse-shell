@@ -116,5 +116,18 @@ namespace Combat.Tests
             };
             Assert.AreEqual("Deal 600% ATK damage to 1 enemy over 2 hits. Give all allies ATK Up.", CardText.ForRank(card, 1));
         }
+
+        [Test]
+        public void EverySentence_StartsWithACapital()
+        {
+            Assert.AreEqual("All allies gain Shield. Deal 1.5x damage.", CardText.Capitalized("all allies gain Shield. deal 1.5x damage."));
+            Assert.AreEqual("II/III only: Give Poison.\nIII: <color=#FFD700>Heal</color> 20%.",
+                CardText.Capitalized("II/III only: give Poison.\nIII: <color=#FFD700>heal</color> 20%."));
+            Assert.AreEqual("120% ATK. {gold}Then{/c} more.", CardText.Capitalized("120% ATK. {gold}then{/c} more."));
+
+            var card = ScriptableObject.CreateInstance<CardDefinition>();
+            card.ranks = new List<CardRank> { new CardRank { description = "self heals a little." } };
+            Assert.AreEqual("Self heals a little.", CardText.ForRank(card, 1), "hand-written descriptions too");
+        }
     }
 }

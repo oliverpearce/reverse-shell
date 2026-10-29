@@ -111,47 +111,80 @@ namespace Combat.View
     }
 
     /// <summary>
-    /// Which effects play for each battle moment (the user's picks, 2026-10-23). Several names layer together.
-    /// Hits use the attacker's element.
+    /// Which effects play for each battle moment (the user's picks in the effect picker, 2026-10-28). Several names
+    /// layer together. Hits use the attacker's resonance.
     /// </summary>
     public static class BattleFx
     {
-        public static readonly string[] HitVolt = { "scifi_spark_burst_001_small_yellow", "lightning_aura_002_small_blue" };
-        public static readonly string[] HitFire = { "symmetrical_explosion_004_small_orange" };
-        public static readonly string[] HitToxin = { "round_sparkle_burst_003_small_red" };
-        public static readonly string[] HitEarth = { "symmetrical_smoke_burst_001_small_brown" };
-        public static readonly string[] HitLight = { "round_firework_burst_002_small_yellow" };
+        public static readonly string[] HitArc = { "lightning_aura_002_small_blue", "scifi_spark_burst_001_small_yellow" };
+        public static readonly string[] HitRoot = { "burst_splatter_003_small_green", "symmetrical_impact_003_small_yellow" };
+        public static readonly string[] HitCryo = { "round_sparkle_burst_001_small_blue", "symmetrical_impact_002_small_blue" };
+        public static readonly string[] HitCinder = { "symmetrical_explosion_001_small_orange" };
+        public static readonly string[] HitPrism = { "status_sparkling_001_small_yellow", "symmetrical_impact_004_small_yellow" };
         /// <summary>Physical (no element): a plain impact burst.</summary>
         public static readonly string[] HitPhysical = { "directional_impact_004_small_yellow" };
-        public static readonly string[] HitVoid = { "lightning_burst_001_small_violet", "stylized_explosion_002_small_violet" };
 
         public static readonly string[] Crit = { "symmetrical_impact_001_small_yellow", "lightning_burst_003_small_violet" };
-        public static readonly string[] Heal = { "spell_heal_001_small_red", "round_sparkle_burst_002_small_green" };
-        public static readonly string[] Buff = { "status_sparkling_001_small_yellow", "directional_impact_003_small_violet" };
-        public static readonly string[] Debuff = { "spell_absorb_001_small_violet", "directional_impact_004_small_yellow" };
-        public static readonly string[] PoisonTick = { "spell_poison_001_small_green", "status_poison_001_small_green" };
-        public static readonly string[] Death = { "symmetrical_explosion_002_small_orange" };
+        public static readonly string[] Heal = { "round_sparkle_burst_002_small_green" };
+        public static readonly string[] Buff = { "status_sparkling_001_small_yellow" };
+        public static readonly string[] Debuff = { "spell_absorb_001_small_violet" };
+
+        /// <summary>A unit gains a shield.</summary>
+        public static readonly string[] Shield = { "spell_defense_up_001_small_blue" };
+        /// <summary>A shield soaks a hit (in place of the hit effect when it soaks all of it).</summary>
+        public static readonly string[] Block = { "directional_impact_001_small_blue" };
+        /// <summary>On the attacker a counter hits back.</summary>
+        public static readonly string[] Counter = { "symmetrical_impact_006_small_yellow" };
+        /// <summary>On the unit stepping in front of an ally.</summary>
+        public static readonly string[] Cover = { "symbol_defense_up_001_small_blue" };
+        /// <summary>On the enemy whose move is cancelled.</summary>
+        public static readonly string[] Interrupt = { "symbol_failure_001_small_red" };
+        public static readonly string[] Cleanse = { "round_sparkle_burst_001_small_blue" };
+
+        public static readonly string[] PoisonTick = { "status_poison_001_small_green" };
+        public static readonly string[] BurnTick = { "fire_looping_004A_small_orange" };
+        public static readonly string[] Chill = { "round_sparkle_burst_001_small_blue" };
+        public static readonly string[] Frozen = { "symmetrical_impact_002_small_blue" };
+
+        public static readonly string[] Death = { "epic_explosion_001_small_orange" };
         /// <summary>On the caster when a Ritual (Ult) card starts.</summary>
         public static readonly string[] UltCharge = { "scifi_charge_up_001_small_yellow" };
-        /// <summary>On each target hit by a Ritual. A 128 px sheet, so it plays at <see cref="UltHitScale"/>.</summary>
-        public static readonly string[] UltHit = { "epic_explosion_001_large_orange" };
-        public const float UltHitScale = 4f;
-        /// <summary>Loops beside "LEVEL UP!" on the results screen.</summary>
-        public const string LevelUp = "symbol_alert_002_small_red";
+        /// <summary>On each target hit by a Ritual. A 96 px sheet, so it plays at <see cref="UltHitScale"/> (512 units across).</summary>
+        public static readonly string[] UltHit = { "stylized_explosion_002_large_violet" };
+        public const float UltHitScale = 512f / 96f;
+        /// <summary>Behind "LEVEL UP!" on the results screen.</summary>
+        public static readonly string[] LevelUp = { "round_firework_burst_002_small_yellow" };
 
-        public static string[] Hit(Afflatus element)
+        /// <summary>A battle cue's effect (<see cref="FxCueEvent"/>), or null.</summary>
+        public static string[] Cue(string cue)
+        {
+            switch (cue)
+            {
+                case FxCueEvent.Shield: return Shield;
+                case FxCueEvent.Cover: return Cover;
+                case FxCueEvent.Interrupt: return Interrupt;
+                case FxCueEvent.Cleanse: return Cleanse;
+            }
+            return null;
+        }
+
+        /// <summary>An end-of-turn tick's effect: Burn's fire, else the poison bubbles.</summary>
+        public static string[] Tick(StatusDefinition status)
+        {
+            return status != null && status.damagePerRoundSourceATK > 0f ? BurnTick : PoisonTick;
+        }
+
+        public static string[] Hit(Resonance element)
         {
             switch (element)
             {
-                case Afflatus.Volt: return HitVolt;
-                case Afflatus.Fire: return HitFire;
-                case Afflatus.Toxin: return HitToxin;
-                case Afflatus.Earth: return HitEarth;
-                case Afflatus.Light: return HitLight;
-                case Afflatus.Void: return HitVoid;
-                case Afflatus.None: return HitPhysical;
+                case Resonance.Arc: return HitArc;
+                case Resonance.Cinder: return HitCinder;
+                case Resonance.Root: return HitRoot;
+                case Resonance.Cryo: return HitCryo;
+                case Resonance.Prism: return HitPrism;
             }
-            return HitVolt;
+            return HitPhysical;
         }
     }
 }

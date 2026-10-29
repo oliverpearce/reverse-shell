@@ -26,8 +26,9 @@ namespace Combat.View
         /// <param name="buildFace">Draws the card into the rect it's given (CardView.Size * Scale).</param>
         /// <param name="shape">The card's art when it's narrower than a card (Soul tarots, Sun / Moon / Star), so the shine
         /// stays on it; null for ordinary cards.</param>
+        /// <param name="type">An ability card's type, for its typed shine (null = the plain one).</param>
         public static CardZoom Open(RectTransform canvasRoot, Action<RectTransform, float> buildFace, CardHolo.Kind holo,
-            Action onClosed = null, Sprite shape = null)
+            Action onClosed = null, Sprite shape = null, CardKind? type = null)
         {
             if (current != null) current.Close();
             var rt = UIFactory.CreateRect("CardZoom", canvasRoot).Fill();
@@ -51,7 +52,7 @@ namespace Combat.View
             tilt.ExcludeName = "DetailPanel";   // the card's text panel beside it never turns
             tilt.Keyboard = true;
             CardTiltDrag.Add(holder.gameObject, tilt);
-            CardHolo.Add(face, tilt, holo, shape);
+            CardHolo.Add(face, tilt, holo, shape, type);
 
             var hint = UIFactory.CreateText(rt, "Hint", UIText.Get("card.hint.tilt"), 30, InkStyle.Paper, TextAnchor.MiddleCenter);
             hint.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(1200f, 50f));
@@ -111,6 +112,16 @@ namespace Combat.View
         public static void BuildFace(RectTransform root, CardBinding kind, float s)
         {
             CardView.BuildSimpleFace(root, Art(kind), Orange, Name(kind), s, false);
+        }
+
+        /// <summary>The blank card's pearl-silver swirl.</summary>
+        public static readonly Color Pearl = new Color(0.86f, 0.9f, 0.98f);
+
+        /// <summary>A blank card: a Sun / Moon / Star card in pearl silver with nothing in the middle (it can become any
+        /// card). Give it <see cref="CardHolo.Kind.Blank"/>'s shine.</summary>
+        public static void BuildBlankFace(RectTransform root, float s)
+        {
+            CardView.BuildSimpleFace(root, null, Pearl, UIText.Get("pack.blank_card"), s, false);
         }
     }
 }

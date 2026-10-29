@@ -161,19 +161,28 @@ namespace Game.World
             BuildSlots();
             BuildStrip();
             BuildButtons();
-            // Who beats whom, always in view. Before a fight it sits right-aligned with the Start button, centred in the
-            // space between the backup note and the top of Start, as large as that space allows (up to 1.1x).
+            // Who beats whom, always in view. Before a fight it goes left of the Start button, from under the slot notes
+            // down to Start's bottom, between the Members mat and Start, as large as that space allows (up to 1.2x).
+            // With a long Members mat that space gets narrow, so then it sits above Start instead (the old spot).
             if (PreFight)
             {
+                var chart = ResonanceChartView.Size;
                 float half = page.rect.height > 0f ? page.rect.height / 2f : UIFactory.ReferenceResolution.y / 2f;
-                float noteBottom = SlotsY - CardView.Size.y * SlotScale / 2f - 112f - 60f;
-                float startTop = -half + StartBottom + HudView.GoSize.y;
-                float scale = Mathf.Clamp((noteBottom - startTop - 30f) / ResonanceChartView.Size.y, 0.6f, 1.1f);
                 float pageRight = page.rect.width > 0f ? page.rect.width / 2f : UIFactory.ReferenceResolution.x / 2f;
-                float chartX = pageRight - StartRight - ResonanceChartView.Size.x * scale / 2f;
-                ResonanceChartView.Create(page, new Vector2(chartX, (noteBottom + startTop) / 2f), scale);
+                float noteBottom = SlotsY - CardView.Size.y * SlotScale / 2f - 112f - 60f;
+                float startBottom = -half + StartBottom, startTop = startBottom + HudView.GoSize.y;
+
+                float top = noteBottom - 15f;
+                float right = pageRight - StartRight - HudView.GoSize.x - 24f;
+                float left = MembersLeft + membersMatW + 30f;
+                float beside = Mathf.Min(1.2f, (top - startBottom) / chart.y, (right - left) / chart.x);
+                float above = Mathf.Clamp((noteBottom - startTop - 30f) / chart.y, 0.5f, 1.1f);
+                if (beside >= above)
+                    ResonanceChartView.Create(page, new Vector2(right - chart.x * beside / 2f, (top + startBottom) / 2f), beside);
+                else
+                    ResonanceChartView.Create(page, new Vector2(pageRight - StartRight - chart.x * above / 2f, (noteBottom + startTop) / 2f), above);
             }
-            else ResonanceChartView.Create(page, new Vector2(440f, -320f));
+            else ResonanceChartView.Create(page, new Vector2(440f, -320f), 0.9f);
 
             string keys = UIText.Get("party.keys", "close", UIText.Get(PreFight ? "menu.back" : "menu.close"));
             var hint = UIFactory.CreateText(page, "Keys", keys, 26, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
@@ -202,7 +211,7 @@ namespace Game.World
                 row.rectTransform.Place(center, tl, new Vector2(-860f, y), new Vector2(390f, 92f));
                 HoverEnemy(row.rectTransform, i, enemy, fight.enemyLevel, y);
                 InkStyle.Frame(row.rectTransform, UIFactory.WithAlpha(InkStyle.Crimson, 0.7f), 2f);
-                var badge = ElementBadgeFor(row.rectTransform, enemy.afflatus);
+                var badge = ElementBadgeFor(row.rectTransform, enemy.resonance);
                 badge.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(12f, 0f), new Vector2(56f, 56f));
                 var name = UIFactory.CreateText(row.rectTransform, "Name", enemy.DisplayName, 30, InkStyle.Paper, TextAnchor.UpperLeft);
                 name.rectTransform.Place(tl, tl, new Vector2(80f, -10f), new Vector2(300f, 40f));
@@ -274,7 +283,8 @@ namespace Game.World
                 rt.Fill();
                 var card = cards[i].Key;
                 int rank = cards[i].Value;
-                ability.OnClick = () => CardDetailPopup.Open((RectTransform)transform, unit, card, rank, rt);
+                var soul = unit.Enemy != null && unit.Enemy.innate == card ? unit.Enemy.ritual : null;
+                ability.OnClick = () => CardDetailPopup.Open((RectTransform)transform, unit, card, rank, rt, null, soul);
                 ability.OnLongPress = ability.OnClick;
             }
         }
@@ -287,7 +297,7 @@ namespace Game.World
             overEnemyCards = false;
         }
 
-        static RectTransform ElementBadgeFor(RectTransform parent, Afflatus element)
+        static RectTransform ElementBadgeFor(RectTransform parent, Resonance element)
         {
             var img = UIFactory.CreateImage(parent, "Element", Color.white);
             img.sprite = CardIcons.Element(element);

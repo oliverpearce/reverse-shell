@@ -19,7 +19,7 @@ namespace Combat.Tests
             strike = TestFactory.Card("Strike");
             guard = TestFactory.Card("Guard");
             sweep = TestFactory.Card("Sweep");
-            hero = TestFactory.Character("Char_Hero", Afflatus.Volt, 100f, null, strike, guard);
+            hero = TestFactory.Character("Char_Hero", Resonance.Arc, 100f, null, strike, guard);
             hero.cardPool = new List<CardDefinition> { sweep };
 
             plating = Part("Part_Plating", PartSlot.Core, new StatModifier(StatType.MaxHP, ModifierKind.Percent, 0.2f));
@@ -134,7 +134,7 @@ namespace Combat.Tests
             catalog.parts.Add(core);
             catalog.starterCore = core;
             WorldSession.GiveStarterParts();   // also hands out the spare plating
-            var mc = TestFactory.Character(WorldSession.StartingMember, Afflatus.None, 100f, null, strike);
+            var mc = TestFactory.Character(WorldSession.StartingMember, Resonance.Basic, 100f, null, strike);
             Assert.IsTrue(WorldSession.IsBound(WorldSession.PartIn(mc, PartSlot.Core)));
             WorldSession.Unequip(mc, PartSlot.Core);
             Assert.AreEqual(core, WorldSession.PartIn(mc, PartSlot.Core), "your own Core never comes out");
@@ -209,7 +209,7 @@ namespace Combat.Tests
             hero.growthPerLevel = 0.08f;
             hero.stats.critRate = 0.1f;
             float atCap = 1000f * Leveling.StatScale(Leveling.MaxLevel, 0.08f);
-            Assert.AreEqual(30, Leveling.MaxLevel);
+            Assert.AreEqual(60, Leveling.MaxLevel);
             Assert.AreEqual(0.9f, atCap / Leveling.BarMax(hero, StatType.MaxHP), 1e-4f);
             Assert.AreEqual(0.9f, hero.stats.critRate / Leveling.BarMax(hero, StatType.CritRate), 1e-4f, "flat stats too");
         }
@@ -217,17 +217,16 @@ namespace Combat.Tests
         [Test]
         public void Elements_HaveGameNames_AndNeutralGlow()
         {
-            Assert.AreEqual("Earth", AfflatusInfo.Display(Afflatus.Earth));
-            Assert.AreEqual("Void", AfflatusInfo.Display(Afflatus.Void));
-            Assert.AreEqual("Electric", AfflatusInfo.Display(Afflatus.Volt));
-            Assert.AreEqual("Physical", AfflatusInfo.Display(Afflatus.None));
+            Assert.AreEqual("Cryo", ResonanceInfo.Display(Resonance.Cryo));
+            Assert.AreEqual("Arc", ResonanceInfo.Display(Resonance.Arc));
+            Assert.AreEqual("Basic", ResonanceInfo.Display(Resonance.Basic));
 
             hero.neutralGlow = true;
             hero.glowColor = Color.white;
-            Assert.AreEqual(Color.white, AfflatusInfo.GlowFor(hero));
-            Assert.AreEqual(AfflatusInfo.Color(Afflatus.Earth), AfflatusInfo.GlowFor(hero, Afflatus.Earth), "channeling changes the hue");
+            Assert.AreEqual(Color.white, ResonanceInfo.GlowFor(hero));
+            Assert.AreEqual(ResonanceInfo.Color(Resonance.Cryo), ResonanceInfo.GlowFor(hero, Resonance.Cryo), "channeling changes the hue");
             hero.neutralGlow = false;
-            Assert.AreEqual(AfflatusInfo.Color(Afflatus.Volt), AfflatusInfo.GlowFor(hero));
+            Assert.AreEqual(ResonanceInfo.Color(Resonance.Arc), ResonanceInfo.GlowFor(hero));
         }
     }
 }

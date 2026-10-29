@@ -108,6 +108,8 @@ namespace Game.World
         PauseCards pauseCards;
         ResonanceScreen resonance;
         ItemsScreen items;
+        /// <summary>The Items page (its Cards book is the Units screen's card picker too).</summary>
+        public ItemsScreen Items { get { return items; } }
         CardsScreen cardPacks, cardIndex;   // the title's Card Packs and Card Index
         EnemyLevelPanel chestPanel;
         ScannerHud scannerHud;
@@ -147,11 +149,17 @@ namespace Game.World
 #endif
             WorldSession.EnsureLoaded(); // first area of the session reads save.json
             WorldSession.GiveStarterParts(); // a new game (or an older save) gets the starter Parts once
-            if (StoryState.Has(Chapter1.ResonanceVolt)) WorldSession.BindSoulCard(); // saves from before the Resonant Core
+            if (encounterSetup != null) CardCollection.EnforceOneDeck(WorldSession.Ordered(encounterSetup.party));   // older saves could share a card
+            if (StoryState.Has(Chapter1.ResonanceArc)) WorldSession.BindSoulCard(); // saves from before the Resonant Core
             area = WorldAreas.Get(WorldSession.CurrentArea);
             areaName = area.Name;
             areaSubtitle = area.Subtitle;
             Map = new OverworldMap(useDefaultMap || string.IsNullOrEmpty(map) ? area.Map : map);
+            // Items already used in this area can be walked over.
+            for (int row = 0; row < Map.Height; row++)
+                for (int x = 0; x < Map.Width; x++)
+                    if (OverworldMap.IsItemChar(Map.At(x, row)) && WorldSession.UsedItems.Contains(WorldSession.ItemKey(area.Id, x, row)))
+                        Map.MakePassable(x, row);
             cam = Camera.main;
             // Nothing tall just south of a walkable square, where it would hide the player (OverworldMap.ApplyCameraRule).
             var follow = cam != null ? cam.GetComponent<OverworldCamera>() : null;
@@ -969,7 +977,8 @@ namespace Game.World
                 float best = float.MaxValue;
                 foreach (var it in interactables)
                 {
-                    if (it == null) continue;
+                    // Gone things (a memory taken, a chip picked up) can't be interacted with any more.
+                    if (it == null || !it.isActiveAndEnabled) continue;
                     float score = it.Score(player.transform.position);
                     if (score >= 0f && score < best)
                     {
@@ -1000,7 +1009,23 @@ namespace Game.World
                 return;
             }
             if (transitioning || cutscene) return;
-            if (focused != null) focused.Interact(this);
+            if (focused != null)
+            {
+                var used = focused;
+                used.Interact(this);
+                MarkItemUsed(used);
+            }
+        }
+
+        /// <summary>After interacting with an item (a story prop, loot chest or rune stone), its square stops blocking.</summary>
+        void MarkItemUsed(Interactable item)
+        {
+            if (item == null || Map == null || !(item is StoryInteractable || item is LootChestInteractable)) return;
+            int x, row;
+            Map.WorldToCell(item.transform.position, out x, out row);
+            if (!OverworldMap.IsItemChar(Map.At(x, row))) return;
+            Map.MakePassable(x, row);
+            WorldSession.UsedItems.Add(WorldSession.ItemKey(area.Id, x, row));
         }
 
         /// <summary>How the party leader sounds in dialogue: calm and even.</summary>
@@ -1105,6 +1130,7 @@ namespace Game.World
             var everyone = new List<CharacterDefinition>(setup.party);
             if (setup.backup != null) everyone.Add(setup.backup);
             var party = WorldSession.PartyFor(everyone);
+            Combat.PackRates.ActiveArea = WorldSession.CurrentArea;   // the results screen counts this area's packs
             BattleLauncher.Request(setup, party, WorldSession.LoadoutsFor(everyone), result =>
             {
                 WorldSession.PendingSpeaker = leader;
@@ -1117,7 +1143,12 @@ namespace Game.World
                     case BattleOutcome.Victory:
                         WorldSession.DefeatedEncounters.Add(id);
                         if (winFlag != null) StoryState.Set(winFlag);
-                        WorldSession.Packs += Combat.PackRates.Current.packsPerWin;   // every win gives card packs (Items > Cards)
+                        // Every win gives card packs (Items > Cards): this area's chapter pack.
+                        // A Random area (the Sandbox) rolls each pack's kind when it's opened.
+                        var rates = Combat.PackRates.Current;
+                        string packId = rates.PackIdForArea(WorldSession.CurrentArea);
+                        if (packId != Combat.PackRates.RandomPack && rates.Pack(packId) == null) packId = rates.Pack("Basic") != null ? "Basic" : "";
+                        WorldSession.AddPacks(packId, rates.PacksPerWin(WorldSession.CurrentArea));
                         // The results screen already shows XP and level ups: only story fights say anything after
                         // (plus the Part a story fight gives).
                         if (!string.IsNullOrEmpty(reward))

@@ -27,7 +27,7 @@ namespace Combat.View
         /// boss by the extra height of its head (the figure's head is about 5/8 of the way up its frame).</summary>
         const float IntentY = 64f, HeadShare = 0.625f;
         float intentY = IntentY;
-        const float IntentSize = 96f;
+        const float IntentSize = 96f, IntentGlyphSize = 42f;   // the 7 px type icon at 6x
         public const float Height = 380f;
 
         public BattleUnit Unit { get; private set; }
@@ -49,7 +49,7 @@ namespace Combat.View
 
         BattleView view;
         CanvasGroup group;
-        Image portrait, sprite, flash, intentIcon;
+        Image portrait, sprite, flash, intentIcon, intentGlyph;
         SlantBar hpFill;
         Text nameText;   // shown on hover only
         Reticle lockOn, focusRing, targetPreview;
@@ -94,11 +94,14 @@ namespace Combat.View
 
             if (unit.Team == Team.Enemy)
             {
-                // Intent: a small card above the head showing what the enemy will play: its type icon on a cream,
-                // silver or gold card for rank I / II / III (details are in the inspect screen).
+                // Intent: a small ink card above the head showing what the enemy will play: the cards' own type icon
+                // on a dark plate with a bronze / silver / gold rim for rank I / II / III (IntentCards; details are in
+                // the inspect screen).
                 intentIcon = UIFactory.CreateImage(transform, "Intent", Color.white);
-                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, intentY), new Vector2(IntentSize, IntentSize));
-                intentIcon.preserveAspect = true;
+                intentIcon.rectTransform.Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, intentY), new Vector2(IntentSize * 0.75f, IntentSize));
+                intentGlyph = UIFactory.CreateImage(intentIcon.rectTransform, "Type", Color.white);
+                intentGlyph.preserveAspect = true;
+                intentGlyph.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.one * IntentGlyphSize);
                 intentIcon.gameObject.SetActive(false);
             }
 
@@ -183,10 +186,10 @@ namespace Combat.View
             // 64 px frames at exactly 6x keep pixels crisp (a boss is drawn at 9x); the feet sit ~2 px above the frame bottom.
             float size = unit.IsBoss ? SpriteSize * BossScale : SpriteSize;
             var images = new List<Image>();
-            // A resonance (the protagonist's Electric) glows in its element; Physical keeps the character's own glow.
-            Afflatus? resonance = unit.Character != null && unit.Character.resonances.Count > 0 && unit.Afflatus != Afflatus.None
-                ? unit.Afflatus : (Afflatus?)null;
-            var glowColor = Color.Lerp(unit.Character != null ? AfflatusInfo.GlowFor(unit.Character, resonance) : unit.Definition.color, Color.white, 0.45f);
+            // A resonance (the protagonist's Arc) glows in its element; Basic keeps the character's own glow.
+            Resonance? resonance = unit.Character != null && unit.Character.resonances.Count > 0 && unit.Resonance != Resonance.Basic
+                ? unit.Resonance : (Resonance?)null;
+            var glowColor = Color.Lerp(unit.Character != null ? ResonanceInfo.GlowFor(unit.Character, resonance) : unit.Definition.color, Color.white, 0.45f);
             glowColor.a = 0.16f;
             foreach (var o in new[] { new Vector2(-6f, 0f), new Vector2(6f, 0f), new Vector2(0f, 6f), new Vector2(0f, -6f),
                                       new Vector2(-4.5f, 4.5f), new Vector2(4.5f, 4.5f), new Vector2(-4.5f, -4.5f), new Vector2(4.5f, -4.5f) })
@@ -375,7 +378,10 @@ namespace Combat.View
             if (intentIcon == null) return;
             bool show = intent != null && Unit.IsAlive;
             intentIcon.gameObject.SetActive(show);
-            if (show) intentIcon.sprite = CardIcons.IntentCard(intent);
+            if (!show) return;
+            intentIcon.sprite = IntentCards.Plate(intent.Rank);
+            var type = CardIcons.TypeOf(intent.Definition);
+            intentGlyph.sprite = CardArt.Type(type) ?? CardIcons.Glyph(type);
         }
 
         /// <summary>How far the HP bar leans over its height (canvas units).</summary>
@@ -391,7 +397,7 @@ namespace Combat.View
 
             // Big icons, no numbers; hover one for what it does and the turns left (StatusChip / StatusTooltip).
             foreach (var s in statuses)
-                StatusChip.Create(statusRow, s, StatusSize, false);
+                StatusChip.Create(statusRow, s, StatusSize);
         }
 
         /// <summary>Red lock-on: this enemy is the current target.</summary>
@@ -487,6 +493,7 @@ namespace Combat.View
                 case CardKind.Buff: return UIText.Get("card.kind.buff");
                 case CardKind.Debuff: return UIText.Get("card.kind.debuff");
                 case CardKind.Counter: return UIText.Get("card.kind.counter");
+                case CardKind.Defense: return UIText.Get("card.kind.defense");
                 default: return UIText.Get("card.kind.heal");
             }
         }
@@ -500,6 +507,7 @@ namespace Combat.View
                 case CardKind.Buff: return new Color(0.3f, 0.5f, 0.82f);
                 case CardKind.Debuff: return new Color(0.5f, 0.36f, 0.75f);
                 case CardKind.Counter: return new Color(0.76f, 0.58f, 0.2f);
+                case CardKind.Defense: return new Color(0.45f, 0.72f, 0.85f);
                 default: return new Color(0.35f, 0.72f, 0.48f);
             }
         }

@@ -5,11 +5,20 @@ using UnityEngine;
 namespace Combat
 {
     [Serializable]
-    public class DamageEffect : CardEffect
+    public class DamageEffect : CardEffect, IPoweredEffect
     {
-        [Tooltip("Total damage as a multiple of ATK (1.8 = 180%). Split evenly across hits.")]
+        [Tooltip("This hit's share of the card's power: the rank's biggest multiplier is the card level's full power " +
+                 "(CardLevels), others are that fraction of it. Split evenly across hits.")]
         public float multiplier = 1.8f;
         [Min(1)] public int hits = 1;
+        [Tooltip("Optional: hits harder on a target with this status, by Bonus Per Stack for each of its stacks.")]
+        public StatusDefinition bonusVs;
+        [Tooltip("Extra damage per stack of Bonus Vs on the target (0.3 = +30% each).")]
+        public float bonusPerStack;
+        [Tooltip("Remove Bonus Vs from the target after the hit (Detonate, Sap Burst).")]
+        public bool consumeBonus;
+
+        public float Multiplier { get { return multiplier; } }
 
         public override void Apply(EffectContext ctx)
         {
@@ -18,31 +27,45 @@ namespace Combat
             for (int h = 0; h < hitCount; h++)
             {
                 foreach (var t in targets)
-                    if (t.IsAlive) ctx.Battle.DealDamage(ctx.Caster, t, multiplier / hitCount, ctx.IsRitual);
+                    if (t.IsAlive) ctx.Battle.DealDamage(ctx.Caster, t, CardLevels.Damage(ctx.Card, this) * BonusOn(t) / hitCount, ctx.IsRitual);
                 if (ctx.Battle.IsOver) return;
             }
+            if (bonusVs != null && consumeBonus)
+                foreach (var t in targets) ctx.Battle.RemoveStatuses(t, s => s.Definition == bonusVs);
+        }
+
+        float BonusOn(BattleUnit t)
+        {
+            if (bonusVs == null || bonusPerStack == 0f) return 1f;
+            var s = t.FindStatus(bonusVs);
+            return s == null ? 1f : 1f + bonusPerStack * s.Stacks;
         }
 
         public override EffectText Text()
         {
-            string pct = Mathf.RoundToInt(multiplier * 100f) + "%";
-            return hits > 1
+            string pct = Mathf.RoundToInt(CardLevels.Damage(CardLevels.Describing, this) * 100f) + "%";
+            var text = hits > 1
                 ? new EffectText("Deal {0} ATK damage to {1} over {2} hits.", pct, TargetPhrase(), hits.ToString())
                 : new EffectText("Deal {0} ATK damage to {1}.", pct, TargetPhrase());
+            if (bonusVs == null || bonusPerStack == 0f) return text;
+            string bonus = " +" + Mathf.RoundToInt(bonusPerStack * 100f) + "% per " + bonusVs.DisplayName + (consumeBonus ? ", then clears it." : ".");
+            return new EffectText(text.Template.TrimEnd('.') + "," + bonus, text.Args);
         }
     }
 
     [Serializable]
-    public class HealEffect : CardEffect
+    public class HealEffect : CardEffect, IPoweredEffect
     {
-        [Tooltip("Healing as a multiple of the caster's ATK.")]
+        [Tooltip("This heal's share of the card's power: the rank's biggest heal is the card level's full power (CardLevels).")]
         public float multiplier = 1.2f;
+
+        public float Multiplier { get { return multiplier; } }
 
         public HealEffect() { target = EffectTarget.SingleAlly; }
 
         public override void Apply(EffectContext ctx)
         {
-            float amount = ctx.Caster.GetStat(StatType.Attack) * multiplier * (1f + ctx.Caster.GetStat(StatType.HealingBonus));
+            float amount = ctx.Caster.GetStat(StatType.Attack) * CardLevels.Heal(ctx.Card, this) * (1f + ctx.Caster.GetStat(StatType.HealingBonus));
             // An Ult's healing grows with Ult power (Soul levels), like its damage does.
             if (ctx.Card != null && ctx.Card.IsRitual) amount *= 1f + Mathf.Max(0f, ctx.Caster.GetStat(StatType.RitualMight));
             foreach (var t in ctx.Resolve(target))
@@ -51,7 +74,7 @@ namespace Combat
 
         public override EffectText Text()
         {
-            return new EffectText("Heal {0} for {1} of ATK.", TargetPhrase(), Mathf.RoundToInt(multiplier * 100f) + "%");
+            return new EffectText("Heal {0} for {1} of ATK.", TargetPhrase(), Mathf.RoundToInt(CardLevels.Heal(CardLevels.Describing, this) * 100f) + "%");
         }
     }
 
@@ -67,10 +90,11 @@ namespace Combat
         public override void Apply(EffectContext ctx)
         {
             if (status == null) return;
+            int turns = CardLevels.Turns(ctx.Card, this);   // longer for each merge
             foreach (var t in ctx.Resolve(target))
             {
                 if (chance < 1f && ctx.Battle.State.Rng.NextDouble() >= chance) continue;
-                ctx.Battle.ApplyStatus(ctx.Caster, t, status, duration, stacks);
+                ctx.Battle.ApplyStatus(ctx.Caster, t, status, turns, stacks);
             }
         }
 

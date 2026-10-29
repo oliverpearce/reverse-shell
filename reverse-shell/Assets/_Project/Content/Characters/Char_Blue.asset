@@ -19,7 +19,7 @@ MonoBehaviour:
   spriteSheet: {fileID: 0}
   sheetColumns: 3
   sheetRows: 4
-  afflatus: 4
+  resonance: 4
   damageType: 0
   stats:
     maxHP: 3200
@@ -34,6 +34,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 3cf90a54f25156546a87e1bf988e866f, type: 2}
   cardPool: []
   ritual: {fileID: 11400000, guid: 82676aa409102d04c8612fe6b6fd80e7, type: 2}
+  starterCards:
+  - {fileID: 11400000, guid: 3cf90a54f25156546a87e1bf988e866f, type: 2}
+  - {fileID: 11400000, guid: b56b0b28cae497f4cad26023b288b031, type: 2}
   growthPerLevel: 0.08
   portraitFront: {fileID: 0}
   portraitInternals: {fileID: 0}

@@ -4,18 +4,21 @@ namespace Combat.View
 {
     /// <summary>
     /// The icon atlas, Resources/UI/CardIcons.png (built by Tools/IconForge/card_icons.py, mostly from the user's picks
-    /// in Clockwork Raven's "Raven Fantasy Icons"; keep the layout in sync). Six card types (Attack, Debuff, Buff,
-    /// Counter, Heal, Ultimate) as white masks, in their own colors and as small intent cards in three ranks (cream I,
+    /// in Clockwork Raven's "Raven Fantasy Icons"; keep the layout in sync). Seven card types (Attack, Debuff, Buff,
+    /// Counter, Heal, Ultimate, Defense) as white masks, in their own colors and as small intent cards in three ranks (cream I,
     /// silver II, gold III); UI bits (the empty unit-type diamond, Ult pips, a star, a filled diamond, a card back);
     /// element orbs; Part / status icons; and the button icons (Go, close, pause). Sprites are cut from the atlas once
     /// and cached.
     /// </summary>
     public static class CardIcons
     {
-        public enum Type { Attack = 0, Debuff = 1, Buff = 2, Counter = 3, Heal = 4, Ultimate = 5 }
+        public enum Type { Attack = 0, Debuff = 1, Buff = 2, Counter = 3, Heal = 4, Ultimate = 5, Defense = 6 }
 
-        const int Cell = 128, Cols = 8, Rows = 9;
-        const int RowWhite = 0, RowColored = 1, RowIntent = 2, RowMisc = 5, RowElement = 6, RowExtra = 7, RowMore = 8;
+        /// <summary>The atlas column for a type.</summary>
+        static int Slot(Type type) { return (int)type; }
+
+        const int Cell = 128, Cols = 8, Rows = 10;
+        const int RowWhite = 0, RowColored = 1, RowIntent = 2, RowMisc = 5, RowElement = 6, RowExtra = 7, RowMore = 8, RowStatus = 9;
 
         static Texture2D atlas;
         static Sprite[,] sprites;
@@ -32,20 +35,27 @@ namespace Combat.View
                 case CardKind.Buff: return Type.Buff;
                 case CardKind.Heal: return Type.Heal;
                 case CardKind.Counter: return Type.Counter;
+                case CardKind.Defense: return Type.Defense;
                 default: return Type.Attack;
             }
         }
 
-        /// <summary>The type's symbol: in its own color, or white to tint.</summary>
+        /// <summary>The type's symbol: in its own color, or white to tint. Buff and Debuff in color are the chunky pixel
+        /// block arrows (CardArt.Type, the user's pick), the same everywhere they show.</summary>
         public static Sprite Glyph(Type type, bool colored = true)
         {
-            return Get(colored ? RowColored : RowWhite, (int)type);
+            if (colored && (type == Type.Buff || type == Type.Debuff))
+            {
+                var arrow = CardArt.Type(type);
+                if (arrow != null) return arrow;
+            }
+            return Get(colored ? RowColored : RowWhite, Slot(type));
         }
 
         /// <summary>A small intent card: the type's symbol on a cream (rank I), silver (II) or gold (III) card.</summary>
         public static Sprite IntentCard(Type type, int rank)
         {
-            return Get(RowIntent + Mathf.Clamp(rank, 1, 3) - 1, (int)type);
+            return Get(RowIntent + Mathf.Clamp(rank, 1, 3) - 1, Slot(type));
         }
 
         public static Sprite IntentCard(CardInstance card)
@@ -68,11 +78,11 @@ namespace Combat.View
         public static Sprite Pause { get { return Get(RowMore, 4); } }
         public static Sprite Swap { get { return Get(RowMore, 5); } }
 
-        /// <summary>The element's orb (Volt, Fire, Toxin, Earth, Light, Void), shown beside a unit's bars. The orbs are still the six picked for the old elements (ELEMENT_ICONS in Tools/IconForge/card_icons.py).</summary>
-        public static Sprite Element(Afflatus afflatus)
+        /// <summary>The resonance's orb, shown beside a unit's bars. Picked for the five resonances (ELEMENT_ICONS in Tools/IconForge/card_icons.py).</summary>
+        public static Sprite Element(Resonance resonance)
         {
-            if (afflatus == Afflatus.None) return null;   // Physical has no orb
-            return Get(RowElement, (int)afflatus);
+            if (resonance == Resonance.Basic) return null;   // Basic has no orb
+            return Get(RowElement, (int)resonance);
         }
 
         /// <summary>The icon for a Part slot: a chip or a core.</summary>
@@ -96,6 +106,12 @@ namespace Combat.View
                 case "Status_IncantationMightUp": return Get(RowExtra, 7);
                 case "Status_DefUp": return Get(RowMore, 0);
                 case "Status_Stunned": return Get(RowMore, 1);
+                case "Status_Burn": return Get(RowStatus, 0);
+                case "Status_Chill": return Get(RowStatus, 1);
+                case "Status_Frozen": return Get(RowStatus, 2);
+                case "Status_Shield": return Get(RowStatus, 3);
+                case "Status_Counter": return Get(RowStatus, 4);
+                case "Status_Covered": return Get(RowStatus, 5);
                 default: return null;
             }
         }

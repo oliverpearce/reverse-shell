@@ -39,17 +39,56 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void Copies_RankCardsUp_AtTheThresholds()
+        public void Copies_UpgradeCards_AtTheThresholds()
         {
-            Assert.AreEqual(1, CardCollection.StartRank(strike));
-            CardCollection.AddCopy(strike, Rates.copiesForRankII - 1);
-            Assert.AreEqual(1, CardCollection.StartRank(strike));
-            Assert.AreEqual(1, CardCollection.CopiesToNextRank(strike));
+            Assert.AreEqual(0, CardCollection.Upgrades(strike));
+            CardCollection.AddCopy(strike, Rates.CopiesFor(1) - 1);
+            Assert.AreEqual(0, CardCollection.Upgrades(strike));
+            Assert.AreEqual(1, CardCollection.CopiesToNextUpgrade(strike));
             CardCollection.AddCopy(strike);
-            Assert.AreEqual(2, CardCollection.StartRank(strike));
-            CardCollection.AddCopy(strike, Rates.copiesForRankIII - Rates.copiesForRankII);
-            Assert.AreEqual(3, CardCollection.StartRank(strike));
-            Assert.AreEqual(0, CardCollection.CopiesToNextRank(strike), "rank III is the top");
+            Assert.AreEqual(1, CardCollection.Upgrades(strike));
+            Assert.AreEqual(2, CardCollection.UpgradeLevel(strike));
+            CardCollection.AddCopy(strike, Rates.CopiesFor(Rates.MaxUpgrades) - Rates.CopiesFor(1));
+            Assert.AreEqual(Rates.MaxUpgrades, CardCollection.Upgrades(strike));
+            Assert.AreEqual(0, CardCollection.CopiesToNextUpgrade(strike), "the last upgrade is the top");
+        }
+
+        [Test]
+        public void Upgrades_Cost5Then10Then20()
+        {
+            var rates = ScriptableObject.CreateInstance<PackRates>();
+            Assert.AreEqual(5, rates.CopiesFor(1));
+            Assert.AreEqual(15, rates.CopiesFor(2));
+            Assert.AreEqual(35, rates.CopiesFor(3));
+            Assert.AreEqual(2, rates.Upgrades(20));
+            Object.DestroyImmediate(rates);
+        }
+
+        [Test]
+        public void CopiesPastTheTop_BecomeBlankCards_ThatImprintOtherCards()
+        {
+            CardCollection.AddCopy(strike, CardCollection.MaxCopies + 2);
+            Assert.AreEqual(CardCollection.MaxCopies, CardCollection.Copies(strike), "copies stop at the top level");
+            Assert.AreEqual(2, CardCollection.Blanks, "the rest became blank cards");
+            Assert.IsFalse(CardCollection.Imprint(strike), "a maxed card can't take a blank");
+            Assert.IsTrue(CardCollection.Imprint(guard));
+            Assert.AreEqual(1, CardCollection.Copies(guard));
+            Assert.AreEqual(1, CardCollection.Blanks);
+        }
+
+        [Test]
+        public void CardLevels_FollowTheBibleExample()
+        {
+            // A level 6 card, fully upgraded: 12; merged to rank II: 14; rank III: 17.
+            strike.level = 6;
+            var loadout = new Loadout();
+            loadout.Upgrades[strike] = 3;
+            var unit = new BattleUnit(hero, Team.Player);
+            unit.ApplyLoadout(loadout);
+            Assert.AreEqual(12, new CardInstance(strike, unit, 1).Level);
+            Assert.AreEqual(14, new CardInstance(strike, unit, 2).Level);
+            Assert.AreEqual(17, new CardInstance(strike, unit, 3).Level);
+            Assert.AreEqual(1f, CardLevels.Power(4), 1e-4f, "Lv 4 = 100% of ATK");
         }
 
         [Test]
@@ -93,7 +132,9 @@ namespace Combat.Tests
                 var seen = new List<CardDefinition>();
                 for (int i = 0; i < pulls.Count; i++)
                 {
-                    if (i < pulls.Count - 1) Assert.AreEqual(CardPacks.Tier.Common, pulls[i].Tier, "only the last card can be rare / Soul");
+                    if (i < pulls.Count - 1)
+                        Assert.IsTrue(pulls[i].Tier == CardPacks.Tier.Common || (i == 1 && pulls[i].Tier == CardPacks.Tier.Blank),
+                            "only the last card can be rare / Soul, and only the second a blank");
                     if (pulls[i].Tier != CardPacks.Tier.Common) continue;
                     if (seen.Count < distinct) Assert.IsFalse(seen.Contains(pulls[i].Card), "no card twice in one pack");
                     seen.Add(pulls[i].Card);
@@ -128,9 +169,9 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void Loadout_CarriesStartRanks_Bindings_AndSoulPower_IntoBattle()
+        public void Loadout_CarriesUpgrades_Bindings_AndSoulPower_IntoBattle()
         {
-            CardCollection.AddCopy(strike, Rates.copiesForRankII);
+            CardCollection.AddCopy(strike, Rates.CopiesFor(1));
             CardCollection.AddFound(CardBinding.Star);
             CardCollection.Bind(guard, CardBinding.Star);
             CardCollection.AddSoul(hero);
@@ -140,8 +181,8 @@ namespace Combat.Tests
             var unit = new BattleUnit(hero, Team.Player);
             unit.ApplyLoadout(loadout);
 
-            Assert.AreEqual(2, unit.StartRankOf(strike));
-            Assert.AreEqual(1, unit.StartRankOf(guard));
+            Assert.AreEqual(1, unit.UpgradesOf(strike));
+            Assert.AreEqual(0, unit.UpgradesOf(guard));
             Assert.AreEqual(CardBinding.Star, unit.BindingOf(guard));
             Assert.AreEqual(Rates.ultPowerPerSoul, unit.GetStat(StatType.RitualMight), 1e-4f, "one Soul level of Ult power");
         }
@@ -157,7 +198,8 @@ namespace Combat.Tests
                 for (int i = 0; i < Rates.maxPerBinding + 3; i++) Assert.IsTrue(CardCollection.AddFound(CardBinding.Sun));
                 for (int i = 0; i < Rates.maxSoulLevel + 3; i++) Assert.IsTrue(CardCollection.AddSoul(hero));
                 CardCollection.AddCopy(strike, 5);
-                Assert.IsTrue(CardPacks.TakePack(), "packs never run out");
+                PackKind kind;
+                Assert.IsTrue(CardPacks.TakePack(out kind), "packs never run out");
                 Assert.AreEqual(0, WorldSession.Packs);
             }
             finally { CardCollection.EndSession(); }
@@ -228,7 +270,7 @@ namespace Combat.Tests
             CardCollection.AddCopy(strike, 4);
             CardCollection.AddFound(CardBinding.Moon);
             CardCollection.Bind(strike, CardBinding.Moon);
-            WorldSession.Packs = 3;
+            WorldSession.AddPacks("", 3);
             CardCollection.AddSoul(hero);
 
             var data = SaveGame.Capture();
@@ -241,6 +283,57 @@ namespace Combat.Tests
             Assert.AreEqual(CardBinding.Moon, CardCollection.BindingOf(strike));
             Assert.AreEqual(3, WorldSession.Packs);
             Assert.AreEqual(1, CardCollection.SoulLevel(hero));
+        }
+
+        [Test]
+        public void NewTags_SurviveASave_UntilSeen()
+        {
+            CardCollection.AddCopy(guard);
+            Assert.IsTrue(CardCollection.IsNew(guard.name));
+
+            var data = SaveGame.Capture();
+            SaveGame.Restore(null);
+            Assert.IsFalse(CardCollection.IsNew(guard.name), "a new game has no NEW tags");
+            SaveGame.Restore(data);
+            Assert.IsTrue(CardCollection.IsNew(guard.name), "still NEW after loading");
+
+            CardCollection.Seen(guard.name);
+            SaveGame.Restore(SaveGame.Capture());
+            Assert.IsFalse(CardCollection.IsNew(guard.name), "looked at: stays seen");
+        }
+
+        [Test]
+        public void Session_NewTags_StayInTheSession()
+        {
+            CardCollection.BeginSession();
+            try
+            {
+                CardCollection.AddCopy(guard);
+                Assert.IsTrue(CardCollection.IsNew(guard.name));
+            }
+            finally { CardCollection.EndSession(); }
+            Assert.IsFalse(CardCollection.IsNew(guard.name), "Pack Mode's NEW tags never reach the real collection");
+        }
+
+        [Test]
+        public void Sets_CompleteOnceEveryCardIsOwned()
+        {
+            var roster = new List<CharacterDefinition> { hero };
+            var element = CardCollection.ElementOf(hero, guard);
+            if (!Rates.startWithSecondCard) Assert.IsFalse(CardCollection.CompleteSets(roster).Contains(element), "guard isn't owned yet");
+            CardCollection.AddCopy(guard);
+            Assert.IsTrue(CardCollection.CompleteSets(roster).Contains(element), "the locked card and a copy of the other");
+        }
+
+        [Test]
+        public void LevelPreview_EachUpgradeAddsLevels()
+        {
+            var config = CombatConfig.Default;
+            strike.level = 6;
+            Assert.AreEqual(6, CardLevels.WithUpgrades(strike, 0));
+            Assert.AreEqual(6 + config.levelsPerUpgrade, CardLevels.WithUpgrades(strike, 1));
+            Assert.AreEqual(config.maxCardLevel, CardLevels.WithUpgrades(strike, 100), "capped at the top card level");
+            Assert.AreEqual(0f, CardLevels.MainPower(strike, 6), "no hit or heal: no power to preview");
         }
     }
 }

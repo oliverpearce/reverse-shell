@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -132,12 +133,11 @@ namespace Combat.View
                         CardArt.PlacePixels(pip.rectTransform, CardArt.PipX + i * CardArt.PipStep, CardArt.PipY, CardArt.PipSize, CardArt.PipSize, u);
                     }
 
-                // The type icon in the pip strip, drawn at the card's own pixel size like the pips. Buff and Debuff keep
-                // their Raven arrows (the user preferred them to the pixel ones), in the same spot.
+                // The type icon in the pip strip, drawn at the card's own pixel size like the pips (Buff / Debuff are
+                // the chunky block arrows, like everywhere else).
                 var cardType = CardIcons.TypeOf(card.Definition);
                 var iconSprite = CardIcons.Glyph(cardType);
-                bool ravenArrow = cardType == CardIcons.Type.Buff || cardType == CardIcons.Type.Debuff;
-                var typeSprite = ravenArrow ? iconSprite : CardArt.Type(cardType);
+                var typeSprite = CardArt.Type(cardType) ?? iconSprite;
                 if (typeSprite != null)
                 {
                     var type = Pixel(root, "TypeIcon", typeSprite, Color.white);
@@ -186,6 +186,25 @@ namespace Combat.View
             else CardArt.RuneLabel(root, name, InkStyle.Paper, s);
         }
 
+        /// <summary>
+        /// A card's back (every card shares it): Stars in a Box's Major Arcana back refit to the card (Resources/Cards/
+        /// CardBack.png, Tools/CardForge/card_back.py) with the centre gem in <paramref name="gem"/> (a pack's resonance
+        /// colour). Falls back to a dark gold-framed plate if the art is missing.
+        /// </summary>
+        public static void BuildBack(RectTransform root, Color gem)
+        {
+            var back = CardArt.Picture("Cards/CardBack");
+            if (back == null)
+            {
+                var plate = UIFactory.CreateImage(root, "Plate", new Color(0.1f, 0.09f, 0.12f, 1f));
+                plate.rectTransform.Fill();
+                InkStyle.Frame(plate.rectTransform, InkStyle.GoldBright, 3f);
+                return;
+            }
+            Pixel(root, "Back", back, Color.white).rectTransform.Fill();
+            Pixel(root, "Gem", CardArt.Picture("Cards/CardBackGem"), gem).rectTransform.Fill();
+        }
+
         static Image Pixel(Transform parent, string name, Sprite sprite, Color color)
         {
             var img = UIFactory.CreateImage(parent, name, color);
@@ -206,37 +225,40 @@ namespace Combat.View
             InkStyle.Frame(panel.rectTransform, InkStyle.Rule, 2f);
             var prt = panel.rectTransform;
 
-            // The statuses it gives: big icons in the top-right corner, beside the name.
+            // The statuses it gives: small icons at the right end of the kind line, under the name.
             float chipsWidth = StatusChips(prt, card, s);
-            bool read = CardTranslation.On;   // without the language chip: runes, but numbers and status colours show
+            bool read = CardTranslation.On;   // without the language chip: runes (numbers and colours have their own chips)
+            bool colours = CardTranslation.Colours;
+            var kindColor = colours ? UnitView.KindColor(card.Definition.kind) : InkStyle.PaperDim;
+            var numberColor = colours ? NumberGold : new Color(0.92f, 0.92f, 0.95f);
             string rank = card.IsRitual ? UIText.Get("card.ult") : UIText.Get("card.rank", "n", UIFactory.Roman(card.Rank));
             string kindLine = UnitView.KindLabel(card.Definition.kind).ToUpperInvariant() + "   " + rank;
             if (read)
             {
-                var title = UIFactory.CreateText(prt, "Title", card.Name, F(22), InkStyle.Paper, TextAnchor.UpperLeft).BestFit(F(12), F(22));
-                title.rectTransform.TopStrip(10f * s, 32f * s, 12f * s);
-                title.rectTransform.offsetMax = new Vector2(-(12f + chipsWidth) * s, title.rectTransform.offsetMax.y);
-                // The kind and rank: big enough to read at a glance.
-                var kind = UIFactory.CreateText(prt, "Kind", kindLine, F(18), UnitView.KindColor(card.Definition.kind), TextAnchor.UpperLeft);
-                kind.rectTransform.TopStrip(44f * s, 26f * s, 12f * s);
+                // The name has the top line to itself, left-aligned, at least the card's name-plate size (26).
+                var title = UIFactory.CreateText(prt, "Title", card.Name, F(30), InkStyle.Paper, TextAnchor.UpperLeft);
+                title.rectTransform.TopStrip(6f * s, 36f * s, 12f * s);
+                OneLine(title, PanelWidth * s - 24f * s, F(30), F(26));
+                // The kind and rank: big enough to read at a glance (the chips sit at its right end).
+                var kind = UIFactory.CreateText(prt, "Kind", kindLine, F(18), kindColor, TextAnchor.MiddleLeft);
+                kind.rectTransform.TopStrip(44f * s, 30f * s, 12f * s);
+                kind.rectTransform.offsetMax = new Vector2(-(12f + chipsWidth) * s, kind.rectTransform.offsetMax.y);
             }
             else
             {
                 var titleArea = UIFactory.CreateRect("Title", prt);
                 titleArea.TopStrip(12f * s, 26f * s, 12f * s);
-                titleArea.offsetMax = new Vector2(-(12f + chipsWidth) * s, titleArea.offsetMax.y);
-                float titleWidth = PanelWidth * s - (24f + chipsWidth) * s;
+                float titleWidth = PanelWidth * s - 24f * s;
                 RuneText.Build(titleArea, card.Name, InkStyle.Paper, titleWidth, 26f * s, 16f * s, true);
                 var kindArea = UIFactory.CreateRect("Kind", prt);
                 kindArea.TopStrip(46f * s, 26f * s, 12f * s);
-                RuneText.Paragraph(kindArea, kindLine, UnitView.KindColor(card.Definition.kind), 11f * s, 6f * s, null,
-                    UnitView.KindColor(card.Definition.kind), 1.4f);
+                RuneText.Paragraph(kindArea, kindLine, kindColor, 11f * s, 6f * s, null, kindColor, 1.4f);
             }
             var rule = InkStyle.Line(prt, "Rule", InkStyle.Rule);
             rule.rectTransform.TopStrip(76f * s, 2f, 12f * s);
 
             // The real numbers with the owner's current stats (before the target's DEF), in big gold, at the bottom.
-            var live = LiveNumbers(card, F(30), !read);
+            var live = LiveNumbers(card, F(30), !read).ConvertAll(l => CardTranslation.PlainColours(CardTranslation.HideDigits(l)));
             float liveH = live.Count * 40f;
             if (live.Count > 0 && !read)
             {
@@ -246,7 +268,7 @@ namespace Combat.View
                 numbersArea.pivot = new Vector2(0.5f, 0f);
                 numbersArea.offsetMin = new Vector2(12f, 8f) * s;
                 numbersArea.offsetMax = new Vector2(-12f, 8f + liveH) * s;
-                RuneText.Paragraph(numbersArea, string.Join("\n", live.ToArray()), InkStyle.Paper, 9f * s, 5f * s, null, NumberGold, 2.2f);
+                RuneText.Paragraph(numbersArea, string.Join("\n", live.ToArray()), InkStyle.Paper, 9f * s, 5f * s, null, numberColor, 2.2f);
                 liveH += 8f;
             }
             else if (live.Count > 0)
@@ -269,15 +291,20 @@ namespace Combat.View
             if (!read)
             {
                 // Runes, with the numbers readable in gold and each status in its colour: you can guess what it does.
-                RuneText.Paragraph(middle, card.Describe(), new Color(0.92f, 0.92f, 0.95f), 9f * s, 4f * s, StatusPhrases(card), NumberGold, 1.4f);
+                RuneText.Paragraph(middle, CardTranslation.HideDigits(card.Describe()), new Color(0.92f, 0.92f, 0.95f), 9f * s, 4f * s,
+                    colours ? StatusPhrases(card) : null, numberColor, 1.4f);
                 return;
             }
             var desc = UIFactory.CreateText(middle, "Description", "", F(15), new Color(0.92f, 0.92f, 0.95f), TextAnchor.UpperLeft);
             desc.font = UIFactory.BodyFont;
             desc.lineSpacing = 1.05f;
             desc.rectTransform.Fill();
-            string text = card.Describe();
-            UIFactory.FitRich(desc, size => ColorStatuses(UIFactory.EmphasizeNumbers(text, Mathf.RoundToInt(size * 1.3f), NumberGold), card), F(8), F(15));
+            string text = CardTranslation.HideDigits(card.Describe());
+            UIFactory.FitRich(desc, size =>
+            {
+                string rich = UIFactory.EmphasizeNumbers(text, Mathf.RoundToInt(size * 1.3f), numberColor);
+                return colours ? ColorStatuses(rich, card) : rich;
+            }, F(8), F(15));
         }
 
         /// <summary>The card info panel's width at scale 1.</summary>
@@ -336,7 +363,7 @@ namespace Combat.View
                 var damage = effect as DamageEffect;
                 if (damage != null)
                 {
-                    int total = Mathf.RoundToInt(atk * damage.multiplier * might);
+                    int total = Mathf.RoundToInt(atk * CardLevels.Damage(card, damage) * might);
                     int hits = Mathf.Max(1, damage.hits);
                     string each = hits > 1 ? "  (" + hits + " x " + Mathf.RoundToInt((float)total / hits) + ")" : "";
                     lines.Add(plain ? UIText.Get("card.damage") + " " + total + each
@@ -346,7 +373,7 @@ namespace Combat.View
                 var heal = effect as HealEffect;
                 if (heal != null)
                 {
-                    int amount = Mathf.RoundToInt(atk * heal.multiplier * (1f + unit.GetStat(StatType.HealingBonus)));
+                    int amount = Mathf.RoundToInt(atk * CardLevels.Heal(card, heal) * (1f + unit.GetStat(StatType.HealingBonus)));
                     lines.Add(plain ? UIText.Get("card.heal") + " " + amount
                         : UIText.Get("card.heal") + "  " + gold + "<size=" + UIFactory.Px(numberSize) + ">" + amount + "</size></color>");
                 }
@@ -354,23 +381,48 @@ namespace Combat.View
             return lines;
         }
 
+        /// <summary>Shrinks <paramref name="text"/> until it fits <paramref name="width"/> on one line (down to
+        /// <paramref name="min"/>; past that it's cut off at the edge rather than wrapping).</summary>
+        static void OneLine(Text text, float width, int max, int min)
+        {
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
+            var settings = text.GetGenerationSettings(new Vector2(width, 0f));
+            int size = max;
+            while (size > min)
+            {
+                settings.fontSize = size;
+                if (text.cachedTextGeneratorForLayout.GetPreferredWidth(text.text, settings) / text.pixelsPerUnit <= width) break;
+                size--;
+            }
+            text.fontSize = size;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;   // at the smallest size, clip rather than run over the chips
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+        }
+
+        /// <summary>The most status chips a card shows (a card has at most two effects).</summary>
+        const int MaxChips = 2;
+
         /// <summary>
-        /// One big chip per status the card's rank applies, in the panel's top-right corner going left: the status icon
-        /// with its turns in the corner ("x2" stacks over it when more than one). Returns the width used (unscaled), 0 if
-        /// none.
+        /// A small chip per status the card's rank applies (each status once, at most <see cref="MaxChips"/>), at the
+        /// right end of the kind line going left: just the status icon (its turns and stacks are in the hover box).
+        /// Returns the width used (unscaled), 0 if none.
         /// </summary>
         static float StatusChips(RectTransform root, CardInstance card, float s)
         {
             var rank = card.RankData;
             if (rank == null) return 0f;
-            const float chip = 56f, gap = 8f;
+            const float chip = 34f, gap = 6f;
             float x = 10f;
             var topRight = new Vector2(1f, 1f);
+            var shownStatuses = new List<StatusDefinition>();
             foreach (var effect in rank.effects)
             {
                 var apply = effect as ApplyStatusEffect;
-                if (apply == null || apply.status == null) continue;
-                var holder = UIFactory.CreateRect(apply.status.DisplayName, root).Place(topRight, topRight, new Vector2(-x, -8f) * s, new Vector2(chip, chip) * s);
+                if (apply == null || apply.status == null || shownStatuses.Contains(apply.status)) continue;
+                if (shownStatuses.Count >= MaxChips) break;
+                shownStatuses.Add(apply.status);
+                var holder = UIFactory.CreateRect(apply.status.DisplayName, root).Place(topRight, topRight, new Vector2(-x, -42f) * s, new Vector2(chip, chip) * s);
                 var sprite = CardIcons.Status(apply.status);
                 if (sprite != null)
                 {
@@ -385,14 +437,11 @@ namespace Combat.View
                     plate.rectTransform.Fill();
                     UIFactory.CreateText(holder, "Label", apply.status.shortLabel, Mathf.RoundToInt(20f * s), Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).rectTransform.Fill();
                 }
-                // Hover the chip for what the status does (the box says how long it lasts).
+                // Just the icon: hover it for what the status does, how long it lasts and how many stacks.
                 var hitArea = holder.gameObject.AddComponent<Image>();
                 hitArea.color = new Color(0f, 0f, 0f, 0f);
-                StatusTooltip.Attach(holder.gameObject, new StatusSnapshot(apply.status, apply.duration, apply.stacks), true);
-                StatusChip.AddAmount(holder, apply.status, apply.stacks, s);
-                var turns = UIFactory.CreateText(holder, "Turns", apply.duration.ToString(), Mathf.RoundToInt(20f * s), InkStyle.Paper, TextAnchor.LowerRight, FontStyle.Bold);
-                turns.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
-                turns.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(6f, -6f) * s, new Vector2(60f, 28f) * s);
+                int duration = CardLevels.Turns(card, apply);   // merges add turns
+                StatusTooltip.Attach(holder.gameObject, new StatusSnapshot(apply.status, duration, apply.stacks), true);
                 x += chip + gap;
             }
             return x > 10f ? x : 0f;

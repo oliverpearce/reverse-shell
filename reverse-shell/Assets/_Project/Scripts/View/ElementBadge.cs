@@ -16,19 +16,19 @@ namespace Combat.View
 
         /// <summary>Creates the badge centred at <paramref name="position"/> (anchored / pivoted as given), the orb
         /// <paramref name="size"/> px square; the glow spreads about twice as wide.</summary>
-        public static RectTransform Create(RectTransform parent, Afflatus afflatus, float size, Vector2 anchor, Vector2 position)
+        public static RectTransform Create(RectTransform parent, Resonance resonance, float size, Vector2 anchor, Vector2 position)
         {
             var root = UIFactory.CreateRect("Element", parent).Place(anchor, new Vector2(0.5f, 0.5f), position, new Vector2(size, size));
             var badge = root.gameObject.AddComponent<ElementBadge>();
 
-            badge.glowColor = AfflatusInfo.Color(afflatus);
+            badge.glowColor = ResonanceInfo.Color(resonance);
             badge.glow = new GameObject("Glow", typeof(RectTransform)).AddComponent<RawImage>();
             badge.glow.rectTransform.SetParent(root, false);
             badge.glow.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size, size) * 2.2f);
             badge.glow.texture = Radial();
             badge.glow.raycastTarget = false;
 
-            var orb = CardIcons.Element(afflatus);
+            var orb = CardIcons.Element(resonance);
             if (orb != null)
             {
                 var icon = UIFactory.CreateImage(root, "Orb", Color.white);

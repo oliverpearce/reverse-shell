@@ -16,6 +16,10 @@ namespace Combat
         [Tooltip("Extra incantations the player can swap into the deck from the character menu.")]
         public List<CardDefinition> cardPool = new List<CardDefinition>();
 
+        [Tooltip("Cards owned from the start, filling the Alt slots until the player picks others (the card sheet's " +
+                 "\"Starter\" tag; the protagonist's two basic Basic cards).")]
+        public List<CardDefinition> starterCards = new List<CardDefinition>();
+
         [Tooltip("Ultimate card, spawned into the hand when Moxie reaches the cap.")]
         public CardDefinition ritual;
 
@@ -40,9 +44,9 @@ namespace Combat
         public bool statBarReference;
 
         [Header("Glow / elements")]
-        [Tooltip("Elements this character can channel. Empty or one = just their afflatus.")]
-        public List<Afflatus> channels = new List<Afflatus>();
-        [Tooltip("Glow in Glow Color instead of the afflatus color while no element is channeled (MC).")]
+        [Tooltip("Elements this character can channel. Empty or one = just their resonance.")]
+        public List<Resonance> channels = new List<Resonance>();
+        [Tooltip("Glow in Glow Color instead of the resonance color while no element is channeled (MC).")]
         public bool neutralGlow;
         public Color glowColor = Color.white;
 
@@ -53,7 +57,7 @@ namespace Combat
         public List<ResonanceKit> resonances = new List<ResonanceKit>();
 
         /// <summary>The kit for <paramref name="element"/>, or null.</summary>
-        public ResonanceKit KitFor(Afflatus element)
+        public ResonanceKit KitFor(Resonance element)
         {
             foreach (var kit in resonances) if (kit != null && kit.element == element) return kit;
             return null;

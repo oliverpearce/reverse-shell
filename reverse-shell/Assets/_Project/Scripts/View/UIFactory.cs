@@ -62,13 +62,16 @@ namespace Combat.View
                 if (pixelFont != null) return pixelFont;
                 pixelFont = Resources.Load<Font>("Fonts/monogram-extended");
                 if (pixelFont == null) return pixelFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
-                Crisp(pixelFont);
-                Font.textureRebuilt += f => { if (f == pixelFont) Crisp(f); };
+                Smooth(pixelFont);
+                Font.textureRebuilt += f => { if (f == pixelFont) Smooth(f); };
                 return pixelFont;
             }
         }
 
-        static void Crisp(Font f)
+        /// <summary>Text is antialiased everywhere but stays sharp: the font is imported Hinted Smooth (its .meta), which
+        /// bakes soft edges into glyphs drawn at their on-screen size, and the glyph texture is point filtered so it adds
+        /// no extra blur on top.</summary>
+        static void Smooth(Font f)
         {
             if (f.material != null && f.material.mainTexture != null) f.material.mainTexture.filterMode = FilterMode.Point;
         }

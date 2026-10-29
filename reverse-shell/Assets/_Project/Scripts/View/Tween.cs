@@ -18,7 +18,8 @@ namespace Combat.View
             return 1f + c3 * Mathf.Pow(t - 1f, 3f) + c1 * Mathf.Pow(t - 1f, 2f);
         }
 
-        public static IEnumerator Run(float duration, Action<float> onUpdate, Func<float, float> ease = null)
+        /// <param name="unscaled">Real time (keeps running while the world is paused, e.g. over the title screen).</param>
+        public static IEnumerator Run(float duration, Action<float> onUpdate, Func<float, float> ease = null, bool unscaled = false)
         {
             if (ease == null) ease = OutCubic;
             if (duration <= 0f)
@@ -29,7 +30,7 @@ namespace Combat.View
             float t = 0f;
             while (t < duration)
             {
-                t += Time.deltaTime;
+                t += unscaled ? Time.unscaledDeltaTime : Time.deltaTime;
                 onUpdate(ease(Mathf.Clamp01(t / duration)));
                 yield return null;
             }

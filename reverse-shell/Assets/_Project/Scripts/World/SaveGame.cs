@@ -93,19 +93,22 @@ namespace Game.World
         }
 
         /// <summary>
-        /// A save slot as the title screen and the Save page show it: "Slot 2   oli · Lv 4 · The City Ruins · 23 Oct, 14:05"
-        /// (rich text; <paramref name="markCurrent"/> tags the slot this game saves to).
+        /// A save slot's parts for the title screen's slot rows: the leader's name (the player's name for the
+        /// protagonist), level, area and save time ("23 Oct, 14:05"). False for an empty slot.
         /// </summary>
-        public static string SlotLabel(int slot, bool markCurrent)
+        public static bool SlotParts(int slot, out string who, out int level, out string area, out string when)
         {
             var summary = Peek(slot);
-            string head = UIText.Get("save.slot", "slot", slot.ToString()) + (markCurrent && slot == Slot ? " <color=#C2A061>" + UIText.Get("save.current") + "</color>" : "");
-            if (summary == null) return head + "   <color=#8A857A>" + UIText.Get("save.empty") + "</color>";
-            string who = summary.Leader;
+            who = area = when = "";
+            level = 0;
+            if (summary == null) return false;
+            who = summary.Leader ?? "";
             if (who == WorldSession.StartingMember && !string.IsNullOrEmpty(summary.PlayerName)) who = summary.PlayerName;
-            else if (who != null && who.StartsWith("Char_")) who = who.Substring(5);
-            return head + "   " + Combat.View.UIFactory.Size(28) + who + "  ·  " + UIText.Get("common.lv") + " " + summary.Level + "  ·  " + summary.AreaName
-                   + "  ·  " + summary.Saved.ToString("d MMM, HH:mm") + "</size>";
+            else if (who.StartsWith("Char_")) who = who.Substring(5);
+            level = summary.Level;
+            area = summary.AreaName;
+            when = summary.Saved.ToString("d MMM, HH:mm");
+            return true;
         }
 
         /// <summary>
@@ -129,6 +132,22 @@ namespace Game.World
             detail = Combat.View.UIFactory.Size(48) + who + "</size>    <color=#C2A061>" + UIText.Get("common.lv") + " " + summary.Level + "</color>\n"
                      + "<color=#B8B1A3>" + summary.AreaName + "</color>";
             corner = summary.Saved.ToString("d MMM, HH:mm");
+        }
+
+        /// <summary>The title's Cards book: puts <paramref name="slot"/>'s save into the session so the book shows its
+        /// copies, card levels and Soul levels. Safe before a game starts: starting one (StartSlot) clears it first.</summary>
+        public static void Preview(int slot)
+        {
+            string path = SlotPath(slot);
+            if (slot <= 0 || !File.Exists(path)) return;
+            try
+            {
+                Restore(JsonUtility.FromJson<Data>(File.ReadAllText(path)));
+            }
+            catch (Exception)
+            {
+                Restore(null);
+            }
         }
 
         /// <summary>The most recently written slot, or 0 when there are none.</summary>
@@ -167,6 +186,12 @@ namespace Game.World
             public List<BindingStack> bindings = new List<BindingStack>();
             public List<PartStack> bindingsFound = new List<PartStack>();
             public int packs;
+            /// <summary>Each unopened pack's id (older saves only have the count).</summary>
+            public List<string> packKinds = new List<string>();
+            /// <summary>Cards pulled but not looked at yet (their NEW tags); empty in older saves.</summary>
+            public List<string> unseenCards = new List<string>();
+            /// <summary>Items used ("area:x:row"): walkable from then on.</summary>
+            public List<string> usedItems = new List<string>();
             /// <summary>The overworld area you were in (WorldAreas id); empty in older saves = the city.</summary>
             public string area;
             /// <summary>Who has joined the party (asset names); empty in older saves = everyone.</summary>
@@ -175,7 +200,7 @@ namespace Game.World
             public List<string> formation = new List<string>();
             /// <summary>Story progress (StoryState): flags set so far, and the protagonist's chosen name.</summary>
             public List<string> flags = new List<string>();
-            /// <summary>Unlocked resonances and the active one, by element name ("" = Physical).</summary>
+            /// <summary>Unlocked resonances and the active one, by element name ("" = Basic).</summary>
             public List<string> resonances = new List<string>();
             public string activeResonance = "";
             public string playerName = "";
@@ -266,6 +291,9 @@ namespace Game.World
             foreach (var entry in WorldSession.BindingsFound)
                 if (entry.Value > 0) data.bindingsFound.Add(new PartStack { id = entry.Key, count = entry.Value });
             data.packs = WorldSession.Packs;
+            data.packKinds.AddRange(WorldSession.PackQueue);
+            data.unseenCards.AddRange(WorldSession.UnseenCards);
+            data.usedItems.AddRange(WorldSession.UsedItems);
             data.area = WorldSession.CurrentArea;
             data.members.AddRange(WorldSession.Members);
             data.formation.AddRange(WorldSession.Formation);
@@ -293,21 +321,23 @@ namespace Game.World
             WorldSession.CardCopies.Clear();
             WorldSession.Bindings.Clear();
             WorldSession.BindingsFound.Clear();
-            WorldSession.Packs = 0;
+            WorldSession.PackQueue.Clear();
+            WorldSession.UnseenCards.Clear();
             WorldSession.StarterPartsGiven = false;
+            WorldSession.UsedItems.Clear();   // picked-up chips and items come back on a new game
             WorldSession.Members.Clear();
             StoryState.Clear();
             WorldSession.UnlockedResonances.Clear();
-            WorldSession.ActiveResonance = Combat.Afflatus.None;
+            WorldSession.ActiveResonance = Combat.Resonance.Basic;
             if (data != null) MigrateAreas(data);
             if (data != null && data.resonances != null)
                 foreach (var r in data.resonances)
                 {
-                    Combat.Afflatus element;
-                    if (System.Enum.TryParse(r, out element)) WorldSession.UnlockedResonances.Add(element);
+                    Combat.Resonance element;
+                    if (Combat.ResonanceInfo.TryParse(r, out element)) WorldSession.UnlockedResonances.Add(element);
                 }
-            Combat.Afflatus active;
-            if (data != null && !string.IsNullOrEmpty(data.activeResonance) && System.Enum.TryParse(data.activeResonance, out active))
+            Combat.Resonance active;
+            if (data != null && !string.IsNullOrEmpty(data.activeResonance) && Combat.ResonanceInfo.TryParse(data.activeResonance, out active))
                 WorldSession.ActiveResonance = active;
             if (data != null && data.flags != null) foreach (var f in data.flags) StoryState.Flags.Add(f);
             if (data != null && !string.IsNullOrEmpty(data.playerName)) StoryState.SetName(data.playerName);
@@ -353,7 +383,12 @@ namespace Game.World
             if (data.bindingsFound != null)
                 foreach (var stack in data.bindingsFound)
                     if (!string.IsNullOrEmpty(stack.id) && stack.count > 0) WorldSession.BindingsFound[stack.id] = stack.count;
-            WorldSession.Packs = Mathf.Max(0, data.packs);
+            WorldSession.PackQueue.Clear();
+            if (data.packKinds != null && data.packKinds.Count > 0) WorldSession.PackQueue.AddRange(data.packKinds);
+            else WorldSession.AddPacks("", Mathf.Max(0, data.packs));
+            if (data.unseenCards != null)
+                foreach (var key in data.unseenCards) if (!string.IsNullOrEmpty(key)) WorldSession.UnseenCards.Add(MigrateCard(key));
+            if (data.usedItems != null) foreach (var key in data.usedItems) WorldSession.UsedItems.Add(key);
         }
 
         public static void Save()

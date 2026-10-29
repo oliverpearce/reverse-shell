@@ -394,6 +394,10 @@ namespace Combat.View
                     return PlayCast(cast);
                 case DamageEvent damage:
                     return PlayDamage(damage);
+                case FxCueEvent cue:
+                    var cv = Get(cue.Unit);
+                    if (cv != null) FxLibrary.PlayAt(FxLayer, BattleFx.Cue(cue.Cue), cv.Center);
+                    return Tween.Wait(0.15f);
                 case HealEvent heal:
                     return PlayHeal(heal);
                 case StatusesChangedEvent statuses:
@@ -558,7 +562,17 @@ namespace Combat.View
 
             yield return Tween.Wait(StatusDelay);
             uv.SetStatuses(e.Statuses);
-            bool anyDebuff = gained.Exists(g => g.Definition.isDebuff), anyBuff = gained.Exists(g => !g.Definition.isDebuff);
+            // Shield / Counter / Cover have their own cues; Chill and Frozen their own effects; the rest buff or debuff.
+            bool anyDebuff = false, anyBuff = false;
+            foreach (var g in gained)
+            {
+                var def = g.Definition;
+                if (def.special != StatusSpecial.None) continue;
+                if (def.name == "Status_Chill") FxLibrary.PlayAt(FxLayer, BattleFx.Chill, uv.Center);
+                else if (def.name == "Status_Frozen") FxLibrary.PlayAt(FxLayer, BattleFx.Frozen, uv.Center);
+                else if (def.isDebuff) anyDebuff = true;
+                else anyBuff = true;
+            }
             if (anyDebuff) FxLibrary.PlayAt(FxLayer, BattleFx.Debuff, uv.Center);
             if (anyBuff) FxLibrary.PlayAt(FxLayer, BattleFx.Buff, uv.Center);
             foreach (var g in gained) SpawnHeadText(uv, g.Definition.DisplayName, g.Definition.color, 64);
@@ -641,9 +655,15 @@ namespace Combat.View
             Color color = Color.white;
             int size = 72;
             string text = e.Amount.ToString();
+            if (e.Blocked > 0)
+            {
+                // A shield soaked some or all of it: the blocked part in ice blue.
+                string blocked = "<color=#8CD9FF>" + UIText.Get("battle.blocked", "n", e.Blocked.ToString()) + "</color>";
+                text = e.Amount > 0 ? text + "\n" + UIFactory.Size(30) + blocked + "</size>" : UIFactory.Size(48) + blocked + "</size>";
+            }
             if (e.IsTick) color = TickColor;   // just the purple number, no status name
-            else if (e.Relation == AfflatusRelation.Advantage) color = new Color(1f, 0.85f, 0.35f);
-            else if (e.Relation == AfflatusRelation.Disadvantage) color = new Color(0.7f, 0.7f, 0.75f);
+            else if (e.Relation == ResonanceRelation.Advantage) color = new Color(1f, 0.85f, 0.35f);
+            else if (e.Relation == ResonanceRelation.Disadvantage) color = new Color(0.7f, 0.7f, 0.75f);
             if (e.Crit)
             {
                 size = 92;
@@ -651,10 +671,13 @@ namespace Combat.View
                 text = UIFactory.Size(34) + UIText.Get("battle.crit") + "</size>\n" + text;
             }
             SpawnDamageNumber(tv, text, color, size);
-            if (e.IsTick) FxLibrary.PlayAt(FxLayer, BattleFx.PoisonTick, tv.Center);
+            if (e.IsTick) FxLibrary.PlayAt(FxLayer, BattleFx.Tick(e.TickStatus), tv.Center);
             else
             {
-                if (e.Source != null) FxLibrary.PlayAt(FxLayer, BattleFx.Hit(e.Source.Afflatus), tv.Center);
+                // A shield that soaked it all shows only the block; part-soaked hits show both.
+                if (e.Blocked > 0) FxLibrary.PlayAt(FxLayer, BattleFx.Block, tv.Center);
+                if (e.Source != null && e.Amount > 0) FxLibrary.PlayAt(FxLayer, BattleFx.Hit(e.Source.Resonance), tv.Center);
+                if (e.IsCounter) FxLibrary.PlayAt(FxLayer, BattleFx.Counter, tv.Center);
                 if (ritualHits) FxLibrary.PlayAt(FxLayer, BattleFx.UltHit, tv.Center, BattleFx.UltHitScale);
                 if (e.Crit) FxLibrary.PlayAt(FxLayer, BattleFx.Crit, tv.Center);
             }
@@ -662,8 +685,10 @@ namespace Combat.View
             StartCoroutine(tv.Flash(e.IsTick ? new Color(0.7f, 0.4f, 1f) : new Color(1f, 0.35f, 0.35f), 0.2f));
 
             string note = e.Crit ? " (crit)" : "";
-            if (e.Relation == AfflatusRelation.Advantage) note += " (afflatus+)";
-            else if (e.Relation == AfflatusRelation.Disadvantage) note += " (afflatus-)";
+            if (e.Blocked > 0) note += " (" + e.Blocked + " blocked)";
+            if (e.IsCounter) note += " (counter)";
+            if (e.Relation == ResonanceRelation.Advantage) note += " (resonance+)";
+            else if (e.Relation == ResonanceRelation.Disadvantage) note += " (resonance-)";
             hud.Log(e.Target.Name + " takes " + e.Amount + note);
             yield return Tween.Wait(e.IsTick ? TickHold : 0.3f);
         }

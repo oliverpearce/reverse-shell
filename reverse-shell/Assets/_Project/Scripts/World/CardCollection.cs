@@ -24,7 +24,12 @@ namespace Game.World
         }
 
         [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
-        static void HookTranslation() { Combat.View.CardTranslation.Check = () => Translated; }
+        static void HookTranslation()
+        {
+            Combat.View.CardTranslation.Check = () => Translated;
+            Combat.View.CardTranslation.NumbersCheck = () => IndexOpen || InSession || WorldSession.InSandbox || StoryState.Has(Chapter1.NumbersChip);
+            Combat.View.CardTranslation.ColoursCheck = () => IndexOpen || InSession || WorldSession.InSandbox || StoryState.Has(Chapter1.ColoursChip);
+        }
 
         static PackRates Rates { get { return PackRates.Current; } }
 
@@ -36,10 +41,12 @@ namespace Game.World
             public readonly Dictionary<string, int> Copies = new Dictionary<string, int>();
             public readonly Dictionary<string, int> Found = new Dictionary<string, int>();
             public readonly Dictionary<string, int> Souls = new Dictionary<string, int>();
+            public readonly HashSet<string> Unseen = new HashSet<string>();
             public int PacksOpened;
             public readonly Dictionary<CharacterDefinition, int> SoulPulls = new Dictionary<CharacterDefinition, int>();
             public readonly Dictionary<CardBinding, int> RarePulls = new Dictionary<CardBinding, int>();
             public readonly Dictionary<CardDefinition, int> CommonPulls = new Dictionary<CardDefinition, int>();
+            public int BlankPulls;
 
             public int CardsPulled
             {
@@ -59,6 +66,7 @@ namespace Game.World
                 {
                     case CardPacks.Tier.Soul: Bump(SoulPulls, pull.Member); break;
                     case CardPacks.Tier.Rare: Bump(RarePulls, pull.Binding); break;
+                    case CardPacks.Tier.Blank: BlankPulls++; break;
                     default: Bump(CommonPulls, pull.Card); break;
                 }
             }
@@ -82,6 +90,19 @@ namespace Game.World
 
         public static void BeginSession() { session = new Session(); }
         public static void EndSession() { session = null; }
+
+        /// <summary>Pack Mode's Restart: these cards go back to unpulled in the throwaway collection.</summary>
+        public static void ForgetSessionCards(IEnumerable<CardDefinition> cards)
+        {
+            if (session == null || cards == null) return;
+            foreach (var card in cards)
+            {
+                if (card == null) continue;
+                session.Copies.Remove(card.name);
+                session.CommonPulls.Remove(card);
+                session.Unseen.Remove(card.name);
+            }
+        }
 
         /// <summary>The rarest pull of the session: a Soul card (the unit pulled most), else the rare pulled most, else
         /// the common with the most copies. False if nothing was pulled.</summary>
@@ -109,24 +130,82 @@ namespace Game.World
             return card != null && CopiesStore.TryGetValue(card.name, out n) ? n : 0;
         }
 
+        /// <summary>Adds copies up to <see cref="MaxCopies"/>; copies past that become blank cards instead.</summary>
         public static void AddCopy(CardDefinition card, int count = 1)
         {
             if (card == null || count <= 0) return;
-            CopiesStore[card.name] = Copies(card) + count;
+            int have = Copies(card);
+            int add = UnityEngine.Mathf.Min(count, UnityEngine.Mathf.Max(0, MaxCopies - have));
+            if (add > 0) CopiesStore[card.name] = have + add;
+            if (count > add) CopiesStore[BlankKey] = Blanks + count - add;
+            MarkNew(card.name);
         }
 
-        /// <summary>The rank this card starts battles at (I-III), from its copies.</summary>
-        public static int StartRank(CardDefinition card)
+        // CARD COLLECTION > BLANK CARDS
+        // Copies of a card past its top level (35) become blank cards; a blank can be imprinted with any card that isn't
+        // at the top yet, as one more copy of it. Kept in the copies store under BlankKey, so they save with the cards.
+
+        const string BlankKey = "#Blank";
+
+        /// <summary>Copies that give every upgrade (35); more become blank cards.</summary>
+        public static int MaxCopies { get { return Rates.CopiesFor(Rates.MaxUpgrades); } }
+
+        public static int Blanks
         {
-            return card == null ? 1 : UnityEngine.Mathf.Clamp(Rates.StartRank(Copies(card)), 1, card.MaxRank);
+            get
+            {
+                int n;
+                return CopiesStore.TryGetValue(BlankKey, out n) ? n : 0;
+            }
         }
 
-        /// <summary>Copies still needed for the next start rank, or 0 at the top.</summary>
-        public static int CopiesToNextRank(CardDefinition card)
+        /// <summary>One more blank card (a pack's second card, sometimes).</summary>
+        public static void AddBlank() { CopiesStore[BlankKey] = Blanks + 1; }
+
+        /// <summary>Whether a blank card can be imprinted with <paramref name="card"/> (one to spend, card not maxed).</summary>
+        public static bool CanImprint(CardDefinition card) { return card != null && Blanks > 0 && Copies(card) < MaxCopies; }
+
+        /// <summary>Spends a blank card on one more copy of <paramref name="card"/>. False if it can't.</summary>
+        public static bool Imprint(CardDefinition card)
         {
-            int copies = Copies(card), rank = StartRank(card);
-            if (card == null || rank >= card.MaxRank) return 0;
-            return (rank == 1 ? Rates.copiesForRankII : Rates.copiesForRankIII) - copies;
+            if (!CanImprint(card)) return false;
+            CopiesStore[BlankKey] = Blanks - 1;
+            CopiesStore[card.name] = Copies(card) + 1;
+            return true;
+        }
+
+        // CARD COLLECTION > NEW (cards pulled but not looked at yet in the book; saved, so they stay NEW after a reload)
+
+        static HashSet<string> fresh { get { return session != null ? session.Unseen : WorldSession.UnseenCards; } }
+
+        /// <summary>A NEW mark was cleared since the last save (the book saves when it closes).</summary>
+        public static bool SeenChanged;
+
+        public static string SoulKey(CharacterDefinition member) { return member == null ? "" : "Soul:" + member.name; }
+        public static string ArcanaKey(CardBinding kind) { return "Arcana:" + kind; }
+
+        public static void MarkNew(string key) { if (!string.IsNullOrEmpty(key)) fresh.Add(key); }
+        public static bool IsNew(string key) { return !string.IsNullOrEmpty(key) && fresh.Contains(key); }
+        public static void Seen(string key) { if (fresh.Remove(key) && session == null) SeenChanged = true; }
+
+        /// <summary>This card's copy upgrades (0-3), from its copies: +2 card levels each in battle.</summary>
+        public static int Upgrades(CardDefinition card)
+        {
+            return card == null ? 0 : Rates.Upgrades(Copies(card));
+        }
+
+        /// <summary>The card's upgrade level as the book shows it: Lv 1 (none) to Lv 4 (every upgrade).</summary>
+        public static int UpgradeLevel(CardDefinition card) { return 1 + Upgrades(card); }
+
+        /// <summary>The top <see cref="UpgradeLevel"/> (4).</summary>
+        public static int MaxUpgradeLevel { get { return 1 + Rates.MaxUpgrades; } }
+
+        /// <summary>Copies still needed for the next upgrade, or 0 at the top.</summary>
+        public static int CopiesToNextUpgrade(CardDefinition card)
+        {
+            int n = Upgrades(card);
+            if (card == null || n >= Rates.MaxUpgrades) return 0;
+            return Rates.CopiesFor(n + 1) - Copies(card);
         }
 
         // CARD COLLECTION > BINDINGS (Sun, Moon, Star)
@@ -262,6 +341,11 @@ namespace Game.World
             var locked = LockedCard(member);
             if (!progress.ExtrasChosen)
             {
+                // The starter cards fill the Alt slots until the player picks others.
+                foreach (var starter in member.starterCards)
+                    if (starter != null && starter != locked && !list.Contains(starter) && list.Count < Rates.extraDeckSlots && UsableNow(member, starter))
+                        list.Add(starter);
+                if (list.Count > 0) return list;
                 var second = Rates.startWithSecondCard ? SecondCard(member) : null;
                 if (second != null && Rates.extraDeckSlots > 0) list.Add(second);
                 return list;
@@ -270,9 +354,26 @@ namespace Game.World
             {
                 if (list.Count >= Rates.extraDeckSlots) break;
                 var card = Find(member, name);
-                if (card != null && card != locked && !list.Contains(card)) list.Add(card);
+                if (card != null && card != locked && !list.Contains(card) && UsableNow(member, card)) list.Add(card);
             }
             return list;
+        }
+
+        /// <summary>
+        /// Whether <paramref name="member"/> can bring <paramref name="card"/> under its active resonance: a resonance
+        /// kit's cards only while that resonance is active (bible v0.6: decks are the active resonance plus Basic);
+        /// Basic cards (the card pool) and other members' cards always. A saved Alt from another resonance just
+        /// sits out until you switch back.
+        /// </summary>
+        public static bool UsableNow(CharacterDefinition member, CardDefinition card)
+        {
+            if (member == null || card == null) return true;
+            if (member.cardPool.Contains(card) || member.incantations.Contains(card)) return true;
+            var active = WorldSession.ActiveKit(member);
+            if (active != null && active.cards.Contains(card)) return true;
+            foreach (var kit in member.resonances)
+                if (kit != null && kit != active && kit.cards.Contains(card)) return false;
+            return true;
         }
 
         /// <summary>The extra card in slot <paramref name="slot"/>, or null if it's empty.</summary>
@@ -280,6 +381,48 @@ namespace Game.World
         {
             var extras = Extras(member);
             return slot >= 0 && slot < extras.Count ? extras[slot] : null;
+        }
+
+        /// <summary>
+        /// Puts <paramref name="card"/> in an extra slot for <paramref name="member"/>, taking it out of any other unit's
+        /// deck in <paramref name="roster"/> first: a card is only ever in one unit's deck at a time.
+        /// </summary>
+        public static void SetExtra(CharacterDefinition member, int slot, CardDefinition card, IList<CharacterDefinition> roster)
+        {
+            if (card != null && roster != null)
+                foreach (var other in roster)
+                {
+                    if (other == null || other == member || !Extras(other).Contains(card)) continue;
+                    var keep = Extras(other).ConvertAll(c => c.name);
+                    keep.Remove(card.name);
+                    var progress = WorldSession.ProgressOf(other);
+                    progress.ExtraCards = keep;
+                    progress.ExtrasChosen = true;
+                }
+            SetExtra(member, slot, card);
+        }
+
+        /// <summary>
+        /// Cleans up a loaded save so no card is in two decks: every unit keeps its innate card; going through
+        /// <paramref name="cast"/> in party order, each keeps the Alts nobody before it has, and loses the rest (its slot
+        /// goes empty). Safe to run every time (it changes nothing once the decks are clean).
+        /// </summary>
+        public static void EnforceOneDeck(IList<CharacterDefinition> cast)
+        {
+            if (cast == null) return;
+            var taken = new HashSet<CardDefinition>();
+            foreach (var m in cast) if (m != null && LockedCard(m) != null) taken.Add(LockedCard(m));
+            foreach (var m in cast)
+            {
+                if (m == null) continue;
+                var extras = Extras(m);
+                var keep = extras.FindAll(c => !taken.Contains(c));
+                foreach (var c in keep) taken.Add(c);
+                if (keep.Count == extras.Count) continue;
+                var progress = WorldSession.ProgressOf(m);
+                progress.ExtraCards = keep.ConvertAll(c => c.name);
+                progress.ExtrasChosen = true;
+            }
         }
 
         /// <summary>Puts <paramref name="card"/> in an extra slot (null = Remove: the slot goes empty).</summary>
@@ -294,14 +437,38 @@ namespace Game.World
             progress.ExtrasChosen = true;
         }
 
-        /// <summary>A card you have: someone's locked card (or default second card), or at least one copy from packs.</summary>
+        /// <summary>A card you have: a unit's innate card in use (its current Main), a starter card, or at least one copy
+        /// from packs. Other innate cards (the other resonances', companions') come from packs like any card.</summary>
         public static bool Owned(CardDefinition card, IList<CharacterDefinition> roster)
         {
             if (card == null) return false;
             if (Copies(card) > 0) return true;
             foreach (var m in roster)
-                if (m != null && (LockedCard(m) == card || (Rates.startWithSecondCard && SecondCard(m) == card))) return true;
+                if (m != null && (LockedCard(m) == card || m.starterCards.Contains(card) || (Rates.startWithSecondCard && SecondCard(m) == card))) return true;
             return false;
+        }
+
+        /// <summary>Who has <paramref name="card"/> in their deck right now (as their innate card or an Alt).</summary>
+        public static List<CharacterDefinition> EquippedBy(CardDefinition card, IList<CharacterDefinition> roster)
+        {
+            var list = new List<CharacterDefinition>();
+            if (card == null || roster == null) return list;
+            foreach (var m in roster)
+                if (m != null && !list.Contains(m) && (LockedCard(m) == card || Extras(m).Contains(card))) list.Add(m);
+            return list;
+        }
+
+        /// <summary>
+        /// Whether an innate card's Soul form can be seen yet: a resonance's innate once that resonance is unlocked (any
+        /// in Sandbox Mode), a companion's once you've met them. Until then it shows as "???".
+        /// </summary>
+        public static bool SoulFormKnown(CharacterDefinition member, CardDefinition card)
+        {
+            if (member == null || card == null) return false;
+            if (WorldSession.InSandbox) return true;
+            foreach (var kit in member.resonances)
+                if (kit != null && kit.cards.Count > 0 && kit.cards[0] == card) return WorldSession.AvailableResonances(member).Contains(kit.element);
+            return WorldSession.Members.Count == 0 || WorldSession.Members.Contains(member.name);
         }
 
         /// <summary>What can go in a unit's extra slot: every party ability card you own except its locked card, its own
@@ -310,7 +477,13 @@ namespace Game.World
         {
             var list = new List<CardDefinition>();
             var locked = LockedCard(member);
-            System.Action<CardDefinition> add = c => { if (c != locked && !list.Contains(c) && Owned(c, roster)) list.Add(c); };
+            // Another unit's innate card is theirs alone (an Alt in another deck can be taken: SetExtra moves it).
+            System.Action<CardDefinition> add = c =>
+            {
+                if (c == locked || list.Contains(c) || !Owned(c, roster) || !UsableNow(member, c)) return;
+                foreach (var m in roster) if (m != null && m != member && LockedCard(m) == c) return;
+                list.Add(c);
+            };
             foreach (var c in AbilitiesOf(member)) add(c);
             foreach (var m in roster)
                 if (m != null && m != member) foreach (var c in AbilitiesOf(m)) add(c);
@@ -332,13 +505,80 @@ namespace Game.World
             return list;
         }
 
-        /// <summary>Fills a loadout's start ranks, bindings and Soul level for this member.</summary>
+        /// <summary>The Soul form of a unit's innate card: the Ult of the resonance kit whose Main card it is, or (a unit
+        /// without kits) its own Ult when it's its first card. Null for every other card.</summary>
+        public static CardDefinition UltFormOf(CharacterDefinition member, CardDefinition card)
+        {
+            if (member == null || card == null) return null;
+            foreach (var kit in member.resonances)
+                if (kit != null && kit.cards.Count > 0 && kit.cards[0] == card) return kit.ultimate;
+            if (member.resonances.Count == 0 && member.incantations.Count > 0 && member.incantations[0] == card) return member.ritual;
+            return null;
+        }
+
+        /// <summary>The ability cards a unit's packs can give: its card pool, its own cards and the kits of resonances it
+        /// has unlocked (so locked resonances' cards don't drop early).</summary>
+        public static List<CardDefinition> PackPoolOf(CharacterDefinition member)
+        {
+            var list = new List<CardDefinition>();
+            if (member == null) return list;
+            System.Action<CardDefinition> add = c => { if (c != null && !c.isRitual && !list.Contains(c)) list.Add(c); };
+            foreach (var c in member.incantations) add(c);
+            foreach (var c in member.cardPool) add(c);
+            var open = WorldSession.AvailableResonances(member);
+            foreach (var kit in member.resonances)
+                if (kit != null && (open.Count == 0 || open.Contains(kit.element))) foreach (var c in kit.cards) add(c);
+            return list;
+        }
+
+        // CARD COLLECTION > SETS (every ability card of one resonance, as the Cards book files them)
+
+        /// <summary>A card's resonance: the kit it belongs to; for the protagonist's other cards (the Basic card pool)
+        /// the card's own pool; else its owner's own element.</summary>
+        public static Resonance ElementOf(CharacterDefinition member, CardDefinition card)
+        {
+            foreach (var kit in member.resonances)
+                if (kit != null && kit.cards.Contains(card)) return kit.element;
+            return member.resonances.Count > 0 ? card.pool : member.resonance;
+        }
+
+        /// <summary><see cref="ElementOf(CharacterDefinition, CardDefinition)"/> for the first unit in
+        /// <paramref name="roster"/> who can use the card (the one the Cards book files it under).</summary>
+        public static Resonance ElementOf(CardDefinition card, IList<CharacterDefinition> roster)
+        {
+            foreach (var m in roster)
+                if (m != null && AbilitiesOf(m).Contains(card)) return ElementOf(m, card);
+            return card != null ? card.pool : Resonance.Basic;
+        }
+
+        /// <summary>The resonances whose every ability card (every one the Cards book shows) you own: their names turn
+        /// gold in the book.</summary>
+        public static HashSet<Resonance> CompleteSets(IList<CharacterDefinition> roster)
+        {
+            var complete = new HashSet<Resonance>();
+            var missing = new HashSet<Resonance>();
+            var seen = new HashSet<CardDefinition>();
+            if (roster == null) return complete;
+            foreach (var m in roster)
+            {
+                if (m == null) continue;
+                foreach (var card in AbilitiesOf(m))
+                {
+                    if (!seen.Add(card)) continue;
+                    (Owned(card, roster) ? complete : missing).Add(ElementOf(m, card));
+                }
+            }
+            complete.ExceptWith(missing);
+            return complete;
+        }
+
+        /// <summary>Fills a loadout's copy upgrades, bindings and Soul level for this member.</summary>
         public static void FillLoadout(CharacterDefinition member, Loadout loadout)
         {
             foreach (var card in AbilitiesOf(member))
             {
-                int rank = StartRank(card);
-                if (rank > 1) loadout.StartRanks[card] = rank;
+                int upgrades = Upgrades(card);
+                if (upgrades > 0) loadout.Upgrades[card] = upgrades;
                 var binding = BindingOf(card);
                 if (binding != CardBinding.None) loadout.Bindings[card] = binding;
             }

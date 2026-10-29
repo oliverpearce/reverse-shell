@@ -19,26 +19,26 @@ namespace Combat.Tests
             return card;
         }
 
-        public static CharacterDefinition Character(string name, Afflatus afflatus = Afflatus.Volt, float attack = 100f,
+        public static CharacterDefinition Character(string name, Resonance resonance = Resonance.Arc, float attack = 100f,
             CardDefinition ritual = null, params CardDefinition[] incantations)
         {
             var c = ScriptableObject.CreateInstance<CharacterDefinition>();
             c.name = name;
             c.displayName = name;
-            c.afflatus = afflatus;
+            c.resonance = resonance;
             c.stats = new Stats { maxHP = 1000, attack = attack, physicalDefense = 0f, specialDefense = 0f, critRate = 0f };
             c.incantations = new List<CardDefinition>(incantations);
             c.ritual = ritual;
             return c;
         }
 
-        public static EnemyDefinition Enemy(string name, int hp = 100000, Afflatus afflatus = Afflatus.Light,
+        public static EnemyDefinition Enemy(string name, int hp = 100000, Resonance resonance = Resonance.Prism,
             float defense = 0f, params EnemySkill[] skills)
         {
             var e = ScriptableObject.CreateInstance<EnemyDefinition>();
             e.name = name;
             e.displayName = name;
-            e.afflatus = afflatus;
+            e.resonance = resonance;
             e.stats = new Stats { maxHP = hp, attack = 100f, physicalDefense = defense, specialDefense = defense, critRate = 0f };
             e.skills = new List<EnemySkill>(skills);
             return e;

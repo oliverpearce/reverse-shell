@@ -153,7 +153,7 @@ namespace Combat.View
         static float Header(RectTransform sheet, BattleUnit unit, float y)
         {
             var def = unit.Definition;
-            ElementBadge.Create(sheet, unit.Afflatus, 60f, new Vector2(0f, 1f), new Vector2(40f, -y - 42f));
+            ElementBadge.Create(sheet, unit.Resonance, 60f, new Vector2(0f, 1f), new Vector2(40f, -y - 42f));
 
             var name = UIFactory.CreateText(sheet, "Name", def.DisplayName, 66, TextColor, TextAnchor.MiddleLeft).BestFit(36, 66);
             name.font = UIFactory.SerifFont;
@@ -211,7 +211,7 @@ namespace Combat.View
             layout.childControlHeight = false;
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
-            foreach (var s in statuses) StatusChip.Create(row, s, size, true, 1.2f);
+            foreach (var s in statuses) StatusChip.Create(row, s, size);
             return y + size + 6f;
         }
 
@@ -315,27 +315,37 @@ namespace Combat.View
             var canvas = (RectTransform)sheet.GetComponentInParent<Canvas>().rootCanvas.transform;
             if (unit.Character != null)
             {
+                bool first = true;
                 foreach (var card in unit.Incantations)
-                    if (card != null) IconCard(row, canvas, unit, card, 1);
+                {
+                    if (card == null) continue;
+                    var innate = IconCard(row, canvas, unit, card, 1, first ? unit.Ultimate : null);
+                    if (first) SoulFormPreview.Attach(innate.gameObject, unit, unit.Ultimate, CardScale * 1.4f);   // the Main card
+                    first = false;
+                }
                 if (unit.Ultimate != null) IconCard(row, canvas, unit, unit.Ultimate, 1);
             }
             else if (unit.Enemy != null)
             {
+                if (unit.Enemy.innate != null)
+                    SoulFormPreview.Attach(IconCard(row, canvas, unit, unit.Enemy.innate, 1, unit.Enemy.ritual).gameObject, unit, unit.Enemy.ritual, CardScale * 1.4f);
                 foreach (var skill in unit.Enemy.skills)
                     if (skill.card != null) IconCard(row, canvas, unit, skill.card, Mathf.Max(1, skill.rank));
                 if (unit.Enemy.ritual != null) IconCard(row, canvas, unit, unit.Enemy.ritual, 1);
             }
         }
 
-        static void IconCard(RectTransform row, RectTransform canvas, BattleUnit unit, CardDefinition card, int rank)
+        static RectTransform IconCard(RectTransform row, RectTransform canvas, BattleUnit unit, CardDefinition card, int rank,
+            CardDefinition soulForm = null)
         {
             var ability = AbilityCard.Create(row, unit, card, rank, CardScale, true);
             var rt = (RectTransform)ability.transform;
             // Click or hold: the same card popup as the party menu (flip, full text, live numbers with this unit's
             // current stats, scroll for the other ranks).
-            Action open = () => { if (!CardDetailPopup.IsOpen) CardDetailPopup.Open(canvas, unit, card, rank, rt); };
+            Action open = () => { if (!CardDetailPopup.IsOpen) CardDetailPopup.Open(canvas, unit, card, rank, rt, null, soulForm); };
             ability.OnLongPress = open;
             ability.OnClick = open;
+            return rt;
         }
 
         // ------------------------------------------------------------------ Building blocks

@@ -13,8 +13,16 @@ namespace Combat
         [Tooltip("XP each party member earns when this enemy is beaten.")]
         [Min(0)] public int xpReward = 50;
 
-        [Tooltip("Ult: replaces the round's skill once the enemy's Ult points are full (it gains them by acting, like the party).")]
+        [Tooltip("Ult: replaces the round's skill once the enemy's Ult points are full (it gains them by acting, like the party). " +
+                 "It's the Soul form of the innate card below.")]
         public CardDefinition ritual;
+
+        [Header("Innate card (from the card sheet's Enemies tab)")]
+        [Tooltip("A Basic card the enemy always has, played Innate Levels higher; the Ult above is its Soul form.")]
+        public CardDefinition innate;
+        [Min(0)] public int innateLevels = 3;
+        [Tooltip("Its weight among the skills when the AI picks a move.")]
+        [Min(0f)] public float innateWeight = 1f;
     }
 
     [Serializable]

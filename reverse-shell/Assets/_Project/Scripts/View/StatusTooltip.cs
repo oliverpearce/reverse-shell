@@ -39,11 +39,13 @@ namespace Combat.View
             var root = (RectTransform)canvas.rootCanvas.transform;
             var def = status.Definition;
 
-            string turns = UIText.Get(status.Remaining == 1 ? "status.turn" : "status.turns", "n", status.Remaining.ToString());
+            string turns = CardTranslation.HideDigits(UIText.Get(status.Remaining == 1 ? "status.turn" : "status.turns", "n", status.Remaining.ToString()));
             // What it does in total right now (two stacks of +15% ATK read "ATK +30%"), else the written description.
-            string total = StatusChip.TotalEffect(def, status.Stacks);
+            string total = def.special == StatusSpecial.Shield
+                ? UIText.Get("status.shield_left", "n", Mathf.RoundToInt(status.Power).ToString())
+                : StatusChip.TotalEffect(def, status.Stacks);
             string level = def.maxStacks > 1 && status.Stacks >= def.maxStacks ? UIText.Get("common.max") : "";
-            string body = total.Length > 0 ? total : string.IsNullOrEmpty(def.description) ? "" : def.description;
+            string body = CardTranslation.HideDigits(total.Length > 0 ? total : string.IsNullOrEmpty(def.description) ? "" : def.description);
 
             var box = InkStyle.Panel(root, "StatusTooltip", InkStyle.InkPanel).rectTransform;
             InkStyle.Frame(box, UIFactory.WithAlpha(def.color, 0.8f), 2f);
@@ -85,15 +87,14 @@ namespace Combat.View
     }
 
     /// <summary>
-    /// One status as an icon with the turns left in its corner ("2x3" = 2 stacks, 3 turns), or a short label plate when
-    /// the status has no icon; hovering it shows the <see cref="StatusTooltip"/>. Used under units in battle and by the
-    /// HP bar on the inspect (zoom-in) screen.
+    /// One status as a clean icon (no numbers), or a short label plate when the status has no icon; hovering it shows
+    /// the <see cref="StatusTooltip"/> with the turns left and the amount. Used under units in battle and by the HP bar
+    /// on the inspect (zoom-in) screen.
     /// </summary>
     public static class StatusChip
     {
-        /// <param name="numbers">Show the turns left and the total amount (off under units in battle: hover for them).</param>
-        /// <param name="numberScale">Extra size for those numbers (the inspect sheet makes them bigger).</param>
-        public static RectTransform Create(Transform parent, StatusSnapshot s, float size, bool numbers = true, float numberScale = 1f)
+        /// <summary>Just the icon, everywhere: the turns left and the amount are in the hover box.</summary>
+        public static RectTransform Create(Transform parent, StatusSnapshot s, float size)
         {
             float k = size / 52f;
             var iconSprite = CardIcons.Status(s.Definition);
@@ -113,14 +114,6 @@ namespace Combat.View
                 plate.rectTransform.Fill();
                 UIFactory.CreateText(chip, "Label", s.Definition.shortLabel, Mathf.RoundToInt(20f * k), Color.white, TextAnchor.MiddleCenter, FontStyle.Bold).rectTransform.Fill();
                 hit = plate;
-            }
-            if (numbers)
-            {
-                float n = k * numberScale;
-                var turns = UIFactory.CreateText(chip, "Turns", s.Remaining.ToString(), Mathf.RoundToInt(22f * n), InkStyle.Paper, TextAnchor.LowerRight, FontStyle.Bold);
-                turns.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
-                turns.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(6f, -6f) * k, new Vector2(60f, 28f) * n);
-                AddAmount(chip, s.Definition, s.Stacks, n);
             }
             StatusTooltip.Attach(hit.gameObject, s);
             return chip;
@@ -147,6 +140,7 @@ namespace Combat.View
             if (def.modifiers != null)
                 foreach (var m in def.modifiers) lines.Add(StatName(m.stat) + " " + Signed(m, stacks, false));
             if (def.damagePerRoundPercentMaxHP > 0f) lines.Add(UIText.Get("status.lose_hp", "pct", Pct(def.damagePerRoundPercentMaxHP * stacks)));
+            if (def.damagePerRoundSourceATK > 0f) lines.Add(UIText.Get("status.burn", "pct", Pct(def.damagePerRoundSourceATK * stacks)));
             if (def.healPerRoundPercentMaxHP > 0f) lines.Add(UIText.Get("status.recover_hp", "pct", Pct(def.healPerRoundPercentMaxHP * stacks)));
             if (def.preventsAction) lines.Add(UIText.Get("status.cant_act"));
             return string.Join("\n", lines.ToArray());
@@ -203,9 +197,12 @@ namespace Combat.View
         }
 
         /// <summary>The total amount in a chip's top-left corner, green for buffs and red for debuffs.</summary>
-        public static void AddAmount(RectTransform chip, StatusDefinition def, int stacks, float k)
+        public static void AddAmount(RectTransform chip, StatusDefinition def, int stacks, float k, float power = 0f)
         {
-            string amount = Amount(def, stacks);
+            // A shield shows the HP it still soaks; a counter, how many hits back it has left.
+            string amount = def != null && def.special == StatusSpecial.Shield ? Mathf.RoundToInt(power).ToString()
+                : def != null && def.special == StatusSpecial.Counter ? "x" + stacks
+                : Amount(def, stacks);
             if (amount.Length == 0) return;
             var t = UIFactory.CreateText(chip, "Amount", amount, Mathf.RoundToInt(20f * k), ArrowColor(def), TextAnchor.UpperLeft, FontStyle.Bold);
             t.horizontalOverflow = HorizontalWrapMode.Overflow;

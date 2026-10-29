@@ -16,6 +16,7 @@ MonoBehaviour:
   kind: 1
   targetMode: 5
   isRitual: 0
+  level: 5
   icon: {fileID: 0}
   ranks:
   - description: 

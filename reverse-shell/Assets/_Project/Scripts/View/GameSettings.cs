@@ -5,8 +5,9 @@ using UnityEngine.EventSystems;
 namespace Combat.View
 {
     /// <summary>
-    /// Player settings shared by the title screen and the battle pause menu (the overworld's Esc → Settings adds
-    /// Enter / Leave Sandbox Mode, Game.World.PauseCards). <see cref="Options"/> is the list both
+    /// Player settings shared by the title screen, the overworld's Esc → Settings (which adds Leave Sandbox Mode while
+    /// in it, Game.World.PauseCards) and the battle pause menu. Each also has the two volume sliders
+    /// (<see cref="SfxVolume"/>, <see cref="MusicVolume"/>, a <see cref="VolumeSlider"/> each). <see cref="Options"/> is the list both
     /// menus show: a label with the current value, what selecting it does, and a help line for its "?". Every
     /// Settings menu also has the Tutorials row (<see cref="GuideLabel"/>), which opens the guide.
     /// </summary>
@@ -104,6 +105,31 @@ namespace Combat.View
         {
             if (cam != null) cam.allowHDR = !FastGraphics;
         }
+
+        // ------------------------------------------------------------------ Volume
+
+        const string SfxKey = "settings.sfx", MusicKey = "settings.music";
+        /// <summary>Both volumes start at 70%.</summary>
+        public const float DefaultVolume = 0.7f;
+
+        /// <summary>Sound effects volume, 0-1 (the dialogue blips and every effect). Saved (PlayerPrefs).</summary>
+        public static float SfxVolume
+        {
+            get { return Mathf.Clamp01(PlayerPrefs.GetFloat(SfxKey, DefaultVolume)); }
+            set { PlayerPrefs.SetFloat(SfxKey, Mathf.Clamp01(value)); PlayerPrefs.Save(); }
+        }
+
+        /// <summary>Music volume, 0-1 (for the music when it's in). Saved (PlayerPrefs).</summary>
+        public static float MusicVolume
+        {
+            get { return Mathf.Clamp01(PlayerPrefs.GetFloat(MusicKey, DefaultVolume)); }
+            set { PlayerPrefs.SetFloat(MusicKey, Mathf.Clamp01(value)); PlayerPrefs.Save(); }
+        }
+
+        public static string SfxLabel { get { return UIText.Get("settings.sfx"); } }
+        public static string SfxHelp { get { return UIText.Get("settings.sfx.help"); } }
+        public static string MusicLabel { get { return UIText.Get("settings.music"); } }
+        public static string MusicHelp { get { return UIText.Get("settings.music.help"); } }
 
         // ------------------------------------------------------------------ Guide
 

@@ -1,13 +1,12 @@
 namespace Combat
 {
     /// <summary>
-    /// The six elements (code name Afflatus). Values are serialized as numbers, so keep the order: renaming is safe,
-    /// reordering is not. Wheel: Volt > Fire > Toxin > Earth > Volt; Light and Void beat each other (see AfflatusChart).
-    /// Each one is drawn with effects from the Super Pixel Effects Gigapack (see AfflatusInfo).
-    /// None = Physical: no element, neutral in every matchup (the protagonist's starting Core; bible §3). Volt is the
-    /// story's Electric resonance.
+    /// The five resonances plus Basic (bible v0.6 §3). Values are serialized as numbers, so keep
+    /// the order: renaming is safe, reordering is not. Wheel: Cinder > Cryo > Root > Arc > Cinder; Prism is neutral to
+    /// all but crits more (see ResonanceChart). Basic: no element, neutral in every matchup (the protagonist's
+    /// starting Core).
     /// </summary>
-    public enum Afflatus { Volt, Fire, Toxin, Earth, Light, Void, None }
+    public enum Resonance { Arc, Cinder, Root, Cryo, Prism, Basic }
 
     public enum DamageType { Physical, Special }
 
@@ -38,12 +37,30 @@ namespace Combat
 
     public enum EffectTarget { CardTargets, Self, SingleEnemy, AllEnemies, RandomEnemy, SingleAlly, AllAllies, RandomAlly }
 
-    /// <summary>What a card does, shown by its type icon and kind word. Counter: triggers under certain conditions.</summary>
-    public enum CardKind { Attack, Buff, Debuff, Heal, Counter }
+    /// <summary>What a card does, shown by its type icon and kind word (bible v0.6 §7). Counter: hits back when its
+    /// holder is attacked. Defense: shields or covers. Serialized as numbers: add new kinds at the end.</summary>
+    public enum CardKind { Attack, Buff, Debuff, Heal, Counter, Defense }
+
+    /// <summary>How often packs give a card (each pack's odds per tier are in PackRates.packs).</summary>
+    /// <summary>A card's rarity: how often packs give it. Legendary is each resonance's one or two strongest cards, with
+    /// a gold shine (CardHolo).</summary>
+    public enum CardRarity { Common, Rare, Epic, Legendary }
+
+    /// <summary>A status the battle rules treat specially (its numbers live on the StatusInstance).</summary>
+    public enum StatusSpecial
+    {
+        None,
+        /// <summary>Soaks card damage before HP (StatusInstance.Power = shield HP left).</summary>
+        Shield,
+        /// <summary>Hits back when the holder takes a card hit (Power = the hit's ATK multiple, Stacks = hits left).</summary>
+        Counter,
+        /// <summary>Enemy card hits on the holder go to the status's Source instead.</summary>
+        Cover
+    }
 
     public enum Team { Player, Enemy }
 
-    public enum AfflatusRelation { Neutral, Advantage, Disadvantage }
+    public enum ResonanceRelation { Neutral, Advantage, Disadvantage }
 
     public enum BattlePhase { NotStarted, Planning, Resolving, Victory, Defeat }
 

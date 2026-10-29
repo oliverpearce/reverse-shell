@@ -36,9 +36,16 @@ namespace Combat
                    && Rank < Definition.MaxRank;
         }
 
+        /// <summary>The card's level in this fight (<see cref="CardLevels"/>).</summary>
+        public int Level { get { return CardLevels.Of(this); } }
+
+        /// <summary>The rank's text, with its damage and healing at this card's level.</summary>
         public string Describe()
         {
-            return CardText.ForRank(Definition, Rank);
+            var before = CardLevels.Describing;
+            CardLevels.Describing = this;
+            try { return CardText.ForRank(Definition, Rank); }
+            finally { CardLevels.Describing = before; }
         }
 
         public override string ToString() { return Name + " R" + Rank + " (" + Owner + ")"; }

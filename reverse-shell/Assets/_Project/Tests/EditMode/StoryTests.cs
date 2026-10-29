@@ -31,7 +31,7 @@ namespace Combat.Tests
             StringAssert.Contains("guardian", Chapter1.CurrentObjective());
             StoryState.Set(Chapter1.DragonBeaten);
             StringAssert.Contains("Soul Card", Chapter1.CurrentObjective());
-            StoryState.Set(Chapter1.ResonanceVolt);
+            StoryState.Set(Chapter1.ResonanceArc);
             StoryState.Set(Chapter1.Complete);
             StringAssert.Contains("complete", Chapter1.CurrentObjective());
         }
@@ -51,8 +51,8 @@ namespace Combat.Tests
         {
             StoryState.Set(Chapter1.Scanner);
             StoryState.SetName("Wren");
-            WorldSession.UnlockResonance(Afflatus.Volt);
-            WorldSession.SetResonance(Afflatus.Volt);
+            WorldSession.UnlockResonance(Resonance.Arc);
+            WorldSession.SetResonance(Resonance.Arc);
             WorldSession.CurrentArea = WorldAreas.Tunnel;
             var json = JsonUtility.ToJson(SaveGame.Capture());
 
@@ -62,8 +62,8 @@ namespace Combat.Tests
             SaveGame.Restore(JsonUtility.FromJson<SaveGame.Data>(json));
             Assert.IsTrue(StoryState.Has(Chapter1.Scanner));
             Assert.AreEqual("Wren", StoryState.PlayerName);
-            Assert.IsTrue(WorldSession.UnlockedResonances.Contains(Afflatus.Volt));
-            Assert.AreEqual(Afflatus.Volt, WorldSession.ActiveResonance);
+            Assert.IsTrue(WorldSession.UnlockedResonances.Contains(Resonance.Arc));
+            Assert.AreEqual(Resonance.Arc, WorldSession.ActiveResonance);
             Assert.AreEqual(WorldAreas.Tunnel, WorldSession.CurrentArea);
         }
 
@@ -82,34 +82,34 @@ namespace Combat.Tests
             physical = TestFactory.Card("Strike");
             electric = TestFactory.Card("Arc");
             ult = TestFactory.Card("Thunder", 5f, ritual: true);
-            var mc = TestFactory.Character("Hero", Afflatus.Volt, 100f, null, physical);
+            var mc = TestFactory.Character("Hero", Resonance.Arc, 100f, null, physical);
             mc.resonances = new List<ResonanceKit>
             {
-                new ResonanceKit { element = Afflatus.None, cards = new List<CardDefinition> { physical } },
-                new ResonanceKit { element = Afflatus.Volt, cards = new List<CardDefinition> { electric }, ultimate = ult },
+                new ResonanceKit { element = Resonance.Basic, cards = new List<CardDefinition> { physical } },
+                new ResonanceKit { element = Resonance.Arc, cards = new List<CardDefinition> { electric }, ultimate = ult },
             };
             return mc;
         }
 
         [Test]
-        public void Resonance_StartsPhysical_ElectricNeedsUnlocking_AndSwapsCardsElementAndUlt()
+        public void Resonance_StartsBasic_ElectricNeedsUnlocking_AndSwapsCardsElementAndUlt()
         {
             CardDefinition physical, electric, ult;
             var mc = Protagonist(out physical, out electric, out ult);
 
-            Assert.AreEqual(new[] { Afflatus.None }, WorldSession.AvailableResonances(mc).ToArray());
-            WorldSession.SetResonance(Afflatus.Volt);   // not unlocked yet: still Physical
-            Assert.AreEqual(Afflatus.None, WorldSession.ElementOf(mc));
+            Assert.AreEqual(new[] { Resonance.Basic }, WorldSession.AvailableResonances(mc).ToArray());
+            WorldSession.SetResonance(Resonance.Arc);   // not unlocked yet: still Basic
+            Assert.AreEqual(Resonance.Basic, WorldSession.ElementOf(mc));
             CollectionAssert.AreEqual(new[] { physical }, WorldSession.DeckOf(mc));
 
-            WorldSession.UnlockResonance(Afflatus.Volt);
-            Assert.AreEqual(Afflatus.Volt, WorldSession.ElementOf(mc));
+            WorldSession.UnlockResonance(Resonance.Arc);
+            Assert.AreEqual(Resonance.Arc, WorldSession.ElementOf(mc));
             CollectionAssert.AreEqual(new[] { electric }, WorldSession.DeckOf(mc));
             Assert.AreSame(ult, WorldSession.UltimateOf(mc));
 
             var unit = new BattleUnit(mc, Team.Player);
             unit.ApplyLoadout(WorldSession.LoadoutsFor(new[] { mc })[mc]);
-            Assert.AreEqual(Afflatus.Volt, unit.Afflatus);
+            Assert.AreEqual(Resonance.Arc, unit.Resonance);
             Assert.AreSame(ult, unit.Ultimate);
         }
 
@@ -123,7 +123,7 @@ namespace Combat.Tests
 
             WorldSession.CurrentArea = WorldAreas.Sandbox;
             Assert.IsTrue(WorldSession.ResonanceMenuUnlocked);
-            Assert.AreEqual(new[] { Afflatus.None, Afflatus.Volt }, WorldSession.AvailableResonances(mc).ToArray());
+            Assert.AreEqual(new[] { Resonance.Basic, Resonance.Arc }, WorldSession.AvailableResonances(mc).ToArray());
 
             WorldSession.CurrentArea = WorldAreas.City;
             StoryState.Set(Chapter1.Complete);
@@ -131,16 +131,16 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void Resonance_SetsTheColour_ElectricYellow_PhysicalOwn()
+        public void Resonance_SetsTheColour_ElectricYellow_BasicOwn()
         {
             CardDefinition physical, electric, ult;
             var mc = Protagonist(out physical, out electric, out ult);
             mc.color = Color.white;
             Assert.AreEqual(Color.white, WorldSession.ColorOf(mc));
 
-            WorldSession.UnlockResonance(Afflatus.Volt);
-            WorldSession.SetResonance(Afflatus.Volt);
-            var yellow = AfflatusInfo.Color(Afflatus.Volt);
+            WorldSession.UnlockResonance(Resonance.Arc);
+            WorldSession.SetResonance(Resonance.Arc);
+            var yellow = ResonanceInfo.Color(Resonance.Arc);
             Assert.Greater(yellow.r, yellow.b + 0.5f, "Electric reads as yellow");
             Assert.AreEqual(yellow, WorldSession.ColorOf(mc));
 
@@ -150,12 +150,12 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void Physical_IsNeutralAgainstEveryElement()
+        public void Basic_IsNeutralAgainstEveryElement()
         {
-            foreach (Afflatus other in System.Enum.GetValues(typeof(Afflatus)))
+            foreach (Resonance other in System.Enum.GetValues(typeof(Resonance)))
             {
-                Assert.AreEqual(AfflatusRelation.Neutral, AfflatusChart.Relation(Afflatus.None, other));
-                Assert.AreEqual(AfflatusRelation.Neutral, AfflatusChart.Relation(other, Afflatus.None));
+                Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Basic, other));
+                Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(other, Resonance.Basic));
             }
         }
 
@@ -256,7 +256,7 @@ namespace Combat.Tests
             string[] keys =
             {
                 "prologue.recording", "prologue.tagline", "prologue.procedure", "prologue.name", "prologue.name.question",
-                "awakening", "awakening.binder", "pod", "chip.pickup", "memory.2", "memory.3", "memory.after",
+                "awakening", "binder.pickup", "pod", "chip.pickup", "chip.colours.pickup", "chip.numbers.pickup", "memory.2", "memory.3", "memory.after",
                 "record.city.4", "record.city.5", "record.city.6", "record.city.7", "record.tunnel.4", "npc.small_machine",
                 "scanner.pickup", "scan.jammed", "scan.trace", "scan.none.hint", "scan.none", "route.open",
                 "collector.intro", "collector.question", "collector.options", "collector.answer.1", "collector.answer.2",

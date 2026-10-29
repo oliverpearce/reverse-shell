@@ -22,7 +22,8 @@ namespace Game.World
         const float Left = -820f, Right = 820f, Top = 600f;
         const float InfoX = -60f;                   // the info column's left edge
         const float SpriteScale = 12f;              // 64 px frames at 12x (whole pixels)
-        const float RowCardScale = 1f;      // the pixel card at 5x, like the hand
+        /// <summary>The deck row's cards: as big as fits Main + Alts + Soul across the row, in whole card pixels (5x is the hand's size).</summary>
+        float rowCardScale = 1f;
 
         /// <summary>The item slots shown (weapon / armor slots are shelved for now).</summary>
         static readonly PartSlot[] Slots = { PartSlot.Chip, PartSlot.Core };
@@ -134,7 +135,7 @@ namespace Game.World
 
         void HandleInput()
         {
-            if (CardDetailPopup.IsOpen) return;   // the open card takes Esc / clicks first
+            if (CardDetailPopup.IsOpen || CardsScreen.AnyOpen) return;   // the open card / card book takes Esc / clicks first
             bool cancel = UIKeys.Back || UIKeys.Pressed(KeyCode.Backspace);
             bool confirm = UIKeys.Pressed(KeyCode.Return) || UIKeys.Pressed(KeyCode.KeypadEnter) || UIKeys.Pressed(KeyCode.F) || UIKeys.Pressed(KeyCode.Space);
             bool left = UIKeys.Pressed(KeyCode.LeftArrow) || UIKeys.Pressed(KeyCode.A);
@@ -148,6 +149,11 @@ namespace Game.World
                 else if (up) MovePicker(-1);
                 else if (down) MovePicker(1);
                 else if (confirm && pickerIndex < pickerActions.Count) pickerActions[pickerIndex]();
+                return;
+            }
+            if (cancel && replaceButton != null)
+            {
+                HideReplace();
                 return;
             }
             if (cancel)
@@ -233,7 +239,7 @@ namespace Game.World
         {
             BuildTabs();
             BuildDetail();
-            var c = AfflatusInfo.GlowFor(Member);
+            var c = ResonanceInfo.GlowFor(Member);
             c.a = 0.16f;
             glowBackdrop.color = c;
         }
@@ -272,6 +278,7 @@ namespace Game.World
         void BuildDetail()
         {
             ClosePicker();
+            HideReplace();
             if (detail != null) Destroy(detail.gameObject);
             focusTargets.Clear();
             itemDescs.Clear();
@@ -458,8 +465,13 @@ namespace Game.World
             int extraSlots = PackRates.Current.extraDeckSlots;
 
             float x0 = InfoX + 96f;
-            var cardSize = CardView.Size * RowCardScale;
             const float cardGap = 16f, groupGap = 40f, pad = 18f, labelH = 30f;
+            // Innate + Alts only: the Soul card shows when hovering the innate card (and in its popup).
+            int cards = 1 + extraSlots;
+            float room = Right - x0 - pad * 2f - groupGap - cardGap * Mathf.Max(0, extraSlots - 1);
+            int pixel = Mathf.Clamp(Mathf.FloorToInt(room / cards / CardArt.Width), 2, (int)CardArt.HandPixel);
+            rowCardScale = pixel / CardArt.HandPixel;
+            var cardSize = CardView.Size * rowCardScale;
             var bracket = UIFactory.CreateRect("Cards", detail).Place(center, tl, new Vector2(x0, y), new Vector2(Right - x0, cardSize.y + labelH + pad * 2f));
             InkStyle.Frame(bracket, UIFactory.WithAlpha(InkStyle.Gold, 0.4f), 1f);
 
@@ -471,10 +483,11 @@ namespace Game.World
             };
 
             // Locked card.
-            groupLabel("units.locked", cardSize.x);
+            groupLabel("units.main", cardSize.x);
             if (locked != null)
             {
-                var rt = CardSlot(bracket, unit, locked, new Vector2(x, -pad - labelH), cardSize);
+                var rt = CardSlot(bracket, unit, locked, new Vector2(x, -pad - labelH), cardSize, rowCardScale);
+                SoulFormPreview.Attach(rt.gameObject, unit, CardCollection.UltFormOf(member, locked) ?? ult, rowCardScale * 1.4f);
                 var captured = locked;
                 Clickable(rt, () => { SetFocus(Slots.Length); OpenCard(captured, rt); });
                 focusTargets.Add(rt);
@@ -484,13 +497,13 @@ namespace Game.World
             // Extra slot(s).
             if (extraSlots > 0)
             {
-                groupLabel("units.extra", extraSlots * cardSize.x + (extraSlots - 1) * cardGap);
+                groupLabel("units.alt", extraSlots * cardSize.x + (extraSlots - 1) * cardGap);
                 for (int s = 0; s < extraSlots; s++)
                 {
                     int slot = s;
                     var card = CardCollection.ExtraIn(member, s);
                     RectTransform rt;
-                    if (card != null) rt = CardSlot(bracket, unit, card, new Vector2(x, -pad - labelH), cardSize);
+                    if (card != null) rt = CardSlot(bracket, unit, card, new Vector2(x, -pad - labelH), cardSize, rowCardScale);
                     else
                     {
                         // Empty: a faint frame with a "+".
@@ -503,35 +516,55 @@ namespace Game.World
                     }
                     int focusIndex = Slots.Length + 1 + s;
                     var target = rt;
-                    Clickable(rt, () => { SetFocus(focusIndex); OpenExtraPicker(member, slot); });
+                    // Filled: a click looks at the card, a right click offers Replace. Empty: either offers it.
+                    var shown = card;
+                    Clickable(rt, () =>
+                    {
+                        SetFocus(focusIndex);
+                        if (shown != null) OpenCard(shown, target);
+                        else ShowReplace(member, slot, target);
+                    });
+                    RightClickable(rt, () => { SetFocus(focusIndex); ShowReplace(member, slot, target); });
                     focusTargets.Add(target);
                     x += cardSize.x + cardGap;
                 }
                 x += groupGap - cardGap;
             }
 
-            // The Soul card.
-            if (ult != null)
-            {
-                groupLabel("units.ult", cardSize.x);
-                var rt = CardSlot(bracket, unit, ult, new Vector2(x, -pad - labelH), cardSize);
-                Clickable(rt, () => OpenCard(ult, rt));
-            }
         }
 
         /// <summary>One card in the deck row (icon only: the text is in the popup).</summary>
-        static RectTransform CardSlot(RectTransform bracket, BattleUnit unit, CardDefinition card, Vector2 at, Vector2 size)
+        static RectTransform CardSlot(RectTransform bracket, BattleUnit unit, CardDefinition card, Vector2 at, Vector2 size, float scale)
         {
             var tl = new Vector2(0f, 1f);
             var holder = UIFactory.CreateRect("Slot", bracket).Place(tl, tl, at, size);
-            var ability = AbilityCard.Create(holder, unit, card, 0, RowCardScale, true);
+            var ability = AbilityCard.Create(holder, unit, card, 0, scale, true);
             var rt = (RectTransform)ability.transform;
             rt.Fill();
             return rt;
         }
 
-        /// <summary>The extra slot's picker: every card you own that this unit can bring (its own first), and Remove.</summary>
+        /// <summary>The extra slot's picker: the Cards book with every card you own that this unit can bring; Enter or a
+        /// click uses one, and Remove (in Open Pack's place) empties the slot. The old list is the fallback.</summary>
         void OpenExtraPicker(CharacterDefinition member, int slot)
+        {
+            var book = world != null && world.Items != null ? world.Items.Cards : null;
+            if (book != null)
+            {
+                var current = CardCollection.ExtraIn(member, slot);
+                var choices = CardCollection.Eligible(member, party);
+                choices.Remove(current);
+                book.OpenToPick(choices, current != null, card =>
+                {
+                    CardCollection.SetExtra(member, slot, card, party);
+                    SaveGame.Save();
+                }, BuildDetail, member, current);
+                return;
+            }
+            OpenExtraList(member, slot);
+        }
+
+        void OpenExtraList(CharacterDefinition member, int slot)
         {
             var options = new List<PickerOption>();
             var current = CardCollection.ExtraIn(member, slot);
@@ -542,7 +575,7 @@ namespace Game.World
                 string owner = OwnerName(card);
                 options.Add(new PickerOption(card.DisplayName, UIText.Get("units.extra.detail", "owner", owner, "kind", UnitView.KindLabel(card.kind)), () =>
                 {
-                    CardCollection.SetExtra(member, slot, captured);
+                    CardCollection.SetExtra(member, slot, captured, party);
                     SaveGame.Save();
                     BuildDetail();
                 }));
@@ -589,7 +622,8 @@ namespace Game.World
         {
             var member = Member;
             if (member == null) return;
-            CardDetailPopup.Open((RectTransform)transform, UnitFor(member, WorldSession.ProgressOf(member), true), card, 1, from);
+            CardDetailPopup.Open((RectTransform)transform, UnitFor(member, WorldSession.ProgressOf(member), true), card, 1, from,
+                null, CardCollection.UltFormOf(member, card));
         }
 
         // ------------------------------------------------------------------ Focus, pickers and changes
@@ -617,7 +651,55 @@ namespace Game.World
                 var locked = CardCollection.LockedCard(member);
                 if (locked != null) OpenCard(locked, focusTargets[index]);
             }
-            else OpenExtraPicker(member, index - Slots.Length - 1);   // an extra slot: choose a card or Remove
+            else
+            {
+                // The alt slot: Enter offers Replace, Enter again opens the book.
+                int slot = index - Slots.Length - 1;
+                if (replaceButton != null) OpenExtraPicker(member, slot);
+                else ShowReplace(member, slot, focusTargets[index]);
+            }
+        }
+
+        RectTransform replaceButton;   // the "Replace" confirm over the alt card, while it's up
+
+        /// <summary>A small confirm over the alt card ("Replace", or "Choose a card" when it's empty); clicking it
+        /// opens the Cards book to pick the card. Esc, or clicking the slot again, takes it away.</summary>
+        void ShowReplace(CharacterDefinition member, int slot, RectTransform over)
+        {
+            if (replaceButton != null)
+            {
+                HideReplace();
+                return;
+            }
+            bool empty = CardCollection.ExtraIn(member, slot) == null;
+            var button = InkStyle.Button(over, "Replace", UIText.Get(empty ? "units.alt.choose" : "units.alt.replace"), () =>
+            {
+                HideReplace();
+                OpenExtraPicker(member, slot);
+            }, true, UIFactory.TextSize.Medium);
+            replaceButton = button.GetComponent<RectTransform>();
+            replaceButton.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 10f), new Vector2(240f, 64f));
+            replaceButton.SetAsLastSibling();
+        }
+
+        void HideReplace()
+        {
+            if (replaceButton != null) Destroy(replaceButton.gameObject);
+            replaceButton = null;
+        }
+
+        /// <summary>Calls <paramref name="onRightClick"/> when the rect is right-clicked.</summary>
+        static void RightClickable(RectTransform rt, System.Action onRightClick)
+        {
+            var trigger = rt.gameObject.GetComponent<UnityEngine.EventSystems.EventTrigger>();
+            if (trigger == null) trigger = rt.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            var entry = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerClick };
+            entry.callback.AddListener(data =>
+            {
+                var pointer = data as UnityEngine.EventSystems.PointerEventData;
+                if (pointer != null && pointer.button == UnityEngine.EventSystems.PointerEventData.InputButton.Right) onRightClick();
+            });
+            trigger.triggers.Add(entry);
         }
 
         /// <summary>One row of the item picker: a name, an optional description under it, and what choosing it does.</summary>

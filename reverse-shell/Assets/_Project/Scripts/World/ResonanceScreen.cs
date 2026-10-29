@@ -9,7 +9,7 @@ namespace Game.World
 {
     /// <summary>
     /// The Esc menu's Resonance card (bible §3): the protagonist's resonances as pixel cards in a row, only the ones
-    /// they have (Physical, and Electric once absorbed, or always in Sandbox Mode); the row centres and shrinks to fit
+    /// they have (Basic, and Arc once absorbed, or always in Sandbox Mode); the row centres and shrinks to fit
     /// as more unlock. Below it are the shown resonance's innate cards and Ult, in its colour; clicking or holding one
     /// opens it (<see cref="CardDetailPopup"/>: the full text). Left/Right (or the mouse) moves, Enter / F / Space / a
     /// click switches (free outside combat), Esc goes back to the Esc cards. The active resonance sits in a gold frame.
@@ -22,13 +22,13 @@ namespace Game.World
         const float RowY = 170f, SelectedScale = 1.1f, SelectedLift = 26f;
         const float PreviewY = -250f, PreviewScale = 0.8f, PreviewGap = 20f;
 
-        /// <summary>The order shown: the starting Core, the story's Electric, then the future resonances.</summary>
-        static readonly Afflatus[] Order =
-            { Afflatus.None, Afflatus.Volt, Afflatus.Fire, Afflatus.Toxin, Afflatus.Earth, Afflatus.Light, Afflatus.Void };
+        /// <summary>The order shown: the starting Core, then the resonances in chapter order (Arc, Root, Cryo, Cinder, Prism).</summary>
+        static readonly Resonance[] Order =
+            { Resonance.Basic, Resonance.Arc, Resonance.Root, Resonance.Cryo, Resonance.Cinder, Resonance.Prism };
 
         class Entry
         {
-            public Afflatus Element;
+            public Resonance Element;
             public bool Open;
             public RectTransform Rect;
             public CanvasGroup Group;
@@ -103,7 +103,7 @@ namespace Game.World
             UIFactory.ClearChildren(row);
             entries.Clear();
             var available = WorldSession.AvailableResonances(member);
-            var shown = new List<Afflatus>();
+            var shown = new List<Resonance>();
             foreach (var element in Order) if (available.Contains(element)) shown.Add(element);
             int n = Mathf.Max(1, shown.Count);
             float s = Mathf.Min(MaxCardScale, (MaxRowWidth - (n - 1) * Gap) / (n * CardView.Size.x));
@@ -139,8 +139,8 @@ namespace Game.World
         void BuildFace(Entry e, float s)
         {
             float u = CardArt.HandPixel * s;
-            var color = e.Open ? AfflatusInfo.ResonanceColor(member != null ? member.color : Color.white, e.Element)
-                               : UIFactory.Darken(AfflatusInfo.Color(e.Element), 0.45f);
+            var color = e.Open ? ResonanceInfo.ResonanceColor(member != null ? member.color : Color.white, e.Element)
+                               : UIFactory.Darken(ResonanceInfo.Color(e.Element), 0.45f);
             var swirl = UIFactory.CreateImage(e.Rect, "Swirl", color);
             swirl.sprite = CardArt.Swirl;
             swirl.rectTransform.Fill();
@@ -164,7 +164,7 @@ namespace Game.World
                 CardArt.PlaceIcon(icon.rectTransform, u);
             }
 
-            string label = e.Open ? AfflatusInfo.Display(e.Element) : UIText.Get("resonance.locked");
+            string label = e.Open ? ResonanceInfo.Display(e.Element) : UIText.Get("resonance.locked");
             CardArt.NameLabel(e.Rect, label, e.Open ? InkStyle.Paper : InkStyle.Muted, s);
 
             e.ActiveFrame = UIFactory.CreateRect("Active", e.Rect).Fill();
