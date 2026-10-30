@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 960ea5e6da086f3488b88985b67bfbb3, type: 3}
+  m_Name: Area_IntroCinderworksFoundry
+  m_EditorClassIdentifier: 
+  id: intro_cinderworks_foundry
+  displayName: FOUNDRY
+  subtitle: 
+  dim: 0
+  theme: Cinderworks_Foundry
+  map: 'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    H###BB###BB###BBBB###BB###BB#H
+
+    H.....o.......SJ.......o.....H
+
+    H.B.....B.............B....B.H
+
+    H~~~~~~~~~~~..~~~~~~~~~..~~~~H
+
+    H......n.....................H
+
+    H.B.....B......o.....B....E..H
+
+    H.........................X..H
+
+    H~~~~..~~~~~~~~~~..~~~~~~~~~~H
+
+    H..........o..........A......H
+
+    H.B...d..B........B......d.B.H
+
+    H............................H
+
+    LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+
+'
+  warps:
+  - tile: J
+    to: intro_cinderworks
+  encounters:
+  - Enemies:
+    - Enemy_RustSentry
+    Level: 11
+    Boss: 0
+    WinFlag: 
+    Requires: []
+    Blocks: []
+    WinMessage: 
+    WinKey: 
+    Reward: 
+  npcs:
+  - Name: Survey Drone
+    Lines: []
+    LinesKey: intro.cinderworks_foundry
+    Machine: 1
+  chests: []

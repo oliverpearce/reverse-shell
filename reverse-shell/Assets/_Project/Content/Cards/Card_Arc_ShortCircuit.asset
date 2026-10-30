@@ -65,4 +65,4 @@ MonoBehaviour:
         status: {fileID: 11400000, guid: 28257566785a530408a00303d7931991, type: 2}
         duration: 1
         stacks: 1
-        chance: 1
+        chance: 0.75

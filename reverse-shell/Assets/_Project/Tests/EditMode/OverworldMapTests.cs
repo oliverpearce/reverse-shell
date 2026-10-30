@@ -85,6 +85,38 @@ namespace Combat.Tests
             }
         }
 
+        /// <summary>The office, where a new game opens: a desk with its PC just north of the start square (the opening
+        /// sits you there) and every floor square reachable, for when you come back later.</summary>
+        [Test]
+        public void Office_HasTheOpeningDesk_AndIsAllReachable()
+        {
+            var area = WorldAreas.Get(WorldAreas.Office);
+            Assert.AreEqual(WorldAreas.Office, area.Id, "Resources/Areas has the office");
+            Assert.IsFalse(WorldAreas.IsSandboxArea(area.Id), "the story runs in the office");
+            var map = new OverworldMap(area.Map);
+            var start = map.FindAll('S')[0];
+            Assert.AreEqual('a', map.At(start.x, start.y - 1), "a desk just north of the start square");
+            var seen = new HashSet<Vector2Int> { start };
+            var queue = new Queue<Vector2Int>();
+            queue.Enqueue(start);
+            var steps = new[] { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down };
+            while (queue.Count > 0)
+            {
+                var c = queue.Dequeue();
+                foreach (var d in steps)
+                {
+                    var n = c + d;
+                    if (seen.Contains(n) || map.IsSolidCell(n.x, n.y)) continue;
+                    seen.Add(n);
+                    queue.Enqueue(n);
+                }
+            }
+            for (int row = 0; row < map.Height; row++)
+                for (int x = 0; x < map.Width; x++)
+                    if (!map.IsSolidCell(x, row))
+                        Assert.IsTrue(seen.Contains(new Vector2Int(x, row)), "office: " + x + "," + row + " is reachable");
+        }
+
         [Test]
         public void CellCenter_RoundTripsThroughWorldToCell()
         {

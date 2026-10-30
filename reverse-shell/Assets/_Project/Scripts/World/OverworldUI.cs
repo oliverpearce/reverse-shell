@@ -13,7 +13,7 @@ namespace Game.World
         RectTransform promptRect;
         Text promptText;
         CanvasGroup titleGroup;
-        Text titleText, subtitleText;
+        RectTransform titleRoot;
         Image fade;
         RectTransform partyPanel;
 
@@ -77,20 +77,30 @@ namespace Game.World
             if (objectivePanel == null) return;
             objectivePanel.gameObject.SetActive(!string.IsNullOrEmpty(text));
             objectiveText.text = text ?? "";
+            // Long objectives wrap and the box grows downward to fit them (never shorter than one line's box).
+            Canvas.ForceUpdateCanvases();
+            float textHeight = Mathf.Max(ObjectiveLineHeight, objectiveText.preferredHeight);
+            objectiveText.rectTransform.TopStrip(ObjectiveTextTop, textHeight, 18f);
+            objectivePanel.sizeDelta = new Vector2(objectivePanel.sizeDelta.x, ObjectiveTextTop + textHeight + 18f);
         }
+
+        /// <summary>The objective text's top inside its box, and one line's height.</summary>
+        const float ObjectiveTextTop = 46f, ObjectiveLineHeight = 54f;
 
         void BuildObjective(RectTransform root)
         {
             var topRight = new Vector2(1f, 1f);
-            var panel = InkStyle.Panel(root, "Objective", UIFactory.WithAlpha(InkStyle.Ink, 0.78f));
+            // NieR-style: a dark grey plate with thin rules, an accent caption, light text.
+            var panel = NierStyle.Panel(root, "Objective", NierStyle.PanelGray);
             objectivePanel = panel.rectTransform;
             objectivePanel.Place(topRight, topRight, new Vector2(-28f, -28f), new Vector2(640f, 118f));
-            InkStyle.Frame(objectivePanel, InkStyle.Rule, 2f);
-            var label = InkStyle.Label(objectivePanel, "Label", UIText.Get("overworld.objective"), 24, InkStyle.Gold, TextAnchor.UpperLeft);
-            label.rectTransform.TopStrip(10f, 34f, 18f);
-            objectiveText = UIFactory.CreateText(objectivePanel, "Text", "", 30, InkStyle.Paper, TextAnchor.UpperLeft);
-            objectiveText.rectTransform.TopStrip(44f, 66f, 18f);
-            objectiveText.gameObject.AddComponent<Outline>().effectColor = HudShadow;
+            var label = InkStyle.Label(objectivePanel, "Label", UIText.Get("overworld.objective"), 24, NierStyle.Accent, TextAnchor.UpperLeft);
+            label.rectTransform.TopStrip(12f, 34f, 18f);
+            objectiveText = UIFactory.CreateText(objectivePanel, "Text", "", 30, NierStyle.Text, TextAnchor.UpperLeft);
+            objectiveText.rectTransform.TopStrip(ObjectiveTextTop, ObjectiveLineHeight, 18f);
+            objectiveText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            objectiveText.verticalOverflow = VerticalWrapMode.Overflow;
+            objectiveText.resizeTextForBestFit = false;
             objectivePanel.gameObject.SetActive(false);
         }
 
@@ -103,35 +113,24 @@ namespace Game.World
             var center = new Vector2(0.5f, 0.5f);
 
             // Interact prompt (follows a world point)
-            // An ink box with a gold hairline and a gold key: simple and readable.
-            var promptBg = InkStyle.Panel(root, "Prompt", InkStyle.InkPanel);
+            // NieR-style: a dark grey plate with thin rules, light words and an accent key.
+            var promptBg = NierStyle.Panel(root, "Prompt", NierStyle.PanelGray);
             promptRect = promptBg.rectTransform;
             // One line, "[F]  Talk": the plate is sized to the words each time (ShowPrompt).
             promptRect.sizeDelta = new Vector2(PromptPadX * 2f, PromptHeight);
             promptRect.pivot = new Vector2(0.5f, 0f);
-            InkStyle.Frame(promptRect, InkStyle.Rule, 2f);
-            promptText = UIFactory.CreateText(promptRect, "Text", "", UIFactory.TextSize.Medium, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
+            promptText = UIFactory.CreateText(promptRect, "Text", "", UIFactory.TextSize.Medium, NierStyle.Text, TextAnchor.MiddleCenter, FontStyle.Bold);
             promptText.supportRichText = true;
             promptText.horizontalOverflow = HorizontalWrapMode.Overflow;
             promptText.rectTransform.Fill();
             promptBg.gameObject.SetActive(false);
 
 
-            // Area title
-            var title = UIFactory.CreateRect("Title", root).Place(center, center, new Vector2(0f, 260f), new Vector2(1200f, 160f));
-            titleGroup = title.gameObject.AddComponent<CanvasGroup>();
+            // Area title: just the name, in the title screen's doubled terminal type (TerminalTitle), made per arrival.
+            titleRoot = UIFactory.CreateRect("Title", root).Place(center, center, new Vector2(0f, 260f), new Vector2(1200f, 160f));
+            titleGroup = titleRoot.gameObject.AddComponent<CanvasGroup>();
             titleGroup.alpha = 0f;
-            // Area title: a big serif name between two gold rules, a spaced-caps subtitle beneath.
-            var band = InkStyle.Panel(title, "Band", InkStyle.Smoke);
-            band.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 4f), new Vector2(1100f, 172f));
-            var ruleTop = InkStyle.Line(title, "RuleTop", InkStyle.Gold);
-            ruleTop.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 0f), new Vector2(760f, 2f));
-            titleText = InkStyle.Title(title, "Text", "", 96, InkStyle.Paper, TextAnchor.MiddleCenter);
-            titleText.rectTransform.TopStrip(6f, 112f);
-            var ruleBottom = InkStyle.Line(title, "RuleBottom", InkStyle.Gold);
-            ruleBottom.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -122f), new Vector2(760f, 2f));
-            subtitleText = UIFactory.CreateText(title, "Subtitle", "", 32, InkStyle.Gold, TextAnchor.MiddleCenter, FontStyle.Bold);
-            subtitleText.rectTransform.TopStrip(128f, 40f);
+            titleGroup.blocksRaycasts = false;
 
             // Party HP (top left): name, big HP number, thin bar.
             partyPanel = UIFactory.CreateRect("Party", root).Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(20f, -20f), new Vector2(420f, 0f));
@@ -143,7 +142,7 @@ namespace Game.World
             fade.color = new Color(0f, 0f, 0f, 0f);
         }
 
-        static readonly Color HudText = InkStyle.Paper;
+        static readonly Color HudText = NierStyle.HudText;
         static readonly Color HudShadow = new Color(0.08f, 0.07f, 0.05f, 0.85f);
         static Sprite fadeRight;
 
@@ -200,7 +199,7 @@ namespace Game.World
 
                 // The level on the name line, right-aligned, as big as the name and in gold so it reads at a glance.
                 var lv = InkStyle.Title(row, "Level", "<size=" + UIFactory.Px((int)(nameSize * 0.8f)) + ">" + UIText.Get("common.lv") + "</size> " + m.Level,
-                    (int)(nameSize * 1.35f), InkStyle.GoldBright, TextAnchor.LowerRight);
+                    (int)(nameSize * 1.35f), NierStyle.HudText, TextAnchor.LowerRight);
                 lv.supportRichText = true;
                 lv.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(contentX, 0f), new Vector2(width, nameSize + 4f));
                 lv.gameObject.AddComponent<Outline>().effectColor = HudShadow;
@@ -230,14 +229,14 @@ namespace Game.World
         public void ShowPrompt(string key, string text, Vector3 worldPosition, Camera cam)
         {
             if (cam == null) return;
-            var screen = cam.WorldToScreenPoint(worldPosition);
+            var screen = PixelCamera.ToScreen(cam, cam.WorldToScreenPoint(worldPosition));   // the world may be drawn small (Track C)
             if (screen.z < 0f)
             {
                 HidePrompt();
                 return;
             }
             if (!promptRect.gameObject.activeSelf) promptRect.gameObject.SetActive(true);   // first, so it can measure
-            string line = "<color=#C2A061>[" + key + "]</color>  " + text;
+            string line = "<color=#B85C3D>[" + key + "]</color>  " + text;   // NieR accent
             if (promptText.text != line)
             {
                 promptText.text = line;
@@ -264,13 +263,28 @@ namespace Game.World
             Talk(new[] { new DialogueLine(speaker, text, voice, portrait) }, done);
         }
 
+        /// <summary>The area title's type size, and the widest it may be (long names shrink to fit).</summary>
+        const int TitleSize = 96;
+        const float TitleWidth = 1100f;
+
+        /// <summary>The area's name on arrival, like the game's title on the title screen: it types itself in behind a
+        /// blinking cursor over its gold echo, holds, and fades. Just the name (the subtitle isn't shown).</summary>
         public IEnumerator ShowTitle(string title, string subtitle)
         {
-            titleText.text = title;
-            subtitleText.text = InkStyle.Spaced(subtitle);
-            yield return Tween.Fade(titleGroup, 1f, 0.6f);
-            yield return new WaitForSeconds(1.8f);
-            yield return Tween.Fade(titleGroup, 0f, 0.8f);
+            UIFactory.ClearChildren(titleRoot);
+            var card = TerminalTitle.Create(titleRoot, title, TitleSize, Vector2.zero, 140f);
+            if (card.Width > TitleWidth)
+            {
+                // Too long for the screen: the same card a size smaller, so it fits.
+                int size = Mathf.Max(48, Mathf.FloorToInt(TitleSize * TitleWidth / card.Width));
+                card.gameObject.SetActive(false);   // gone at the end of the frame; hidden until then
+                UIFactory.ClearChildren(titleRoot);
+                card = TerminalTitle.Create(titleRoot, title, size, Vector2.zero, 140f);
+            }
+            titleGroup.alpha = 1f;
+            yield return new WaitForSecondsRealtime(card.TypingSeconds + 1.6f);
+            yield return Tween.Run(0.8f, p => titleGroup.alpha = 1f - p, Tween.InOutQuad);
+            UIFactory.ClearChildren(titleRoot);
         }
 
         public void SetFade(Color color)

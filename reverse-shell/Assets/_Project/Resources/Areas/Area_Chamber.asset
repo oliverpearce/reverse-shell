@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: Area_Chamber
   m_EditorClassIdentifier: 
   id: chamber
-  displayName: THE HUMMING HALL
+  displayName: DRAGONS DEN
   subtitle: Where the trace ends
   dim: 1
+  theme: Underground
   map: 'HHHHHHHHHHHHHHHHHHHHHHHHHH
 
     HHHHHHHHHHHHHHHHHHHHHHHHHH
@@ -49,6 +50,10 @@ MonoBehaviour:
     HHHHHHHHHHH..S.HHHHHHHHHHH
 
     HHHHHHHHHHH.W..HHHHHHHHHHH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHH
 
     HHHHHHHHHHHHHHHHHHHHHHHHHH
 

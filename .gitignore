@@ -66,6 +66,7 @@ reverse-shell/[Cc]rashes/
 
 # Planning and internal documents stay on this computer (the repo is a code backup)
 design/
+LEVEL_EDITOR_GUIDE.html
 itch/
 
 # Secrets, just in case

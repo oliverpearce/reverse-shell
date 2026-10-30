@@ -23,6 +23,9 @@ namespace Game.EditorTools
             "Legacy Shaders/Particles/Additive",
             "Legacy Shaders/Particles/Alpha Blended",
             "Legacy Shaders/Transparent/Cutout/Diffuse",
+            "Reverse Shell/WorldToon",
+            "Reverse Shell/Lava",
+            "Reverse Shell/Silhouette",
         };
 
         public int callbackOrder { get { return 0; } }

@@ -109,7 +109,13 @@ namespace Combat.View
             if (string.IsNullOrEmpty(name)) return null;
             if (icons == null) LoadIcons();
             Sprite s;
-            return icons.TryGetValue(name, out s) ? s : null;
+            if (!icons.TryGetValue(name, out s)) return null;
+            if (s == null)   // made in Play mode, which has stopped since (the editor): make them again
+            {
+                LoadIcons();
+                icons.TryGetValue(name, out s);
+            }
+            return s;
         }
 
         /// <summary>The owner's full-art Ult picture (by character asset name), or null. Soul cards themselves are now

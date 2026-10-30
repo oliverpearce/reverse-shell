@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_MC_BrambleStorm
   m_EditorClassIdentifier: 
   displayName: Bramble Storm
-  kind: 3
+  kind: 0
   targetMode: 0
   isRitual: 1
   level: 15

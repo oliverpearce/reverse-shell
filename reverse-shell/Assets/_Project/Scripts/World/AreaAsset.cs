@@ -27,6 +27,9 @@ namespace Game.World
         public string subtitle = "";
         [Tooltip("Underground: dim light, dark haze.")]
         public bool dim;
+        [Tooltip("The world's look (Resources/Themes/Theme_<id>, e.g. Forest): light, haze, pixel size and nature models. " +
+                 "Blank = the old look.")]
+        public string theme = "";
         [TextArea(12, 50)] public string map = "";
         public List<Warp> warps = new List<Warp>();
         [Tooltip("One per 'E' on the map, in reading order (left to right, top to bottom). None = the shared practice fight.")]
@@ -41,7 +44,7 @@ namespace Game.World
         {
             var area = new WorldAreas.Area
             {
-                Id = id, Name = displayName, Subtitle = subtitle, Map = (map ?? "").Replace("\r", ""), Dim = dim,
+                Id = id, Name = displayName, Subtitle = subtitle, Map = (map ?? "").Replace("\r", ""), Dim = dim, Theme = WorldAreas.Blank(theme),
                 Chests = new List<string>(chests),
             };
             foreach (var w in warps)

@@ -165,6 +165,13 @@ namespace Game.World
         /// <summary>Whether a blank card can be imprinted with <paramref name="card"/> (one to spend, card not maxed).</summary>
         public static bool CanImprint(CardDefinition card) { return card != null && Blanks > 0 && Copies(card) < MaxCopies; }
 
+        /// <summary><see cref="CanImprint(CardDefinition)"/>, and only on a card you own (a blank can't make a card
+        /// you haven't found).</summary>
+        public static bool CanImprint(CardDefinition card, IList<CharacterDefinition> roster)
+        {
+            return CanImprint(card) && Owned(card, roster);
+        }
+
         /// <summary>Spends a blank card on one more copy of <paramref name="card"/>. False if it can't.</summary>
         public static bool Imprint(CardDefinition card)
         {

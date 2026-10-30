@@ -12,6 +12,9 @@ namespace Game.EditorTools
     // Reverse Shell > Level Designer. Chapters and their areas on the left, the selected area's map as a clickable
     // grid in the middle, the tile palette and the selected cell's settings (warps, fights, NPCs, chests) on the right.
     // Everything edits the area and chapter assets in Resources/Areas and Resources/Chapters, with Undo.
+    // Shortcuts (over the window, not while typing): V select, B paint, R rectangle, G fill, [ ] zoom, I eyedropper
+    // (or right click). The palette has a search box; the line under the map names the tile under the mouse.
+    // The step-by-step guide is LEVEL_EDITOR_GUIDE.html in the repo's top folder.
     public class LevelDesigner : EditorWindow
     {
         enum Tool { Select, Paint, Rectangle, Fill }
@@ -27,6 +30,9 @@ namespace Game.EditorTools
         [SerializeField] int cellSize = 18;
         [SerializeField] Vector2Int selected = new Vector2Int(-1, -1);
         [SerializeField] char resizeFill = 'H';
+        [SerializeField] string paletteFilter = "";
+        Vector2Int hovered = new Vector2Int(-1, -1);
+        string[] themeIds;
 
         Vector2 leftScroll, mapScroll, rightScroll, problemScroll;
         List<AreaAsset> areas;
@@ -51,6 +57,7 @@ namespace Game.EditorTools
 
         void OnEnable()
         {
+            wantsMouseMove = true;   // the line under the map follows the mouse
             Undo.undoRedoPerformed += OnUndoRedo;
             Refresh();
         }
@@ -75,6 +82,7 @@ namespace Game.EditorTools
             chapters = Load<ChapterAsset>(AreaMigration.ChaptersFolder);
             chapters.Sort((a, b) => a.order.CompareTo(b.order));
             WorldAreas.Reload();
+            themeIds = null;   // new theme assets show up in the dropdown
         }
 
         static List<T> Load<T>(string folder) where T : Object
@@ -95,6 +103,7 @@ namespace Game.EditorTools
             if (cellLabel == null)
                 cellLabel = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
 
+            Shortcuts();
             EditorGUILayout.BeginHorizontal();
             DrawLeft();
             EditorGUILayout.BeginVertical();
@@ -104,6 +113,40 @@ namespace Game.EditorTools
             EditorGUILayout.EndVertical();
             if (area != null) DrawRight();
             EditorGUILayout.EndHorizontal();
+        }
+
+        /// <summary>One-key tools while the mouse is over the window and no text field has focus.</summary>
+        void Shortcuts()
+        {
+            var e = Event.current;
+            if (e.type != EventType.KeyDown || GUIUtility.keyboardControl != 0 || area == null) return;
+            switch (e.keyCode)
+            {
+                case KeyCode.V: tool = Tool.Select; break;
+                case KeyCode.B: tool = Tool.Paint; break;
+                case KeyCode.R: tool = Tool.Rectangle; break;
+                case KeyCode.G: tool = Tool.Fill; break;
+                case KeyCode.LeftBracket: cellSize = Mathf.Max(8, cellSize - 2); break;
+                case KeyCode.RightBracket: cellSize = Mathf.Min(32, cellSize + 2); break;
+                case KeyCode.I:
+                    var rows = Rows();
+                    if (hovered.y >= 0 && hovered.y < rows.Count && hovered.x >= 0 && hovered.x < rows[hovered.y].Length) Brush = rows[hovered.y][hovered.x];
+                    break;
+                default: return;
+            }
+            e.Use();
+            Repaint();
+        }
+
+        /// <summary>The world looks the designer offers: every Resources/Themes/Theme_* asset, plus "(old look)".</summary>
+        string[] ThemeIds()
+        {
+            if (themeIds != null) return themeIds;
+            var ids = new List<string> { "" };
+            foreach (var t in Resources.LoadAll<WorldTheme>("Themes"))
+                if (t.name.StartsWith("Theme_")) ids.Add(t.name.Substring("Theme_".Length));
+            ids.Sort((a, b) => string.CompareOrdinal(a, b));
+            return themeIds = ids.ToArray();
         }
 
         // LEVEL DESIGNER > LEFT COLUMN
@@ -191,7 +234,11 @@ namespace Game.EditorTools
             var a2 = CreateInstance<AreaAsset>();
             a2.id = "area" + n;
             a2.displayName = "NEW AREA " + n;
-            a2.map = "HHHHHHHHHHHH\nH..........H\nH..........H\nH....S.....H\nH..........H\nH..........H\nH..........H\nHHHHHHHHHHHH\n";
+            // A ready room: tall walls at the back (north), low wall at the front, a spawn and an Access Point.
+            a2.map = "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\n" + string.Concat(Enumerable.Repeat("H............................H\n", 4))
+                + "H.............S..............H\n" + "H............................H\n" + "H.........................A..H\n"
+                + string.Concat(Enumerable.Repeat("H............................H\n", 4)) + "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL\n";
+            a2.theme = "Forest";
             AssetDatabase.CreateAsset(a2, AssetDatabase.GenerateUniqueAssetPath(AreaMigration.AreasFolder + "/Area_" + n + ".asset"));
             if (chapter != null)
             {
@@ -280,6 +327,13 @@ namespace Game.EditorTools
             EditorGUILayout.PropertyField(areaSO.FindProperty("subtitle"), new GUIContent("Subtitle"), GUILayout.MinWidth(160f));
             EditorGUILayout.PropertyField(areaSO.FindProperty("dim"), new GUIContent("Dim"), GUILayout.Width(70f));
             EditorGUILayout.EndHorizontal();
+            // The world's look (light, haze, pixel size, models, effects): one of the theme assets.
+            var themeProp = areaSO.FindProperty("theme");
+            var ids = ThemeIds();
+            int current = System.Array.IndexOf(ids, themeProp.stringValue);
+            var labels = ids.Select(i => i.Length == 0 ? "(old look)" : i).ToArray();
+            int picked = EditorGUILayout.Popup("Theme", Mathf.Max(0, current), labels, GUILayout.Width(360f));
+            if (picked != current && picked >= 0) themeProp.stringValue = ids[picked];
             areaSO.ApplyModifiedProperties();
 
             EditorGUILayout.BeginHorizontal();
@@ -302,7 +356,15 @@ namespace Game.EditorTools
             EditorGUILayout.EndScrollView();
 
             DrawProblems();
-            GUILayout.Label("Left click: use the tool.  Right click: pick up that tile (eyedropper).  Ctrl+Z: undo.", EditorStyles.miniLabel);
+            // What's under the mouse, then the controls.
+            string under = "";
+            if (hovered.y >= 0 && hovered.y < rows.Count && hovered.x >= 0 && hovered.x < width)
+            {
+                char hc = rows[hovered.y][hovered.x];
+                var ht = TileLegend.Find(hc);
+                under = "Cell " + hovered.x + ", " + hovered.y + ":  " + hc + "  " + (ht != null ? ht.Name + (ht.Solid ? " (solid)" : " (walkable)") : "(not in the legend)") + "      ";
+            }
+            GUILayout.Label(under + "Left click: use the tool.  Right click or I: pick up that tile.  V B R G: tools.  [ ]: zoom.  Ctrl+Z: undo.", EditorStyles.miniLabel);
         }
 
         void DrawResize()
@@ -427,6 +489,11 @@ namespace Game.EditorTools
             if (rows.Count == 0) return;
             var cell = new Vector2Int(Mathf.FloorToInt((e.mousePosition.x - rect.x) / cellSize), Mathf.FloorToInt((e.mousePosition.y - rect.y) / cellSize));
             bool inside = cell.y >= 0 && cell.y < rows.Count && cell.x >= 0 && cell.x < rows[0].Length;
+            if (e.type == EventType.MouseMove || e.type == EventType.MouseDrag)
+            {
+                var now = inside ? cell : new Vector2Int(-1, -1);
+                if (now != hovered) { hovered = now; Repaint(); }
+            }
 
             if (e.type == EventType.MouseDown && inside)
             {
@@ -561,10 +628,14 @@ namespace Game.EditorTools
             var brushTile = TileLegend.Find(Brush);
             GUILayout.Label("Brush:  " + Brush + "   " + (brushTile != null ? brushTile.Name : "(not in the legend)")
                 + (brushTile != null ? (brushTile.Solid ? "  · solid" : "  · walkable") : ""), EditorStyles.boldLabel);
+            paletteFilter = EditorGUILayout.TextField("Search tiles", paletteFilter);
+            string filter = (paletteFilter ?? "").Trim().ToLowerInvariant();
             foreach (var group in TileLegend.Groups)
             {
+                var tiles = TileLegend.All.Where(t => t.Group == group && (filter.Length == 0
+                    || t.Name.ToLowerInvariant().Contains(filter) || t.Char.ToString() == filter || t.Note.ToLowerInvariant().Contains(filter))).ToList();
+                if (tiles.Count == 0) continue;
                 GUILayout.Label(group, EditorStyles.miniBoldLabel);
-                var tiles = TileLegend.All.Where(t => t.Group == group).ToList();
                 for (int i = 0; i < tiles.Count; i += 6)
                 {
                     EditorGUILayout.BeginHorizontal();

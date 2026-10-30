@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: Area_Tunnel
   m_EditorClassIdentifier: 
   id: tunnel
-  displayName: THE BURIED LINE
+  displayName: BURIED HALL
   subtitle: Beneath the City Ruins
   dim: 1
+  theme: Underground
   map: 'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
     HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH

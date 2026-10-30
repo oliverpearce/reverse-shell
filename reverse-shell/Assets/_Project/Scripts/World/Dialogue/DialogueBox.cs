@@ -17,7 +17,7 @@ namespace Game.World
     /// </summary>
     public class DialogueBox : MonoBehaviour
     {
-        static readonly Color Panel = new Color(0.075f, 0.07f, 0.065f, 0.94f);
+        static readonly Color Panel = NierStyle.PanelGray;   // NieR-style: dark grey panel, light text
         const float BoxW = 1320f, BoxH = 236f;
 
         RectTransform root, label, portraitFrame, nextArrow;
@@ -61,12 +61,12 @@ namespace Game.World
             group = rt.gameObject.AddComponent<CanvasGroup>();
             group.blocksRaycasts = false;
 
-            // The ink panel with a gold hairline frame.
+            // The dark grey panel with thin light rules top and bottom (NierStyle).
             var paper = UIFactory.CreateImage(rt, "Panel", Panel);
             paper.rectTransform.Fill();
-            InkStyle.Frame(paper.rectTransform, UIFactory.WithAlpha(InkStyle.Gold, 0.55f), 1f, 6f);
+            NierStyle.Rules(paper.rectTransform);
 
-            accentBar = UIFactory.CreateImage(paper.transform, "Accent", InkStyle.Gold);
+            accentBar = UIFactory.CreateImage(paper.transform, "Accent", NierStyle.Accent);
             accentBar.rectTransform.anchorMin = Vector2.zero;
             accentBar.rectTransform.anchorMax = new Vector2(0f, 1f);
             accentBar.rectTransform.pivot = new Vector2(0f, 0.5f);
@@ -77,7 +77,7 @@ namespace Game.World
             portraitFrame = UIFactory.CreateRect("Portrait", rt);
             portraitFrame.gameObject.SetActive(false);
 
-            bodyText = UIFactory.CreateText(paper.transform, "Text", "", 40, InkStyle.Paper, TextAnchor.UpperLeft);
+            bodyText = UIFactory.CreateText(paper.transform, "Text", "", 40, NierStyle.Text, TextAnchor.UpperLeft);
             bodyText.font = UIFactory.MediumFont;
             bodyText.lineSpacing = 1.1f;
             bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
@@ -88,7 +88,7 @@ namespace Game.World
             label = UIFactory.CreateImage(rt, "Speaker", new Color(0f, 0f, 0f, 0f)).rectTransform;
             label.pivot = new Vector2(0f, 1f);
             label.anchorMin = label.anchorMax = new Vector2(0f, 1f);
-            speakerText = UIFactory.CreateText(label, "Name", "", 44, InkStyle.GoldBright, TextAnchor.MiddleLeft);
+            speakerText = UIFactory.CreateText(label, "Name", "", 44, NierStyle.Accent, TextAnchor.MiddleLeft);
             speakerText.font = UIFactory.SerifFont;
             speakerText.rectTransform.Fill();
             tagAccent = UIFactory.CreateImage(label, "Underline", Color.white);
@@ -99,7 +99,7 @@ namespace Game.World
             tagAccent.rectTransform.offsetMax = new Vector2(0f, 0f);
 
             // "Next": a small gold diamond bobbing in the bottom-right corner.
-            nextArrow = UIFactory.CreateImage(paper.transform, "Next", InkStyle.Gold).rectTransform;
+            nextArrow = UIFactory.CreateImage(paper.transform, "Next", NierStyle.Text).rectTransform;
             nextArrow.Place(new Vector2(1f, 0f), new Vector2(0.5f, 0.5f), new Vector2(-40f, 34f), new Vector2(20f, 20f));
             nextArrow.localRotation = Quaternion.Euler(0f, 0f, 45f);
 
@@ -219,8 +219,8 @@ namespace Game.World
                 float y = (choices.Length - 1 - i) * (rowH + 10f);
                 var back = UIFactory.CreateImage(choiceRoot, choices[i], Panel);
                 back.rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, y), new Vector2(width, rowH));
-                InkStyle.Frame(back.rectTransform, UIFactory.WithAlpha(InkStyle.Gold, 0.55f), 1f);
-                var label = UIFactory.CreateText(back.transform, "Label", choices[i], 38, InkStyle.Paper, TextAnchor.MiddleCenter);
+                NierStyle.Rules(back.rectTransform, 6f);
+                var label = UIFactory.CreateText(back.transform, "Label", choices[i], 38, NierStyle.Text, TextAnchor.MiddleCenter);
                 label.font = UIFactory.SerifFont;
                 label.rectTransform.Fill();
                 choiceBacks.Add(back);
@@ -249,8 +249,8 @@ namespace Game.World
             for (int i = 0; i < choiceBacks.Count; i++)
             {
                 bool on = i == choiceIndex;
-                choiceBacks[i].color = on ? UIFactory.WithAlpha(InkStyle.Gold, 0.35f) : Panel;
-                choiceTexts[i].color = on ? InkStyle.GoldBright : InkStyle.Paper;
+                choiceBacks[i].color = on ? NierStyle.SelectBar : Panel;
+                choiceTexts[i].color = on ? NierStyle.HudText : NierStyle.Text;
                 choiceBacks[i].rectTransform.localScale = Vector3.one * (on ? 1.05f : 1f);
             }
         }

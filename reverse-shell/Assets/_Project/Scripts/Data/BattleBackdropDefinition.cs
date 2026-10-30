@@ -43,5 +43,9 @@ namespace Combat
         [Tooltip("Leaves and pollen drifting across the scene.")]
         [FormerlySerializedAs("rain")] public bool driftingLeaves = true;
         [FormerlySerializedAs("rainIntensity")] [Range(0f, 2f)] public float driftIntensity = 1f;
+        [Tooltip("Recolours the drift into flecks of this colour (snow, embers, ash, spores); clear = the green leaves.")]
+        public Color driftColor = new Color(0f, 0f, 0f, 0f);
+        [Tooltip("1 = the drift falls, -1 = it rises (embers).")]
+        public float driftDirection = 1f;
     }
 }

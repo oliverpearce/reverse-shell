@@ -13,10 +13,13 @@ MonoBehaviour:
   m_Name: Area_Sandbox
   m_EditorClassIdentifier: 
   id: sandbox
-  displayName: SANDBOX
+  displayName: '> SANDBOX'
   subtitle: Mossline Station
   dim: 0
-  map: 'HHHHHH####HHHHH#BBBBBBBBBBBB
+  theme: Forest
+  map: 'HHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHH####HHHHH#BBBBBBBBBBBB
 
     HHHHHH####HHHHH#BPPP,,PPPPPB
 
@@ -28,15 +31,15 @@ MonoBehaviour:
 
     HHHHHH####HHHHH#BLLLLP.PLLLB
 
-    B.T,,...b..n.r,,....*..,.,TB
+    Bn..F.D.I.N.^r,,....*..,.,TB
 
     B=====,,==========,,=======B
 
     B=======,===========r======B
 
-    BWb..,.n..T,,......b...,T..B
+    BWb..,....T,,......b.A.,T..B
 
-    B.S.A,,......*....n..,,..*.B
+    B.S...,......*.......,,..*.B
 
     LLLLLLLLLLLLLLLLLLLLLLLLLLLL
 
@@ -44,6 +47,16 @@ MonoBehaviour:
   warps:
   - tile: W
     to: city
+  - tile: F
+    to: intro_forest
+  - tile: D
+    to: intro_conservatory
+  - tile: I
+    to: intro_frozen
+  - tile: N
+    to: intro_cinderworks
+  - tile: ^
+    to: intro_sanctuary
   encounters: []
   npcs: []
   chests: []

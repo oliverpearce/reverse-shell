@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 960ea5e6da086f3488b88985b67bfbb3, type: 3}
+  m_Name: Area_IntroConservatory
+  m_EditorClassIdentifier: 
+  id: intro_conservatory
+  displayName: CONSERVATORY
+  subtitle: 
+  dim: 0
+  theme: Conservatory
+  map: 'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHH####HHHHHHHHHHHH####HHHHHH
+
+    H#kk##kk###kHHHH#kk###kk##kk#H
+
+    Hk,,m,,,zzz#.J.#,,,zzzz,,,,,kH
+
+    H,,,,,f,,zzz,,,,,,f,,zz,,,m,,H
+
+    H,m,b,,,,,zz,,,=====,,,,,,b,,H
+
+    H,,,,,,,,,,,,,,=S.W=,,,,,,,,,H
+
+    Hf,,zz,,,,n,,,,=...=,,,,E,,,fH
+
+    H,,zzz,,,,,,,,,=====,,,,X,,,,H
+
+    H,,,z,,m,,,,,,,,,,,,,,,,,,m,,H
+
+    H,b,,,,,,,,,,,,,,,,,,zz,,A,,,H
+
+    Hk,,,,m,,,,,,,,,,,,,,zzz,,,,kH
+
+    H,,,,,,,,,,,,,,,,,,,,,,,,m,,,H
+
+    LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+
+'
+  warps:
+  - tile: W
+    to: sandbox
+  - tile: J
+    to: intro_conservatory_hall
+  encounters:
+  - Enemies:
+    - Enemy_WireCrawler
+    Level: 6
+    Boss: 0
+    WinFlag: 
+    Requires: []
+    Blocks: []
+    WinMessage: 
+    WinKey: 
+    Reward: 
+  npcs:
+  - Name: Survey Drone
+    Lines: []
+    LinesKey: intro.conservatory
+    Machine: 1
+  chests: []

@@ -13,6 +13,9 @@ namespace Game.World
     ///   tunnel    The buried tunnel behind the city's hidden route (dim).
     ///   chamber   The electric dragon's chamber (dim).
     ///   sandbox   The Sandbox: the old Mossline Station test map, reached only through Sandbox Mode.
+    ///   intro_*   The chapter intro areas behind the Sandbox's portals (Track C; Sandbox-only too, IsSandboxArea).
+    ///   office    The bright office where a new game opens, at a Retro PC (the opening, PrologueSequence); a
+    ///             later teleport comes back here.
     /// Maps use the <see cref="OverworldMap"/> legend.
     /// </summary>
     public static class WorldAreas
@@ -22,6 +25,8 @@ namespace Game.World
         /// <summary>Chapter One: the buried tunnel behind the hidden route, and the electric dragon's chamber.</summary>
         public const string Tunnel = "tunnel";
         public const string Chamber = "chamber";
+        /// <summary>The office: a new game's opening plays at its PC, before the city.</summary>
+        public const string Office = "office";
 
         /// <summary>
         /// One fight on the map: the enemies (bestiary asset names), their level, boss mode, and the story flag a win
@@ -88,6 +93,8 @@ namespace Game.World
             public List<string> Chests = new List<string>();
             /// <summary>Underground: dim light, dark haze.</summary>
             public bool Dim;
+            /// <summary>The world's look (<see cref="WorldTheme"/> id), or null for the old look.</summary>
+            public string Theme;
         }
 
         static List<AreaAsset> areaAssets;
@@ -136,7 +143,8 @@ namespace Game.World
             get { return AreaAssets.ConvertAll(a => a.ToArea()); }
         }
 
-        /// <summary>Where a new game wakes up: the first chapter's start area (Chapter One: the city).</summary>
+        /// <summary>Where a new game wakes up: the first chapter's start area (Chapter One: the city). A new game opens
+        /// in the <see cref="Office"/> first.</summary>
         public static string StartArea
         {
             get
@@ -161,7 +169,17 @@ namespace Game.World
             return new Area { Id = id, Name = "MISSING AREA", Subtitle = "", Map = "HHHHH\nH...H\nH.S.H\nH...H\nHHHHH\n" };
         }
 
-        static string Blank(string s)
+        /// <summary>Areas only Sandbox Mode reaches: the Sandbox and its chapter intro areas (ids starting "intro_",
+        /// Track C's portals). In them the story is off and Leave Sandbox Mode works.</summary>
+        public static bool IsSandboxArea(string id)
+        {
+            return id == Sandbox || (id != null && id.StartsWith(IntroPrefix, System.StringComparison.Ordinal));
+        }
+
+        /// <summary>The id prefix of the chapter intro areas behind the Sandbox's portals.</summary>
+        public const string IntroPrefix = "intro_";
+
+        internal static string Blank(string s)
         {
             return string.IsNullOrEmpty(s) ? null : s;
         }

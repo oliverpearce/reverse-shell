@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 960ea5e6da086f3488b88985b67bfbb3, type: 3}
+  m_Name: Area_IntroCinderworks
+  m_EditorClassIdentifier: 
+  id: intro_cinderworks
+  displayName: CINDERCORE
+  subtitle: 
+  dim: 0
+  theme: Cinderworks
+  map: 'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHHHH####HHHHHHHH####HHHHHH
+
+    H###d##~~~~~#HHHH#d##~~~~##d#H
+
+    Hd,,,,,~~~~~#.J..#,,~~~~~,,,dH
+
+    H,,o,,,,~~~~,,,,,,,o,,~~~,,,,H
+
+    H,,,,,,,,~~,,,,,,,,,,,,~,,,o,H
+
+    H~~,,,,,,,,,,,=====,,,,,,,,,,H
+
+    H~~~,,,,n,,,,,=S.W=,,,,,E,,,,H
+
+    H~~,,,,,,,,,,,=====,,,,,X,,,,H
+
+    H,,,,,o,,,,,,,,,,,,,,,,,,,~~~H
+
+    H,d,,,,,,,,,,,,,,,,,,,A,,,~~~H
+
+    H,,,,,,,,,,,,,,,,,,,,,,,,,,~~H
+
+    H,,,,,,,,,,,,,,,,,,,o,,,,,,,,H
+
+    LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+
+'
+  warps:
+  - tile: W
+    to: sandbox
+  - tile: J
+    to: intro_cinderworks_foundry
+  encounters:
+  - Enemies:
+    - Enemy_RustSentry
+    Level: 10
+    Boss: 0
+    WinFlag: 
+    Requires: []
+    Blocks: []
+    WinMessage: 
+    WinKey: 
+    Reward: 
+  npcs:
+  - Name: Survey Drone
+    Lines: []
+    LinesKey: intro.cinderworks
+    Machine: 1
+  chests: []

@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 960ea5e6da086f3488b88985b67bfbb3, type: 3}
+  m_Name: Area_IntroFrozenMountain
+  m_EditorClassIdentifier: 
+  id: intro_frozen_mountain
+  displayName: '> MOUNTAIN PASS'
+  subtitle: 
+  dim: 0
+  theme: Frozen_Mountain
+  map: 'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    H#pp##HHHH##pp###HHH##ppp###pH
+
+    H#.Sj....o...p....d....o...ppH
+
+    H#..........................oH
+
+    H####HHHHHHHHHHHHHHHHHHH##...H
+
+    Hd.p...o......p.....d...##...H
+
+    H............................H
+
+    H...o..##HHHHHHHHHHHHHHHHHH##H
+
+    H......##...p....n....o..E...H
+
+    Hp..A..##................X...H
+
+    H..............o.....p.......H
+
+    H.d.....p...........o.....p..H
+
+    LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+
+'
+  warps:
+  - tile: j
+    to: intro_frozen
+  encounters:
+  - Enemies:
+    - Enemy_ScrapHound
+    Level: 9
+    Boss: 0
+    WinFlag: 
+    Requires: []
+    Blocks: []
+    WinMessage: 
+    WinKey: 
+    Reward: 
+  npcs:
+  - Name: Survey Drone
+    Lines: []
+    LinesKey: intro.frozen_mountain
+    Machine: 1
+  chests: []

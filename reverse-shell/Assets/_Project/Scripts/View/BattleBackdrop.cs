@@ -13,7 +13,9 @@ namespace Combat.View
         public const int ArtWidth = 480, ArtHeight = 270;
 
         static readonly Dictionary<BattleBackdropDefinition, Texture2D> painted = new Dictionary<BattleBackdropDefinition, Texture2D>();
-        static Texture2D leafTexture;
+        static Texture2D leafTexture, fleckTexture;
+        float direction = 1f;
+        Color? flecks;
 
         RawImage leavesNear, leavesFar;
         float intensity = 1f;
@@ -32,6 +34,8 @@ namespace Combat.View
             if (def.driftingLeaves)
             {
                 backdrop.intensity = def.driftIntensity;
+                backdrop.direction = def.driftDirection;
+                backdrop.flecks = def.driftColor.a > 0f ? (Color?)def.driftColor : null;
                 backdrop.leavesFar = backdrop.LeafLayer(root, "LeavesFar", 0.55f * def.driftIntensity, 1.6f);
                 backdrop.leavesNear = backdrop.LeafLayer(root, "LeavesNear", 0.85f * def.driftIntensity, 1f);
             }
@@ -43,8 +47,9 @@ namespace Combat.View
             var img = new GameObject(name, typeof(RectTransform)).AddComponent<RawImage>();
             img.rectTransform.SetParent(root, false);
             img.rectTransform.Fill();
-            img.texture = LeafTexture();
-            img.color = new Color(1f, 1f, 1f, Mathf.Clamp01(alpha));
+            img.texture = flecks.HasValue ? FleckTexture() : LeafTexture();
+            var tint = flecks ?? Color.white;
+            img.color = new Color(tint.r, tint.g, tint.b, Mathf.Clamp01(alpha) * (flecks.HasValue ? tint.a : 1f));
             img.raycastTarget = false;
             img.uvRect = new Rect(0f, 0f, ArtWidth / 128f * tiling, ArtHeight / 128f * tiling);
             return img;
@@ -52,8 +57,8 @@ namespace Combat.View
 
         void Update()
         {
-            Scroll(leavesNear, 0.16f * intensity, -0.07f);
-            Scroll(leavesFar, 0.09f * intensity, -0.04f);
+            Scroll(leavesNear, 0.16f * intensity * direction, -0.07f);
+            Scroll(leavesFar, 0.09f * intensity * direction, -0.04f);
         }
 
         static void Scroll(RawImage img, float speed, float drift)
@@ -148,6 +153,26 @@ namespace Combat.View
                 color = new Rgb(c.r / 255f, c.g / 255f, c.b / 255f);
                 return c.a > 127;
             }
+        }
+
+        /// <summary>White specks of 1-2 pixels on a transparent, tiling 128x128 texture, tinted per world (snow, embers,
+        /// ash, spores: <see cref="BattleBackdropDefinition.driftColor"/>).</summary>
+        static Texture2D FleckTexture()
+        {
+            if (fleckTexture != null) return fleckTexture;
+            const int size = 128;
+            fleckTexture = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat };
+            fleckTexture.SetPixels32(new Color32[size * size]);
+            var rng = new System.Random(11);
+            for (int i = 0; i < 70; i++)
+            {
+                int x = rng.Next(size), y = rng.Next(size);
+                var c = new Color32(255, 255, 255, (byte)rng.Next(150, 255));
+                fleckTexture.SetPixel(x, y, c);
+                if (rng.Next(3) == 0) fleckTexture.SetPixel((x + 1) % size, y, c);
+            }
+            fleckTexture.Apply();
+            return fleckTexture;
         }
 
         /// <summary>Sparse leaf flecks and pollen specks on a transparent, tiling 128x128 texture.</summary>

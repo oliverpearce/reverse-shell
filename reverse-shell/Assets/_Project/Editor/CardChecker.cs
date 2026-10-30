@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using Combat.View;
 using UnityEditor;
 using UnityEngine;
 
@@ -8,9 +7,9 @@ namespace Combat.EditorTools
 {
     /// <summary>
     /// Looks over every card and the pack numbers for mistakes that don't stop the game but show up as odd cards or
-    /// packs: ability cards with no icon or no effects, two cards with the same name, kit cards that no pack gives,
-    /// rarity shares that don't add up to 100%, a rarity a pack can roll but its set has no cards of, unknown area
-    /// packs, and copy upgrades out of order. Each problem is a warning in the Console (click it to select the asset).
+    /// packs: ability cards with no icon or no effects, player cards without three ranks, two cards with the same
+    /// name, kit cards that no pack gives, rarity shares that don't add up to 100%, a rarity a pack can roll but its
+    /// set has no cards of, unknown area packs, and copy upgrades out of order. Each problem is a warning in the Console (click it to select the asset).
     ///   Menu: Reverse Shell / Check Cards (a summary pops up)
     ///   It also runs after every card import (<see cref="CardImporter"/>), in the Console only.
     /// </summary>
@@ -40,8 +39,8 @@ namespace Combat.EditorTools
             var problems = new List<Problem>();
             var cards = AssetDatabase.FindAssets("t:CardDefinition", new[] { CardsDir })
                 .Select(g => AssetDatabase.LoadAssetAtPath<CardDefinition>(AssetDatabase.GUIDToAssetPath(g))).Where(c => c != null).ToList();
-            CheckCards(cards, problems);
             var kitCards = KitCards();
+            CheckCards(cards, IconNames(), new HashSet<CardDefinition>(kitCards.Select(e => e.Key)), problems);
             CheckPacks(PackRates.Current, kitCards, problems);
             foreach (var p in problems) Debug.LogWarning("Check Cards: " + p.Text, p.Asset);
             Debug.Log("Check Cards: " + cards.Count + " cards, " + PackRates.Current.packs.Count + " packs, "
@@ -52,7 +51,23 @@ namespace Combat.EditorTools
         /// <summary>After an import: the same checks, in the Console only.</summary>
         public static void CheckAfterImport() { Check(); }
 
-        static void CheckCards(List<CardDefinition> cards, List<Problem> problems)
+        /// <summary>The card names the icon sheet has a picture for (Resources/Cards/CardArt.txt: "cell name" lines).
+        /// Read from the text, not the sprites: sprites made in Play mode are gone once it stops.</summary>
+        static HashSet<string> IconNames()
+        {
+            var names = new HashSet<string>();
+            var map = Resources.Load<TextAsset>("Cards/CardArt");
+            if (map == null) return names;
+            foreach (var raw in map.text.Split('\n'))
+            {
+                var parts = raw.Trim().Split(' ');
+                int cell;
+                if (parts.Length >= 2 && int.TryParse(parts[0], out cell)) names.Add(parts[1]);
+            }
+            return names;
+        }
+
+        static void CheckCards(List<CardDefinition> cards, HashSet<string> icons, HashSet<CardDefinition> playerCards, List<Problem> problems)
         {
             foreach (var group in cards.GroupBy(c => c.DisplayName.Trim().ToLowerInvariant()).Where(g => g.Count() > 1))
                 problems.Add(new Problem
@@ -65,30 +80,35 @@ namespace Combat.EditorTools
                 if (string.IsNullOrEmpty(card.displayName)) problems.Add(new Problem { Text = card.name + " has no display name", Asset = card });
                 // Ult (Soul) cards show the character's sprite instead of an icon; the others' come from the icon sheet
                 // (Resources/Cards/CardArt, by asset name), or the card's own icon if one is set.
-                if (!card.isRitual && card.icon == null && CardArt.Icon(card) == null)
+                if (!card.isRitual && card.icon == null && !icons.Contains(card.name))
                     problems.Add(new Problem { Text = card.name + " has no icon in Resources/Cards/CardArt", Asset = card });
                 var first = card.GetRank(1);
                 if (first == null || first.effects == null || first.effects.Count(e => e != null) == 0)
                     problems.Add(new Problem { Text = card.name + " has no effects at rank I", Asset = card });
                 else if (first.effects.Any(e => e == null))
                     problems.Add(new Problem { Text = card.name + " has an empty effect slot at rank I", Asset = card });
-                if (!card.isRitual && card.ranks.Count < 3)
+                // Player cards merge up to rank III; enemy cards play at rank I.
+                if (playerCards.Contains(card) && card.ranks.Count < 3)
                     problems.Add(new Problem { Text = card.name + " has " + card.ranks.Count + " rank(s), not 3", Asset = card });
             }
         }
 
-        /// <summary>Every ability card on a resonance kit (what packs can give), with the kit's owner.</summary>
+        /// <summary>Every ability card packs can give, with its owner: like Pack Mode's sets (PackModeRun.KitOwners and
+        /// CardCollection.AbilitiesOf), each unit with resonance kits brings its deck, its card pool (the Basic cards)
+        /// and every kit's cards.</summary>
         static List<KeyValuePair<CardDefinition, CharacterDefinition>> KitCards()
         {
             var list = new List<KeyValuePair<CardDefinition, CharacterDefinition>>();
             foreach (var g in AssetDatabase.FindAssets("t:CharacterDefinition", new[] { CharactersDir }))
             {
                 var member = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(AssetDatabase.GUIDToAssetPath(g));
-                if (member == null || member.resonances == null) continue;
-                foreach (var kit in member.resonances)
-                    if (kit != null)
-                        foreach (var card in kit.cards)
-                            if (card != null && list.All(e => e.Key != card)) list.Add(new KeyValuePair<CardDefinition, CharacterDefinition>(card, member));
+                if (member == null || member.resonances == null || member.resonances.Count == 0) continue;
+                var cards = new List<CardDefinition>(member.incantations);
+                cards.AddRange(member.cardPool);
+                foreach (var kit in member.resonances) if (kit != null) cards.AddRange(kit.cards);
+                foreach (var card in cards)
+                    if (card != null && !card.isRitual && list.All(e => e.Key != card))
+                        list.Add(new KeyValuePair<CardDefinition, CharacterDefinition>(card, member));
             }
             return list;
         }

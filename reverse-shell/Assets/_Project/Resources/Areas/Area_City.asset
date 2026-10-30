@@ -13,92 +13,97 @@ MonoBehaviour:
   m_Name: Area_City
   m_EditorClassIdentifier: 
   id: city
-  displayName: THE CITY RUINS
+  displayName: CITY RUINS
   subtitle: Overgrown District
   dim: 0
-  map: 'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+  theme: Forest
+  map: 'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
-    H............==T.LLL.......*.T===...........,,,.==...........r.H
+    HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
-    H.HHHHBBBHHH.==.BLLLBBBLLLBBB.===.HHHHHHHHHH,,,T==.BBBBBBBBBBB.H
+    HH............==T.LLL.......*.T===...........,,,.==...........r.HH
 
-    H.HHHHBBBHHHr==.BLLLBBBLLLBBB.===*HHHHHHHHHH,,,.==.B7.......3B.H
+    HH.HHHHBBBHHH.==.BLLLBBBLLLBBB.===.HHHHHHHHHH,,,T==.BBBBBBBBBBB.HH
 
-    HbHHHHBBBH,,,==.BBBBBBBLLLBBB.===bH,,,HHHHHHHHHb==.B....O....B.H
+    HH.HHHHBBBHHHr==.BLLLBBBLLLBBB.===*HHHHHHHHHH,,,.==.B7.......3B.HH
 
-    H.HHHHHHHHLLL==.BBBBBBBBBBBBB,===.H,,,HHHHHHHHH.==.B.........B.H
+    HHbHHHHBBBH,,,==.BBBBBBBLLLBBB.===bH,,,HHHHHHHHHb==.B....O....B.HH
 
-    H.HHHHHHHHLLL==.BBBBBBBBBBBBB.===.H,,,HHHBBBHHH.==.B.........B.H
+    HH.HHHHHHHHLLL==.BBBBBBBBBBBBB,===.H,,,HHHHHHHHH.==.B.........B.HH
 
-    H,HHHHHHHHLLL==.BBBBBBBBBBBBB.==,.HHHHHHHBBBHHH.==.B...,.....B.H
+    HH.HHHHHHHHLLL==.BBBBBBBBBBBBB.===.H,,,HHHBBBHHH.==.B.........B.HH
 
-    H............==,..............===b.......BBB...r==.BBBBBZBBBBB.H
+    HH,HHHHHHHHLLL==.BBBBBBBBBBBBB.==,.HHHHHHHBBBHHH.==.B...,.....B.HH
 
-    H==============================================================H
+    HH............==,..............===b.......BBB...r==.BBBBBZBBBBB.HH
 
-    H==============================================================H
+    HH==============================================================HH
 
-    H....Tb.....r==TPPTPPTPPTPPTPP===.BBB...........==,............H
+    HH==============================================================HH
 
-    H.BBB,,,BBBB.==PPPPPPPPPPPPPPP===bBB,,,########.==T###########.H
+    HH....Tb.....r==PPPPPPPPPPPPPPP===.BBB...........==,............HH
 
-    H.BBB,,,BBBB,=,PP5PPPPPPPPPPPP===.BB,,,########.==.###########.H
+    HH.BBB,,,BBBB.==PPPPPTPPPPPPPPP===bBB,,,########.==T###########.HH
 
-    H.BBB,,,BBBB.==PPPPPPPPPPPPPPP===.##,,,########b==.###########.H
+    HH.BBB,,,BBBB,=,PP5PPPPP*PPPTPP===.BB,,,########.==.###########.HH
 
-    H.B,,,BBBBBB.==PPPPPPPAPPPPPPP===T#############.==LLL#######LLbH
+    HH.BBB,,,BBBB.==PPPPPPP***PPPPP===.##,,,########b==.###########.HH
 
-    H.B,,,BBBBBB.==PPPPPPPPPPPPPPP===.###########LLL==LLL###,,,#LLLH
+    HH.B,,,BBBBBB.==PPPPPPPA**PPPPP===T#############.==LLL#######LLbHH
 
-    HTB,,,BBBBBB.==PPPPPPPPPPP2PPP===.###########LLL==LLL###,,,#LLTH
+    HH.B,,,BBBBBB.==PPPPPPPPPPPPPPP===.###########LLL==LLL###,,,#LLLHH
 
-    HbBBBBBBBBBB.==PPPPPPPPPPPPPPP,==.###########LLL==.#####,,,###rH
+    HHTB,,,BBBBBB.==PPPPPbPPPPP2PPP===.###########LLL==LLL###,,,#LLTHH
 
-    H....BBB.....==TPPTPPTPPTPPTPP===..............b==....,........H
+    HHbBBBBBBBBBB.==PTPPPPPPPPPPPPP,==.###########LLL==.#####,,,###rHH
 
-    H==============================,=======================*=======H
+    HH....BBB.....==PPPPPPPPPPPPPPP===..............b==....,........HH
 
-    H====T==E=========r==================r==E===T=======*==========H
+    HH==============================,=======================*=======HH
 
-    H=======X==============T================X======================H
+    HH====T==E=========r==================r==E===T=======*==========HH
 
-    HBBBBBPB=BBBB==,.............b===,,,,,,,=,,,,*,,,=.............H
+    HH=======X==============T================X======================HH
 
-    HBP*PP*PP*PPB==.HHHHHHHHHHHHH.=,=,6,,,T,,,,,,b,*==.BBBBBBBBBBB.H
+    HHBBBBBPB=BBBB==,.............b===,,,,,,,=,,,,*,,,=.............HH
 
-    HBPPPPPPPPPPB==.HHHHHHHHHLLLH.===,,,,,,,TT,TT,,,==.BBBBBBBBBBB.H
+    HHBP*PP*PP*PPB==.HHHHHHHHHHHHH.=,=,6,,,T,,,,,,b,*==.BBBBBBBBBBB.HH
 
-    HBPYPPPPPPPPB==.HHHHHH,,,LLLHb===,,,*b*****,,T,,==.BBBBBBBBBBB.H
+    HHBPPPPPPPPPPB==.HHHHHHHHHLLLH.===,,,,,,,TT,TT,,,==.BBBBBBBBBBB.HH
 
-    HBPPPSKPPPPPB==,HHHHHH,,,LLLH.===*,,b***n**,,,T,==.BBBBBBBBBBB.H
+    HHBPYPPPPPPPPB==.HHHHHH,,,LLLHb===,,,*b*****,,T,,==.BBBBBBBBBBB.HH
 
-    HBPPPPPPPPPPB==bHHHHHH,,,BHHH.===,,,,,*****Tb,,,=*rBBBBBBBBBBB.H
+    HHBPPPSKPPPPPB==,HHHHHH,,,LLLH.===*,,b***n**,,,T,==.BBBBBBBBBBB.HH
 
-    HBPPPPPPPPPPB==.HHHHHHHHHHHHH.,==,,,,,*****,,,,,==,,,,BBBBBBBBbH
+    HHBPPPPPPPPPPB==bHHHHHH,,,BHHH.===,,,,,*****Tb,,,=*rBBBBBBBBBBB.HH
 
-    HBP4PPPPPPPPB==.HHHHHHHHHHVHH.===,,,,,,,b*T*,,*,==.,,,,BBBBBBBrH
+    HHBPPPPPPPPPPB==.HHHHHHHHHHHHH.,==,,,,,*****,,,,,==,,,,BBBBBBBBbHH
 
-    HBBBBBPBBBBBB==...............===,,,,,,,,,,,,,,,==.,,,,.......,H
+    HHBP4PPPPPPPPB==.HHHHHHHHHHVHH.===,,,,,,,b*T*,,*,==.,,,,BBBBBBBrHH
 
-    H=b====,====*=========:::::::=====b=========E==================H
+    HHBBBBBPBBBBBB==...............===,,,,,,,,,,,,,,,==.,,,,.......,HH
 
-    H===========================================X==================H
+    HH=b====,====*=========:::::::=====b=========E==================HH
 
-    H,....*...BBB==T.............b===LLL........=...==T......,.....H
+    HH===========================================X==================HH
 
-    H.#######BBBB==TBB###########.===LLLHHHHHHHHHHHb==.BBBBBBBBBBB.H
+    HH,....*...BBB==T.............b===LLL........=...==T......,.....HH
 
-    Hr#######BBBb==BBB###########.===LLLHHHHHHHHHBB,==,B.........B.H
+    HH.#######BBBB==TBB###########.===LLLHHHHHHHHHHHb==.BBBBBBBBBBB.HH
 
-    H.#######BBB.==BBB##LLLB#####,===,HHHHHHLLLHHBBB==.B.........BTH
+    HHr#######BBBb==BBB###########.===LLLHHHHHHHHHBB,==,B.........B.HH
 
-    H.#######BBBb==.####LLLB#####.===.HHHHHHLLLHHBBB==......M....B.H
+    HH.#######BBB.==BBB##LLLB#####,===,HHHHHHLLLHHBBB==.B.........BTHH
 
-    H.#######BBB.*=.####LLLB#####b===,HHHHHHLLLHHHH.==rB.........B.H
+    HH.#######BBBb==.####LLLB#####.===.HHHHHHLLLHHBBB==......M....B.HH
 
-    H........BBB.==..............b===,..............==.BBBBBBBBBBB.H
+    HH.#######BBB.*=.####LLLB#####b===,HHHHHHLLLHHHH.==rB.........B.HH
 
-    HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+    HH........BBB.==..............b===,..............==.BBBBBBBBBBB.HH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
 '
   warps:

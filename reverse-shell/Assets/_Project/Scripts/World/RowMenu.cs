@@ -42,6 +42,8 @@ namespace Game.World
         readonly List<Row> rows = new List<Row>();
         readonly List<Image> plates = new List<Image>();
         readonly List<Text> labels = new List<Text>();
+        readonly List<Image> markers = new List<Image>();
+        CanvasGroup group;
         readonly List<VolumeSlider> sliders = new List<VolumeSlider>();
         Action back;
         int index, openedFrame;
@@ -62,23 +64,25 @@ namespace Game.World
 
         void Build(RectTransform root)
         {
-            var dim = UIFactory.CreateImage(root, "Dim", new Color(0.05f, 0.045f, 0.04f, 0.9f), true);
+            // NieR-style (NierStyle): a dark see-through screen, light type, a slight curved-screen vignette.
+            group = root.gameObject.AddComponent<CanvasGroup>();
+            var dim = UIFactory.CreateImage(root, "Dim", NierStyle.ScreenWash, true);
             dim.rectTransform.Fill();
-            InkStyle.Grain(root, new Color(1f, 0.95f, 0.85f, 0.035f));
-            title = InkStyle.Title(root, "Title", "", 72, InkStyle.Paper, TextAnchor.MiddleCenter);
+            InkStyle.Grain(root, new Color(0.2f, 0.18f, 0.14f, 0.04f));
+            NierStyle.Vignette(root);
+            title = InkStyle.Title(root, "Title", "", 72, NierStyle.Text, TextAnchor.MiddleCenter);
             title.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(1200f, 110f));
             list = UIFactory.CreateRect("Rows", root).Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -280f), new Vector2(RowWidth, 600f));
 
-            var plate = UIFactory.CreateImage(root, "Help", new Color(0.08f, 0.075f, 0.07f, 0.95f), true);
+            var plate = NierStyle.Panel(root, "Help", NierStyle.RowGray, true);
             plate.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 120f), new Vector2(1300f, 130f));
-            InkStyle.Frame(plate.rectTransform, InkStyle.Rule, 2f);
-            help = UIFactory.CreateText(plate.transform, "Text", "", 30, InkStyle.Paper, TextAnchor.MiddleCenter);
+            help = UIFactory.CreateText(plate.transform, "Text", "", 30, NierStyle.Text, TextAnchor.MiddleCenter);
             help.rectTransform.Fill(18f);
             helpPlate = plate.gameObject;
 
             var keys = UIFactory.CreateText(root, "Keys",
                 UIText.Get("menu.keys"),
-                28, InkStyle.Paper, TextAnchor.MiddleCenter, FontStyle.Bold);
+                28, NierStyle.Text, TextAnchor.MiddleCenter, FontStyle.Bold);
             keys.supportRichText = true;
             keys.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1600f, 50f));
         }
@@ -86,8 +90,10 @@ namespace Game.World
         /// <summary>Opens (or refills) the menu with a page of rows; <paramref name="onBack"/> runs on Esc.</summary>
         public void Show(string heading, List<Row> page, Action onBack, int select = 0)
         {
-            if (!IsOpen) openedFrame = Time.frameCount;
+            bool opening = !IsOpen;
+            if (opening) openedFrame = Time.frameCount;
             gameObject.SetActive(true);
+            if (opening) StartCoroutine(NierStyle.SoftOpen(group, list));   // a soft rise and fade in
             transform.SetAsLastSibling();
             title.text = heading;
             back = onBack;
@@ -95,6 +101,7 @@ namespace Game.World
             rows.Clear();
             plates.Clear();
             labels.Clear();
+            markers.Clear();
             sliders.Clear();
             nextY = 0f;
             // Pages with tall rows (the save slots) start higher, so they fit above the key hints.
@@ -117,11 +124,14 @@ namespace Game.World
             int i = rows.Count;
             bool tall = row.Detail != null;
             float height = tall ? TallHeight : RowHeight, width = tall ? TallWidth : RowWidth;
-            var plate = UIFactory.CreateImage(list, "Row" + i, InkStyle.InkPanel, true);
+            var plate = UIFactory.CreateImage(list, "Row" + i, NierStyle.RowGray, true);
             plate.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -nextY), new Vector2(width, height));
             nextY += height + (tall ? TallGap : RowGap);
-            InkStyle.Frame(plate.rectTransform, InkStyle.Rule, 2f);
-            var label = InkStyle.Title(plate.transform, "Label", row.Label, 44, InkStyle.Paper, tall ? TextAnchor.UpperLeft : TextAnchor.MiddleCenter);
+            // The selection marker: a small accent square left of the row (shown on the selected one).
+            var marker = NierStyle.Marker(plate.transform);
+            marker.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-14f, 0f), new Vector2(14f, 14f));
+            markers.Add(marker);
+            var label = InkStyle.Title(plate.transform, "Label", row.Label, 44, NierStyle.Text, tall ? TextAnchor.UpperLeft : TextAnchor.MiddleCenter);
             label.supportRichText = true;
             label.rectTransform.Fill(8f);
             if (tall)
@@ -130,16 +140,16 @@ namespace Game.World
                 var tl = new Vector2(0f, 1f);
                 float inner = width - TallPadX * 2f;
                 label.rectTransform.Place(tl, tl, new Vector2(TallPadX, -TallPadTop), new Vector2(inner, 54f));
-                var rule = InkStyle.Line(plate.transform, "Rule", UIFactory.WithAlpha(InkStyle.Gold, 0.5f));
+                var rule = InkStyle.Line(plate.transform, "Rule", NierStyle.Rule);
                 rule.rectTransform.Place(tl, tl, new Vector2(TallPadX, -TallPadTop - 60f), new Vector2(inner, 2f));
-                var detail = UIFactory.CreateText(plate.transform, "Detail", row.Detail, 36, InkStyle.Paper, TextAnchor.UpperLeft);
+                var detail = UIFactory.CreateText(plate.transform, "Detail", row.Detail, 36, NierStyle.Text, TextAnchor.UpperLeft);
                 detail.supportRichText = true;
                 detail.lineSpacing = 1.05f;
                 detail.raycastTarget = false;
                 detail.rectTransform.Place(tl, tl, new Vector2(TallPadX, -TallPadTop - 74f), new Vector2(inner, height - TallPadTop - 74f - 20f));
                 if (!string.IsNullOrEmpty(row.Corner))
                 {
-                    var corner = UIFactory.CreateText(plate.transform, "Corner", row.Corner, 36, InkStyle.PaperDim, TextAnchor.UpperRight);
+                    var corner = UIFactory.CreateText(plate.transform, "Corner", row.Corner, 36, NierStyle.TextDim, TextAnchor.UpperRight);
                     corner.raycastTarget = false;
                     corner.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-TallPadX, -TallPadTop - 4f), new Vector2(500f, 50f));
                 }
@@ -176,9 +186,10 @@ namespace Game.World
             {
                 bool on = r == index;
                 bool usable = Usable(r);
-                // The selected row is a hover: a lighter grey plate that grows a little (GrowSelected), no gold.
-                labels[r].color = !usable ? UIFactory.WithAlpha(InkStyle.PaperDim, 0.7f) : InkStyle.Paper;
-                plates[r].color = on ? InkStyle.HoverGray : usable ? InkStyle.InkPanel : UIFactory.WithAlpha(InkStyle.InkPanel, 0.5f);
+                // NieR-style: the selected row is a lighter grey bar with the accent square beside it.
+                labels[r].color = on ? NierStyle.HudText : !usable ? NierStyle.TextDim : NierStyle.Text;
+                plates[r].color = on ? NierStyle.SelectBar : usable ? NierStyle.RowGray : UIFactory.WithAlpha(NierStyle.RowGray, 0.5f);
+                markers[r].enabled = on;
             }
             string text = rows[index].Help;
             help.text = text ?? "";

@@ -208,6 +208,8 @@ namespace Game.World
     public class WarpInteractable : Interactable
     {
         public string destination;
+        /// <summary>The destination's name, for the prompt ("[F] Teleport  The Frozen Reach").</summary>
+        public string destinationName;
         public string label = "Travel";
         public float radius = 0.6f;
 

@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 960ea5e6da086f3488b88985b67bfbb3, type: 3}
+  m_Name: Area_IntroForest
+  m_EditorClassIdentifier: 
+  id: intro_forest
+  displayName: '[COMPLEX]'
+  subtitle: 
+  dim: 0
+  theme: Forest
+  map: 'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHH####HHHHHHHH####HHHHHHHH
+
+    H##TTkTTTpTT##HHHH##TkTTTpTT#H
+
+    HT,,m,*m,,T,,#.J.#*,*,,,,P,,TH
+
+    Hp,f,,,,,T,,k,,,,,,T,,,m,,f,pH
+
+    H=.=,b,,o..=,=.===,,==,,b=.=,H
+
+    H,*,=.=T==,,=====,,=.T=,=,*,,H
+
+    HT,,P,*,,,,m,S,W,P,m,,n,,o,,TH
+
+    H,,*,,,,E,P,,,,,,,,,P,,*,m,,,H
+
+    H,f,,,m,X,,T,,m,,k,m,,,,,,f,,H
+
+    H,o*,,,,m,,,,,,,*,,,,,A*,,,*,H
+
+    HT,,,b,P,*T,,,p,,m,T,,,,b,,,TH
+
+    H,,m,*,m,,,,m,,*,,,,,,P,*,,,,H
+
+    LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+
+'
+  warps:
+  - tile: W
+    to: sandbox
+  - tile: J
+    to: intro_forest_lab
+  encounters:
+  - Enemies:
+    - Enemy_ScrapHound
+    Level: 4
+    Boss: 0
+    WinFlag: 
+    Requires: []
+    Blocks: []
+    WinMessage: 
+    WinKey: 
+    Reward: 
+  npcs:
+  - Name: Survey Drone
+    Lines: []
+    LinesKey: intro.forest
+    Machine: 1
+  chests: []

@@ -21,6 +21,12 @@ namespace Game.World
         string full, shownText;
         float time, glitchUntil, nextGlitch;
 
+        /// <summary>How wide the whole name is drawn (for fitting it on screen).</summary>
+        public float Width { get { return main != null ? main.preferredWidth : 0f; } }
+
+        /// <summary>Seconds until the whole name has typed in.</summary>
+        public float TypingSeconds { get { return StartDelay + (full != null ? full.Length : 0) * CharSeconds; } }
+
         public static TerminalTitle Create(Transform parent, string text, int size, Vector2 position, float height)
         {
             var center = new Vector2(0.5f, 0.5f);

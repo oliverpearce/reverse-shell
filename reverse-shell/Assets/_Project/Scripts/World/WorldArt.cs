@@ -176,6 +176,19 @@ namespace Game.World
             return m;
         }
 
+        /// <summary>Track C's toon shading (the WorldToon shader) over a texture, solid and one-sided: a themed world's
+        /// ruins. Falls back to <see cref="WorldMaterial"/> if the shader is missing.</summary>
+        public static Material ToonMaterial(Texture texture)
+        {
+            var shader = Shader.Find("Reverse Shell/WorldToon");
+            if (shader == null) return WorldMaterial(texture, 0.05f);
+            var m = new Material(shader) { mainTexture = texture, enableInstancing = true };
+            m.SetFloat("_Cutoff", 0.02f);
+            m.SetFloat("_Cull", 2f);
+            m.SetFloat("_VertexShade", 0f);   // the map mesh has no vertex colours
+            return m;
+        }
+
         /// <summary>
         /// One atlas cell stretched over a whole mesh (0-1 UVs, e.g. a primitive cube or quad). Cutout cells
         /// (grass, vines) use alpha testing so they cast leafy shadows and sort correctly.
