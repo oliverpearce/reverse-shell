@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_Physical_Interrupt
   m_EditorClassIdentifier: 
   displayName: Stagger
-  kind: 0
+  kind: 2
   targetMode: 0
   isRitual: 0
   level: 4

@@ -10,7 +10,7 @@ namespace Game.World
     /// <summary>
     /// The Esc menu's Resonance card (bible §3): the protagonist's resonances as pixel cards in a row, only the ones
     /// they have (Basic, and Arc once absorbed, or always in Sandbox Mode); the row centres and shrinks to fit
-    /// as more unlock. Below it are the shown resonance's innate cards and Ult, in its colour; clicking or holding one
+    /// as more unlock. Below it are the shown resonance's innate card and Soul card (its Ult), in its colour; clicking or holding one
     /// opens it (<see cref="CardDetailPopup"/>: the full text). Left/Right (or the mouse) moves, Enter / F / Space / a
     /// click switches (free outside combat), Esc goes back to the Esc cards. The active resonance sits in a gold frame.
     /// (Locked resonances can be shown again by building the row from <see cref="Order"/> with Open = false.)
@@ -40,6 +40,7 @@ namespace Game.World
         readonly List<Entry> entries = new List<Entry>();
         CharacterDefinition member;
         BattleUnit previewUnit;
+        CardDefinition soulForm;
         int index;
         int openedFrame;
         System.Action onClosed;
@@ -181,7 +182,8 @@ namespace Game.World
 
         // ------------------------------------------------------------------ The shown resonance's cards
 
-        /// <summary>The shown resonance's innate cards and Ult, coloured as they'll be in battle. Nothing when locked.</summary>
+        /// <summary>The shown resonance's innate card (its Main card, the kit's first) and its Soul card (the Ult it
+        /// powers up into), coloured as they'll be in battle. Nothing when locked.</summary>
         void BuildPreview()
         {
             UIFactory.ClearChildren(preview);
@@ -189,9 +191,11 @@ namespace Game.World
             var kit = member.KitFor(entries[index].Element);
             if (kit == null) return;
             var cards = new List<CardDefinition>();
-            foreach (var c in kit.cards) if (c != null) cards.Add(c);
+            var innate = kit.cards.Find(c => c != null);
+            if (innate != null) cards.Add(innate);
             var ult = kit.ultimate != null ? kit.ultimate : member.ritual;   // a kit without its own Ult uses the ritual
             if (ult != null) cards.Add(ult);
+            soulForm = ult;
 
             var unit = previewUnit = new BattleUnit(member, Team.Player);
             unit.ApplyLoadout(new Loadout { Cards = cards, Parts = WorldSession.PartsOf(member), Element = kit.element, Ultimate = ult });
@@ -217,7 +221,8 @@ namespace Game.World
         void OpenCard(CardDefinition card, RectTransform from)
         {
             if (CardDetailPopup.IsOpen || previewUnit == null) return;
-            CardDetailPopup.Open(root, previewUnit, card, 1, from);
+            // The innate card can flip to its Soul form there, like on the Units page.
+            CardDetailPopup.Open(root, previewUnit, card, 1, from, null, card != soulForm ? soulForm : null);
         }
 
         // ------------------------------------------------------------------ Input + animation

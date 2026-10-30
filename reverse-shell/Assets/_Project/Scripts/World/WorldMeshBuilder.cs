@@ -124,19 +124,37 @@ namespace Game.World
                 case 'K':
                 case 'U':
                 case 'J':
+                case 'j':
                 case 'w':
                 case 'P':
                 case 'G':
                 case 'C':
                 case 'c':
                 case 'W':
+                case 'F':
+                case 'D':
+                case 'I':
+                case 'N':
+                case '^':
                 case 'X':
                 case 'E': return new Vector2Int(2, 4);
                 case ',':
                 case '*': return new Vector2Int(3, 1);
                 case 'T':
                 case 'b':
-                case 'r': return new Vector2Int(5, 0);
+                case 'r':
+                case 'p':
+                case 'd':
+                case 'k':
+                case 'f':
+                case 'o':
+                case '~':
+                case 'i':
+                case 'y': return new Vector2Int(5, 0);   // dirt under trees, bushes, rocks, lava and crystals
+                case 'z':
+                case 'l':
+                case 'm':
+                case 'e': return new Vector2Int(3, 1);   // moss under mushrooms and pebbles
                 default: return new Vector2Int(1, 1);
             }
         }

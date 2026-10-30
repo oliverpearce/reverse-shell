@@ -273,17 +273,21 @@ namespace Game.World
         }
 
         /// <summary>A warp square: a bright cyan frame inside a softer outer glow, with sparkles rising off it.</summary>
-        public static GameObject WarpPad(Transform parent, Vector3 center)
+        /// <summary>A warp square: a glowing floor marker and motes, in <paramref name="tint"/> (cyan by default). A
+        /// portal into a themed world (<paramref name="beam"/>) also gets a soft column of its world's light.</summary>
+        public static GameObject WarpPad(Transform parent, Vector3 center, Color? tint = null, bool beam = false)
         {
+            var color = tint ?? WorldArt.WarpCyan;
             var root = new GameObject("WarpPad");
             root.transform.SetParent(parent, false);
             root.transform.position = center;
-            var outer = FloorMarker(root.transform, center, WorldArt.WarpCyan * new Color(1f, 1f, 1f, 0.5f));
+            var outer = FloorMarker(root.transform, center, color * new Color(1f, 1f, 1f, 0.5f));
             outer.transform.localScale = new Vector3(1.15f, 1.15f, 1f);
-            FloorMarker(root.transform, center + new Vector3(0f, 0.005f, 0f), WorldArt.WarpCyan);
+            FloorMarker(root.transform, center + new Vector3(0f, 0.005f, 0f), color);
             var inner = FloorMarker(root.transform, center + new Vector3(0f, 0.01f, 0f), Color.white);
             inner.transform.localScale = new Vector3(0.5f, 0.5f, 1f);
-            Motes(root.transform, center + Vector3.up * 0.6f, 0.4f, 9f, WorldArt.WarpCyan);
+            Motes(root.transform, center + Vector3.up * 0.6f, 0.4f, 9f, color);
+            if (beam) WorldEffects.LightShaft(root.transform, center, new Vector2(90f, 0f), color);
             return root;
         }
 

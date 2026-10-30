@@ -53,21 +53,52 @@ namespace Game.World
         /// <summary>A scripted arrival for this area, or null for the usual fade-in.</summary>
         public static IEnumerator Arrival(OverworldBuilder b)
         {
-            if (!WorldSession.TitleDone || b.Area.Id != WorldAreas.City) return null;
-            if (!StoryState.Has(Chapter1.Named)) return Opening(b);
+            if (!WorldSession.TitleDone) return null;
+            // The office plays the opening until you've woken in the city (it saves the name early, so a quit during the
+            // recording comes back here and plays it again rather than leaving you in a room with no way out).
+            if (b.Area.Id == WorldAreas.Office) return StoryState.Has(Chapter1.Awake) ? null : Opening(b);
+            if (b.Area.Id != WorldAreas.City) return null;
+            if (!StoryState.Has(Chapter1.Named)) return ToOffice(b);   // a save from before the office opening
             if (!StoryState.Has(Chapter1.Awake)) return Awakening(b);
             return null;
         }
 
+        /// <summary>The opening, at the office desk just north of the start square: the login (your name), the
+        /// recording and the failed transfer on its PC, then the cut to the city, where the awakening plays.</summary>
         static IEnumerator Opening(OverworldBuilder b)
         {
             b.SetCutscene(true);
             b.UI.SetFade(Color.black);
             bool done = false;
-            PrologueSequence.Play((RectTransform)b.UI.transform, () => done = true);
+            PrologueSequence.Play(b, NearestPC(b.PlayerPosition), () => done = true);
             while (!done) yield return null;
-            b.RefreshParty();   // the HUD now shows the chosen name
-            yield return Awakening(b);
+            b.UI.SetFade(Color.black);
+            b.GoTo(WorldAreas.StartArea);
+        }
+
+        static IEnumerator ToOffice(OverworldBuilder b)
+        {
+            b.SetCutscene(true);
+            b.UI.SetFade(Color.black);
+            yield return null;
+            b.GoTo(WorldAreas.Office);
+        }
+
+        /// <summary>The office PC closest to <paramref name="spot"/> (null if the area has none).</summary>
+        static OfficePC NearestPC(Vector3 spot)
+        {
+            OfficePC best = null;
+            float bestDistance = float.MaxValue;
+            foreach (var pc in Object.FindObjectsOfType<OfficePC>())
+            {
+                float d = (pc.GlassCenter - spot).sqrMagnitude;
+                if (d < bestDistance)
+                {
+                    bestDistance = d;
+                    best = pc;
+                }
+            }
+            return best;
         }
 
         static IEnumerator Awakening(OverworldBuilder b)

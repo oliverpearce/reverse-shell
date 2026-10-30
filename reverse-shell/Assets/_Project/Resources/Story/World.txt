@@ -106,3 +106,61 @@ Resistance Scout | Your crew's waiting by the road. {green}Ashe{/c}, our druid, 
 Wanderer | {slow}The trees took this city slowly...{/slow}
 Wanderer | {wave}Kind of beautiful{/wave}, if you stop and look.
 Wanderer | {gray}{slow}...Do machines dream, do you think?{/slow}{/c}
+
+# ------------------------------------------------------------------ Chapter intro areas (Sandbox portals, Track C)
+
+[intro.forest]
+Survey Drone | {cyan}SURVEY LOG: the overgrown complex.{/c}
+Survey Drone | A research site the forest took back. Arc current still hums under the roots.
+Survey Drone | The old lab is through the doorway north. {gray}Practice target ahead.{/c}
+
+[intro.forest_lab]
+Survey Drone | {cyan}SURVEY LOG: research lab, sublevel 1.{/c}
+Survey Drone | Roots split the floor. The specimen tanks still glow on a circuit nobody switched off.
+Survey Drone | {gray}The robots stopped mid-task. Some of the tanks are not empty.{/c}
+Survey Drone | {gray}Practice target ahead.{/c}
+
+[intro.conservatory]
+Survey Drone | {cyan}SURVEY LOG: the corrupted conservatory.{/c}
+Survey Drone | The biomass generators failed years ago. The ooze glows; do not touch it.
+Survey Drone | {green}Spore count: high.{/c} The greenhouse hall is north. {gray}Practice target ahead.{/c}
+
+[intro.conservatory_hall]
+Survey Drone | {cyan}SURVEY LOG: greenhouse hall, biomass generator.{/c}
+Survey Drone | The generator still runs, rooted in its own spill. Whatever it grows, it grows wrong.
+Survey Drone | {gray}Practice target ahead.{/c}
+
+[intro.frozen]
+Survey Drone | {cyan}SURVEY LOG: the frozen reach.{/c}
+Survey Drone | Everything here froze mid-breath. Even the trees are glass.
+Survey Drone | An ice cave lies north, and a pass climbs the mountain beside it. {gray}Practice target ahead.{/c}
+
+[intro.frozen_cave]
+Survey Drone | {cyan}SURVEY LOG: the ice cave.{/c}
+Survey Drone | The crystals hold old light and give it back slowly. My sensors keep reading footsteps that aren't there.
+Survey Drone | {gray}Practice target ahead.{/c}
+
+[intro.frozen_mountain]
+Survey Drone | {cyan}SURVEY LOG: the mountain pass.{/c}
+Survey Drone | Wind speed: severe. The path switches back down the cliff; mind the edge, the fog hides the drop.
+Survey Drone | {gray}Practice target ahead.{/c}
+
+[intro.cinderworks]
+Survey Drone | {cyan}SURVEY LOG: the cinderworks.{/c}
+Survey Drone | Foundries beside a volcanic fissure. The lava still runs; the furnaces never cooled.
+Survey Drone | {red}Surface temperature: critical.{/c} The foundry floor is north. {gray}Practice target ahead.{/c}
+
+[intro.cinderworks_foundry]
+Survey Drone | {cyan}SURVEY LOG: foundry floor.{/c}
+Survey Drone | The casting channels overflow. Somebody built bodies here, and left before the moulds cooled.
+Survey Drone | {gray}Practice target ahead.{/c}
+
+[intro.sanctuary]
+Survey Drone | {cyan}SURVEY LOG: the sanctuary.{/c}
+Survey Drone | White stone, blossom and falling light. Everything here is very calm. Too calm.
+Survey Drone | The inner hall is north. {gray}Practice target ahead.{/c}
+
+[intro.sanctuary_hall]
+Survey Drone | {cyan}SURVEY LOG: the quiet hall.{/c}
+Survey Drone | The light here falls the same way every hour. I have stopped trusting it.
+Survey Drone | {gray}Practice target ahead.{/c}

@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 960ea5e6da086f3488b88985b67bfbb3, type: 3}
+  m_Name: Area_IntroFrozenCave
+  m_EditorClassIdentifier: 
+  id: intro_frozen_cave
+  displayName: '> COLD CAVE'
+  subtitle: 
+  dim: 0
+  theme: Frozen_Cave
+  map: 'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    HHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+    H######HHHHHH####HHHHHH######H
+
+    H##..i..##....SJ....##..i..##H
+
+    H#i.........#......#.......i#H
+
+    H#..##..i...#..ii..#..i.##..#H
+
+    H#..##......#......#....##..#H
+
+    H#i....n.......PP.........E.#H
+
+    H#.......i.....PP.....i...X.#H
+
+    H#..ii..##..i......i..##....#H
+
+    H#......##..........A.##..i.#H
+
+    H#i..i.......i....i.......ii#H
+
+    H#..........................#H
+
+    LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+
+'
+  warps:
+  - tile: J
+    to: intro_frozen
+  encounters:
+  - Enemies:
+    - Enemy_ScrapStalker
+    Level: 9
+    Boss: 0
+    WinFlag: 
+    Requires: []
+    Blocks: []
+    WinMessage: 
+    WinKey: 
+    Reward: 
+  npcs:
+  - Name: Survey Drone
+    Lines: []
+    LinesKey: intro.frozen_cave
+    Machine: 1
+  chests: []

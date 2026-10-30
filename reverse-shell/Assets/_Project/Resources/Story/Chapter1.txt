@@ -29,11 +29,14 @@ Reverse Shell. Live once. Live on.
 Please remain still while your Soul Card is prepared.
 
 [prologue.name]
-...
-A name surfaces, and almost slips away.
+Welcome.
 
 [prologue.name.question]
-What is your name?
+Please enter your name.
+
+# Shown on the PC once the name is in ({name} = the name just typed)
+[prologue.thanks]
+Thank you, {name}, for choosing us!
 
 # ------------------------------------------------------------------ Awakening
 

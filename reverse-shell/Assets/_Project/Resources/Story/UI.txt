@@ -66,7 +66,7 @@ title.card_index = Cards
 title.overwrite = Overwrite slot {slot}?
 title.overwrite.yes = Yes, start a new game
 
-title.credits.text = <size=40>Credits</size>\n\nMade by {gold}Oliver Pearce{/c}.\n\n{gold}Icons{/c}   Raven Fantasy Icons by Clockwork Raven Studios\n{gold}Character sprites{/c}   Fantasy Knight by aamatniekss\n{gold}Effects{/c}   Super Pixel Effects Gigapack by Will Tice / unTied Games\n{gold}Font{/c}   monogram by datagoblin\n{gold}Card packs{/c}   Free Card Packs by argametina\n{gold}Card back{/c}   Major Arcana Tarot Cards by Stars in a Box (stars-in-a-box.itch.io)\n\nThank you for playing!
+title.credits.text = <size=40>Credits</size>\n\nMade by {gold}Oliver Pearce{/c}.\n\n{gold}Icons{/c}   Raven Fantasy Icons by Clockwork Raven Studios\n{gold}Character sprites{/c}   Fantasy Knight by aamatniekss\n{gold}Effects{/c}   Super Pixel Effects Gigapack by Will Tice / unTied Games\n{gold}Font{/c}   monogram by datagoblin\n{gold}Card packs{/c}   Free Card Packs by argametina\n{gold}Card back{/c}   Major Arcana Tarot Cards by Stars in a Box (stars-in-a-box.itch.io)\n{gold}Nature models{/c}   Stylized Nature MegaKit by Quaternius (CC0)\n{gold}Office PC{/c}   Retro PC (CC0)\n\nThank you for playing!
 
 # ------------------------------------------------------------------ Settings (title, Esc menu and battle pause menu)
 
@@ -218,6 +218,8 @@ overworld.objective = Objective
 prompt.talk = Talk
 prompt.heal = Heal
 prompt.interact = Interact
+# A warp or portal: {area} = where it goes
+prompt.teleport = Teleport  {c=#B85C3D}{area}{/c}
 # {name} = the machine's or person's name
 prompt.fight = Fight the {name}
 prompt.talk_to = Talk to {name}
@@ -337,7 +339,10 @@ items.tab.parts = Parts
 items.tab.cards = Cards
 
 cards.title = Cards
-cards.keys = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c}  Zoom      {gold}Right click{/c}  Sun / Moon / Star      {gold}O{/c}  Open Pack      {gold}Tab{/c}  Parts      {gold}Esc{/c}  Back
+# Beside the title: whose binder it is (the save it reads). {name} = the player's name, {slot} = the save slot
+cards.account = {gray}Binder{/c}  {gold}{name}{/c}  {gray}· Slot {slot}{/c}
+cards.account.none = {gray}No save yet{/c}
+cards.keys = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c}  Zoom      {gold}Right click{/c}  Bind / Blank card      {gold}O{/c}  Open Pack      {gold}Tab{/c}  Parts      {gold}Esc{/c}  Back
 # Using a Sun / Moon / Star (Special → Use): the book shows your ability cards to put it on. {name} = Sun / Moon / Star
 cards.title.use = Use {name} on...
 cards.keys.use = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c} / click  Put it on this card      {gold}Esc{/c}  Back
@@ -408,7 +413,11 @@ cards.new = NEW
 cards.count = {have} / {all} cards
 cards.blanks = {gold}Blank cards{/c} {n}
 # The button (and C) that spends a blank card on one more copy of the selected card. {n} = blanks left
-cards.imprint = Copy to Blank ({n})
+# The right-click menu's blank card row. {n} = blank cards left
+cards.blank.use = Use a Blank card  ({n} left)
+cards.blank.help = One more copy of this card (it levels up as copies add up).
+cards.blank.unowned = You can only use a Blank card on a card you own.
+cards.blank.top = This card is already at its top level.
 # The same button on a Sun / Moon / Star under Special (and C): put it on a card. {n} = how many of it are free
 cards.use = Use ({n} free)
 # {n} = unopened packs

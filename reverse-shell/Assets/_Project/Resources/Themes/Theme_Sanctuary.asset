@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e7ae1a5b1324182a84657227997f928, type: 3}
+  m_Name: Theme_Sanctuary
+  m_EditorClassIdentifier: 
+  sunColor: {r: 1, g: 0.96, b: 0.86, a: 1}
+  sunIntensity: 1.3
+  sunAngles: {x: 60, y: -20}
+  shadowStrength: 0.8
+  dappleSize: 12
+  canopySway: 1
+  ambientSky: {r: 0.4, g: 0.4, b: 0.46, a: 1}
+  ambientEquator: {r: 0.33, g: 0.31, b: 0.29, a: 1}
+  ambientGround: {r: 0.16, g: 0.15, b: 0.14, a: 1}
+  fogColor: {r: 0.7, g: 0.67, b: 0.63, a: 1}
+  fogDensity: 0.024
+  atlas: ruins_sanctuary
+  battleSkyTop: {r: 0.62, g: 0.72, b: 0.9, a: 1}
+  battleSkyHorizon: {r: 0.98, g: 0.94, b: 0.86, a: 1}
+  battleFoliage:
+  - {r: 0.35, g: 0.2, b: 0.32, a: 1}
+  - {r: 0.55, g: 0.32, b: 0.46, a: 1}
+  - {r: 0.8, g: 0.55, b: 0.68, a: 1}
+  - {r: 0.96, g: 0.82, b: 0.88, a: 1}
+  battleDrift: {r: 1, g: 0.8, b: 0.88, a: 0.95}
+  battleDriftDirection: 1
+  pixelHeight: 360
+  wind: 1
+  grassColor: {r: 0.55, g: 0.72, b: 0.38, a: 1}
+  leafColor: {r: 0.95, g: 0.66, b: 0.76, a: 1}
+  foliageRecolor: {r: 0, g: 0, b: 0, a: 0}
+  barkRecolor: {r: 0, g: 0, b: 0, a: 0}
+  foliageGlow: 0
+  props:
+  - kind: 0
+    models:
+    - TwistedTree_1
+    - TwistedTree_2
+    - TwistedTree_4
+    height: 3.6
+    maxWidth: 3.0
+    sizeJitter: 0.15
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  - kind: 1
+    models:
+    - Bush_Common
+    - Bush_Common_Flowers
+    height: 1.0
+    maxWidth: 1.3
+    sizeJitter: 0.15
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  - kind: 2
+    models:
+    - Rock_Medium_1
+    - Rock_Medium_2
+    - Rock_Medium_3
+    height: 0.7
+    maxWidth: 1.1
+    sizeJitter: 0.15
+    tint: {r: 1, g: 0.98, b: 0.95, a: 1}
+  - kind: 3
+    models:
+    - Grass_Common_Short
+    - Grass_Wispy_Short
+    - Grass_Common_Tall
+    - Clover_1
+    - Clover_2
+    height: 0.55
+    maxWidth: 0.7
+    sizeJitter: 0.15
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  - kind: 4
+    models:
+    - Flower_3_Group
+    - Flower_4_Group
+    - Flower_3_Single
+    - Flower_4_Single
+    height: 0.6
+    maxWidth: 0.7
+    sizeJitter: 0.15
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  - kind: 5
+    models:
+    - Clover_1
+    - Clover_2
+    height: 0.4
+    maxWidth: 0.5
+    sizeJitter: 0.15
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  effects:
+  - kind: 7
+    density: 1
+    color: {r: 1, g: 0.75, b: 0.85, a: 0.9}
+  - kind: 8
+    density: 0.8
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - kind: 1
+    density: 0.4
+    color: {r: 1, g: 0.95, b: 0.75, a: 1}
+  crystalColor: {r: 0.6, g: 0.9, b: 1, a: 1}
+  shaftColor: {r: 1, g: 0.95, b: 0.82, a: 1}
+  portalColor: {r: 1, g: 0.9, b: 0.6, a: 1}

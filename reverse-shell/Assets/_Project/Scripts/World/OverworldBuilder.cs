@@ -65,7 +65,7 @@ namespace Game.World
         public OverworldMap Map { get; private set; }
 
         /// <summary>The formation: the active members in slot order (the first leads and is who you walk as), then the
-        /// backup. The party HUD shows these.</summary>
+        /// backup. The party HUD shows only the active ones (<see cref="RefreshPartyHud"/>).</summary>
         public List<CharacterDefinition> Party
         {
             get
@@ -118,6 +118,8 @@ namespace Game.World
         const float ScanCooldown = 4f;
         TitleScreen title;
         WorldAreas.Area area;
+        /// <summary>The area's look (Track C), or null for the old look.</summary>
+        WorldTheme theme;
 
         /// <summary>Overworld name of the encounter: the first enemy in its battle setup.</summary>
         string EncounterName
@@ -152,6 +154,7 @@ namespace Game.World
             if (encounterSetup != null) CardCollection.EnforceOneDeck(WorldSession.Ordered(encounterSetup.party));   // older saves could share a card
             if (StoryState.Has(Chapter1.ResonanceArc)) WorldSession.BindSoulCard(); // saves from before the Resonant Core
             area = WorldAreas.Get(WorldSession.CurrentArea);
+            theme = WorldTheme.Load(area.Theme);
             areaName = area.Name;
             areaSubtitle = area.Subtitle;
             Map = new OverworldMap(useDefaultMap || string.IsNullOrEmpty(map) ? area.Map : map);
@@ -161,9 +164,16 @@ namespace Game.World
                     if (OverworldMap.IsItemChar(Map.At(x, row)) && WorldSession.UsedItems.Contains(WorldSession.ItemKey(area.Id, x, row)))
                         Map.MakePassable(x, row);
             cam = Camera.main;
+            // A themed world is drawn as pixel art (not the Esc menu's scene, which keeps its full-resolution look).
+            if (cam != null && theme != null && theme.pixelHeight > 0)
+            {
+                var pixels = cam.gameObject.AddComponent<PixelCamera>();
+                pixels.PixelHeight = theme.pixelHeight;
+                pixels.Bypass = () => pauseCards != null && pauseCards.IsOpen;
+            }
             // Nothing tall just south of a walkable square, where it would hide the player (OverworldMap.ApplyCameraRule).
             var follow = cam != null ? cam.GetComponent<OverworldCamera>() : null;
-            Map.ApplyCameraRule(follow != null ? follow.pitch : 38f);
+            Map.ApplyCameraRule(follow != null ? follow.pitch : 38f, 0.9f, theme != null);
             // The Sandbox brings the whole crew in (a new game is just MC until then).
             if (area.Id == WorldAreas.Sandbox && encounterSetup != null)
             {
@@ -188,6 +198,13 @@ namespace Game.World
                 if (absent || WorldSession.DefeatedEncounters.Contains(EncounterId(fights[i]))) ClearEncounter(fights[i]);
             }
 
+            // A themed world brings its own ruins (snowy stone, greenhouse glass, basalt, marble...).
+            if (theme != null && !string.IsNullOrEmpty(theme.atlas))
+            {
+                var ruins = Resources.Load<Texture2D>("Tiles/" + theme.atlas);
+                if (ruins != null) tileAtlas = ruins;
+                else Debug.LogWarning("Theme " + theme.name + ": no Resources/Tiles/" + theme.atlas);
+            }
             BuildGeometry();
             BuildProps();
             SpawnPlayer();
@@ -200,7 +217,8 @@ namespace Game.World
                 interactables.Add(WorldFx.Chest(transform, Map.CellCenter(cell.x, cell.y)).AddComponent<ChestInteractable>());
             SpawnLootChests();
 
-            drift = WorldFx.Drift(transform).transform;
+            // A themed world's air (snow, embers, spores...) follows the player; the old look keeps its falling leaves.
+            drift = theme != null ? WorldEffects.AirAround(transform, theme) : WorldFx.Drift(transform).transform;
             UI = OverworldUI.Create(transform);
             menu = CharacterMenu.Create((RectTransform)UI.transform, this);
             formation = FormationScreen.Create((RectTransform)UI.transform, this);
@@ -249,7 +267,7 @@ namespace Game.World
         /// <summary>The objective on the HUD (none in the Sandbox).</summary>
         public void RefreshObjective()
         {
-            if (UI != null) UI.SetObjective(area != null && area.Id == WorldAreas.Sandbox ? "" : Chapter1.CurrentObjective());
+            if (UI != null) UI.SetObjective(area != null && WorldAreas.IsSandboxArea(area.Id) ? "" : Chapter1.CurrentObjective());
         }
 
         // ------------------------------------------------------------------ Story hooks (ChapterOneDirector)
@@ -322,6 +340,11 @@ namespace Game.World
 
         void ApplyAtmosphere()
         {
+            if (theme != null)
+            {
+                ApplyTheme();
+                return;
+            }
             if (area != null && area.Dim)
             {
                 ApplyUnderground();
@@ -357,6 +380,41 @@ namespace Game.World
             sun.cookie = WorldArt.DappleCookie();
             sun.cookieSize = 9f;
             sun.gameObject.AddComponent<CanopySway>();
+        }
+
+        /// <summary>A themed world's light (<see cref="WorldTheme"/>): its sun (dappled or plain), ambient and haze.</summary>
+        void ApplyTheme()
+        {
+            // The camera sees about 12 tiles: shadows past that are wasted work (and a shorter range sharpens them).
+            QualitySettings.shadowDistance = Mathf.Min(QualitySettings.shadowDistance, 26f);
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = theme.ambientSky;
+            RenderSettings.ambientEquatorColor = theme.ambientEquator;
+            RenderSettings.ambientGroundColor = theme.ambientGround;
+            RenderSettings.fog = theme.fogDensity > 0f;
+            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogColor = theme.fogColor;
+            RenderSettings.fogDensity = theme.fogDensity;
+            if (cam != null)
+            {
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = theme.fogColor;
+                GameSettings.ApplyGraphics(cam);   // HDR only with Graphics: Pretty
+            }
+            var sun = new GameObject("Sun").AddComponent<Light>();
+            sun.transform.SetParent(transform, false);
+            sun.type = LightType.Directional;
+            sun.color = theme.sunColor;
+            sun.intensity = theme.sunIntensity;
+            sun.shadows = LightShadows.Soft;
+            sun.shadowStrength = theme.shadowStrength;
+            sun.transform.rotation = Quaternion.Euler(theme.sunAngles.x, theme.sunAngles.y, 0f);
+            if (theme.dappleSize > 0f)
+            {
+                sun.cookie = WorldArt.DappleCookie();
+                sun.cookieSize = theme.dappleSize;
+                if (theme.canopySway) sun.gameObject.AddComponent<CanopySway>();
+            }
         }
 
         /// <summary>Underground (the tunnel, the chamber): a weak shaft of daylight through the cracks, a cold teal
@@ -401,7 +459,10 @@ namespace Game.World
             }
             // The map in square chunks, so the ones far from the player aren't drawn (NearbyCulling).
             var vines = new List<DecalSpot>();
-            var materials = new[] { WorldArt.WorldMaterial(tileAtlas, 0.08f), WorldArt.WorldMaterial(tileAtlas, 0.05f) };
+            // A themed world shades its ruins with the same toon steps as its nature models.
+            var materials = theme != null
+                ? new[] { WorldArt.ToonMaterial(tileAtlas), WorldArt.ToonMaterial(tileAtlas) }
+                : new[] { WorldArt.WorldMaterial(tileAtlas, 0.08f), WorldArt.WorldMaterial(tileAtlas, 0.05f) };
             for (int row = 0; row < Map.Height; row += MeshChunk)
                 for (int x = 0; x < Map.Width; x += MeshChunk)
                 {
@@ -414,7 +475,8 @@ namespace Game.World
                     renderer.receiveShadows = true;
                 }
 
-            foreach (var vine in vines) WorldFx.Vine(transform, tileAtlas, vine);
+            if (theme == null || !theme.clean)
+                foreach (var vine in vines) WorldFx.Vine(transform, tileAtlas, vine);
         }
 
         void BuildProps()
@@ -427,6 +489,8 @@ namespace Game.World
                     char c = Map.At(x, row);
                     var pos = Map.CellCenter(x, row);
                     int hash = OverworldMap.Hash(x, row, 21);
+                    if (NatureTile(c, x, row, pos, hash)) continue;
+                    if (theme != null && ThemedProp(c, x, row, pos, hash)) continue;
                     switch (c)
                     {
                         case 'T': WorldFx.Tree(transform, tileAtlas, pos, hash); break;
@@ -452,6 +516,8 @@ namespace Game.World
                 }
             }
 
+            EffectTiles();
+
             // Dust hanging in the air near some of the trees.
             foreach (var cell in Map.FindAll('T'))
             {
@@ -459,6 +525,108 @@ namespace Game.World
                 var pos = Map.CellCenter(cell.x, cell.y) + new Vector3(1f, 0f, -0.5f);
                 WorldFx.Motes(transform, pos + Vector3.up * 1.5f, 1f, 3f);
             }
+        }
+
+        /// <summary>Track C's effect tiles (any area): lava ~ and ooze z pools, ice crystals i, light shafts l, prism
+        /// shards y, specimen capsules u, dormant robots h, hanging chains g and fires t (<see cref="WorldEffects"/>), and
+        /// the office's desks a, lab benches v and server racks x (<see cref="OfficeKit"/>).</summary>
+        void EffectTiles()
+        {
+            var lava = new List<Vector3>();
+            var ooze = new List<Vector3>();
+            var sunAngles = theme != null ? theme.sunAngles : new Vector2(58f, -30f);
+            int capsuleLights = 0, fireLights = 0;   // the first few light the room (more would cost more than they add)
+            for (int row = 0; row < Map.Height; row++)
+                for (int x = 0; x < Map.Width; x++)
+                {
+                    var pos = Map.CellCenter(x, row);
+                    int hash = OverworldMap.Hash(x, row, 61);
+                    switch (Map.At(x, row))
+                    {
+                        case '~': lava.Add(pos); break;
+                        case 'z': ooze.Add(pos); break;
+                        case 'i': WorldEffects.Crystal(transform, pos, hash, theme != null ? theme.crystalColor : new Color(0.6f, 0.9f, 1f)); break;
+                        case 'l': WorldEffects.LightShaft(transform, pos, sunAngles, theme != null ? theme.shaftColor : new Color(1f, 0.95f, 0.8f)); break;
+                        case 'y': WorldEffects.PrismShard(transform, pos, hash); break;
+                        case 'u': WorldEffects.Capsule(transform, pos, hash, theme != null ? theme.capsuleColor : new Color(0.45f, 1f, 0.55f), capsuleLights++ < 6); break;
+                        case 'h': WorldEffects.Robot(transform, pos, hash); break;
+                        case 'a': OfficeKit.Desk(transform, pos, hash); break;
+                        case 'v': OfficeKit.LabBench(transform, pos, hash, theme != null ? theme.capsuleColor : new Color(0.45f, 1f, 0.55f)); break;
+                        case 'x': OfficeKit.ServerRack(transform, pos, hash); break;
+                        case 'g': WorldEffects.Chains(transform, pos, hash); break;
+                        case 't': WorldEffects.Fire(transform, pos, hash, fireLights++ < 6); break;
+                    }
+                }
+            WorldEffects.Pool(transform, lava, false);
+            WorldEffects.Pool(transform, ooze, true);
+            WorldEffects.Clock.Ensure(gameObject);
+        }
+
+        /// <summary>Track C's nature tiles (any area, themed or not): pine p, dead tree d, twisted tree k, fern f, big
+        /// rock o, mushrooms m and pebbles e (a few each), stone path _ (one flat stone). False for other tiles.</summary>
+        bool NatureTile(char c, int x, int row, Vector3 pos, int hash)
+        {
+            WorldTheme.PropKind kind;
+            int count = 1;
+            switch (c)
+            {
+                case 'p': kind = WorldTheme.PropKind.Pine; break;
+                case 'd': kind = WorldTheme.PropKind.DeadTree; break;
+                case 'k': kind = WorldTheme.PropKind.TwistedTree; break;
+                case 'f': kind = WorldTheme.PropKind.Fern; break;
+                case 'o': kind = WorldTheme.PropKind.Rock; break;
+                case 'm': kind = WorldTheme.PropKind.Mushroom; count = 3; break;
+                case 'e': kind = WorldTheme.PropKind.Pebbles; count = 4; break;
+                case '_': kind = WorldTheme.PropKind.Path; break;
+                default: return false;
+            }
+            var set = NatureKit.For(theme, kind);
+            for (int i = 0; i < count; i++)
+            {
+                var offset = count == 1 ? Vector3.zero : new Vector3((OverworldMap.Hash(x, row, i + 40) % 100) / 100f - 0.5f, 0f,
+                    (OverworldMap.Hash(x, row, i + 47) % 100) / 100f - 0.5f) * 0.75f;
+                NatureKit.Place(transform, theme, set, pos + offset, OverworldMap.Hash(x, row, i + 53));
+            }
+            return true;
+        }
+
+        /// <summary>A map prop as nature-kit models from the theme (trees, bushes, rubble, grass, flowers and the weeds in
+        /// the pavement). False when the theme has no models for it, so the old builder makes it.</summary>
+        bool ThemedProp(char c, int x, int row, Vector3 pos, int hash)
+        {
+            switch (c)
+            {
+                case 'T': return NatureKit.Place(transform, theme, theme.Props(WorldTheme.PropKind.Tree), pos, hash) != null;
+                case 'b': return NatureKit.Place(transform, theme, theme.Props(WorldTheme.PropKind.Bush), pos, hash) != null;
+                case 'r': return NatureKit.Place(transform, theme, theme.Props(WorldTheme.PropKind.Rubble), pos, hash) != null;
+                case ',':
+                case '*':
+                {
+                    var grass = theme.Props(WorldTheme.PropKind.Tuft);
+                    var flowers = theme.Props(WorldTheme.PropKind.Flower);
+                    if (grass == null) return false;
+                    // A small clump per cell, offset so the rows don't look planted; wildflowers lead with a flower.
+                    for (int i = 0; i < 3; i++)
+                    {
+                        var offset = new Vector3((OverworldMap.Hash(x, row, i) % 100) / 100f - 0.5f, 0f,
+                            (OverworldMap.Hash(x, row, i + 7) % 100) / 100f - 0.5f) * 0.8f;
+                        var set = c == '*' && i == 0 && flowers != null ? flowers : grass;
+                        NatureKit.Place(transform, theme, set, pos + offset, OverworldMap.Hash(x, row, i + 31));
+                    }
+                    return true;
+                }
+                case '.':
+                case '=':
+                case 'P':
+                {
+                    if (theme.clean) return true;   // a world before the fall: no weeds in the floor
+                    var weeds = theme.Props(WorldTheme.PropKind.Weed);
+                    if (weeds == null) return false;
+                    if (hash % 6 == 0) NatureKit.Place(transform, theme, weeds, pos + new Vector3(0.25f, 0f, -0.2f), hash);
+                    return true;
+                }
+            }
+            return false;
         }
 
         void SpawnPlayer()
@@ -524,9 +692,13 @@ namespace Game.World
 
         void SpawnWarpPad(Vector2Int cell, string destination)
         {
-            var pad = WorldFx.WarpPad(transform, Map.CellCenter(cell.x, cell.y));
+            // A portal into another world (the Sandbox's chapter portals) glows in that world's colour.
+            var into = WorldTheme.Load(WorldAreas.Get(destination).Theme);
+            bool portal = into != null && theme != null && into != theme;
+            var pad = WorldFx.WarpPad(transform, Map.CellCenter(cell.x, cell.y), portal ? into.portalColor : (Color?)null, portal);
             var warp = pad.AddComponent<WarpInteractable>();
             warp.destination = destination;
+            warp.destinationName = WorldAreas.Get(destination).Name;
             interactables.Add(warp);
         }
 
@@ -538,6 +710,18 @@ namespace Game.World
             WorldSession.CurrentArea = destination;
             WorldSession.HasReturnPoint = false;
             Reload();
+        }
+
+        /// <summary>A scripted move to another area's start square S, not through a warp (the opening's cut from the
+        /// office to the city). The screen keeps whatever fade the story left on it.</summary>
+        public void GoTo(string destination)
+        {
+            if (!BeginTransition()) return;
+            WorldSession.ArrivedFrom = null;
+            WorldSession.CurrentArea = destination;
+            WorldSession.HasReturnPoint = false;
+            SaveGame.Save();
+            ScreenFade.LoadScene(SceneManager.GetActiveScene().name);
         }
 
         /// <summary>Settings → Enter Sandbox Mode: remember this spot, then go to the Sandbox's start.</summary>
@@ -600,6 +784,7 @@ namespace Game.World
             }
             sprite.SetFacing(facing);
 
+            PlayerSilhouette.Attach(sprite.Renderer);   // an outline where scenery stands in front of you
             player = sprite.gameObject.AddComponent<PlayerController>();
             player.interactKey = interactKey;
             player.Init(this, Map, sprite);
@@ -851,7 +1036,8 @@ namespace Game.World
         {
             if (UI == null || encounterSetup == null) return;
             var lines = new List<OverworldUI.PartyLine>();
-            foreach (var member in Party)
+            // Only the main party (the three active slots); the backup stays off the HUD.
+            foreach (var member in WorldSession.FormationActive(encounterSetup.party))
             {
                 if (member == null) continue;
                 lines.Add(new OverworldUI.PartyLine(member.DisplayName, WorldSession.ProgressOf(member).Level,
@@ -907,7 +1093,7 @@ namespace Game.World
                 titleCullingMask = null;
             }
             if (player == null || UI == null) return;
-            if (drift != null) drift.position = player.transform.position + new Vector3(0f, 7f, 3f);
+            if (drift != null) drift.position = player.transform.position + (theme != null ? Vector3.zero : new Vector3(0f, 7f, 3f));
             // Where you are, for the save (Continue puts you back here).
             if (!transitioning)
             {
@@ -994,10 +1180,22 @@ namespace Game.World
             {
                 var talk = focused as TalkInteractable;
                 bool person = talk != null && string.IsNullOrEmpty(talk.prompt);
-                string verb = UIText.Get(person ? "prompt.talk" : focused is AccessPointInteractable ? "prompt.heal" : "prompt.interact");
+                var warp = focused as WarpInteractable;
+                string verb = warp != null ? UIText.Get("prompt.teleport", "area", TitleCase(warp.destinationName ?? ""))
+                    : UIText.Get(person ? "prompt.talk" : focused is AccessPointInteractable ? "prompt.heal" : "prompt.interact");
                 UI.ShowPrompt(interactKey.ToString(), verb, focused.PromptAnchor, cam);
             }
             else UI.HidePrompt();
+        }
+
+        /// <summary>"THE FROZEN REACH" as "The Frozen Reach" (area names are written in capitals for the title card).</summary>
+        static string TitleCase(string name)
+        {
+            var words = name.ToLowerInvariant().Split(' ');
+            for (int i = 0; i < words.Length; i++)
+                if (words[i].Length > 0 && (i == 0 || (words[i] != "of" && words[i] != "the")))
+                    words[i] = char.ToUpperInvariant(words[i][0]) + words[i].Substring(1);
+            return string.Join(" ", words);
         }
 
         public void OnInteractPressed()
@@ -1073,6 +1271,34 @@ namespace Game.World
         /// machines than active members, and (in the Sandbox) the chest's level and boss mode.
         /// </summary>
         public BattleSetup BuildSetup(EncounterInteractable encounter)
+        {
+            var setup = BuildFight(encounter);
+            setup.backdrop = ThemedBackdrop(setup.backdrop);
+            return setup;
+        }
+
+        static readonly Dictionary<WorldTheme, BattleBackdropDefinition> themedBackdrops = new Dictionary<WorldTheme, BattleBackdropDefinition>();
+
+        /// <summary>The battle background in this world's colours (Track C): the usual one, repainted with the theme's
+        /// sky, foliage, ruins and drift (snow, embers...). Made once per theme (the painting is cached by it).</summary>
+        BattleBackdropDefinition ThemedBackdrop(BattleBackdropDefinition source)
+        {
+            if (theme == null || source == null) return source;
+            BattleBackdropDefinition themed;
+            if (themedBackdrops.TryGetValue(theme, out themed) && themed != null) return themed;
+            themed = Instantiate(source);
+            themed.name = source.name + " (" + theme.name + ")";
+            themed.skyTop = theme.battleSkyTop;
+            themed.skyHorizon = theme.battleSkyHorizon;
+            if (theme.battleFoliage != null && theme.battleFoliage.Length == 4) themed.foliage = (Color[])theme.battleFoliage.Clone();
+            if (tileAtlas != null && tileAtlas.isReadable) themed.tileAtlas = tileAtlas;
+            themed.driftColor = theme.battleDrift;
+            themed.driftDirection = theme.battleDriftDirection;
+            themedBackdrops[theme] = themed;
+            return themed;
+        }
+
+        BattleSetup BuildFight(EncounterInteractable encounter)
         {
             var setup = Instantiate(encounter.setup);
             setup.name = encounter.setup.name;
@@ -1193,6 +1419,7 @@ namespace Game.World
             bool returning = WorldSession.HasReturnPoint;
             UI.SetFade(Color.black);
             cutscene = true;
+            yield return Settle();
             yield return UI.FadeTo(new Color(0f, 0f, 0f, 0f), 0.6f);
             cutscene = false;
 
@@ -1202,6 +1429,19 @@ namespace Game.World
                 WorldSession.PendingMessage = null;
             }
             if (!returning) yield return UI.ShowTitle(areaName, areaSubtitle);
+        }
+
+        /// <summary>Waits behind the black fade until the area runs smoothly: its first frames load models, compile
+        /// shaders and start the effects, and a fade or title played over them stutters. Done after three quick frames
+        /// in a row (or 1.5 s at most), like the city's opening, which waits behind its long fade.</summary>
+        static IEnumerator Settle()
+        {
+            int smooth = 0;
+            for (float waited = 0f; smooth < 3 && waited < 1.5f; waited += Time.unscaledDeltaTime)
+            {
+                yield return null;
+                smooth = Time.unscaledDeltaTime < 1f / 40f ? smooth + 1 : 0;
+            }
         }
 
         /// <summary>An NPC whose name and lines are a script block (the first line's speaker is their name).</summary>

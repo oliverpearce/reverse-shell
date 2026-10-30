@@ -101,6 +101,13 @@ namespace Game.World
             var title = titleText = InkStyle.Title(root, "Title", UIText.Get(titleKey), UIFactory.TextSize.Title, InkStyle.Paper, TextAnchor.UpperLeft);
             title.rectTransform.Place(topLeft, topLeft, new Vector2(60f, -40f), new Vector2(700f, 90f));
             if (mode == Mode.Collection) ItemsScreen.Tabs(root, false, SwitchToParts, null);
+            // Whose binder this is (the save it reads), beside the title / tabs; Pack Mode's book is nobody's.
+            if (mode != Mode.Session)
+            {
+                accountText = UIFactory.CreateText(root, "Account", "", UIFactory.TextSize.Medium, InkStyle.Paper, TextAnchor.MiddleLeft);
+                accountText.supportRichText = true;
+                accountText.rectTransform.Place(topLeft, topLeft, new Vector2(mode == Mode.Collection ? 710f : 330f, -52f), new Vector2(560f, 72f));
+            }
 
             // Top right: Sort, then the two filters, each a caption over its current choice in big gold; a click opens a dropdown.
             sortLabel = TopButton("Sort", -478f, () => OpenDropdown(sortLabel, SortNames(), sortMode, i => { sortMode = i; Rebuild(0); SaveSort(); }));
@@ -153,7 +160,7 @@ namespace Game.World
             }
             if (mode == Mode.Collection)
             {
-                // Copy to Blank: inside the info panel's right end, while you have blank cards.
+                // Use (a selected Sun / Moon / Star): inside the info panel's right end. Blanks are in the right-click menu.
                 imprintButton = InkStyle.Button(panel.rectTransform, "Imprint", "", ImprintSelected, true, UIFactory.TextSize.Medium);
                 imprintButton.GetComponent<RectTransform>().Place(new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-Margin, 0f), new Vector2(ImprintWidth, panelH - 24f));
                 imprintButton.gameObject.SetActive(false);
@@ -216,7 +223,29 @@ namespace Game.World
         CardDefinition pickCurrent;
         System.Action<CardDefinition> onPick;
         bool pickCanRemove;
-        Text titleText, keysText;
+        Text titleText, keysText, accountText;
+
+        /// <summary>The account line: the player's name and slot of the save the book reads (from the title screen, the
+        /// latest save, as <see cref="Show"/> previews it), or "No save yet".</summary>
+        void RefreshAccount()
+        {
+            if (accountText == null) return;
+            bool fromTitle = mode == Mode.Index && !WorldSession.TitleDone;
+            int slot = fromTitle ? SaveGame.LatestSlot() : SaveGame.Slot;
+            string name = StoryState.PlayerName;
+            if (fromTitle)
+            {
+                var summary = slot > 0 ? SaveGame.Peek(slot) : null;
+                if (summary == null)
+                {
+                    accountText.text = UIText.Get("cards.account.none");
+                    return;
+                }
+                name = summary.PlayerName;
+            }
+            if (string.IsNullOrEmpty(name)) name = "MC";
+            accountText.text = UIText.Get("cards.account", "name", name, "slot", slot.ToString());
+        }
 
         /// <summary>Picking: uses <paramref name="card"/> (null = Remove) and closes the book.</summary>
         void Pick(CardDefinition card)
@@ -289,6 +318,7 @@ namespace Game.World
             if (mode == Mode.Index) CardCollection.IndexOpen = true;
             // From the title no game is loaded yet: the index shows the latest save's copies and levels.
             if (mode == Mode.Index && !WorldSession.TitleDone) SaveGame.Preview(SaveGame.LatestSlot());
+            RefreshAccount();
             onClosed = whenClosed;
             closing = false;
             gameObject.SetActive(true);
@@ -334,7 +364,7 @@ namespace Game.World
             var cam = Camera.main;
             if (sprite != null && cam != null)
             {
-                var screen = cam.WorldToScreenPoint(sprite.transform.position + Vector3.up * 0.5f);
+                var screen = PixelCamera.ToScreen(cam, cam.WorldToScreenPoint(sprite.transform.position + Vector3.up * 0.5f));
                 Vector2 local;
                 if (RectTransformUtility.ScreenPointToLocalPointInRectangle(bookHolder, screen, null, out local)) return local;
             }
@@ -1207,6 +1237,19 @@ namespace Game.World
             }
             if (CardCollection.BindingOf(card) != CardBinding.None)
                 rows.Add(new RowMenu.Row { Label = UIText.Get("cards.unbind"), Action = () => { CardCollection.Unbind(card); Bound(); } });
+            // A blank card: one more copy of this card, only on a card you own and not at its top level yet.
+            if (CardCollection.Blanks > 0)
+            {
+                bool owned = CardCollection.Owned(card, Roster);
+                bool can = CardCollection.CanImprint(card, Roster);
+                rows.Add(new RowMenu.Row
+                {
+                    Label = UIText.Get("cards.blank.use", "n", CardCollection.Blanks.ToString()),
+                    Help = UIText.Get(!owned ? "cards.blank.unowned" : can ? "cards.blank.help" : "cards.blank.top"),
+                    Enabled = can,
+                    Action = () => { if (CardCollection.Imprint(card)) Bound(); },
+                });
+            }
             rows.Add(new RowMenu.Row { Label = UIText.Get("menu.back"), Action = picker.Hide });
             picker.Show(UIText.Get("cards.bind.title", "name", card.DisplayName.ToUpperInvariant()), rows, picker.Hide);
         }
@@ -1347,14 +1390,14 @@ namespace Game.World
         const float ImprintWidth = 330f;
         Button imprintButton;
 
-        /// <summary>Copy to Blank shows while you have blank cards (and you're not picking an alt card); usable on an
-        /// ability card that isn't at its top level yet. The info text makes room for it.</summary>
+        /// <summary>The panel's button: Use, on a selected Sun / Moon / Star. (Blank cards are used from the right-click
+        /// menu, on cards you own.) The info text makes room for it.</summary>
         void RefreshImprint()
         {
             if (imprintButton == null) return;
             var e = shown.Count > 0 ? shown[index] : null;
             bool arcana = !Picking && e != null && e.Kind == EntryKind.Arcana;
-            bool show = arcana || (!Picking && CardCollection.Blanks > 0);
+            bool show = arcana;
             imprintButton.gameObject.SetActive(show);
             info.rectTransform.offsetMax = new Vector2(-(Margin + 4f) - (show ? ImprintWidth + Margin : 0f), info.rectTransform.offsetMax.y);
             if (!show) return;
@@ -1366,17 +1409,16 @@ namespace Game.World
                 label.text = UIText.Get("cards.use", "n", free.ToString());
                 return;
             }
-            imprintButton.interactable = e != null && e.Kind == EntryKind.Ability && CardCollection.CanImprint(e.Card);
-            label.text = UIText.Get("cards.imprint", "n", CardCollection.Blanks.ToString());
         }
 
-        /// <summary>Spends a blank card on one more copy of the selected card (C, or the button), then saves.</summary>
+        /// <summary>Spends a blank card on one more copy of the selected card (C), if you own it, then saves; on a Sun /
+        /// Moon / Star, the panel's Use.</summary>
         void ImprintSelected()
         {
             if (Picking || shown.Count == 0) return;
             var e = shown[index];
             if (e.Kind == EntryKind.Arcana) { UseArcana(e.Arcana); return; }   // the button reads Use here
-            if (e.Kind != EntryKind.Ability || !CardCollection.Imprint(e.Card)) return;
+            if (e.Kind != EntryKind.Ability || !CardCollection.CanImprint(e.Card, Roster) || !CardCollection.Imprint(e.Card)) return;
             SaveGame.Save();
             Rebuild(index);   // its number, stars and bar under it change
         }

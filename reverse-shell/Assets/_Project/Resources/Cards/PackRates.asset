@@ -26,8 +26,8 @@ MonoBehaviour:
     packsPerWin: 1
     poolShare: 0
     commonShare: 0.68
-    rareShare: 0.25
-    epicShare: 0.05
+    rareShare: 0.3
+    epicShare: 0
     legendaryShare: 0.02
     soulChance: 0.01
     arcanaChance: 0.05
@@ -52,8 +52,8 @@ MonoBehaviour:
     packsPerWin: 1
     poolShare: 0.7
     commonShare: 0.68
-    rareShare: 0.25
-    epicShare: 0.05
+    rareShare: 0.3
+    epicShare: 0
     legendaryShare: 0.02
     soulChance: 0.01
     arcanaChance: 0.05
@@ -91,8 +91,8 @@ MonoBehaviour:
     packsPerWin: 1
     poolShare: 0.7
     commonShare: 0.68
-    rareShare: 0.25
-    epicShare: 0.05
+    rareShare: 0.3
+    epicShare: 0
     legendaryShare: 0.02
     soulChance: 0.01
     arcanaChance: 0.05

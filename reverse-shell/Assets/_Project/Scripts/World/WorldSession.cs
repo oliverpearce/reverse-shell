@@ -262,7 +262,7 @@ namespace Game.World
         }
 
         /// <summary>In the Sandbox (entered from Settings → Enter Sandbox Mode).</summary>
-        public static bool InSandbox { get { return CurrentArea == WorldAreas.Sandbox; } }
+        public static bool InSandbox { get { return WorldAreas.IsSandboxArea(CurrentArea); } }
 
         /// <summary>Where Leave Sandbox Mode puts you back: the area, spot and facing you entered from. Saved.</summary>
         public static bool HasSandboxReturn;
@@ -330,6 +330,7 @@ namespace Game.World
                 SaveGame.Delete();
                 Members.Add(StartingMember);   // a new game is just MC
                 Formation[0] = StartingMember;
+                CurrentArea = WorldAreas.Office;   // it opens at the office's PC, then wakes in the start area
             }
             else SaveGame.Load();
             loaded = true;

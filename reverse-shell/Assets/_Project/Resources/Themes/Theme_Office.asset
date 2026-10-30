@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e7ae1a5b1324182a84657227997f928, type: 3}
+  m_Name: Theme_Office
+  m_EditorClassIdentifier:
+  sunColor: {r: 0.7, g: 0.8, b: 1, a: 1}
+  sunIntensity: 0.45
+  sunAngles: {x: 62, y: -25}
+  shadowStrength: 0.75
+  dappleSize: 0
+  canopySway: 0
+  ambientSky: {r: 0.14, g: 0.17, b: 0.22, a: 1}
+  ambientEquator: {r: 0.11, g: 0.13, b: 0.15, a: 1}
+  ambientGround: {r: 0.05, g: 0.06, b: 0.07, a: 1}
+  fogColor: {r: 0.07, g: 0.1, b: 0.13, a: 1}
+  fogDensity: 0.03
+  atlas: ruins_office
+  battleSkyTop: {r: 0.08, g: 0.12, b: 0.18, a: 1}
+  battleSkyHorizon: {r: 0.2, g: 0.3, b: 0.32, a: 1}
+  battleFoliage:
+  - {r: 0.2, g: 0.34, b: 0.22, a: 1}
+  - {r: 0.3, g: 0.5, b: 0.3, a: 1}
+  - {r: 0.44, g: 0.64, b: 0.4, a: 1}
+  - {r: 0.66, g: 0.82, b: 0.56, a: 1}
+  battleDrift: {r: 1, g: 0.98, b: 0.9, a: 0.6}
+  battleDriftDirection: 1
+  pixelHeight: 450
+  wind: 0
+  grassColor: {r: 0.5, g: 0.68, b: 0.36, a: 1}
+  leafColor: {r: 0.36, g: 0.6, b: 0.32, a: 1}
+  foliageRecolor: {r: 0, g: 0, b: 0, a: 0}
+  barkRecolor: {r: 0, g: 0, b: 0, a: 0}
+  foliageGlow: 0
+  foliageRim: {r: 0, g: 0, b: 0, a: 0}
+  props:
+  - kind: 1
+    models:
+    - Bush_Common
+    height: 0.8
+    maxWidth: 0.8
+    sizeJitter: 0.1
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  clean: 1
+  effects:
+  - kind: 9
+    density: 0.5
+    color: {r: 0.6, g: 0.95, b: 0.9, a: 0.5}
+  crystalColor: {r: 0.6, g: 0.9, b: 1, a: 1}
+  shaftColor: {r: 1, g: 0.97, b: 0.88, a: 1}
+  capsuleColor: {r: 0.3, g: 1, b: 0.78, a: 1}
+  portalColor: {r: 0.3, g: 1, b: 0.78, a: 1}

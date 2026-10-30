@@ -73,8 +73,16 @@ namespace Game.World
         public static bool IsSolidChar(char c)
         {
             return BlockHeight(c) > 0 || c == 'T' || c == 'b' || c == 'r' || c == 'n' || c == 'E' || c == 'A' || c == 'R' || c == 'G' || c == 'C' || c == 'c'
-                   || c == 'K' || c == 'O' || c == 'U' || c == 'V' || (c >= '1' && c <= '7');
+                   || c == 'K' || c == 'O' || c == 'U' || c == 'V' || (c >= '1' && c <= '7')
+                   || IsTreeChar(c) || c == 'f' || c == 'o'     // Track C nature: trees, fern, big rock
+                   || c == '~' || c == 'z' || c == 'i' || c == 'y'    // lava, ooze, ice crystal, prism shard
+                   || c == 'u' || c == 'h' || c == 'g' || c == 't'     // lab capsule, dormant robot, chains, fire
+                   || c == 'a' || c == 'v' || c == 'x';                // office desk, lab bench, server rack
         }
+
+        /// <summary>The trees (they stand <see cref="TreeHeight"/> tall): T, and Track C's pine p, dead tree d and twisted
+        /// tree k.</summary>
+        public static bool IsTreeChar(char c) { return c == 'T' || c == 'p' || c == 'd' || c == 'k'; }
 
         public bool IsSolidCell(int x, int row) { return !InBounds(x, row) || (IsSolidChar(cells[x, row]) && !passable.Contains(new Vector2Int(x, row))); }
 
@@ -102,7 +110,9 @@ namespace Game.World
         /// </summary>
         /// <param name="pitch">Camera pitch in degrees (OverworldCamera.pitch).</param>
         /// <param name="eye">How high on the player sprite must stay visible (world units).</param>
-        public void ApplyCameraRule(float pitch, float eye = 0.9f)
+        /// <param name="keepTrees">Trees stay trees (Track C's themed worlds, where the player's outline shows through
+        /// whatever covers them: PlayerSilhouette).</param>
+        public void ApplyCameraRule(float pitch, float eye = 0.9f, bool keepTrees = false)
         {
             float slope = Mathf.Tan(pitch * Mathf.Deg2Rad);
             for (int x = 0; x < Width; x++)
@@ -110,7 +120,8 @@ namespace Game.World
                 for (int row = 0; row < Height; row++)
                 {
                     char c = cells[x, row];
-                    bool tree = c == 'T';
+                    bool tree = IsTreeChar(c);
+                    if (tree && keepTrees) continue;
                     if (BlockHeight(c) == 0 && !tree) continue;
                     // The nearest walkable square straight north of this cell (rows decrease northward).
                     float allowed = float.MaxValue;
@@ -149,7 +160,7 @@ namespace Game.World
             int x, row;
             WorldToCell(p, out x, out row);
             if (!InBounds(x, row)) return 0f;
-            return cells[x, row] == 'T' ? TreeHeight : HeightAt(x, row);
+            return IsTreeChar(cells[x, row]) ? TreeHeight : HeightAt(x, row);
         }
 
         public bool IsSolidAt(Vector3 p)
