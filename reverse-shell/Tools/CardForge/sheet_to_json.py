@@ -2,11 +2,15 @@
 
     py Tools/CardForge/sheet_to_json.py [../design/CARDS.xlsx]
 
-Reads the Cards, Packs, Areas and Enemies tabs of the card sheet and writes Tools/CardForge/cards.json, which Unity's
+Reads the Cards, Packs, Areas, Enemies and Settings tabs of the card sheet and writes Tools/CardForge/cards.json, which Unity's
 "Reverse Shell / Import Cards From Sheet" (Editor/CardImporter.cs) turns into card assets. Rows without a name are
 skipped, and so are rows whose State is Cut. Problems (an unknown status, a bad effect) are listed and nothing is
 written. Each pack's picture is cut from its Art column / row of Art/ThirdParty/CardPacks/CardPacks.png into
 Resources/Cards/Packs/Pack_<Pack ID>.png.
+
+Break & Stagger (bible v0.8): each card's Attack type (Physical / Incantation) and Break, each enemy's Break and
+Weak to, and the Settings tab's Break & Stagger numbers. A sheet from before them gets the old defaults (run
+add_break_columns.py once to add the columns). The Icon (Raven fb#) column picks each card's art (card_forge.py).
 
 The Effects, Rank II adds and Rank III adds columns use the effect language on the sheet's "Effects key" tab. Rank II
 is Effects + Rank II adds; Rank III is all three. In the adds, "raise Stunned 10%" raises the chance of a status the
@@ -35,6 +39,12 @@ STATUSES = ['Poison', 'Regen', 'ATK Up', 'ATK Down', 'DEF Up', 'Physical DEF Dow
             'Burn', 'Chill', 'Frozen']
 STATUS_ALIASES = {'Regen': 'Regeneration'}   # sheet name -> the status asset's display name
 EFFECT_TARGETS = ['self', 'enemy', 'enemies', 'random', 'ally', 'allies', 'randomally']
+ATTACK_TYPES = ['Physical', 'Incantation']
+WEAKNESSES = ['Physical', 'Incantation', 'Arc', 'Root', 'Cryo', 'Cinder', 'Prism']
+# Settings tab label -> cards.json settings key, and the default for a sheet without it.
+BREAK_SETTINGS = [('Break rank II x', 'breakRankII', 2.0), ('Break rank III x', 'breakRankIII', 3.0),
+                  ('Stagger bonus', 'staggerBonus', 0.5), ('Stagger turns', 'staggerTurns', 2),
+                  ('Boss extra Break', 'bossBreakBonus', 3)]
 REQUIRED = ['ID', 'Name', 'Pool', 'Category', 'Rarity', 'Main', 'Target', 'Base level', 'Effects', 'Rank II adds',
             'Rank III adds', 'State', 'In-game asset']
 
@@ -206,20 +216,30 @@ def main():
             starter = 'Starter' in tags       # owned from the start, in the Alt slots until the player picks others
             if ult and resonance not in POOLS[:6]:
                 raise ValueError('an Ult row needs its resonance (Arc, Root, ...) first in Tags')
+            basic = pool == 'Basic' or (ult and resonance == 'Basic')
+            attack_type = (get('Attack type') if 'Attack type' in col else None) or ('Physical' if basic else 'Incantation')
+            if attack_type not in ATTACK_TYPES: raise ValueError('Attack type "%s" should be one of %s' % (attack_type, ATTACK_TYPES))
+            brk = get('Break') if 'Break' in col else None
+            brk = 1 if brk is None or brk == '' else brk
+            if not isinstance(brk, (int, float)) or not 0 <= brk <= 9 or brk != int(brk): raise ValueError('Break must be a whole number 0-9')
+            icon = str(get('Icon (Raven fb#)') or '').strip() if 'Icon (Raven fb#)' in col else ''
+            if icon and not re.match(r'^(fb)?\d+$', icon): raise ValueError('Icon should be a Raven number like fb1026')
             cards.append({'id': get('ID') or '', 'name': name, 'pool': pool, 'category': cat, 'target': TARGETS[target],
                           'level': int(level), 'main': str(get('Main') or '').strip().upper() == 'Y', 'ult': ult,
                           'resonance': resonance, 'enemy': enemy, 'starter': starter, 'asset': asset, 'rarity': rarity,
+                          'attackType': attack_type, 'breakValue': int(brk), 'icon': int(icon.replace('fb', '')) if icon else 0,
                           'rank1': base, 'rank2': rank2, 'rank3': rank3})
         except (ValueError, IndexError) as e:
             problems.append('%s: %s' % (where, e))
     packs, areas = read_packs(wb, problems), read_areas(wb, problems)
     enemies = read_enemies(wb, problems, assets)
+    settings = read_settings(wb, problems)
     if problems:
         print('Not written; fix these first:')
         for p in problems: print('  ' + p)
         sys.exit(1)
     with open(OUT, 'w', encoding='utf-8') as f:
-        json.dump({'cards': cards, 'packs': packs, 'areas': areas, 'enemies': enemies}, f, indent=1)
+        json.dump({'cards': cards, 'packs': packs, 'areas': areas, 'enemies': enemies, 'settings': settings}, f, indent=1)
     print('Wrote %d cards, %d packs, %d areas and %d enemies to %s' % (len(cards), len(packs), len(areas), len(enemies), os.path.normpath(OUT)))
     cut_pack_art(packs)
 
@@ -298,7 +318,32 @@ def read_enemies(wb, problems, sheet_assets):
             levels, weight = int(float(levels or 0)), float(weight if weight is not None else 1)
         except ValueError:
             problems.append('%s: Innate +levels and weight must be numbers' % where); continue
-        out.append({'enemy': str(enemy), 'innate': innate, 'levels': levels, 'weight': weight, 'ult': ult})
+        points = get('Break')
+        points = 3 if points is None or points == '' else points
+        if not isinstance(points, (int, float)) or not 0 <= points <= 99 or points != int(points):
+            problems.append('%s: Break must be a whole number 0-99 (0 = can\'t be broken)' % where); continue
+        weak = [w.strip() for w in str(get('Weak to') if get('Weak to') is not None else 'Physical').split(',') if w.strip()]
+        bad = [w for w in weak if w not in WEAKNESSES]
+        if bad:
+            problems.append('%s: Weak to "%s" should be from %s' % (where, ', '.join(bad), ', '.join(WEAKNESSES))); continue
+        out.append({'enemy': str(enemy), 'innate': innate, 'levels': levels, 'weight': weight, 'ult': ult,
+                    'breakPoints': int(points), 'weaknesses': weak})
+    return out
+
+
+def read_settings(wb, problems):
+    """The Settings tab's Break & Stagger numbers (by their label in column A)."""
+    out = {key: default for _, key, default in BREAK_SETTINGS}
+    if 'Settings' not in wb.sheetnames:
+        return out
+    ws = wb['Settings']
+    rows = {ws.cell(r, 1).value: r for r in range(1, ws.max_row + 1) if isinstance(ws.cell(r, 1).value, str)}
+    for label, key, default in BREAK_SETTINGS:
+        if label not in rows: continue
+        v = ws.cell(rows[label], 2).value
+        if not isinstance(v, (int, float)) or v < 0:
+            problems.append('Settings: %s must be a number, 0 or more' % label); continue
+        out[key] = int(v) if isinstance(default, int) else float(v)
     return out
 
 

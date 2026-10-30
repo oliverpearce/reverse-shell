@@ -8,8 +8,9 @@ namespace Combat.View
     /// <summary>
     /// Character sheet opened by long-pressing a unit, Reverse: 1999-style. The battlefield zooms in on the unit while
     /// the HUD and hand fade out; the unit stays on its own side (party left, enemies right) and the sheet fills the
-    /// open side: a header tab with the element orb, the name and level, HP, stats as thin label / value strips in two
-    /// columns, and the cards in a hairline bracket. No effects, Ult points or posters. Esc / clicking anywhere closes.
+    /// open side: a header tab with the element orb, the name and level, HP, an enemy's Break value (exact numbers) and
+    /// weaknesses ("?" until found), stats as thin label / value strips in two columns, and the cards in a hairline
+    /// bracket. No effects, Ult points or posters. Esc / clicking anywhere closes.
     /// </summary>
     public class UnitInspectView : MonoBehaviour
     {
@@ -136,6 +137,7 @@ namespace Combat.View
             float y = 500f - SheetTop;   // from the sheet's top edge (sheet is 1000 tall, centred)
             y = Header(sheet, unit, y);
             y = Health(sheet, unit, y + 18f);
+            y = BreakInfo(sheet, unit, unitView, y + 16f);
             y = StatusRow(sheet, unitView, y + 12f);
             y = UltPoints(sheet, unit, unitView.MoxieCap, y + 14f);
             y = Stats(sheet, unit, y + 22f);
@@ -195,6 +197,40 @@ namespace Combat.View
             SlantBar.Create(bar, "Back", new Color(1f, 1f, 1f, 0.12f), 8f);
             SlantBar.Create(bar, "Fill", unit.Team == Team.Player ? new Color(0.45f, 0.82f, 0.55f) : new Color(0.88f, 0.38f, 0.36f), 8f).Fill = Mathf.Clamp01(unit.HPPercent);
             return y + 10f;
+        }
+
+        /// <summary>Enemies: "BREAK" with the exact value left (or STAGGERED), a thin grey bar, then the weaknesses.</summary>
+        static float BreakInfo(RectTransform sheet, BattleUnit unit, UnitView unitView, float y)
+        {
+            if (!unit.Breakable) return y;
+            float x = 92f, w = SheetW - 92f;
+            var label = UIFactory.CreateText(sheet, "Break", UIText.Get("inspect.break"), UIFactory.TextSize.Large, TextColor, TextAnchor.MiddleLeft);
+            label.font = UIFactory.SerifFont;
+            label.raycastTarget = false;
+            label.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(300f, 46f));
+            string shown = unitView.Staggered ? UIText.Get("inspect.staggered") : unitView.BreakValue + " / " + unitView.MaxBreak;
+            var value = UIFactory.CreateText(sheet, "BreakValue", shown, UIFactory.TextSize.Large, unitView.Staggered ? Gold : TextColor, TextAnchor.MiddleRight);
+            value.font = UIFactory.SerifFont;
+            value.raycastTarget = false;
+            value.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + w - 400f, -y), new Vector2(400f, 46f));
+            y += 50f;
+            var bar = UIFactory.CreateRect("BreakBar", sheet).Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(w, 6f));
+            SlantBar.Create(bar, "Back", new Color(1f, 1f, 1f, 0.12f), 5f);
+            SlantBar.Create(bar, "Fill", new Color(0.74f, 0.74f, 0.78f), 5f).Fill = unitView.MaxBreak > 0 ? Mathf.Clamp01((float)unitView.BreakValue / unitView.MaxBreak) : 0f;
+            y += 18f;
+
+            var weak = UIFactory.CreateText(sheet, "Weak", UIText.Get("inspect.weak"), UIFactory.TextSize.Medium, Muted, TextAnchor.MiddleLeft);
+            weak.raycastTarget = false;
+            weak.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y - 8f), new Vector2(110f, 36f));
+            const float icon = 48f;
+            if (WeaknessIcons.Row(sheet, unit.Enemy, new Vector2(x + 110f, -y), icon, true) <= 0f)
+            {
+                var none = UIFactory.CreateText(sheet, "WeakNone", UIText.Get("inspect.weak_none"), UIFactory.TextSize.Small, Muted, TextAnchor.MiddleLeft);
+                none.raycastTarget = false;
+                none.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + 110f, -y - 8f), new Vector2(400f, 36f));
+                return y + 44f;
+            }
+            return y + icon + 36f;
         }
 
         /// <summary>The unit's statuses right under the HP bar, as the same icons as in battle (hover for details).</summary>

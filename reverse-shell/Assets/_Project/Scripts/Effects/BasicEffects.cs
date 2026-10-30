@@ -27,7 +27,7 @@ namespace Combat
             for (int h = 0; h < hitCount; h++)
             {
                 foreach (var t in targets)
-                    if (t.IsAlive) ctx.Battle.DealDamage(ctx.Caster, t, CardLevels.Damage(ctx.Card, this) * BonusOn(t) / hitCount, ctx.IsRitual);
+                    if (t.IsAlive) ctx.Battle.DealDamage(ctx.Caster, t, CardLevels.Damage(ctx.Card, this) * BonusOn(t) / hitCount, ctx.IsRitual, ctx.Card, ctx.BreakDealt);
                 if (ctx.Battle.IsOver) return;
             }
             if (bonusVs != null && consumeBonus)

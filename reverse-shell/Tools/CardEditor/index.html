@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card Editor</title>
+<style>
+@font-face { font-family: monogram; src: url(/font.ttf); }
+:root {
+  --bg: #12110f; --panel: #1b1a18; --panel2: #23211d; --ink: #ece5d3; --dim: #a59c88; --gold: #c2a061;
+  --gold2: #e3c47e; --rule: #3a3227; --red: #ff6a52; --green: #8dbf57; --field: #0f0e0c;
+  --arc: #ffd62e; --root: #80eb73; --cryo: #8cd9ff; --cinder: #ff8038; --prism: #e6d1ff; --basic: #c7c2b8; --ult: #e3c47e;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 20px/1.25 monogram, ui-monospace, monospace; }
+button, input, select, textarea { font: inherit; color: var(--ink); }
+input, select, textarea {
+  background: var(--field); border: 1px solid var(--rule); border-radius: 3px; padding: 3px 6px; width: 100%;
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--gold); }
+textarea { resize: vertical; min-height: 2.2em; }
+input[type=checkbox] { width: auto; accent-color: var(--gold); }
+button {
+  background: var(--panel2); border: 1px solid var(--rule); border-radius: 3px; padding: 4px 12px; cursor: pointer;
+  transition: background .1s, transform .1s;
+}
+button:hover { background: #34302a; border-color: var(--gold); transform: scale(1.03); }
+button.primary { border-color: var(--gold); color: var(--gold2); }
+button.primary.dirty { background: #4a3a1c; }
+button:disabled { opacity: .45; cursor: default; transform: none; }
+h2 { color: var(--gold); font-weight: normal; font-size: 28px; margin: 0 0 8px; }
+h3 { color: var(--gold); font-weight: normal; font-size: 22px; margin: 14px 0 6px; border-bottom: 1px solid var(--rule); padding-bottom: 2px; }
+.muted { color: var(--dim); }
+.bad { color: var(--red); }
+.good { color: var(--green); }
+.num { color: var(--gold2); }
+
+header {
+  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--gold);
+}
+header .title { font-size: 30px; color: var(--gold2); letter-spacing: 1px; }
+header .title::after { content: '_'; animation: blink 1s steps(1) infinite; color: var(--gold); }
+@keyframes blink { 50% { opacity: 0; } }
+nav { display: flex; gap: 4px; flex-wrap: wrap; }
+nav button { border-radius: 3px 3px 0 0; }
+nav button.on { background: #3a3122; border-color: var(--gold); color: var(--gold2); }
+header .spacer { flex: 1; }
+#status { color: var(--dim); }
+main { padding: 12px 16px 40px; }
+
+/* Cards tab */
+.cards { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 14px; align-items: start; }
+.listbox { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; position: sticky; top: 62px; }
+.filters { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; border-bottom: 1px solid var(--rule); }
+.filters input { grid-column: 1 / -1; }
+.listactions { display: flex; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+#list { max-height: calc(100vh - 250px); overflow-y: auto; }
+.item { display: grid; grid-template-columns: 36px 1fr auto; gap: 8px; align-items: center; padding: 3px 8px; cursor: pointer; border-left: 3px solid transparent; }
+.item:hover { background: var(--panel2); }
+.item.on { background: #2e281e; border-left-color: var(--gold); }
+.item img, .item .noicon { width: 32px; height: 32px; image-rendering: pixelated; }
+.item .noicon { border: 1px dashed var(--rule); }
+.item .meta { font-size: 16px; color: var(--dim); }
+.item .chg { color: var(--gold2); }
+.item.cut { opacity: .45; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+
+.editor { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 12px 16px; min-width: 0; }
+.top { display: grid; grid-template-columns: 216px 1fr; gap: 18px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 12px; }
+.grid.wide { grid-template-columns: 1fr; }
+label { display: block; font-size: 17px; color: var(--dim); }
+label > span.hint { color: #7d7566; }
+.field.changed > label { color: var(--gold2); }
+.field.changed input, .field.changed select, .field.changed textarea { border-color: #8a6d32; }
+.field.err input, .field.err textarea, .field.err select { border-color: var(--red); }
+.msg { font-size: 17px; min-height: 1.1em; }
+
+/* The card preview: 48 x 64 card pixels at 4.5x, like the game's one card format. */
+.card {
+  width: 216px; height: 288px; border-radius: 10px; position: relative; overflow: hidden; border: 4px solid #e9e1cf;
+  box-shadow: 0 0 0 3px #20021d, 0 6px 18px #000a;
+}
+.card .swirl { position: absolute; inset: 0; }
+.card .pips { position: absolute; top: 10px; left: 14px; font-size: 26px; letter-spacing: 2px; color: #20021d; text-shadow: 0 0 2px #fff8; }
+.card .type { position: absolute; top: 8px; right: 12px; font-size: 18px; color: #20021d; background: #fff8; padding: 0 5px; border-radius: 3px; }
+.card .art { position: absolute; left: 36px; top: 54px; width: 144px; height: 144px; image-rendering: pixelated; }
+.card .art.none { border: 2px dashed #20021d55; display: grid; place-items: center; color: #20021d; font-size: 18px; text-align: center; }
+.card .plate {
+  position: absolute; left: 22px; right: 22px; bottom: 18px; height: 38px; background: #20021d; color: #ece5d3;
+  border-radius: 4px; display: grid; place-items: center; font-size: 22px; padding: 0 4px; text-align: center; line-height: 1;
+}
+.cardside { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.cardside .row { display: flex; gap: 6px; }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { border-bottom: 1px solid var(--rule); padding: 4px 6px; text-align: left; vertical-align: top; }
+th { color: var(--gold); font-weight: normal; position: sticky; top: 0; background: var(--panel); }
+.ranks td:first-child, .ranks th:first-child { width: 70px; }
+.scroll { overflow-x: auto; }
+.tablebox { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 10px; }
+.tablebox td input, .tablebox td select { min-width: 70px; }
+.weak { display: flex; flex-wrap: wrap; gap: 2px 10px; min-width: 260px; }
+.weak label { color: var(--ink); display: flex; align-items: center; gap: 4px; }
+
+/* Effect builder */
+.builder { background: var(--panel2); border: 1px solid var(--rule); border-radius: 4px; padding: 8px; margin-top: 8px; }
+.builder .grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.builder .out { margin: 6px 0; color: var(--gold2); }
+.fxline { font-size: 18px; }
+.fxline b { color: var(--gold2); font-weight: normal; }
+
+/* Icon picker */
+dialog { background: var(--panel); color: var(--ink); border: 1px solid var(--gold); border-radius: 6px; padding: 14px; width: min(980px, 94vw); }
+dialog::backdrop { background: #000b; }
+.icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; max-height: 64vh; overflow-y: auto; margin-top: 8px; }
+.icons button { display: flex; flex-direction: column; align-items: center; padding: 4px; font-size: 15px; }
+.icons button.on { border-color: var(--gold2); background: #3a3122; }
+.icons img { width: 64px; height: 64px; image-rendering: pixelated; }
+.icons .used { color: var(--dim); font-size: 13px; }
+
+#log { white-space: pre-wrap; background: var(--field); border: 1px solid var(--rule); border-radius: 4px; padding: 8px; max-height: 260px; overflow: auto; font-size: 17px; }
+#toast {
+  position: fixed; right: 16px; bottom: 16px; max-width: 520px; background: var(--panel); border: 1px solid var(--gold);
+  border-radius: 6px; padding: 10px 14px; display: none; z-index: 20; box-shadow: 0 6px 20px #000c;
+}
+.keyrow td:first-child { color: var(--gold2); white-space: nowrap; }
+@media (max-width: 860px) {
+  .cards { grid-template-columns: 1fr; }
+  .listbox { position: static; }
+  #list { max-height: 40vh; }
+  .top { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header>
+  <span class="title">REVERSE SHELL · CARDS</span>
+  <nav id="tabs"></nav>
+  <span class="spacer"></span>
+  <span id="status">Loading…</span>
+  <button id="reload" title="Load the sheet again (drops unsaved changes)">Reload</button>
+  <button id="save" class="primary" title="Ctrl+S">Save</button>
+</header>
+<main id="main"></main>
+
+<dialog id="iconDialog">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <h2 style="margin:0">Pick the card's art</h2>
+    <input id="iconSearch" placeholder="Raven number, e.g. 1026" style="width:220px">
+    <label style="display:flex;gap:6px;align-items:center;color:var(--ink)"><input type="checkbox" id="iconFree"> unused only</label>
+    <span class="spacer" style="flex:1"></span>
+    <button id="iconNone">No icon</button>
+    <button id="iconClose">Close</button>
+  </div>
+  <div class="muted" style="font-size:17px">Raven Fantasy Icons (free, 32 px). A card with no icon keeps its hand-drawn art, if it has one.</div>
+  <div class="icons" id="iconGrid"></div>
+</dialog>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const COLORS = { Arc: 'var(--arc)', Root: 'var(--root)', Cryo: 'var(--cryo)', Cinder: 'var(--cinder)', Prism: 'var(--prism)', Basic: 'var(--basic)', Ult: 'var(--ult)' };
+const RAW = { Arc: '#ffd62e', Root: '#80eb73', Cryo: '#8cd9ff', Cinder: '#ff8038', Prism: '#e6d1ff', Basic: '#c7c2b8', Ult: '#e3c47e' };
+const TYPE_LABEL = { Attack: '⚔ Attack', Buff: '▲ Buff', Debuff: '▼ Debuff', Defense: '■ Defense', Counter: '↺ Counter', Heal: '+ Heal' };
+const TABS = [['cards', 'Cards'], ['enemies', 'Enemies'], ['packs', 'Packs & Areas'], ['settings', 'Settings'], ['key', 'Effects key']];
+const PCT = h => /%$/.test(h);
+
+let D = null;                 // the sheet as loaded
+let W = null;                 // working copy: {cards:[], enemies:[], packs:[], areas:[], settings:[]}
+let tab = 'cards', sel = null, newCount = 0;
+const filter = { q: '', pool: '', cat: '', rarity: '', state: '' };
+const parsed = {};            // card key -> /api/parse result
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const key = r => r._row ? 'r' + r._row : r._new;
+
+// ---------------------------------------------------------------- loading & saving
+
+async function load(keepSel) {
+  status('Loading the sheet…');
+  const res = await fetch('/api/sheet');
+  const data = await res.json();
+  if (!res.ok) { status('<span class="bad">' + esc(data.error) + '</span>'); return; }
+  D = data;
+  W = JSON.parse(JSON.stringify({ cards: D.cards.rows, enemies: D.enemies.rows, packs: D.packs.rows, areas: D.areas.rows, settings: D.settings }));
+  for (const k in parsed) delete parsed[k];
+  const id = keepSel && sel ? (W.cards.find(c => key(c) === sel) || {}).ID || keepSel : null;
+  sel = null;
+  if (id) { const c = W.cards.find(c => c.ID === id); if (c) sel = key(c); }
+  if (!sel && W.cards.length) sel = key(W.cards[0]);
+  render();
+  status('Loaded ' + W.cards.length + ' cards from <span class="muted" title="' + esc(D.sheet) + '">' + esc(D.sheet.split(/[\\/]/).pop()) + '</span>');
+}
+
+function original(tabName, row) {
+  if (!row._row) return null;
+  const list = tabName === 'settings' ? D.settings : D[tabName].rows;
+  return list.find(r => r._row === row._row) || null;
+}
+
+function changedFields(tabName, row) {
+  const o = original(tabName, row);
+  if (!o) return Object.keys(row).filter(k => !k.startsWith('_'));
+  return Object.keys(row).filter(k => !k.startsWith('_') && String(row[k] ?? '') !== String(o[k] ?? ''));
+}
+
+function changes() {
+  const out = {};
+  let n = 0;
+  for (const t of ['cards', 'enemies', 'packs', 'areas', 'settings']) {
+    const list = [];
+    for (const r of W[t]) {
+      if (r.section) continue;
+      const f = changedFields(t, r);
+      if (!f.length) continue;
+      const e = r._row ? { _row: r._row } : {};
+      for (const k of f) e[k] = r[k];
+      list.push(e);
+      n++;
+    }
+    if (list.length) out[t] = list;
+  }
+  return { out, n };
+}
+
+function dirtyCount() { return W ? changes().n : 0; }
+
+function refreshSave() {
+  const n = dirtyCount();
+  const b = $('#save');
+  b.textContent = n ? 'Save (' + n + ')' : 'Save';
+  b.classList.toggle('dirty', n > 0);
+}
+
+async function save() {
+  const { out, n } = changes();
+  if (!n) { toast('Nothing to save.'); return; }
+  const problems = W.cards.filter(c => changedFields('cards', c).length && cardProblems(c).length);
+  if (problems.length && !confirm(problems.length + ' changed card(s) have problems (marked in red). The sheet will save, but the game won\'t import until they\'re fixed. Save anyway?')) return;
+  $('#save').disabled = true;
+  status('Saving…');
+  try {
+    const res = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stamp: D.stamp, changes: out }) });
+    const r = await res.json();
+    if (!r.ok) { toast('<span class="bad">Not saved.</span> ' + esc(r.error), 9000); status('<span class="bad">Not saved</span>'); return; }
+    const keep = (W.cards.find(c => key(c) === sel) || {}).ID;
+    await load(keep);
+    const msg = r.converted
+      ? '<span class="good">Saved.</span> Unity imports it when you switch to it.' + (r.atlas ? ' Card art rebuilt.' : '')
+      : '<span class="bad">Saved, but the game can\'t import it yet:</span> fix the problems below and save again.';
+    toast(msg + '<div class="muted" style="font-size:16px;margin-top:4px">Backup: ' + esc(r.backup) + '</div>', r.converted ? 5000 : 15000);
+    lastLog = r.log + (r.atlas ? '\n' + r.atlas : '');
+    status(r.converted ? '<span class="good">Saved ' + n + ' change(s)</span>' : '<span class="bad">Saved; the sheet has problems (see Log)</span>');
+    if (!r.converted) { tab = 'cards'; render(); }
+  } finally { $('#save').disabled = false; refreshSave(); }
+}
+let lastLog = '';
+
+function status(html) { $('#status').innerHTML = html; }
+let toastTimer = 0;
+function toast(html, ms = 4000) {
+  const t = $('#toast');
+  t.innerHTML = html;
+  t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.style.display = 'none', ms);
+}
+
+// ---------------------------------------------------------------- sheet maths (mirrors the grey columns)
+
+function setting(label, fallback) {
+  const s = W.settings.find(s => s.label && s.label.startsWith(label));
+  const v = s ? parseFloat(s.value) : NaN;
+  return isNaN(v) ? fallback : v;
+}
+
+function levelsOf(card) {
+  const base = parseInt(card['Base level']) || 0, cap = setting('Level cap', 20);
+  const r2 = setting('Rank II bonus', 2), r3 = setting('Rank III bonus', 3);
+  const up = setting('Levels per copy upgrade', 2) * setting('Copy upgrades', 3);
+  if (!base) return null;
+  if (card.Pool === 'Ult') return [Math.min(cap, base)];
+  return [base, base + r2, base + r2 + r3, base + up, base + up + r2 + r3].map(l => Math.min(cap, l));
+}
+
+function breakOf(card, rank) {
+  const b = parseInt(card.Break);
+  if (!b) return 0;
+  const m = rank >= 3 ? setting('Break rank III x', 3) : rank === 2 ? setting('Break rank II x', 2) : 1;
+  return Math.max(1, Math.round(b * m));
+}
+
+const POWERED = ['dmg', 'heal', 'shield', 'counter'];
+function isAll(fx, card) {
+  return fx.target === 'enemies' || fx.target === 'allies' || (fx.target === 'card' && (card.Target === 'All enemies' || card.Target === 'All allies'));
+}
+
+function describe(fx, card, level, best) {
+  const pct = m => Math.round(m / best * setting('Power per level', 0.25) * level * (isAll(fx, card) ? setting('Area factor', 0.6) : 1) * 100) + '% ATK';
+  const who = fx.target === 'card' ? 'the target' : { self: 'self', enemy: 'an enemy', enemies: 'all enemies', random: 'a random enemy', ally: 'the weakest ally', allies: 'all allies', randomally: 'a random ally' }[fx.target];
+  const chance = fx.chance < 1 ? ' (' + Math.round(fx.chance * 100) + '%)' : '';
+  switch (fx.type) {
+    case 'dmg': return '<b>Hit</b> ' + who + ' for <span class="num">' + pct(fx.mult) + '</span>' + (fx.hits > 1 ? ' over ' + fx.hits + ' hits' : '') + (fx.bonusVs ? ', +' + Math.round(fx.bonusPerStack * 100) + '% per ' + fx.bonusVs + (fx.consume ? ' then clear it' : '') : '');
+    case 'heal': return '<b>Heal</b> ' + who + ' <span class="num">' + pct(fx.mult) + '</span>';
+    case 'shield': return '<b>Shield</b> ' + who + ' <span class="num">' + pct(fx.mult) + '</span> for ' + fx.turns + 't';
+    case 'counter': return '<b>Counter</b> <span class="num">' + pct(fx.mult) + '</span>' + (fx.triggers > 1 ? ' ×' + fx.triggers : '') + (fx.lowhp ? ', +' + Math.round(fx.lowhp * 100) + '% below half HP' : '') + (fx.onHit ? ', then ' + fx.onHit + ' ' + fx.onHitTurns + 't' : '');
+    case 'status': return '<b>' + esc(fx.status) + '</b> on ' + who + ' for ' + fx.turns + 't' + (fx.stacks > 1 ? ' ×' + fx.stacks : '') + chance;
+    case 'cover': return '<b>Cover</b> ' + who + ' for ' + fx.turns + 't';
+    case 'interrupt': return '<b>Interrupt</b> ' + who + (fx.attacksOnly ? ' (attacks only)' : '');
+    case 'cleanse': return '<b>Cleanse</b> ' + who;
+    case 'ult': return '<b>+' + fx.amount + ' Ult</b> to ' + who;
+    case 'ap': return '<b>' + (fx.amount >= 0 ? '+' : '') + fx.amount + ' AP</b> next turn';
+  }
+  return esc(fx.type);
+}
+
+// ---------------------------------------------------------------- checks
+
+function cardProblems(c) {
+  const p = [];
+  if (!String(c.Name || '').trim()) p.push(['Name', 'needs a name']);
+  const lv = Number(c['Base level']);
+  if (!Number.isInteger(lv) || lv < 1 || lv > 20) p.push(['Base level', '1 to 20']);
+  const b = c.Break === '' ? 1 : Number(c.Break);
+  if (!Number.isInteger(b) || b < 0 || b > 9) p.push(['Break', 'a whole number 0-9']);
+  if (!/^Card_\w+$/.test(c['In-game asset'] || '')) p.push(['In-game asset', 'like Card_Arc_ChainBolt']);
+  else if (W.cards.some(o => o !== c && o.State !== 'Cut' && o['In-game asset'] === c['In-game asset'])) p.push(['In-game asset', 'used by another card']);
+  if (c.Pool === 'Ult' && !D.lists.Resonance.includes(String(c.Tags || '').split(',')[0].trim())) p.push(['Tags', 'an Ult needs its resonance first (Arc, Basic, ...)']);
+  const icon = String(c['Icon (Raven fb#)'] || '');
+  if (icon && !/^(fb)?\d+$/.test(icon)) p.push(['Icon (Raven fb#)', 'a Raven number like fb1026']);
+  else if (icon && !iconUrl(icon)) p.push(['Icon (Raven fb#)', 'no such icon in RavenFantasyIcons/32x32']);
+  const pr = parsed[key(c)];
+  if (pr && !pr.ok) p.push(['Effects', pr.error]);
+  return c.State === 'Cut' ? [] : p;
+}
+
+let parseTimer = 0;
+function queueParse(c) {
+  clearTimeout(parseTimer);
+  parseTimer = setTimeout(() => parseCard(c, true), 250);
+}
+async function parseCard(c, rerender) {
+  const k = key(c);
+  const res = await fetch('/api/parse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ effects: c.Effects, rank2: c['Rank II adds'], rank3: c['Rank III adds'] }) });
+  parsed[k] = await res.json();
+  if (rerender && key(current() || {}) === k) { renderComputed(); renderMarks(); }
+}
+
+// ---------------------------------------------------------------- rendering
+
+function render() {
+  $('#tabs').innerHTML = TABS.map(([id, name]) => '<button class="' + (tab === id ? 'on' : '') + '" data-tab="' + id + '">' + name + '</button>').join('');
+  ({ cards: renderCards, enemies: renderEnemies, packs: renderPacks, settings: renderSettings, key: renderKey })[tab]();
+  refreshSave();
+}
+
+function current() { return W.cards.find(c => key(c) === sel); }
+
+function options(list, value, blank) {
+  const items = (blank ? [''] : []).concat(list);
+  if (value !== '' && value != null && !items.map(String).includes(String(value))) items.push(value);
+  return items.map(v => '<option' + (String(v) === String(value) ? ' selected' : '') + '>' + esc(v) + '</option>').join('');
+}
+
+function iconUrl(v) {
+  const n = String(v || '').replace('fb', '');
+  return n && D.icons.includes(parseInt(n)) ? '/icons/fb' + n + '.png' : '';
+}
+
+function renderCards() {
+  const L = D.lists;
+  $('#main').innerHTML = `
+  <div class="cards">
+    <div class="listbox">
+      <div class="filters">
+        <input id="fq" placeholder="Search name, ID, effects…" value="${esc(filter.q)}">
+        <select id="fpool"><option value="">All pools</option>${options(L.Pools, filter.pool)}</select>
+        <select id="fcat"><option value="">All types</option>${options(L.Categories, filter.cat)}</select>
+        <select id="frar"><option value="">All rarities</option>${options(L.Rarity, filter.rarity)}</select>
+        <select id="fstate"><option value="">Any state</option>${options(L.State, filter.state)}</select>
+      </div>
+      <div class="listactions">
+        <button id="newCard">+ New card</button><button id="dupCard">Duplicate</button>
+        <span class="muted" id="count" style="align-self:center"></span>
+      </div>
+      <div id="list"></div>
+    </div>
+    <div class="editor" id="editor"></div>
+  </div>`;
+  $('#fq').oninput = e => { filter.q = e.target.value; renderList(); };
+  for (const [id, f] of [['fpool', 'pool'], ['fcat', 'cat'], ['frar', 'rarity'], ['fstate', 'state']])
+    $('#' + id).onchange = e => { filter[f] = e.target.value; renderList(); };
+  $('#newCard').onclick = () => newCard();
+  $('#dupCard').onclick = () => { const c = current(); if (c) newCard(c); };
+  renderList();
+  renderEditor();
+}
+
+function visibleCards() {
+  const q = filter.q.toLowerCase();
+  return W.cards.filter(c => (!filter.pool || c.Pool === filter.pool) && (!filter.cat || c.Category === filter.cat)
+    && (!filter.rarity || c.Rarity === filter.rarity) && (!filter.state || c.State === filter.state)
+    && (!q || [c.ID, c.Name, c.Effects, c['In-game asset'], c.Tags].join(' ').toLowerCase().includes(q)));
+}
+
+function renderList() {
+  const cards = visibleCards();
+  $('#count').textContent = cards.length + ' of ' + W.cards.length;
+  $('#list').innerHTML = cards.map(c => {
+    const url = iconUrl(c['Icon (Raven fb#)']);
+    const changed = changedFields('cards', c).length;
+    const bad = cardProblems(c).length;
+    return `<div class="item ${key(c) === sel ? 'on' : ''} ${c.State === 'Cut' ? 'cut' : ''}" data-key="${key(c)}">
+      ${url ? `<img src="${url}" alt="">` : '<div class="noicon"></div>'}
+      <div><div>${esc(c.Name) || '<span class="muted">(no name)</span>'}${changed ? ' <span class="chg">●</span>' : ''}${bad ? ' <span class="bad">!</span>' : ''}</div>
+      <div class="meta"><span class="dot" style="background:${RAW[c.Pool] || '#888'}"></span>${esc(c.ID)} · ${esc(c.Category)} · ${esc(c.Rarity)}</div></div>
+      <div class="meta">Lv ${esc(c['Base level'])}<br>B ${esc(c.Break === '' ? 1 : c.Break)}</div></div>`;
+  }).join('') || '<div class="muted" style="padding:10px">No cards match.</div>';
+  for (const el of document.querySelectorAll('.item')) el.onclick = () => { sel = el.dataset.key; renderList(); renderEditor(); };
+}
+
+function field(c, h, kind, opts = {}) {
+  const v = c[h] ?? '';
+  const id = 'f_' + h.replace(/\W/g, '');
+  let input;
+  if (kind === 'select') input = `<select id="${id}" data-h="${esc(h)}">${options(opts.list, v, opts.blank)}</select>`;
+  else if (kind === 'area') input = `<textarea id="${id}" data-h="${esc(h)}" rows="${opts.rows || 2}" spellcheck="false">${esc(v)}</textarea>`;
+  else input = `<input id="${id}" data-h="${esc(h)}" value="${esc(v)}" ${opts.type ? 'type="' + opts.type + '"' : ''} ${opts.min != null ? 'min="' + opts.min + '" max="' + opts.max + '"' : ''} spellcheck="false">`;
+  return `<div class="field" data-field="${esc(h)}" style="${opts.span ? 'grid-column:1/-1' : ''}"><label>${esc(opts.label || h)} ${opts.hint ? '<span class="hint">' + opts.hint + '</span>' : ''}</label>${input}<div class="msg bad"></div></div>`;
+}
+
+function renderEditor() {
+  const c = current();
+  const ed = $('#editor');
+  if (!c) { ed.innerHTML = '<p class="muted">Pick a card on the left, or make a new one.</p>'; return; }
+  const L = D.lists, lang = D.language;
+  ed.innerHTML = `
+  <div class="top">
+    <div class="cardside">
+      <div id="preview"></div>
+      <div class="row"><button id="pickIcon">Change art…</button></div>
+      <div class="muted" style="font-size:16px;text-align:center" id="artNote"></div>
+    </div>
+    <div>
+      <h2>${esc(c.Name || 'New card')} <span class="muted" style="font-size:20px">${esc(c.ID)}</span></h2>
+      <div class="grid">
+        ${field(c, 'Name', 'text')}
+        ${field(c, 'ID', 'text')}
+        ${field(c, 'Pool', 'select', { list: L.Pools })}
+        ${field(c, 'Category', 'select', { list: L.Categories, label: 'Type' })}
+        ${field(c, 'Rarity', 'select', { list: L.Rarity })}
+        ${field(c, 'Target', 'select', { list: L.Targets })}
+        ${field(c, 'Base level', 'text', { type: 'number', min: 1, max: 20, hint: '1-20' })}
+        ${field(c, 'State', 'select', { list: L.State })}
+      </div>
+      <h3>Break</h3>
+      <div class="grid">
+        ${field(c, 'Attack type', 'select', { list: lang.attackTypes, hint: 'for weaknesses' })}
+        ${field(c, 'Break', 'text', { type: 'number', min: 0, max: 9, hint: 'at Rank I; 0 = none' })}
+        <div class="field"><label>Break by rank</label><div id="breakRanks" style="padding-top:4px"></div></div>
+      </div>
+      <div class="muted" style="font-size:17px">A hit on an enemy weak to this card's attack type <i>or</i> its resonance (its pool) takes its Break off the enemy's grey bar, once per enemy per card. Only cards that hit deal Break.</div>
+    </div>
+  </div>
+  <h3>Abilities <span class="muted" style="font-size:17px">(the effect language: see the Effects key tab, or build one below)</span></h3>
+  <div class="grid wide">
+    ${field(c, 'Effects', 'area', { hint: 'Rank I. Separate effects with ;' })}
+    ${field(c, 'Rank II adds', 'area', { hint: 'added at Rank II (raise Stunned 10% raises a chance)' })}
+    ${field(c, 'Rank III adds', 'area', { hint: 'added at Rank III, on top' })}
+  </div>
+  <div class="builder" id="builder"></div>
+  <h3>What it does</h3>
+  <div id="computed"></div>
+  <h3>Text & extras</h3>
+  <div class="grid">
+    ${field(c, 'Card text', 'area', { span: true, hint: 'shown in the card book / notes' })}
+    ${field(c, 'Tags', 'text', { hint: 'Starter; Ults: resonance first, Enemy' })}
+    ${field(c, 'Main', 'select', { list: L.Main, blank: true, hint: "Y = its resonance's Main card" })}
+    ${field(c, 'Icon (Raven fb#)', 'text', { label: 'Icon', hint: 'fb number' })}
+    ${field(c, 'Pixel effect', 'text')}
+    ${field(c, 'In-game asset', 'text', { hint: 'Card_Pool_Name' })}
+    ${field(c, 'Notes', 'area', { span: true })}
+  </div>
+  <h3>Last save's log</h3>
+  <div id="log">${esc(lastLog) || '<span class="muted">Nothing saved yet this session.</span>'}</div>`;
+
+  for (const el of ed.querySelectorAll('[data-h]')) {
+    const ev = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(ev, () => {
+      const h = el.dataset.h;
+      c[h] = el.value;
+      if (h === 'Name' && c._autoAsset) { c['In-game asset'] = assetFor(c.Pool, c.Name); const a = $('#f_Ingameasset'); if (a) a.value = c['In-game asset']; }
+      if (h === 'In-game asset') c._autoAsset = false;
+      if (h === 'Pool' && c._new) { c.ID = nextId(c.Pool); $('#f_ID').value = c.ID; if (c._autoAsset) { c['In-game asset'] = assetFor(c.Pool, c.Name); $('#f_Ingameasset').value = c['In-game asset']; } }
+      if (['Effects', 'Rank II adds', 'Rank III adds'].includes(h)) queueParse(c);
+      if (h === 'Icon (Raven fb#)' || h === 'Name' || h === 'Pool' || h === 'Category' || h === 'Rarity') renderPreview();
+      renderComputed(); renderMarks(); renderListSoon(); refreshSave();
+    });
+  }
+  $('#pickIcon').onclick = () => openIcons(c);
+  renderPreview();
+  renderBuilder();
+  renderComputed();
+  renderMarks();
+  if (!parsed[key(c)]) parseCard(c, true);
+}
+
+let listTimer = 0;
+function renderListSoon() { clearTimeout(listTimer); listTimer = setTimeout(renderList, 150); }
+
+function renderMarks() {
+  const c = current();
+  if (!c) return;
+  const changed = new Set(changedFields('cards', c));
+  const probs = cardProblems(c);
+  for (const f of document.querySelectorAll('#editor .field[data-field]')) {
+    const h = f.dataset.field;
+    f.classList.toggle('changed', changed.has(h) && !!c._row);
+    const p = probs.filter(x => x[0] === h);
+    f.classList.toggle('err', p.length > 0);
+    const m = f.querySelector('.msg');
+    if (m) m.textContent = p.map(x => x[1]).join('; ');
+  }
+}
+
+function renderPreview() {
+  const c = current();
+  const url = iconUrl(c['Icon (Raven fb#)']);
+  const col = RAW[c.Pool] || '#999';
+  const stars = c.Pool === 'Ult' ? '★' : '♦♢♢';
+  $('#preview').innerHTML = `<div class="card">
+    <div class="swirl" style="background:
+      radial-gradient(circle at 30% 35%, ${col} 0 18%, transparent 19% 26%, ${col}aa 27% 34%, transparent 35%),
+      radial-gradient(circle at 72% 70%, ${col}cc 0 14%, transparent 15% 22%, ${col}88 23% 30%, transparent 31%),
+      linear-gradient(160deg, ${col}, #4a4038)"></div>
+    <div class="pips">${stars}</div>
+    <div class="type">${esc(TYPE_LABEL[c.Category] || c.Category)}</div>
+    ${url ? `<img class="art" src="${url}" alt="">` : '<div class="art none">no Raven icon<br>(drawn art or none)</div>'}
+    <div class="plate">${esc(c.Name || '?')}</div></div>`;
+  $('#artNote').textContent = url ? 'Raven fb' + String(c['Icon (Raven fb#)']).replace('fb', '') + ' · ' + esc(c.Rarity) : '';
+}
+
+function renderComputed() {
+  const c = current();
+  if (!c) return;
+  const lv = levelsOf(c);
+  const br = [1, 2, 3].map(r => breakOf(c, r));
+  $('#breakRanks').innerHTML = c.Pool === 'Ult'
+    ? '<span class="num">' + br[0] + '</span> <span class="muted">(Ults don\'t merge)</span>'
+    : 'I <span class="num">' + br[0] + '</span> · II <span class="num">' + br[1] + '</span> · III <span class="num">' + br[2] + '</span>';
+  const pr = parsed[key(c)];
+  let rows = '';
+  const names = c.Pool === 'Ult' ? ['Ult'] : ['I', 'II', 'III'];
+  if (pr && pr.ok && lv) {
+    names.forEach((n, i) => {
+      const fx = pr.ranks[i];
+      const best = Math.max(0.0001, ...fx.filter(f => POWERED.includes(f.type)).map(f => f.mult));
+      rows += `<tr><td>Rank ${n}</td><td class="num">Lv ${lv[i]}</td><td class="num">${br[i]}</td><td class="fxline">${fx.map(f => describe(f, c, lv[i], best)).join('<br>')}</td></tr>`;
+    });
+    if (c.Pool !== 'Ult') rows += `<tr class="muted"><td>Upgraded</td><td>Lv ${lv[3]} → ${lv[4]}</td><td></td><td>all copy upgrades (Rank I → Rank III)</td></tr>`;
+  } else if (pr && !pr.ok) rows = `<tr><td colspan="4" class="bad">${esc(pr.error)}</td></tr>`;
+  else if (!lv) rows = '<tr><td colspan="4" class="bad">Set a Base level.</td></tr>';
+  else rows = '<tr><td colspan="4" class="muted">Checking…</td></tr>';
+  $('#computed').innerHTML = `<div class="scroll"><table class="ranks"><tr><th>Rank</th><th>Level</th><th>Break</th><th>Effects (numbers at that level; ATK = the user's attack)</th></tr>${rows}</table></div>`;
+}
+
+// ---------------------------------------------------------------- effect builder
+
+const FX = {
+  dmg: 'Damage', heal: 'Heal', shield: 'Shield', counter: 'Counter', status: 'Give a status', cover: 'Cover',
+  interrupt: 'Interrupt', cleanse: 'Cleanse', ult: 'Ult points', ap: 'AP next turn', raise: 'Raise a chance (rank adds)'
+};
+const B = { kind: 'dmg', mult: '1.0', status: 'ATK Up', turns: '', times: '', chance: '', target: '', bonus: '', bonusPer: '0.3', consume: false, attack: false, lowhp: '', then: '', thenTurns: '', amount: '1' };
+
+function builtText() {
+  const k = B.kind, t = [k];
+  const n = v => String(v).trim();
+  if (POWERED.includes(k)) t.push(n(B.mult) || '1.0');
+  if (k === 'status' || k === 'raise') t.push(B.status);
+  if (k === 'ult' || k === 'ap') t.push(n(B.amount) || '1');
+  if (k === 'raise') { t.push((n(B.chance) || '10') + '%'); return t.join(' '); }
+  if (n(B.turns) && ['shield', 'status', 'cover'].includes(k)) t.push(n(B.turns) + 't');
+  if (n(B.times) && ['dmg', 'counter', 'status'].includes(k)) t.push('x' + n(B.times));
+  if (n(B.chance) && k === 'status') t.push(n(B.chance) + '%');
+  if (k === 'dmg' && B.bonus) { t.push('+' + B.bonus, n(B.bonusPer) || '0.3'); if (B.consume) t.push('consume'); }
+  if (k === 'interrupt' && B.attack) t.push('attack');
+  if (k === 'counter' && n(B.lowhp)) t.push('lowhp', n(B.lowhp));
+  if (k === 'counter' && B.then) { t.push('then', B.then); if (n(B.thenTurns)) t.push(n(B.thenTurns) + 't'); }
+  if (B.target) t.push('@' + B.target);
+  return t.join(' ');
+}
+
+function renderBuilder() {
+  const k = B.kind, lang = D.language;
+  const show = {
+    mult: POWERED.includes(k), status: k === 'status' || k === 'raise', amount: k === 'ult' || k === 'ap',
+    turns: ['shield', 'status', 'cover'].includes(k), times: ['dmg', 'counter', 'status'].includes(k),
+    chance: k === 'status' || k === 'raise', target: k !== 'raise', bonus: k === 'dmg', attack: k === 'interrupt', counter: k === 'counter'
+  };
+  const times = k === 'dmg' ? 'Hits (xN)' : k === 'counter' ? 'Triggers (xN)' : 'Stacks (xN)';
+  const inp = (id, label, v, hint) => `<div><label>${label}${hint ? ' <span class="hint">' + hint + '</span>' : ''}</label><input data-b="${id}" value="${esc(v)}"></div>`;
+  const sel = (id, label, list, v, blank) => `<div><label>${label}</label><select data-b="${id}">${options(list, v, blank)}</select></div>`;
+  $('#builder').innerHTML = `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="color:var(--gold);font-weight:normal">Effect builder</b>
+    <span class="muted" style="font-size:17px">pick what it does, then add it to a rank</span></div>
+    <div class="grid" style="margin-top:6px">
+      <div><label>Does</label><select data-b="kind">${Object.entries(FX).map(([v, n]) => `<option value="${v}" ${v === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+      ${show.mult ? inp('mult', 'Power share', B.mult, '1.0 = full') : ''}
+      ${show.status ? sel('status', 'Status', lang.statuses, B.status) : ''}
+      ${show.amount ? inp('amount', 'Amount', B.amount) : ''}
+      ${show.turns ? inp('turns', 'Turns', B.turns, 'blank = 2 (shield 1)') : ''}
+      ${show.times ? inp('times', times, B.times) : ''}
+      ${show.chance ? inp('chance', 'Chance %', B.chance, k === 'raise' ? 'points' : 'blank = 100') : ''}
+      ${show.target ? sel('target', 'Target', ['', ...lang.targets], B.target) : ''}
+      ${show.bonus ? sel('bonus', 'Bonus vs status', ['', ...lang.statuses], B.bonus) + (B.bonus ? inp('bonusPer', 'Bonus per stack', B.bonusPer, '0.3 = +30%') + `<div><label>Clear it after</label><input type="checkbox" data-b="consume" ${B.consume ? 'checked' : ''}></div>` : '') : ''}
+      ${show.attack ? `<div><label>Attacks only</label><input type="checkbox" data-b="attack" ${B.attack ? 'checked' : ''}></div>` : ''}
+      ${show.counter ? inp('lowhp', 'Low-HP bonus', B.lowhp, '1.0 = +100%') + sel('then', 'Then give', ['', ...lang.statuses], B.then) + (B.then ? inp('thenTurns', 'for turns', B.thenTurns) : '') : ''}
+    </div>
+    <div class="out">→ <span id="builtText">${esc(builtText())}</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><button data-add="Effects">Add to Effects (Rank I)</button><button data-add="Rank II adds">Add to Rank II</button><button data-add="Rank III adds">Add to Rank III</button></div>`;
+  for (const el of document.querySelectorAll('[data-b]')) {
+    el.addEventListener(el.tagName === 'SELECT' || el.type === 'checkbox' ? 'change' : 'input', () => {
+      B[el.dataset.b] = el.type === 'checkbox' ? el.checked : el.value;
+      if (['kind', 'bonus', 'then'].includes(el.dataset.b)) renderBuilder();
+      else $('#builtText').textContent = builtText();
+    });
+  }
+  for (const el of document.querySelectorAll('[data-add]')) el.onclick = () => {
+    const c = current(), h = el.dataset.add;
+    if (B.kind === 'raise' && h === 'Effects') { toast('"raise" only goes in the Rank II / III adds.'); return; }
+    c[h] = (String(c[h] || '').trim() ? String(c[h]).trim() + '; ' : '') + builtText();
+    const box = document.querySelector('[data-h="' + h + '"]');
+    if (box) box.value = c[h];
+    queueParse(c); renderComputed(); renderMarks(); renderListSoon(); refreshSave();
+  };
+}
+
+// ---------------------------------------------------------------- new cards
+
+function mostCommon(list) {
+  const n = {};
+  for (const x of list) n[x] = (n[x] || 0) + 1;
+  return Object.keys(n).sort((a, b) => n[b] - n[a])[0];
+}
+
+function nextId(pool) {
+  const ids = W.cards.filter(c => c.Pool === pool).map(c => /^([A-Z]+)-(\d+)$/.exec(c.ID || '')).filter(Boolean);
+  const prefix = mostCommon(ids.map(m => m[1])) || pool.slice(0, 3).toUpperCase();
+  const used = W.cards.map(c => /^([A-Z]+)-(\d+)$/.exec(c.ID || '')).filter(m => m && m[1] === prefix).map(m => +m[2]);
+  return prefix + '-' + String((used.length ? Math.max(...used) : 0) + 1).padStart(2, '0');
+}
+
+function assetFor(pool, name) {
+  const prefixes = W.cards.filter(c => c.Pool === pool).map(c => /^Card_([A-Za-z]+)_/.exec(c['In-game asset'] || '')).filter(m => m && m[1] !== 'MC').map(m => m[1]);
+  const prefix = mostCommon(prefixes) || (pool === 'Basic' ? 'Physical' : pool);
+  const clean = String(name || 'New').replace(/[^A-Za-z0-9 ]/g, '').split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join('');
+  return 'Card_' + prefix + '_' + (clean || 'New');
+}
+
+function newCard(from) {
+  const pool = from ? from.Pool : (filter.pool || 'Basic');
+  const c = from ? JSON.parse(JSON.stringify(from)) : {
+    Pool: pool, Category: 'Attack', Rarity: 'Common', Main: '', Tags: '', Target: 'Single enemy', 'Base level': 4,
+    'Attack type': pool === 'Basic' ? 'Physical' : 'Incantation', Break: 1, Effects: 'dmg 1.0', 'Rank II adds': '',
+    'Rank III adds': '', 'Card text': '', 'Icon (Raven fb#)': '', 'Pixel effect': '', State: 'Idea', Notes: ''
+  };
+  delete c._row;
+  c._new = 'new' + (++newCount);
+  c._autoAsset = true;
+  c.Name = from ? from.Name + ' Copy' : 'New Card';
+  c.ID = nextId(pool);
+  c.Main = '';
+  c['In-game asset'] = assetFor(pool, c.Name);
+  for (const h of D.cards.headers) if (!(h in c)) c[h] = '';
+  W.cards.push(c);
+  sel = key(c);
+  filter.q = ''; filter.state = '';
+  renderCards();
+  const n = $('#f_Name'); if (n) { n.focus(); n.select(); }
+}
+
+// ---------------------------------------------------------------- icon picker
+
+let iconCard = null;
+function openIcons(c) {
+  iconCard = c;
+  $('#iconSearch').value = '';
+  drawIcons();
+  $('#iconDialog').showModal();
+  $('#iconSearch').focus();
+}
+function drawIcons() {
+  const q = $('#iconSearch').value.replace(/\D/g, ''), free = $('#iconFree').checked;
+  const usedBy = {};
+  for (const c of W.cards) { const n = String(c['Icon (Raven fb#)'] || '').replace('fb', ''); if (n) (usedBy[n] = usedBy[n] || []).push(c.Name); }
+  const cur = String(iconCard['Icon (Raven fb#)'] || '').replace('fb', '');
+  $('#iconGrid').innerHTML = D.icons.filter(n => (!q || String(n).includes(q)) && (!free || !usedBy[n] || String(n) === cur)).map(n =>
+    `<button data-n="${n}" class="${String(n) === cur ? 'on' : ''}" title="${esc((usedBy[n] || []).join(', '))}"><img src="/icons/fb${n}.png" loading="lazy" alt="">fb${n}<span class="used">${usedBy[n] ? esc(usedBy[n][0]) + (usedBy[n].length > 1 ? ' +' + (usedBy[n].length - 1) : '') : ''}</span></button>`).join('');
+  for (const b of document.querySelectorAll('#iconGrid button')) b.onclick = () => setIcon('fb' + b.dataset.n);
+}
+function setIcon(v) {
+  iconCard['Icon (Raven fb#)'] = v;
+  $('#iconDialog').close();
+  if (tab === 'cards') renderEditor();
+  renderListSoon(); refreshSave();
+}
+
+// ---------------------------------------------------------------- other tabs
+
+function cellInput(t, r, h, opts = {}) {
+  let v = r[h] ?? '';
+  const pct = PCT(h) && v !== '';
+  if (pct) v = Math.round(parseFloat(v) * 10000) / 100;
+  const o = original(t, r);
+  const changed = o && String(o[h] ?? '') !== String(r[h] ?? '');
+  const style = changed ? 'border-color:#8a6d32' : '';
+  if (opts.list) return `<select data-t="${t}" data-k="${key(r)}" data-h="${esc(h)}" style="${style}">${options(opts.list, v, opts.blank)}</select>`;
+  if (opts.readonly) return `<span>${esc(v)}</span>`;
+  return `<input data-t="${t}" data-k="${key(r)}" data-h="${esc(h)}" ${pct ? 'data-pct="1"' : ''} value="${esc(v)}" style="${style};${opts.w ? 'width:' + opts.w : ''}">${pct ? '<span class="muted">%</span>' : ''}`;
+}
+
+function bindCells(after) {
+  for (const el of document.querySelectorAll('#main [data-t]')) {
+    el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => {
+      const r = W[el.dataset.t].find(x => key(x) === el.dataset.k);
+      let v = el.value;
+      if (el.dataset.pct && v !== '' && !isNaN(parseFloat(v))) v = Math.round(parseFloat(v) * 100) / 10000;
+      r[el.dataset.h] = v;
+      const o = original(el.dataset.t, r);
+      el.style.borderColor = o && String(o[el.dataset.h] ?? '') !== String(v ?? '') ? '#8a6d32' : '';
+      refreshSave();
+      if (after) after(el, r);
+    });
+  }
+}
+
+function renderEnemies() {
+  const assets = W.cards.filter(c => c.State !== 'Cut').map(c => c['In-game asset']).filter(Boolean).sort();
+  const heads = D.enemies.headers;
+  const rows = W.enemies.map(r => `<tr>${heads.map(h => {
+    if (h === 'Enemy asset') return `<td>${esc(r[h])}</td>`;
+    if (h === 'Weak to') {
+      const on = String(r[h] || '').split(',').map(s => s.trim());
+      return `<td><div class="weak">${D.language.weaknesses.map(w => `<label><input type="checkbox" data-weak="${key(r)}" value="${w}" ${on.includes(w) ? 'checked' : ''}>${w}</label>`).join('')}</div></td>`;
+    }
+    if (h === 'Innate card asset' || h === 'Ult asset') return `<td>${cellInput('enemies', r, h, { list: assets, blank: true })}</td>`;
+    return `<td>${cellInput('enemies', r, h, { w: ['Break', 'Innate +levels', 'Innate weight'].includes(h) ? '70px' : '' })}</td>`;
+  }).join('')}</tr>`).join('');
+  $('#main').innerHTML = `<div class="tablebox"><h2>Enemies</h2>
+    <p class="muted">Each enemy's innate card (a card it always has, played <i>Innate +levels</i> higher), its Ult, its <b style="color:var(--ink)">Break</b> value (the grey bar; 0 = can't be broken; a boss gets the Settings tab's extra) and what it's <b style="color:var(--ink)">weak to</b>. Every Chapter One enemy should be weak to Physical. New enemy assets are added on the sheet (they must exist in Unity first).</p>
+    <div class="scroll"><table><tr>${heads.map(h => `<th>${esc(h)}</th>`).join('')}</tr>${rows}</table></div></div>`;
+  bindCells();
+  for (const el of document.querySelectorAll('[data-weak]')) el.onchange = () => {
+    const r = W.enemies.find(x => key(x) === el.dataset.weak);
+    r['Weak to'] = [...document.querySelectorAll('[data-weak="' + el.dataset.weak + '"]:checked')].map(x => x.value).join(', ');
+    refreshSave();
+  };
+}
+
+function renderPacks() {
+  const heads = D.packs.headers;
+  const sums = r => ['Common %', 'Rare %', 'Epic %', 'Legendary %'].reduce((a, h) => a + (parseFloat(r[h]) || 0), 0);
+  const rows = W.packs.map(r => `<tr>${heads.map(h => `<td>${h === 'Pack ID' ? esc(r[h]) : h === 'Resonance' ? cellInput('packs', r, h, { list: D.lists.Resonance }) : cellInput('packs', r, h, { w: PCT(h) || /per|Art|Chapter/.test(h) ? '72px' : '' })}</td>`).join('')}
+    <td data-sum="${key(r)}">${Math.abs(sums(r) - 1) < 1e-4 ? '<span class="good">100%</span>' : '<span class="bad">' + Math.round(sums(r) * 1000) / 10 + '%</span>'}</td></tr>`).join('');
+  const packIds = W.packs.map(p => p['Pack ID']).concat(['Random']);
+  const arows = W.areas.map(r => `<tr><td>${esc(r['Area ID'])}</td><td>${cellInput('areas', r, 'Area')}</td><td>${cellInput('areas', r, 'Pack', { list: packIds })}</td></tr>`).join('');
+  $('#main').innerHTML = `<div class="tablebox"><h2>Packs</h2>
+    <p class="muted">One pack per chapter. Percentages: <i>Resonance %</i> = how many cards come from the pack's resonance (the rest are Basic); Common + Rare + Epic + Legendary must add up to 100%; Soul / Sun-Moon-Star only for the last card, Blank only for the second.</p>
+    <div class="scroll"><table><tr>${heads.map(h => `<th>${esc(h)}</th>`).join('')}<th>Tiers</th></tr>${rows}</table></div>
+    <h2 style="margin-top:18px">Areas</h2><p class="muted">Which pack a won fight in each area gives (Random = a random pack each win).</p>
+    <table style="max-width:720px"><tr><th>Area ID</th><th>Area</th><th>Pack</th></tr>${arows}</table></div>`;
+  bindCells((el, r) => {
+    const td = document.querySelector('[data-sum="' + key(r) + '"]');
+    if (td) td.innerHTML = Math.abs(sums(r) - 1) < 1e-4 ? '<span class="good">100%</span>' : '<span class="bad">' + Math.round(sums(r) * 1000) / 10 + '%</span>';
+  });
+}
+
+function renderSettings() {
+  const rows = W.settings.map(s => s.section
+    ? `<tr><td colspan="3"><h3 style="margin:10px 0 0">${esc(s.section)}</h3><span class="muted">${esc(s.note)}</span></td></tr>`
+    : `<tr><td>${esc(s.label)}${s.game ? ' <span class="good" title="imported into the game">● game</span>' : ''}</td><td style="width:120px">${cellInput('settings', s, 'value')}</td><td class="muted">${esc(s.note)}</td></tr>`).join('');
+  $('#main').innerHTML = `<div class="tablebox" style="max-width:1100px"><h2>Settings</h2>
+    <p class="muted">The top ones drive the sheet's maths (the level and power columns, and this page's numbers); the game keeps its own copies in CombatConfig. The <span class="good">● game</span> ones go into the game when the sheet is imported (PackRates).</p>
+    <table>${rows}</table></div>`;
+  bindCells(() => {});
+}
+
+function renderKey() {
+  $('#main').innerHTML = `<div class="tablebox" style="max-width:1200px"><h2>Effects key</h2>
+    <p class="muted">Write each effect in the Effects cell, separated by <b style="color:var(--ink)">;</b> . Numbers after dmg / heal / shield / counter are shares of the card's power: the biggest gets the level's full power (0.25 × ATK × level), the others that fraction of it. A card hitting everyone does 60% of that. A card has at most ${D.language.maxEffects} different effects.</p>
+    <table>${D.key.map(r => `<tr class="keyrow"><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td class="muted">${esc(r[2])}</td></tr>`).join('')}</table></div>`;
+}
+
+// ---------------------------------------------------------------- wiring
+
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) { tab = b.dataset.tab; render(); } });
+$('#save').onclick = save;
+$('#reload').onclick = () => { if (!dirtyCount() || confirm('Drop your unsaved changes and load the sheet again?')) load(true); };
+$('#iconClose').onclick = () => $('#iconDialog').close();
+$('#iconNone').onclick = () => setIcon('');
+$('#iconSearch').oninput = drawIcons;
+$('#iconFree').onchange = drawIcons;
+document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); } });
+window.addEventListener('beforeunload', e => { if (dirtyCount()) { e.preventDefault(); e.returnValue = ''; } });
+load().catch(e => status('<span class="bad">Couldn\'t reach the editor server: is design/card_editor.bat still running? (' + esc(e.message) + ')</span>'));
+</script>
+</body>
+</html>

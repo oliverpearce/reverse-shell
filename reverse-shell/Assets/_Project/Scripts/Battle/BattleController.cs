@@ -349,13 +349,23 @@ namespace Combat
         /// whoever got hit hits back (counter hits never trigger counters).</summary>
         public void DealDamage(BattleUnit source, BattleUnit target, float multiplier, bool isRitual)
         {
-            DealDamage(source, target, multiplier, isRitual, false);
+            DealDamage(source, target, multiplier, isRitual, false, null, null);
         }
 
-        void DealDamage(BattleUnit source, BattleUnit target, float multiplier, bool isRitual, bool isCounter)
+        /// <summary>A hit from <paramref name="card"/>: as above, then its Break damage when the target is weak to it
+        /// (once per target per card: <paramref name="breakDealt"/> holds who it already broke into).</summary>
+        public void DealDamage(BattleUnit source, BattleUnit target, float multiplier, bool isRitual, CardInstance card,
+            HashSet<BattleUnit> breakDealt)
+        {
+            DealDamage(source, target, multiplier, isRitual, false, card, breakDealt);
+        }
+
+        void DealDamage(BattleUnit source, BattleUnit target, float multiplier, bool isRitual, bool isCounter,
+            CardInstance card, HashSet<BattleUnit> breakDealt)
         {
             if (!target.IsAlive || IsOver) return;
             target = CoveredBy(source, target);
+            // Damage first, so the hit that breaks the enemy doesn't get the Stagger bonus itself.
             var result = DamageCalculator.Compute(source, target, multiplier, isRitual, Config, State.Rng);
             int amount = result.Amount, blocked = 0;
             var shield = target.Statuses.Find(s => s.Definition.special == StatusSpecial.Shield && s.Power > 0f);
@@ -367,8 +377,59 @@ namespace Combat
                 if (shield.Power <= 0f) target.Statuses.Remove(shield);
                 EmitStatuses(target);
             }
-            ApplyDamage(source, target, amount, result.Crit, result.Relation, false, blocked, isCounter);
+            ApplyDamage(source, target, amount, result.Crit, result.StaggerBonus, false, blocked, isCounter);
+            if (card != null && !IsOver) ApplyBreak(source, target, card, breakDealt);
             if (!isCounter && !IsOver) TryCounter(target, source);
+        }
+
+        /// <summary>A card hit on a weakness: shows the player the weaknesses it hit, then takes the card's Break damage
+        /// off the target's Break value (not while it's already Staggered). At 0 it's Staggered.</summary>
+        void ApplyBreak(BattleUnit source, BattleUnit target, CardInstance card, HashSet<BattleUnit> breakDealt)
+        {
+            if (!target.IsAlive || !target.Breakable || source == null || source.Team == target.Team) return;
+            var match = BreakRules.Matches(card.Definition, target);
+            if (match == Weakness.None) return;
+            RevealWeaknesses(target, match);
+            if (target.Staggered || (breakDealt != null && !breakDealt.Add(target))) return;
+            int amount = BreakRules.Value(card);
+            if (amount <= 0) return;
+            target.Break = Mathf.Max(0, target.Break - amount);
+            if (target.Break == 0) Stagger(target);
+            else EmitBreak(target);
+        }
+
+        void RevealWeaknesses(BattleUnit target, Weakness match)
+        {
+            if (target.Enemy == null) return;
+            string asset = target.Enemy.name;
+            foreach (var w in BreakRules.All)
+            {
+                if ((match & w) == 0 || WeaknessBook.Knows(asset, w)) continue;
+                WeaknessBook.Learn(asset, w);
+                Log(target.Name + " is weak to " + BreakRules.Label(w) + "!");
+                Emit(new WeaknessRevealedEvent { Unit = target, Weakness = w });
+            }
+        }
+
+        /// <summary>Breaks a unit: Staggered for PackRates.staggerTurns rounds (this one included), its shown intent
+        /// cancelled, and no new intent until it recovers.</summary>
+        void Stagger(BattleUnit unit)
+        {
+            unit.Break = 0;
+            unit.StaggerTurns = Mathf.Max(1, PackRates.Current.staggerTurns);
+            Log(unit.Name + " is Staggered!");
+            Emit(new StaggeredEvent { Unit = unit });
+            EmitBreak(unit);
+            if (unit.Intent != null)
+            {
+                unit.Intent = null;
+                Emit(new IntentChosenEvent { Unit = unit, Intent = null });
+            }
+        }
+
+        void EmitBreak(BattleUnit unit)
+        {
+            Emit(new BreakChangedEvent { Unit = unit, Break = unit.Break, MaxBreak = unit.MaxBreak, Staggered = unit.Staggered });
         }
 
         /// <summary>Who really takes a hit on <paramref name="target"/>: its living coverer on the other side from the
@@ -391,7 +452,7 @@ namespace Combat
             if (counter.Stacks <= 0) holder.Statuses.Remove(counter);
             EmitStatuses(holder);
             Log(holder.Name + " counters!");
-            DealDamage(holder, attacker, power, false, true);
+            DealDamage(holder, attacker, power, false, true, null, null);
             if (counter.Payload != null && attacker.IsAlive && !IsOver) ApplyStatus(holder, attacker, counter.Payload, counter.PayloadTurns, 1);
         }
 
@@ -535,6 +596,19 @@ namespace Combat
             foreach (var enemy in State.Enemies)
             {
                 if (!enemy.IsAlive) continue;
+                // Still Staggered: no move this round either.
+                if (enemy.Staggered)
+                {
+                    enemy.Intent = null;
+                    Emit(new IntentChosenEvent { Unit = enemy, Intent = null });
+                    continue;
+                }
+                // Recovered: its Break value refills in full.
+                if (enemy.Breakable && enemy.Break <= 0)
+                {
+                    enemy.Break = enemy.MaxBreak;
+                    EmitBreak(enemy);
+                }
                 enemy.Intent = EnemyAI.ChooseIntent(enemy, State.Rng, Config.moxieCap);
                 Emit(new IntentChosenEvent { Unit = enemy, Intent = enemy.Intent });
             }
@@ -653,25 +727,49 @@ namespace Combat
             }
         }
 
+        /// <summary>End of the round, in the bible's order (v0.8 §5): 1. buffs and debuffs count down (and run out),
+        /// 2. damage and healing over time tick (with the Stagger bonus on a Staggered unit), 3. Stagger counts down.</summary>
         void EndRound()
         {
-            foreach (var unit in new List<BattleUnit>(State.AllUnits))
+            var units = new List<BattleUnit>(State.AllUnits);
+
+            // 1. Buffs and debuffs.
+            foreach (var unit in units)
+            {
+                if (!unit.IsAlive || unit.Statuses.Count == 0) continue;
+                bool expired = false;
+                foreach (var status in unit.Statuses)
+                {
+                    if (Ticks(status.Definition)) continue;
+                    status.Remaining--;
+                    expired |= status.Remaining <= 0;
+                }
+                if (!expired) continue;
+                unit.Statuses.RemoveAll(s => s.Remaining <= 0);
+                unit.HP = Mathf.Min(unit.HP, unit.MaxHP);
+                EmitStatuses(unit);
+            }
+
+            // 2. Damage and healing over time.
+            foreach (var unit in units)
             {
                 if (!unit.IsAlive || unit.Statuses.Count == 0) continue;
 
                 foreach (var status in new List<StatusInstance>(unit.Statuses))
                 {
                     var def = status.Definition;
+                    if (!Ticks(def)) continue;
+                    float stagger = unit.Staggered ? BreakRules.StaggerMultiplier : 1f;
                     if (def.damagePerRoundPercentMaxHP > 0f && unit.IsAlive)
                     {
-                        int dmg = Mathf.Max(1, Mathf.RoundToInt(unit.MaxHP * def.damagePerRoundPercentMaxHP * status.Stacks));
-                        ApplyDamage(status.Source, unit, dmg, false, ResonanceRelation.Neutral, true, tick: def);
+                        int dmg = Mathf.Max(1, Mathf.RoundToInt(unit.MaxHP * def.damagePerRoundPercentMaxHP * status.Stacks * stagger));
+                        ApplyDamage(status.Source, unit, dmg, false, unit.Staggered, true, tick: def);
                         if (IsOver) return;
                     }
                     if (def.damagePerRoundSourceATK > 0f && unit.IsAlive && status.Source != null)
                     {
-                        int dmg = Mathf.Max(1, Mathf.RoundToInt(status.Source.GetStat(StatType.Attack) * def.damagePerRoundSourceATK * status.Stacks));
-                        ApplyDamage(status.Source, unit, dmg, false, ResonanceRelation.Neutral, true, tick: def);
+                        int dmg = Mathf.Max(1, Mathf.RoundToInt(status.Source.GetStat(StatType.Attack) * def.damagePerRoundSourceATK * status.Stacks * stagger));
+                        ApplyDamage(status.Source, unit, dmg, false, unit.Staggered, true, tick: def);
                         if (IsOver) return;
                     }
                     if (def.healPerRoundPercentMaxHP > 0f && unit.IsAlive)
@@ -684,9 +782,23 @@ namespace Combat
                 unit.HP = Mathf.Min(unit.HP, unit.MaxHP);
                 EmitStatuses(unit);
             }
+
+            // 3. Stagger counts down last; when it wears off, the Break value refills as the next round starts.
+            foreach (var unit in units)
+            {
+                if (!unit.Staggered) continue;
+                unit.StaggerTurns--;
+                if (!unit.Staggered && unit.IsAlive) EmitBreak(unit);
+            }
         }
 
-        void ApplyDamage(BattleUnit source, BattleUnit target, int amount, bool crit, ResonanceRelation relation, bool isTick,
+        /// <summary>A status that does something each round (damage or healing over time), rather than a buff or debuff.</summary>
+        static bool Ticks(StatusDefinition def)
+        {
+            return def.damagePerRoundPercentMaxHP > 0f || def.damagePerRoundSourceATK > 0f || def.healPerRoundPercentMaxHP > 0f;
+        }
+
+        void ApplyDamage(BattleUnit source, BattleUnit target, int amount, bool crit, bool staggerBonus, bool isTick,
             int blocked = 0, bool isCounter = false, StatusDefinition tick = null)
         {
             target.HP = Mathf.Max(0, target.HP - amount);
@@ -700,7 +812,7 @@ namespace Combat
                 IsTick = isTick,
                 IsCounter = isCounter,
                 TickStatus = tick,
-                Relation = relation,
+                StaggerBonus = staggerBonus,
                 HPAfter = target.HP,
                 MaxHP = target.MaxHP
             });

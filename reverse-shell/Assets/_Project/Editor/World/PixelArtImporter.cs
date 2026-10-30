@@ -120,6 +120,7 @@ namespace Game.EditorTools
                 fx.mipmapEnabled = false;
                 fx.textureCompression = TextureImporterCompression.Uncompressed;
                 fx.npotScale = TextureImporterNPOTScale.None;
+                fx.maxTextureSize = 8192;   // long effect strips (2400 px) must not be shrunk, or their frames don't fit
                 fx.wrapMode = TextureWrapMode.Clamp;
                 fx.alphaIsTransparency = true;
                 return;

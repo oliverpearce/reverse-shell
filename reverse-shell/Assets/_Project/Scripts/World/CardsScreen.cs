@@ -101,12 +101,13 @@ namespace Game.World
             var title = titleText = InkStyle.Title(root, "Title", UIText.Get(titleKey), UIFactory.TextSize.Title, InkStyle.Paper, TextAnchor.UpperLeft);
             title.rectTransform.Place(topLeft, topLeft, new Vector2(60f, -40f), new Vector2(700f, 90f));
             if (mode == Mode.Collection) ItemsScreen.Tabs(root, false, SwitchToParts, null);
-            // Whose binder this is (the save it reads), beside the title / tabs; Pack Mode's book is nobody's.
-            if (mode != Mode.Session)
+            // The title screen's book: whose binder it is (the save it reads), beside the title. In game it's always
+            // your own, so it isn't shown there.
+            if (mode == Mode.Index)
             {
                 accountText = UIFactory.CreateText(root, "Account", "", UIFactory.TextSize.Medium, InkStyle.Paper, TextAnchor.MiddleLeft);
                 accountText.supportRichText = true;
-                accountText.rectTransform.Place(topLeft, topLeft, new Vector2(mode == Mode.Collection ? 710f : 330f, -52f), new Vector2(560f, 72f));
+                accountText.rectTransform.Place(topLeft, topLeft, new Vector2(330f, -52f), new Vector2(560f, 72f));
             }
 
             // Top right: Sort, then the two filters, each a caption over its current choice in big gold; a click opens a dropdown.
@@ -225,26 +226,23 @@ namespace Game.World
         bool pickCanRemove;
         Text titleText, keysText, accountText;
 
-        /// <summary>The account line: the player's name and slot of the save the book reads (from the title screen, the
-        /// latest save, as <see cref="Show"/> previews it), or "No save yet".</summary>
+        /// <summary>The account line on the title screen's book: the player's name in the save it reads (the latest
+        /// one, as <see cref="Show"/> previews it), or "No save yet". Hidden once a game is loaded.</summary>
         void RefreshAccount()
         {
             if (accountText == null) return;
-            bool fromTitle = mode == Mode.Index && !WorldSession.TitleDone;
-            int slot = fromTitle ? SaveGame.LatestSlot() : SaveGame.Slot;
-            string name = StoryState.PlayerName;
-            if (fromTitle)
+            bool fromTitle = !WorldSession.TitleDone;
+            accountText.gameObject.SetActive(fromTitle);
+            if (!fromTitle) return;
+            int slot = SaveGame.LatestSlot();
+            var summary = slot > 0 ? SaveGame.Peek(slot) : null;
+            if (summary == null)
             {
-                var summary = slot > 0 ? SaveGame.Peek(slot) : null;
-                if (summary == null)
-                {
-                    accountText.text = UIText.Get("cards.account.none");
-                    return;
-                }
-                name = summary.PlayerName;
+                accountText.text = UIText.Get("cards.account.none");
+                return;
             }
-            if (string.IsNullOrEmpty(name)) name = "MC";
-            accountText.text = UIText.Get("cards.account", "name", name, "slot", slot.ToString());
+            string name = string.IsNullOrEmpty(summary.PlayerName) ? "MC" : summary.PlayerName;
+            accountText.text = UIText.Get("cards.account", "name", name);
         }
 
         /// <summary>Picking: uses <paramref name="card"/> (null = Remove) and closes the book.</summary>

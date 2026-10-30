@@ -19,6 +19,8 @@ MonoBehaviour:
   level: 4
   pool: 0
   rarity: 0
+  attackType: 1
+  breakValue: 1
   icon: {fileID: 0}
   ranks:
   - description: 

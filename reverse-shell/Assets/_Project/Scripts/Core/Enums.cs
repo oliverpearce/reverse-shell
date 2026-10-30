@@ -1,12 +1,29 @@
 namespace Combat
 {
     /// <summary>
-    /// The five resonances plus Basic (bible v0.6 §3). Values are serialized as numbers, so keep
-    /// the order: renaming is safe, reordering is not. Wheel: Cinder > Cryo > Root > Arc > Cinder; Prism is neutral to
-    /// all but crits more (see ResonanceChart). Basic: no element, neutral in every matchup (the protagonist's
-    /// starting Core).
+    /// The five resonances plus Basic (bible v0.8 §3). Values are serialized as numbers, so keep
+    /// the order: renaming is safe, reordering is not. There is no advantage wheel: a resonance only matters in a
+    /// fight when an enemy is weak to it (<see cref="Weakness"/>). Basic: no element (the protagonist's starting Core).
     /// </summary>
     public enum Resonance { Arc, Cinder, Root, Cryo, Prism, Basic }
+
+    /// <summary>A card's attack type, for Break weaknesses (bible v0.8 §5): Physical or Incantation.</summary>
+    public enum AttackType { Physical, Incantation }
+
+    /// <summary>What an enemy's Break value is weak to: attack types and resonances (bible v0.8 §5). A hit from a card
+    /// with a matching attack type or resonance deals that card's Break damage.</summary>
+    [System.Flags]
+    public enum Weakness
+    {
+        None = 0,
+        Physical = 1 << 0,
+        Incantation = 1 << 1,
+        Arc = 1 << 2,
+        Cinder = 1 << 3,
+        Root = 1 << 4,
+        Cryo = 1 << 5,
+        Prism = 1 << 6
+    }
 
     public enum DamageType { Physical, Special }
 
@@ -59,8 +76,6 @@ namespace Combat
     }
 
     public enum Team { Player, Enemy }
-
-    public enum ResonanceRelation { Neutral, Advantage, Disadvantage }
 
     public enum BattlePhase { NotStarted, Planning, Resolving, Victory, Defeat }
 

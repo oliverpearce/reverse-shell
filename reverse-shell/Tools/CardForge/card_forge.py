@@ -3,7 +3,10 @@ CardForge: paints the pixel-art card pieces (48 x 64 px cards, shown at 4x in th
 "Soul" reference card: a pale rim with a plum outline, a wavy swirl background, rank pips along the top and a name
 plate at the bottom.
 
-    python Tools/CardForge/card_forge.py [--preview out.png]
+    python Tools/CardForge/card_forge.py [--preview out.png] [--atlas-only]
+
+Each card's centre icon is its Raven pick: the card sheet's Icon (Raven fb#) column (through cards.json) wins over
+RAVEN_PICKS below. --atlas-only rebuilds just CardArt.png / .txt (the card editor runs it after an art change).
 
 Writes into Assets/_Project/Resources/Cards/ (imported point-filtered by PixelArtImporter):
     CardSwirl.png   48x64  the swirl background in greys; the game tints it with the card owner's colour
@@ -970,6 +973,27 @@ def framed(icon):
     return c
 
 
+def sheet_picks():
+    """The card sheet's Icon (Raven fb#) column, via cards.json (sheet_to_json.py): {card asset: Raven number}. It wins
+    over RAVEN_PICKS, so a card's art can be changed on the sheet (or in the card editor). Ult cards are skipped: they
+    use full-art Ult_*.png cards instead."""
+    path = os.path.join(HERE, 'cards.json')
+    if not os.path.exists(path):
+        return {}
+    import json
+    with open(path, encoding='utf-8') as f:
+        cards = json.load(f).get('cards', [])
+    picks = {}
+    for c in cards:
+        n = c.get('icon') or 0
+        if n and not c.get('ult'):
+            if os.path.exists(os.path.join(RAVEN_DIR, 'fb%d.png' % n)):
+                picks[c['asset']] = n
+            else:
+                print('  %s: no Raven icon fb%d.png; keeping its old art' % (c['asset'], n))
+    return picks
+
+
 def raven_only_icons(existing):
     """Picked cards that have no drawing of their own, as (name, None) atlas entries."""
     names = set(n for n, _ in existing)
@@ -1144,6 +1168,11 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     if '--types-only' in sys.argv:   # just CardTypes.png (the six 7x7 type icons)
         save(make_types(), 'CardTypes.png')
+        return
+    RAVEN_PICKS.update(sheet_picks())
+    if '--atlas-only' in sys.argv:   # just CardArt.png / .txt (the card editor runs this after an art change)
+        build_atlas()
+        print('wrote', os.path.join(OUT, 'CardArt.png'))
         return
     swirl, frame, pips = make_swirl(), make_frame(), make_pips()
     save(swirl, 'CardSwirl.png')

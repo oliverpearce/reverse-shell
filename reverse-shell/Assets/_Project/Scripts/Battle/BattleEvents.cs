@@ -111,9 +111,32 @@ namespace Combat
         public bool IsCounter;
         /// <summary>An end-of-turn tick: the status that dealt it.</summary>
         public StatusDefinition TickStatus;
-        public ResonanceRelation Relation;
+        /// <summary>The target was Staggered: this hit got the Stagger bonus.</summary>
+        public bool StaggerBonus;
         public int HPAfter;
         public int MaxHP;
+    }
+
+    /// <summary>An enemy's Break value changed (a weakness hit, or the refill at the start of a round).</summary>
+    public class BreakChangedEvent : BattleEvent
+    {
+        public BattleUnit Unit;
+        public int Break;
+        public int MaxBreak;
+        public bool Staggered;
+    }
+
+    /// <summary>An enemy's Break value hit 0: it's Staggered this round (its intent is cancelled).</summary>
+    public class StaggeredEvent : BattleEvent
+    {
+        public BattleUnit Unit;
+    }
+
+    /// <summary>A hit showed the player one of an enemy's weaknesses for the first time.</summary>
+    public class WeaknessRevealedEvent : BattleEvent
+    {
+        public BattleUnit Unit;
+        public Weakness Weakness;
     }
 
     /// <summary>A moment with an effect but no number: a shield going up, a cover, an interrupt, a cleanse.</summary>

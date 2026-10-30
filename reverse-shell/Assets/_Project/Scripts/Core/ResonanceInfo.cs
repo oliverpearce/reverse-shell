@@ -3,8 +3,8 @@ using UnityEngine;
 namespace Combat
 {
     /// <summary>
-    /// How the resonances are named and colored. Rules (the advantage wheel) live in <see cref="ResonanceChart"/>;
-    /// this is presentation only.
+    /// How the resonances are named and colored; presentation only. In a fight a resonance only matters through Break
+    /// weaknesses (<see cref="BreakRules"/>).
     /// </summary>
     public static class ResonanceInfo
     {

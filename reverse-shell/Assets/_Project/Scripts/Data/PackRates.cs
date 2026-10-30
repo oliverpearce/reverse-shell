@@ -97,6 +97,18 @@ namespace Combat
         [Tooltip("Extra Ult power per Soul level (0.1 = +10% Ult damage and healing).")]
         [Range(0f, 1f)] public float ultPowerPerSoul = 0.1f;
 
+        [Header("Break & Stagger (the card sheet's Settings tab)")]
+        [Tooltip("A card's Break damage at rank II: its base x this.")]
+        [Min(0f)] public float breakRankII = 2f;
+        [Tooltip("A card's Break damage at rank III: its base x this.")]
+        [Min(0f)] public float breakRankIII = 3f;
+        [Tooltip("Extra damage a Staggered enemy takes for the rest of the round (0.5 = +50%), DoT ticks included.")]
+        [Min(0f)] public float staggerBonus = 0.5f;
+        [Tooltip("Rounds a broken enemy stays Staggered, the one it broke in included (2 = it also loses its next move).")]
+        [Min(1)] public int staggerTurns = 2;
+        [Tooltip("Extra Break value a boss gets on top of its own.")]
+        [Min(0)] public int bossBreakBonus = 3;
+
         static PackRates current;
 
         /// <summary>The project's rates (Resources/Cards/PackRates), or the defaults above if the asset is missing.</summary>

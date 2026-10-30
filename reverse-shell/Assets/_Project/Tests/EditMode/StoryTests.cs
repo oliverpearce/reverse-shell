@@ -150,13 +150,11 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void Basic_IsNeutralAgainstEveryElement()
+        public void Basic_IsNoResonanceWeakness()
         {
+            Assert.AreEqual(Weakness.None, BreakRules.Of(Resonance.Basic));
             foreach (Resonance other in System.Enum.GetValues(typeof(Resonance)))
-            {
-                Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Basic, other));
-                Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(other, Resonance.Basic));
-            }
+                if (other != Resonance.Basic) Assert.AreNotEqual(Weakness.None, BreakRules.Of(other));
         }
 
         [Test]
