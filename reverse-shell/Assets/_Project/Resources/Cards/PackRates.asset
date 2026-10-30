@@ -117,3 +117,8 @@ MonoBehaviour:
   startWithSecondCard: 0
   maxSoulLevel: 3
   ultPowerPerSoul: 0.1
+  breakRankII: 2
+  breakRankIII: 3
+  staggerBonus: 0.5
+  staggerTurns: 2
+  bossBreakBonus: 3

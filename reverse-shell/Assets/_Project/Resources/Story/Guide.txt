@@ -87,16 +87,24 @@ Ult resets after every battle. Enemies have Ult too.
 
 The small card above an enemy is its {gold}intent{/c}: its move this turn.
 
-[battle] Resonance
-Some resonances (elements) beat others:
+[battle] Break
+The {gray}grey bar{/c} under an enemy's HP is its {gold}Break{/c}.
 
-{gold}Cinder{/c} > {gold}Cryo{/c} > {gold}Root{/c}
-> {gold}Arc{/c} > {gold}Cinder{/c}
-{gold}Prism{/c} is neutral but crits more.
-{gold}Basic{/c} is always neutral.
+Hit a {gold}weakness{/c} (Physical, Incantation,
+or a resonance) to wear it down.
+Merged cards break harder.
 
-Advantage: {green}+30% damage, +15% crit{/c}
-Disadvantage: {red}-20% damage{/c}
+At zero it {gold}BREAKS{/c}: it loses this move
+and its next one, and takes {gold}+50% damage{/c}
+(gold numbers) until it recovers, Burn and
+Corruption too. Then the bar refills.
+
+[battle] Weaknesses
+Each enemy has its own weaknesses.
+{gold}Hold{/c} it to see them: {gray}?{/c} = not found yet.
+
+Try different cards: a hit on a weakness
+shows it for good.
 
 [battle] Statuses
 The icons under a unit are its {gold}statuses{/c}.
@@ -106,7 +114,7 @@ The corner number is the total of all stacks.
 {gold}Hover{/c} one for its name, what it does and the turns left.
 
 [battle] Inspect
-{gold}Hold{/c} a unit (or ring it and press {gold}Space{/c}) to see its HP, stats, resonance and cards.
+{gold}Hold{/c} a unit (or ring it and press {gold}Space{/c}) to see its HP, Break, weaknesses, stats and cards.
 
 Check enemy cards before a big fight.
 

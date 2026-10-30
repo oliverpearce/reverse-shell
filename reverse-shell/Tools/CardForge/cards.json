@@ -14,6 +14,9 @@
    "starter": false,
    "asset": "Card_MC_ArcEdge",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 731,
    "rank1": [
     {
      "type": "dmg",
@@ -149,6 +152,9 @@
    "starter": false,
    "asset": "Card_Arc_ChainBolt",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 1026,
    "rank1": [
     {
      "type": "dmg",
@@ -341,6 +347,9 @@
    "starter": false,
    "asset": "Card_Arc_Overload",
    "rarity": "Epic",
+   "attackType": "Incantation",
+   "breakValue": 2,
+   "icon": 1033,
    "rank1": [
     {
      "type": "dmg",
@@ -419,6 +428,9 @@
    "starter": false,
    "asset": "Card_Arc_StaticDischarge",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 1028,
    "rank1": [
     {
      "type": "dmg",
@@ -516,6 +528,9 @@
    "starter": false,
    "asset": "Card_Arc_Quickstep",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 1036,
    "rank1": [
     {
      "type": "dmg",
@@ -613,6 +628,9 @@
    "starter": false,
    "asset": "Card_Arc_Thunderclap",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 1030,
    "rank1": [
     {
      "type": "dmg",
@@ -805,6 +823,9 @@
    "starter": false,
    "asset": "Card_Arc_SurgeLance",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 1035,
    "rank1": [
     {
      "type": "dmg",
@@ -940,6 +961,9 @@
    "starter": false,
    "asset": "Card_MC_SyncField",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1047,
    "rank1": [
     {
      "type": "status",
@@ -1094,6 +1118,9 @@
    "starter": false,
    "asset": "Card_Arc_Overclock",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 985,
    "rank1": [
     {
      "type": "status",
@@ -1229,6 +1256,9 @@
    "starter": false,
    "asset": "Card_Arc_Jumpstart",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 992,
    "rank1": [
     {
      "type": "ult",
@@ -1364,6 +1394,9 @@
    "starter": false,
    "asset": "Card_MC_StaticField",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 1039,
    "rank1": [
     {
      "type": "dmg",
@@ -1556,6 +1589,9 @@
    "starter": false,
    "asset": "Card_Arc_ShortCircuit",
    "rarity": "Legendary",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1031,
    "rank1": [
     {
      "type": "interrupt",
@@ -1672,6 +1708,9 @@
    "starter": false,
    "asset": "Card_Arc_JamSignal",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1040,
    "rank1": [
     {
      "type": "status",
@@ -1807,6 +1846,9 @@
    "starter": false,
    "asset": "Card_Arc_GroundFault",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 1029,
    "rank1": [
     {
      "type": "dmg",
@@ -1942,6 +1984,9 @@
    "starter": false,
    "asset": "Card_Arc_EMPPulse",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1032,
    "rank1": [
     {
      "type": "status",
@@ -2039,6 +2084,9 @@
    "starter": false,
    "asset": "Card_Arc_IonBarrier",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1024,
    "rank1": [
     {
      "type": "shield",
@@ -2117,6 +2165,9 @@
    "starter": false,
    "asset": "Card_Arc_FlickerGuard",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1043,
    "rank1": [
     {
      "type": "shield",
@@ -2214,6 +2265,9 @@
    "starter": false,
    "asset": "Card_Arc_LightningRod",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1007,
    "rank1": [
     {
      "type": "counter",
@@ -2311,6 +2365,9 @@
    "starter": false,
    "asset": "Card_Arc_FeedbackLoop",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1038,
    "rank1": [
     {
      "type": "counter",
@@ -2389,6 +2446,9 @@
    "starter": false,
    "asset": "Card_Arc_RestartPulse",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1042,
    "rank1": [
     {
      "type": "heal",
@@ -2524,6 +2584,9 @@
    "starter": false,
    "asset": "Card_Root_BrambleWhip",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 833,
    "rank1": [
     {
      "type": "dmg",
@@ -2659,6 +2722,9 @@
    "starter": false,
    "asset": "Card_Root_ThornVolley",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 834,
    "rank1": [
     {
      "type": "dmg",
@@ -2756,6 +2822,9 @@
    "starter": false,
    "asset": "Card_Root_Wilt",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 777,
    "rank1": [
     {
      "type": "dmg",
@@ -2834,6 +2903,9 @@
    "starter": false,
    "asset": "Card_Root_SapBurst",
    "rarity": "Legendary",
+   "attackType": "Incantation",
+   "breakValue": 2,
+   "icon": 810,
    "rank1": [
     {
      "type": "dmg",
@@ -2912,6 +2984,9 @@
    "starter": false,
    "asset": "Card_Root_Photosynthesis",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 969,
    "rank1": [
     {
      "type": "status",
@@ -2990,6 +3065,9 @@
    "starter": false,
    "asset": "Card_Root_DeepRoots",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 970,
    "rank1": [
     {
      "type": "status",
@@ -3125,6 +3203,9 @@
    "starter": false,
    "asset": "Card_Root_BlightSpores",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 809,
    "rank1": [
     {
      "type": "status",
@@ -3222,6 +3303,9 @@
    "starter": false,
    "asset": "Card_Root_OozeSpill",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 964,
    "rank1": [
     {
      "type": "status",
@@ -3300,6 +3384,9 @@
    "starter": false,
    "asset": "Card_Root_CreepingRot",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 780,
    "rank1": [
     {
      "type": "status",
@@ -3378,6 +3465,9 @@
    "starter": false,
    "asset": "Card_Root_StranglingVines",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 805,
    "rank1": [
     {
      "type": "status",
@@ -3513,6 +3603,9 @@
    "starter": false,
    "asset": "Card_Root_Corrode",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 779,
    "rank1": [
     {
      "type": "status",
@@ -3648,6 +3741,9 @@
    "starter": false,
    "asset": "Card_Root_BarkSkin",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 851,
    "rank1": [
     {
      "type": "shield",
@@ -3726,6 +3822,9 @@
    "starter": false,
    "asset": "Card_Root_HedgeWall",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 782,
    "rank1": [
     {
      "type": "shield",
@@ -3804,6 +3903,9 @@
    "starter": false,
    "asset": "Card_Root_IvyShelter",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1115,
    "rank1": [
     {
      "type": "cover",
@@ -3939,6 +4041,9 @@
    "starter": false,
    "asset": "Card_Root_Thornmail",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 965,
    "rank1": [
     {
      "type": "counter",
@@ -4017,6 +4122,9 @@
    "starter": false,
    "asset": "Card_Root_SnareTrap",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 806,
    "rank1": [
     {
      "type": "counter",
@@ -4095,6 +4203,9 @@
    "starter": false,
    "asset": "Card_Root_MendingSap",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 976,
    "rank1": [
     {
      "type": "heal",
@@ -4173,6 +4284,9 @@
    "starter": false,
    "asset": "Card_Root_Bloom",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 963,
    "rank1": [
     {
      "type": "heal",
@@ -4251,6 +4365,9 @@
    "starter": false,
    "asset": "Card_Root_Graft",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 971,
    "rank1": [
     {
      "type": "heal",
@@ -4386,6 +4503,9 @@
    "starter": false,
    "asset": "Card_Root_LeechRoot",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 975,
    "rank1": [
     {
      "type": "dmg",
@@ -4521,6 +4641,9 @@
    "starter": false,
    "asset": "Card_Cryo_FrostShard",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 1010,
    "rank1": [
     {
      "type": "dmg",
@@ -4656,6 +4779,9 @@
    "starter": false,
    "asset": "Card_Cryo_GlacierCrash",
    "rarity": "Epic",
+   "attackType": "Incantation",
+   "breakValue": 2,
+   "icon": 1017,
    "rank1": [
     {
      "type": "dmg",
@@ -4753,6 +4879,9 @@
    "starter": false,
    "asset": "Card_Cryo_FrostFocus",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1023,
    "rank1": [
     {
      "type": "status",
@@ -4888,6 +5017,9 @@
    "starter": false,
    "asset": "Card_Cryo_WinterSResolve",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 787,
    "rank1": [
     {
      "type": "status",
@@ -4966,6 +5098,9 @@
    "starter": false,
    "asset": "Card_Cryo_CrystalEdge",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 174,
    "rank1": [
     {
      "type": "status",
@@ -5044,6 +5179,9 @@
    "starter": false,
    "asset": "Card_Cryo_Stillness",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 786,
    "rank1": [
     {
      "type": "ult",
@@ -5179,6 +5317,9 @@
    "starter": false,
    "asset": "Card_Cryo_HoarfrostAura",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 789,
    "rank1": [
     {
      "type": "status",
@@ -5276,6 +5417,9 @@
    "starter": false,
    "asset": "Card_Cryo_FlashFreeze",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1012,
    "rank1": [
     {
      "type": "status",
@@ -5373,6 +5517,9 @@
    "starter": false,
    "asset": "Card_Cryo_IceWall",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1014,
    "rank1": [
     {
      "type": "shield",
@@ -5451,6 +5598,9 @@
    "starter": false,
    "asset": "Card_Cryo_PermafrostShell",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 2149,
    "rank1": [
     {
      "type": "shield",
@@ -5586,6 +5736,9 @@
    "starter": false,
    "asset": "Card_Cryo_Snowdrift",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 2146,
    "rank1": [
     {
      "type": "shield",
@@ -5664,6 +5817,9 @@
    "starter": false,
    "asset": "Card_Cryo_FrozenBastion",
    "rarity": "Epic",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1009,
    "rank1": [
     {
      "type": "shield",
@@ -5799,6 +5955,9 @@
    "starter": false,
    "asset": "Card_Cryo_GlacialCover",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 2152,
    "rank1": [
     {
      "type": "cover",
@@ -5934,6 +6093,9 @@
    "starter": false,
    "asset": "Card_Cryo_RimePlating",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 2145,
    "rank1": [
     {
      "type": "shield",
@@ -6069,6 +6231,9 @@
    "starter": false,
    "asset": "Card_Cryo_IcicleRiposte",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1022,
    "rank1": [
     {
      "type": "counter",
@@ -6147,6 +6312,9 @@
    "starter": false,
    "asset": "Card_Cryo_ShatterGuard",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1020,
    "rank1": [
     {
      "type": "counter",
@@ -6282,6 +6450,9 @@
    "starter": false,
    "asset": "Card_Cryo_FrostbiteWard",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1011,
    "rank1": [
     {
      "type": "counter",
@@ -6360,6 +6531,9 @@
    "starter": false,
    "asset": "Card_Cryo_ColdRetort",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 819,
    "rank1": [
     {
      "type": "counter",
@@ -6438,6 +6612,9 @@
    "starter": false,
    "asset": "Card_Cryo_GlacialMirror",
    "rarity": "Legendary",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1019,
    "rank1": [
     {
      "type": "counter",
@@ -6516,6 +6693,9 @@
    "starter": false,
    "asset": "Card_Cryo_Thaw",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 26,
    "rank1": [
     {
      "type": "heal",
@@ -6651,6 +6831,9 @@
    "starter": false,
    "asset": "Card_Cinder_EmberStrike",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 993,
    "rank1": [
     {
      "type": "dmg",
@@ -6786,6 +6969,9 @@
    "starter": false,
    "asset": "Card_Cinder_FlameWave",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 998,
    "rank1": [
     {
      "type": "dmg",
@@ -6883,6 +7069,9 @@
    "starter": false,
    "asset": "Card_Cinder_MagmaFist",
    "rarity": "Epic",
+   "attackType": "Incantation",
+   "breakValue": 2,
+   "icon": 1001,
    "rank1": [
     {
      "type": "dmg",
@@ -6961,6 +7150,9 @@
    "starter": false,
    "asset": "Card_Cinder_Detonate",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 1003,
    "rank1": [
     {
      "type": "dmg",
@@ -7039,6 +7231,9 @@
    "starter": false,
    "asset": "Card_Cinder_Scorch",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 1004,
    "rank1": [
     {
      "type": "dmg",
@@ -7117,6 +7312,9 @@
    "starter": false,
    "asset": "Card_Cinder_FireSpin",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 766,
    "rank1": [
     {
      "type": "dmg",
@@ -7195,6 +7393,9 @@
    "starter": false,
    "asset": "Card_Cinder_BlastFurnace",
    "rarity": "Epic",
+   "attackType": "Incantation",
+   "breakValue": 2,
+   "icon": 763,
    "rank1": [
     {
      "type": "dmg",
@@ -7444,6 +7645,9 @@
    "starter": false,
    "asset": "Card_Cinder_SlagHammer",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 997,
    "rank1": [
     {
      "type": "dmg",
@@ -7579,6 +7783,9 @@
    "starter": false,
    "asset": "Card_Cinder_Wildfire",
    "rarity": "Epic",
+   "attackType": "Incantation",
+   "breakValue": 2,
+   "icon": 981,
    "rank1": [
     {
      "type": "dmg",
@@ -7657,6 +7864,9 @@
    "starter": false,
    "asset": "Card_Cinder_InfernoLance",
    "rarity": "Legendary",
+   "attackType": "Incantation",
+   "breakValue": 2,
+   "icon": 1006,
    "rank1": [
     {
      "type": "dmg",
@@ -7754,6 +7964,9 @@
    "starter": false,
    "asset": "Card_Cinder_Stoke",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1002,
    "rank1": [
     {
      "type": "status",
@@ -7832,6 +8045,9 @@
    "starter": false,
    "asset": "Card_Cinder_HeatHaze",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1008,
    "rank1": [
     {
      "type": "status",
@@ -7910,6 +8126,9 @@
    "starter": false,
    "asset": "Card_Cinder_Kindle",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 995,
    "rank1": [
     {
      "type": "status",
@@ -7988,6 +8207,9 @@
    "starter": false,
    "asset": "Card_Cinder_AshCloud",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 802,
    "rank1": [
     {
      "type": "status",
@@ -8066,6 +8288,9 @@
    "starter": false,
    "asset": "Card_Cinder_MeltArmor",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 996,
    "rank1": [
     {
      "type": "status",
@@ -8201,6 +8426,9 @@
    "starter": false,
    "asset": "Card_Cinder_SmokeScreen",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 765,
    "rank1": [
     {
      "type": "status",
@@ -8336,6 +8564,9 @@
    "starter": false,
    "asset": "Card_Cinder_HeatShield",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 762,
    "rank1": [
     {
      "type": "shield",
@@ -8471,6 +8702,9 @@
    "starter": false,
    "asset": "Card_Cinder_Backdraft",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 812,
    "rank1": [
     {
      "type": "counter",
@@ -8549,6 +8783,9 @@
    "starter": false,
    "asset": "Card_Cinder_Flashpoint",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 977,
    "rank1": [
     {
      "type": "counter",
@@ -8627,6 +8864,9 @@
    "starter": false,
    "asset": "Card_Cinder_Cauterize",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 1041,
    "rank1": [
     {
      "type": "heal",
@@ -8762,6 +9002,9 @@
    "starter": false,
    "asset": "Card_Prism_LightLance",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 770,
    "rank1": [
     {
      "type": "dmg",
@@ -8840,6 +9083,9 @@
    "starter": false,
    "asset": "Card_Prism_Refraction",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 775,
    "rank1": [
     {
      "type": "dmg",
@@ -8918,6 +9164,9 @@
    "starter": false,
    "asset": "Card_Prism_SpectrumBurst",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 829,
    "rank1": [
     {
      "type": "dmg",
@@ -9110,6 +9359,9 @@
    "starter": false,
    "asset": "Card_Prism_Pinpoint",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 1,
+   "icon": 737,
    "rank1": [
     {
      "type": "dmg",
@@ -9245,6 +9497,9 @@
    "starter": false,
    "asset": "Card_Prism_Radiance",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 774,
    "rank1": [
     {
      "type": "status",
@@ -9323,6 +9578,9 @@
    "starter": false,
    "asset": "Card_Prism_Inspire",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 773,
    "rank1": [
     {
      "type": "ult",
@@ -9458,6 +9716,9 @@
    "starter": false,
    "asset": "Card_Prism_PrismaticLens",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 740,
    "rank1": [
     {
      "type": "status",
@@ -9555,6 +9816,9 @@
    "starter": false,
    "asset": "Card_Prism_MirrorShard",
    "rarity": "Rare",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 772,
    "rank1": [
     {
      "type": "counter",
@@ -9633,6 +9897,9 @@
    "starter": false,
    "asset": "Card_Prism_SanctuaryGlass",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 738,
    "rank1": [
     {
      "type": "counter",
@@ -9711,6 +9978,9 @@
    "starter": false,
    "asset": "Card_Prism_Judgment",
    "rarity": "Legendary",
+   "attackType": "Incantation",
+   "breakValue": 0,
+   "icon": 843,
    "rank1": [
     {
      "type": "counter",
@@ -9789,6 +10059,9 @@
    "starter": true,
    "asset": "Card_Physical_Strike",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 1,
+   "icon": 1447,
    "rank1": [
     {
      "type": "dmg",
@@ -9867,6 +10140,9 @@
    "starter": false,
    "asset": "Card_MC_EdgeStrike",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 2,
+   "icon": 724,
    "rank1": [
     {
      "type": "dmg",
@@ -9945,6 +10221,9 @@
    "starter": false,
    "asset": "Card_Physical_QuickJab",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 1,
+   "icon": 1446,
    "rank1": [
     {
      "type": "dmg",
@@ -10042,6 +10321,9 @@
    "starter": false,
    "asset": "Card_Physical_PreciseShot",
    "rarity": "Rare",
+   "attackType": "Physical",
+   "breakValue": 1,
+   "icon": 1448,
    "rank1": [
     {
      "type": "dmg",
@@ -10120,6 +10402,9 @@
    "starter": false,
    "asset": "Card_MC_CrossSlash",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 1,
+   "icon": 155,
    "rank1": [
     {
      "type": "dmg",
@@ -10198,6 +10483,9 @@
    "starter": false,
    "asset": "Card_Physical_Cleave",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 1,
+   "icon": 1449,
    "rank1": [
     {
      "type": "dmg",
@@ -10276,6 +10564,9 @@
    "starter": false,
    "asset": "Card_Physical_GroundSlam",
    "rarity": "Legendary",
+   "attackType": "Physical",
+   "breakValue": 2,
+   "icon": 1536,
    "rank1": [
     {
      "type": "dmg",
@@ -10373,6 +10664,9 @@
    "starter": false,
    "asset": "Card_Physical_VersatileStrike",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 1,
+   "icon": 1535,
    "rank1": [
     {
      "type": "dmg",
@@ -10508,6 +10802,9 @@
    "starter": false,
    "asset": "Card_Physical_BraceForImpact",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 0,
+   "icon": 1900,
    "rank1": [
     {
      "type": "status",
@@ -10586,6 +10883,9 @@
    "starter": false,
    "asset": "Card_Physical_SteadyAim",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 0,
+   "icon": 1789,
    "rank1": [
     {
      "type": "status",
@@ -10664,6 +10964,9 @@
    "starter": false,
    "asset": "Card_Physical_Expose",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 0,
+   "icon": 928,
    "rank1": [
     {
      "type": "status",
@@ -10742,6 +11045,9 @@
    "starter": false,
    "asset": "Card_Physical_Suppress",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 0,
+   "icon": 890,
    "rank1": [
     {
      "type": "status",
@@ -10820,6 +11126,9 @@
    "starter": false,
    "asset": "Card_Physical_Interrupt",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 1,
+   "icon": 848,
    "rank1": [
     {
      "type": "dmg",
@@ -10955,6 +11264,9 @@
    "starter": true,
    "asset": "Card_Physical_Guard",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 0,
+   "icon": 1101,
    "rank1": [
     {
      "type": "shield",
@@ -11033,6 +11345,9 @@
    "starter": false,
    "asset": "Card_Physical_Cover",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 0,
+   "icon": 1192,
    "rank1": [
     {
      "type": "cover",
@@ -11168,6 +11483,9 @@
    "starter": false,
    "asset": "Card_Physical_Fortify",
    "rarity": "Rare",
+   "attackType": "Physical",
+   "breakValue": 0,
+   "icon": 1126,
    "rank1": [
     {
      "type": "shield",
@@ -11303,6 +11621,9 @@
    "starter": false,
    "asset": "Card_Physical_RallyGuard",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 0,
+   "icon": 1258,
    "rank1": [
     {
      "type": "shield",
@@ -11381,6 +11702,9 @@
    "starter": false,
    "asset": "Card_Physical_Riposte",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 0,
+   "icon": 1530,
    "rank1": [
     {
      "type": "counter",
@@ -11459,6 +11783,9 @@
    "starter": false,
    "asset": "Card_Physical_Reversal",
    "rarity": "Rare",
+   "attackType": "Physical",
+   "breakValue": 0,
+   "icon": 1542,
    "rank1": [
     {
      "type": "counter",
@@ -11537,6 +11864,9 @@
    "starter": false,
    "asset": "Card_Physical_FieldRepair",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 0,
+   "icon": 1584,
    "rank1": [
     {
      "type": "heal",
@@ -11615,6 +11945,9 @@
    "starter": false,
    "asset": "Card_MC_EdgeBreaker",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 2,
+   "icon": 0,
    "rank1": [
     {
      "type": "dmg",
@@ -11750,6 +12083,9 @@
    "starter": false,
    "asset": "Card_MC_ArcTempest",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 2,
+   "icon": 0,
    "rank1": [
     {
      "type": "dmg",
@@ -11885,6 +12221,9 @@
    "starter": false,
    "asset": "Card_MC_BrambleStorm",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 2,
+   "icon": 1211,
    "rank1": [
     {
      "type": "dmg",
@@ -12020,6 +12359,9 @@
    "starter": false,
    "asset": "Card_MC_GlacialSpear",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 2,
+   "icon": 1209,
    "rank1": [
     {
      "type": "dmg",
@@ -12212,6 +12554,9 @@
    "starter": false,
    "asset": "Card_MC_EmberNova",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 2,
+   "icon": 1199,
    "rank1": [
     {
      "type": "dmg",
@@ -12404,6 +12749,9 @@
    "starter": false,
    "asset": "Card_MC_RadiantLance",
    "rarity": "Common",
+   "attackType": "Incantation",
+   "breakValue": 2,
+   "icon": 1200,
    "rank1": [
     {
      "type": "dmg",
@@ -12539,6 +12887,9 @@
    "starter": false,
    "asset": "Card_Enemy_Frenzy",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 2,
+   "icon": 0,
    "rank1": [
     {
      "type": "dmg",
@@ -12617,6 +12968,9 @@
    "starter": false,
    "asset": "Card_Enemy_LiveWire",
    "rarity": "Common",
+   "attackType": "Physical",
+   "breakValue": 2,
+   "icon": 0,
    "rank1": [
     {
      "type": "dmg",
@@ -12867,42 +13221,77 @@
    "innate": "Card_Physical_Cleave",
    "levels": 3,
    "weight": 1.0,
-   "ult": "Card_Enemy_StormHeart"
+   "ult": "Card_Enemy_StormHeart",
+   "breakPoints": 12,
+   "weaknesses": [
+    "Physical"
+   ]
   },
   {
    "enemy": "Enemy_Collector",
    "innate": "Card_Physical_Strike",
    "levels": 3,
    "weight": 1.0,
-   "ult": "Card_Enemy_Reclaim"
+   "ult": "Card_Enemy_Reclaim",
+   "breakPoints": 10,
+   "weaknesses": [
+    "Physical",
+    "Arc"
+   ]
   },
   {
    "enemy": "Enemy_RustSentry",
    "innate": "Card_Physical_GroundSlam",
    "levels": 3,
    "weight": 1.0,
-   "ult": "Card_Enemy_Meltdown"
+   "ult": "Card_Enemy_Meltdown",
+   "breakPoints": 7,
+   "weaknesses": [
+    "Physical",
+    "Arc"
+   ]
   },
   {
    "enemy": "Enemy_ScrapStalker",
    "innate": "Card_MC_CrossSlash",
    "levels": 3,
    "weight": 1.0,
-   "ult": "Card_Enemy_ToxicSwarm"
+   "ult": "Card_Enemy_ToxicSwarm",
+   "breakPoints": 7,
+   "weaknesses": [
+    "Physical",
+    "Incantation"
+   ]
   },
   {
    "enemy": "Enemy_ScrapHound",
    "innate": "Card_Physical_QuickJab",
    "levels": 3,
    "weight": 1.0,
-   "ult": "Card_Enemy_Frenzy"
+   "ult": "Card_Enemy_Frenzy",
+   "breakPoints": 6,
+   "weaknesses": [
+    "Physical",
+    "Arc"
+   ]
   },
   {
    "enemy": "Enemy_WireCrawler",
    "innate": "Card_Physical_VersatileStrike",
    "levels": 3,
    "weight": 1.0,
-   "ult": "Card_Enemy_LiveWire"
+   "ult": "Card_Enemy_LiveWire",
+   "breakPoints": 6,
+   "weaknesses": [
+    "Physical"
+   ]
   }
- ]
+ ],
+ "settings": {
+  "breakRankII": 2.0,
+  "breakRankIII": 3.0,
+  "staggerBonus": 0.5,
+  "staggerTurns": 2,
+  "bossBreakBonus": 3
+ }
 }

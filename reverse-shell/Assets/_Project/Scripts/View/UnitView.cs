@@ -7,8 +7,8 @@ using UnityEngine.UI;
 namespace Combat.View
 {
     /// <summary>
-    /// A battlefield unit: animated pixel sprite (or placeholder), HP, Ult pips beside the unit-type diamond, statuses,
-    /// and the enemy intent card.
+    /// A battlefield unit: animated pixel sprite (or placeholder), HP, an enemy's grey Break bar under it (no numbers:
+    /// those and the weaknesses are in the inspect screen), Ult pips, statuses, and the enemy intent card.
     /// A red lock-on reticle marks the targeted enemy and a white ring marks the unit under the cursor
     /// (mouse or arrow keys). Full details live in the inspect screen (hold, or Space).
     /// </summary>
@@ -40,6 +40,10 @@ namespace Combat.View
         public List<StatusSnapshot> Statuses { get; private set; }
         public CardInstance Intent { get; private set; }
         public int MoxieCap { get; private set; }
+        /// <summary>Latest Break value shown (event-time, for the inspect screen); MaxBreak 0 = can't be broken.</summary>
+        public int BreakValue { get; private set; }
+        public int MaxBreak { get; private set; }
+        public bool Staggered { get; private set; }
 
         /// <summary>Where big damage numbers appear: just above the HP bar.</summary>
         public Vector3 DamageAnchor { get { return hpBar.TransformPoint(new Vector3(0f, hpBar.rect.yMax + 38f, 0f)); } }
@@ -50,14 +54,14 @@ namespace Combat.View
         BattleView view;
         CanvasGroup group;
         Image portrait, sprite, flash, intentIcon, intentGlyph;
-        SlantBar hpFill;
+        SlantBar hpFill, breakFill, breakBack;
         Text nameText;   // shown on hover only
         Reticle lockOn, focusRing, targetPreview;
         UISpriteAnimator animator;
         RectTransform hpBar;
         RectTransform statusRow;
         readonly List<Image> moxiePips = new List<Image>();
-        Coroutine hpRoutine, pressRoutine;
+        Coroutine hpRoutine, breakRoutine, pressRoutine;
         bool longPressed;
 
         /// <summary>How long to hold the mouse on a unit to open its full character sheet.</summary>
@@ -144,13 +148,23 @@ namespace Combat.View
                 boss.rectTransform.Place(top, new Vector2(0.5f, 0f), new Vector2(0f, -296f), new Vector2(Width, 48f));
             }
 
+            // Break: a slim grey bar right under the HP bar, draining as weakness hits land (bible v0.8 §5).
+            float below = 0f;
+            if (unit.Breakable)
+            {
+                var breakBar = UIFactory.CreateRect("BreakBar", transform).Place(top, top, new Vector2(0f, -318f), new Vector2(186f, BreakHeight));
+                breakBack = SlantBar.Create(breakBar, "Back", PanelDark, HpSlant * BreakHeight / 14f, 2f);
+                breakFill = SlantBar.Create(breakBar, "Fill", BreakGrey, HpSlant * BreakHeight / 14f);
+                below = BreakHeight + 4f;
+            }
+
             // Ult points right under the HP bar (enemies with an Ult show theirs too).
             if (unit.Team == Team.Player || (unit.Enemy != null && unit.Enemy.ritual != null))
             {
                 // Big pips (no backing): solid dark when empty, gold when earned, orange and pulsing when the Ult is ready.
                 const float pipSize = 32f, gap = 4f;
                 float rowW = moxieCap * pipSize + (moxieCap - 1) * gap;
-                var row = UIFactory.CreateRect("Ult", transform).Place(top, top, new Vector2(0f, -318f), new Vector2(rowW, pipSize));
+                var row = UIFactory.CreateRect("Ult", transform).Place(top, top, new Vector2(0f, -318f - below), new Vector2(rowW, pipSize));
                 for (int i = 0; i < moxieCap; i++)
                 {
                     var pip = UIFactory.CreateImage(row, "Pip" + i, Color.white);
@@ -160,7 +174,7 @@ namespace Combat.View
                 }
             }
 
-            statusRow = UIFactory.CreateRect("Statuses", transform).Place(top, top, new Vector2(0f, -354f), new Vector2(Width + 40f, StatusSize));
+            statusRow = UIFactory.CreateRect("Statuses", transform).Place(top, top, new Vector2(0f, -354f - below), new Vector2(Width + 40f, StatusSize));
             var layout = statusRow.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.spacing = 4f;
@@ -170,6 +184,7 @@ namespace Combat.View
             layout.childForceExpandHeight = false;
 
             SetHP(unit.HP, unit.MaxHP, true);
+            SetBreak(unit.Break, unit.MaxBreak, unit.Staggered, true);
             SetMoxie(unit.Moxie, moxieCap);
             SetIntent(null);
         }
@@ -348,6 +363,54 @@ namespace Combat.View
             }
             float from = hpFill.Fill;
             hpRoutine = StartCoroutine(Tween.Run(0.25f, p => hpFill.Fill = Mathf.Lerp(from, target, p)));
+        }
+
+        const float BreakHeight = 8f;
+        static readonly Color BreakGrey = new Color(0.74f, 0.74f, 0.78f), BrokenBack = new Color(0.42f, 0.27f, 0.1f, 0.95f);
+
+        /// <summary>The Break bar: grey fill for the Break value left; when Staggered it flashes and stays empty on a
+        /// warm, cracked-looking backing, and the unit sits down, until it recovers.</summary>
+        public void SetBreak(int value, int max, bool staggered, bool instant = false)
+        {
+            bool wasStaggered = Staggered;
+            BreakValue = value;
+            MaxBreak = max;
+            Staggered = staggered;
+            // Broken: it sits down (the Esc menu's kneel) and stays down until it recovers, instead of an effect.
+            if (animator != null && Unit.IsAlive && staggered != wasStaggered)
+            {
+                if (staggered) animator.Play("sit", true);
+                else animator.Play(UISpriteAnimator.Idle);
+            }
+            if (breakFill == null) return;
+            breakBack.color = staggered ? BrokenBack : PanelDark;
+            float target = max > 0 ? Mathf.Clamp01((float)value / max) : 0f;
+            if (breakRoutine != null) StopCoroutine(breakRoutine);
+            if (instant || !isActiveAndEnabled)
+            {
+                breakFill.Fill = target;
+                return;
+            }
+            breakRoutine = StartCoroutine(staggered && !wasStaggered ? BreakFlash() : Tween.Run(0.25f, Lerp(breakFill.Fill, target)));
+        }
+
+        System.Action<float> Lerp(float from, float to)
+        {
+            return p => breakFill.Fill = Mathf.Lerp(from, to, p);
+        }
+
+        IEnumerator BreakFlash()
+        {
+            breakFill.Fill = 1f;
+            for (int i = 0; i < 3; i++)
+            {
+                breakFill.color = Color.white;
+                yield return Tween.Wait(0.06f);
+                breakFill.color = Gold;
+                yield return Tween.Wait(0.06f);
+            }
+            breakFill.color = BreakGrey;
+            breakFill.Fill = 0f;
         }
 
         bool ultReady;

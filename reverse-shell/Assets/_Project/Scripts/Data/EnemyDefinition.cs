@@ -13,6 +13,13 @@ namespace Combat
         [Tooltip("XP each party member earns when this enemy is beaten.")]
         [Min(0)] public int xpReward = 50;
 
+        [Header("Break (from the card sheet's Enemies tab)")]
+        [Tooltip("Break value: weakness hits take Break damage off it; at 0 the enemy is Staggered. 0 = can't be broken. " +
+                 "A boss gets PackRates.bossBreakBonus more.")]
+        [Min(0)] public int breakPoints = 3;
+        [Tooltip("What its Break value is weak to: attack types and resonances. Every Chapter One enemy is weak to Physical.")]
+        public Weakness weaknesses = Weakness.Physical;
+
         [Tooltip("Ult: replaces the round's skill once the enemy's Ult points are full (it gains them by acting, like the party). " +
                  "It's the Soul form of the innate card below.")]
         public CardDefinition ritual;

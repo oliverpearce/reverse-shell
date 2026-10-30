@@ -36,9 +36,18 @@ namespace Game.World
             return true;
         }
 
+        /// <summary>The Break weaknesses the player finds in battle are saved as flags too ("weak.Enemy_X.Physical").</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void HookWeaknessBook()
+        {
+            Combat.WeaknessBook.Lookup = Has;
+            Combat.WeaknessBook.Store = Set;
+        }
+
         public static void Clear()
         {
             Flags.Clear();
+            Combat.WeaknessBook.Clear();
             SetName("");
         }
 

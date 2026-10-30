@@ -7,13 +7,15 @@ namespace Combat
     {
         public int Amount;
         public bool Crit;
-        public ResonanceRelation Relation;
+        /// <summary>The defender was Staggered, so the hit got the Stagger bonus.</summary>
+        public bool StaggerBonus;
     }
 
     public static class DamageCalculator
     {
         /// <summary>
-        /// ATK x multiplier x (1 - mitigation) x resonance x (1 + might) x (1 + damage taken) x crit.
+        /// ATK x multiplier x (1 - mitigation) x stagger x (1 + might) x (1 + damage taken) x crit. Stagger is
+        /// <see cref="BreakRules.StaggerMultiplier"/> on a Staggered defender, else 1 (there's no resonance wheel).
         /// Pass rng = null to disable crits (handy for tests and previews).
         /// </summary>
         public static DamageResult Compute(BattleUnit attacker, BattleUnit defender, float multiplier, bool isRitual,
@@ -24,33 +26,23 @@ namespace Combat
             float def = Mathf.Max(0f, defender.GetStat(defStat));
             float mitigation = def / (def + Mathf.Max(1f, config.defenseScale));
 
-            var relation = ResonanceChart.Relation(attacker.Resonance, defender.Resonance);
-            float resonance = 1f, critBonus = 0f;
-            if (relation == ResonanceRelation.Advantage)
-            {
-                resonance = config.advantageDamage;
-                critBonus = config.advantageCritBonus;
-            }
-            else if (relation == ResonanceRelation.Disadvantage)
-            {
-                resonance = config.disadvantageDamage;
-            }
+            bool staggered = defender.Staggered;
+            float stagger = staggered ? BreakRules.StaggerMultiplier : 1f;
 
             float might = 1f + attacker.GetStat(StatType.DamageBonus)
                              + attacker.GetStat(isRitual ? StatType.RitualMight : StatType.IncantationMight);
             float taken = 1f + defender.GetStat(StatType.DamageTaken);
 
-            if (attacker.Resonance == Resonance.Prism) critBonus += config.prismCritBonus;
-            float critRate = Mathf.Clamp01(attacker.GetStat(StatType.CritRate) + critBonus);
+            float critRate = Mathf.Clamp01(attacker.GetStat(StatType.CritRate));
             bool crit = rng != null && rng.NextDouble() < critRate;
             float critMult = crit ? Mathf.Max(1f, attacker.GetStat(StatType.CritDamage)) : 1f;
 
-            float total = atk * multiplier * (1f - mitigation) * resonance * Mathf.Max(0f, might) * Mathf.Max(0f, taken) * critMult;
+            float total = atk * multiplier * (1f - mitigation) * stagger * Mathf.Max(0f, might) * Mathf.Max(0f, taken) * critMult;
             return new DamageResult
             {
                 Amount = Mathf.Max(1, Mathf.RoundToInt(total)),
                 Crit = crit,
-                Relation = relation
+                StaggerBonus = staggered
             };
         }
     }

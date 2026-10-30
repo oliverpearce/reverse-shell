@@ -56,6 +56,8 @@ namespace Combat
         public readonly BattleUnit Caster;
         public readonly CardInstance Card;
         public readonly List<BattleUnit> CardTargets;
+        /// <summary>The targets this card has already dealt its Break damage to (once per target per card).</summary>
+        public readonly HashSet<BattleUnit> BreakDealt = new HashSet<BattleUnit>();
 
         public EffectContext(BattleController battle, BattleUnit caster, CardInstance card, List<BattleUnit> cardTargets)
         {

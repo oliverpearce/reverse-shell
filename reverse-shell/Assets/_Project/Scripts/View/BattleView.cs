@@ -341,9 +341,30 @@ namespace Combat.View
             while (Controller.Events.Count > 0)
             {
                 var routine = Play(Controller.Events.Dequeue());
-                if (routine != null) yield return StartCoroutine(routine);
+                if (routine != null) yield return StartCoroutine(Safely(routine));
             }
             playing = false;
+        }
+
+        /// <summary>Runs one event's animation, logging any error instead of letting it stop the event playback (a
+        /// broken effect or view bug must never freeze the battle).</summary>
+        static IEnumerator Safely(IEnumerator routine)
+        {
+            while (true)
+            {
+                object current;
+                try
+                {
+                    if (!routine.MoveNext()) yield break;
+                    current = routine.Current;
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogException(ex);
+                    yield break;
+                }
+                yield return current;
+            }
         }
 
         IEnumerator Play(BattleEvent e)
@@ -400,6 +421,20 @@ namespace Combat.View
                     return Tween.Wait(0.15f);
                 case HealEvent heal:
                     return PlayHeal(heal);
+                case BreakChangedEvent broken:
+                    var bv = Get(broken.Unit);
+                    if (bv != null) bv.SetBreak(broken.Break, broken.MaxBreak, broken.Staggered);
+                    return null;
+                case StaggeredEvent staggered:
+                    var sv = Get(staggered.Unit);
+                    if (sv == null) return null;
+                    StartCoroutine(BreakBanner(sv));
+                    StartCoroutine(sv.Shake(18f, 0.3f));
+                    return Tween.Wait(0.55f);
+                case WeaknessRevealedEvent weak:
+                    var wv = Get(weak.Unit);
+                    if (wv != null) SpawnHeadText(wv, UIText.Get("battle.weak", "weak", BreakRules.Label(weak.Weakness)), StaggerGold, UIFactory.TextSize.Large);
+                    return Tween.Wait(0.2f);
                 case StatusesChangedEvent statuses:
                     return PlayStatuses(statuses);
                 case UnitDiedEvent died:
@@ -661,9 +696,9 @@ namespace Combat.View
                 string blocked = "<color=#8CD9FF>" + UIText.Get("battle.blocked", "n", e.Blocked.ToString()) + "</color>";
                 text = e.Amount > 0 ? text + "\n" + UIFactory.Size(30) + blocked + "</size>" : UIFactory.Size(48) + blocked + "</size>";
             }
-            if (e.IsTick) color = TickColor;   // just the purple number, no status name
-            else if (e.Relation == ResonanceRelation.Advantage) color = new Color(1f, 0.85f, 0.35f);
-            else if (e.Relation == ResonanceRelation.Disadvantage) color = new Color(0.7f, 0.7f, 0.75f);
+            // Every hit on a broken enemy is gold (ticks too); other ticks are just the purple number, no status name.
+            if (e.StaggerBonus) color = StaggerGold;
+            else if (e.IsTick) color = TickColor;
             if (e.Crit)
             {
                 size = 92;
@@ -687,8 +722,7 @@ namespace Combat.View
             string note = e.Crit ? " (crit)" : "";
             if (e.Blocked > 0) note += " (" + e.Blocked + " blocked)";
             if (e.IsCounter) note += " (counter)";
-            if (e.Relation == ResonanceRelation.Advantage) note += " (resonance+)";
-            else if (e.Relation == ResonanceRelation.Disadvantage) note += " (resonance-)";
+            if (e.StaggerBonus) note += " (stagger +" + Mathf.RoundToInt(PackRates.Current.staggerBonus * 100f) + "%)";
             hud.Log(e.Target.Name + " takes " + e.Amount + note);
             yield return Tween.Wait(e.IsTick ? TickHold : 0.3f);
         }
@@ -708,6 +742,50 @@ namespace Combat.View
         readonly Dictionary<UnitView, int> activeNumbers = new Dictionary<UnitView, int>();
 
         /// <summary>Big number that pops in just above the unit's HP bar, holds, then drifts up and fades.</summary>
+        /// <summary>The big BREAK slammed across a broken enemy: a dark slanted band with gold rules, the word on it,
+        /// held a moment, then faded out (it doesn't hold up the battle).</summary>
+        IEnumerator BreakBanner(UnitView unit)
+        {
+            var root = UIFactory.CreateRect("Break", FxLayer);
+            root.sizeDelta = new Vector2(560f, 150f);
+            root.position = unit.Center;
+            var group = root.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+
+            var band = UIFactory.CreateRect("Band", root).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 104f));
+            SlantBar.Create(band, "Back", new Color(0.05f, 0.04f, 0.03f, 0.85f), 30f);
+            foreach (float y in new[] { 52f, -52f })
+            {
+                var rule = UIFactory.CreateRect("Rule", band).Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(y > 0 ? 15f : -15f, y), new Vector2(530f, 5f));
+                SlantBar.Create(rule, "Gold", StaggerGold, 0f);
+            }
+
+            var word = UIFactory.CreateText(root, "Word", UIText.Get("battle.break"), UIFactory.TextSize.Title, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
+            word.horizontalOverflow = HorizontalWrapMode.Overflow;
+            word.raycastTarget = false;
+            word.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 4f), new Vector2(560f, 120f));
+            word.rectTransform.localScale = Vector3.one * 1.6f;
+            var outline = word.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0.45f, 0.28f, 0.05f, 1f);
+            outline.effectDistance = new Vector2(4f, -4f);
+            word.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(0f, -7f);
+
+            // Slam in from big, flash white to gold, hold, fade.
+            yield return Tween.Run(0.14f, p =>
+            {
+                if (root == null) return;
+                root.localScale = new Vector3(Mathf.Lerp(2.4f, 1f, p), Mathf.Lerp(0.3f, 1f, p), 1f);
+                group.alpha = p;
+            });
+            yield return Tween.Run(0.25f, p => { if (word != null) word.color = Color.Lerp(Color.white, StaggerGold, p); });
+            yield return Tween.Wait(0.55f);
+            yield return Tween.Run(0.3f, p => { if (group != null) group.alpha = 1f - p; });
+            if (root != null) Destroy(root.gameObject);
+        }
+
+        /// <summary>Gold for Break: the BREAK banner, weakness finds and every hit on a Staggered enemy.</summary>
+        static readonly Color StaggerGold = new Color(1f, 0.85f, 0.35f);
+
         public void SpawnDamageNumber(UnitView unit, string text, Color color, int size)
         {
             SpawnFloatingText(unit, unit.DamageAnchor, activeNumbers, text, color, size, 18f);

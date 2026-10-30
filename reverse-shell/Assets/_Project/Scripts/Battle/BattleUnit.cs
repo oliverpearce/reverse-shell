@@ -18,6 +18,12 @@ namespace Combat
         public int Level { get; private set; }
         /// <summary>Enemy only: the card it will use this round.</summary>
         public CardInstance Intent;
+        /// <summary>Enemy only: Break value left (<see cref="BreakRules"/>). At 0 the unit is Staggered.</summary>
+        public int Break;
+        /// <summary>Rounds of Stagger left, counting this one (PackRates.staggerTurns when broken): while Staggered it
+        /// has no intent and takes extra damage; each round's end counts one off, after its DoT ticks.</summary>
+        public int StaggerTurns;
+        public bool Staggered { get { return StaggerTurns > 0; } }
         /// <summary>Party only: the Parts fitted for this fight (their modifiers always apply).</summary>
         public readonly List<PartDefinition> Parts = new List<PartDefinition>();
 
@@ -34,6 +40,7 @@ namespace Combat
             Team = team;
             Level = definition is EnemyDefinition ? DefaultEnemyLevel : 1;
             HP = MaxHP;
+            Break = MaxBreak;
         }
 
         /// <summary>Enemy definitions hold their stats at this level.</summary>
@@ -58,7 +65,24 @@ namespace Combat
             Level = Mathf.Clamp(level, 1, MaxEnemyLevel);
             IsBoss = boss;
             HP = MaxHP;
+            Break = MaxBreak;
         }
+
+        /// <summary>Full Break value: the enemy's own (plus a boss's bonus); 0 = can't be broken (party members).</summary>
+        public int MaxBreak
+        {
+            get
+            {
+                var enemy = Enemy;
+                if (enemy == null || enemy.breakPoints <= 0) return 0;
+                return enemy.breakPoints + (IsBoss ? PackRates.Current.bossBreakBonus : 0);
+            }
+        }
+
+        public bool Breakable { get { return MaxBreak > 0; } }
+
+        /// <summary>What its Break value is weak to (none for party members).</summary>
+        public Weakness Weaknesses { get { return Enemy != null ? Enemy.weaknesses : Weakness.None; } }
 
         public string Name { get { return Definition.DisplayName; } }
         public bool IsAlive { get { return HP > 0; } }

@@ -98,7 +98,7 @@ settings.music = Music
 settings.music.help = How loud the music is. Drag the slider, or use Left / Right.
 
 settings.tutorials = Tutorials
-settings.tutorials.help = Every key, and the battle tutorials: turns and AP, merging, Ult, resonance and more.
+settings.tutorials.help = Every key, and the battle tutorials: turns and AP, merging, Ult, Break and more.
 
 # ------------------------------------------------------------------ Esc menu (the cards on the mat)
 
@@ -272,6 +272,10 @@ battle.continue = Continue
 battle.crit = CRIT!
 # Under a hit a shield soaked. {n} = the damage blocked
 battle.blocked = BLOCK {n}
+# Slammed across an enemy whose Break value just hit 0 (Staggered: it loses its moves, and takes +50% damage while broken)
+battle.break = BREAK
+# Over an enemy when a hit first shows one of its weaknesses. {weak} = Physical, Incantation, Arc...
+battle.weak = WEAK: {weak}
 
 # Banners across the middle. {n} = the turn number, {name} = a unit's name
 battle.banner.turn = Turn {n}
@@ -315,6 +319,11 @@ status.burn = Lose {pct} of the burner's ATK each turn
 inspect.hint = Click anywhere to return to battle
 inspect.ult = ULT
 inspect.ready = READY
+# An enemy's Break value (exact numbers here; the battle shows only the grey bar), and its weaknesses ("?" until found)
+inspect.break = Break
+inspect.staggered = STAGGERED
+inspect.weak = WEAK
+inspect.weak_none = No weaknesses
 
 # The profile posters
 poster.target = TARGET PROFILE
@@ -339,8 +348,8 @@ items.tab.parts = Parts
 items.tab.cards = Cards
 
 cards.title = Cards
-# Beside the title: whose binder it is (the save it reads). {name} = the player's name, {slot} = the save slot
-cards.account = {gray}Binder{/c}  {gold}{name}{/c}  {gray}· Slot {slot}{/c}
+# Beside the title on the title screen's Cards: whose binder it is (the save it reads). {name} = the player's name
+cards.account = {gray}Binder -{/c} {gold}{name}{/c}
 cards.account.none = {gray}No save yet{/c}
 cards.keys = {gold}← →{/c} / wheel  Browse      {gold}Enter{/c}  Zoom      {gold}Right click{/c}  Bind / Blank card      {gold}O{/c}  Open Pack      {gold}Tab{/c}  Parts      {gold}Esc{/c}  Back
 # Using a Sun / Moon / Star (Special → Use): the book shows your ability cards to put it on. {name} = Sun / Moon / Star

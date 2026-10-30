@@ -24,6 +24,11 @@ namespace Combat
         public Resonance pool = Resonance.Basic;
         [Tooltip("How often packs give it (each pack's odds per tier are in PackRates).")]
         public CardRarity rarity;
+        [Tooltip("Physical or Incantation: an enemy weak to it takes this card's Break damage (bible v0.8 §5).")]
+        public AttackType attackType = AttackType.Incantation;
+        [Tooltip("Break damage at rank I, dealt once per target when the card hits a weakness (its attack type or " +
+                 "resonance). Merges multiply it (PackRates.breakRankII / III). 0 = no Break damage.")]
+        [Min(0)] public int breakValue = 1;
         public Sprite icon;
 
         public List<CardRank> ranks = new List<CardRank> { new CardRank(), new CardRank(), new CardRank() };

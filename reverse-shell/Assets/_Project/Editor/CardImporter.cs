@@ -11,7 +11,9 @@ namespace Combat.EditorTools
     /// Builds the card assets from the card sheet (design/CARDS.xlsx at the repo root, git-ignored).
     /// Tools/CardForge/sheet_to_json.py (run by CardSheetWatcher when the sheet is saved) turns the sheet into
     /// Tools/CardForge/cards.json; this reads that file and, for every row, creates or updates its CardDefinition
-    /// (name, kind, target, level and each rank's effects; icons and cast sequences are kept). It then fills the
+    /// (name, kind, target, level, attack type, Break and each rank's effects; icons and cast sequences are kept). It
+    /// gives each enemy on the Enemies tab its innate card, Ult, Break value and weaknesses, and puts the Settings tab's
+    /// Break & Stagger numbers into PackRates. It then fills the
     /// protagonist's resonance kits: each pool's cards (its Main card first) and its Ult, with the Basic cards as the
     /// card pool every resonance can use. The Packs and Areas tabs go into Resources/Cards/PackRates (the pack pictures
     /// are cut by the script). The new statuses (Burn, Chill, Frozen, Shield, Counter, Covered) are made if
@@ -64,6 +66,7 @@ namespace Combat.EditorTools
             public List<PackRow> packs = new List<PackRow>();
             public List<AreaRow> areas = new List<AreaRow>();
             public List<EnemyRow> enemies = new List<EnemyRow>();
+            public SettingsRow settings = new SettingsRow();
         }
 
         [Serializable]
@@ -72,6 +75,15 @@ namespace Combat.EditorTools
             public string enemy, innate, ult;
             public int levels = 3;
             public float weight = 1f;
+            public int breakPoints = 3;
+            public List<string> weaknesses = new List<string> { "Physical" };
+        }
+
+        [Serializable]
+        class SettingsRow
+        {
+            public float breakRankII = 2f, breakRankIII = 3f, staggerBonus = 0.5f;
+            public int bossBreakBonus = 3, staggerTurns = 2;
         }
 
         [Serializable]
@@ -87,8 +99,8 @@ namespace Combat.EditorTools
         [Serializable]
         class Row
         {
-            public string id, name, pool, category, target, asset, resonance, rarity;
-            public int level = 4;
+            public string id, name, pool, category, target, asset, resonance, rarity, attackType;
+            public int level = 4, breakValue = 1;
             public bool main, ult, enemy, starter;
             public List<Fx> rank1 = new List<Fx>(), rank2 = new List<Fx>(), rank3 = new List<Fx>();
         }
@@ -149,6 +161,8 @@ namespace Combat.EditorTools
             card.level = Mathf.Clamp(row.level, 1, 20);
             card.pool = (Resonance)Enum.Parse(typeof(Resonance), row.ult ? row.resonance : row.pool);
             card.rarity = string.IsNullOrEmpty(row.rarity) ? CardRarity.Common : (CardRarity)Enum.Parse(typeof(CardRarity), row.rarity);
+            card.attackType = string.IsNullOrEmpty(row.attackType) ? AttackType.Incantation : (AttackType)Enum.Parse(typeof(AttackType), row.attackType);
+            card.breakValue = Mathf.Max(0, row.breakValue);
             var ranks = row.ult ? new[] { row.rank1 } : new[] { row.rank1, row.rank2, row.rank3 };
             card.ranks = ranks.Select(fx => new CardRank { effects = fx.Select(f => Effect(f, status)).ToList() }).ToList();
             if (fresh) AssetDatabase.CreateAsset(card, path);
@@ -238,10 +252,17 @@ namespace Combat.EditorTools
                 soulChance = p.soulChance, arcanaChance = p.arcanaChance, blankChance = p.blankChance
             }).ToList();
             rates.areaPacks = sheet.areas.Select(a => new AreaPack { area = a.area, pack = a.pack }).ToList();
+            var s = sheet.settings ?? new SettingsRow();
+            rates.breakRankII = Mathf.Max(0f, s.breakRankII);
+            rates.breakRankIII = Mathf.Max(0f, s.breakRankIII);
+            rates.staggerBonus = Mathf.Max(0f, s.staggerBonus);
+            rates.bossBreakBonus = Mathf.Max(0, s.bossBreakBonus);
+            rates.staggerTurns = Mathf.Max(1, s.staggerTurns);
             EditorUtility.SetDirty(rates);
         }
 
-        /// <summary>The Enemies tab: each enemy's innate card (a Basic card), its level bonus and weight, and its Ult.</summary>
+        /// <summary>The Enemies tab: each enemy's innate card (a Basic card), its level bonus and weight, its Ult, its Break
+        /// value and its weaknesses.</summary>
         static void FillEnemies(Sheet sheet)
         {
             foreach (var row in sheet.enemies)
@@ -251,6 +272,10 @@ namespace Combat.EditorTools
                 enemy.innate = string.IsNullOrEmpty(row.innate) ? null : AssetDatabase.LoadAssetAtPath<CardDefinition>(CardsDir + "/" + row.innate + ".asset");
                 enemy.innateLevels = Mathf.Max(0, row.levels);
                 enemy.innateWeight = Mathf.Max(0f, row.weight);
+                enemy.breakPoints = Mathf.Max(0, row.breakPoints);
+                var weak = Weakness.None;
+                foreach (var w in row.weaknesses ?? new List<string>()) weak |= (Weakness)Enum.Parse(typeof(Weakness), w);
+                enemy.weaknesses = weak;
                 if (!string.IsNullOrEmpty(row.ult))
                     enemy.ritual = AssetDatabase.LoadAssetAtPath<CardDefinition>(CardsDir + "/" + row.ult + ".asset") ?? enemy.ritual;
                 EditorUtility.SetDirty(enemy);

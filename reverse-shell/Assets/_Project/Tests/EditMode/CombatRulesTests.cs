@@ -5,25 +5,6 @@ namespace Combat.Tests
 {
     public class CombatRulesTests
     {
-        [TestCase(Resonance.Cinder, Resonance.Cryo)]
-        [TestCase(Resonance.Cryo, Resonance.Root)]
-        [TestCase(Resonance.Root, Resonance.Arc)]
-        [TestCase(Resonance.Arc, Resonance.Cinder)]
-        public void Resonance_Advantage(Resonance attacker, Resonance defender)
-        {
-            Assert.AreEqual(ResonanceRelation.Advantage, ResonanceChart.Relation(attacker, defender));
-        }
-
-        [Test]
-        public void Resonance_ReverseIsDisadvantage_AndUnrelatedIsNeutral()
-        {
-            Assert.AreEqual(ResonanceRelation.Disadvantage, ResonanceChart.Relation(Resonance.Cinder, Resonance.Arc));
-            Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Arc, Resonance.Root));
-            Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Arc, Resonance.Prism));
-            Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Prism, Resonance.Cinder));
-            Assert.AreEqual(ResonanceRelation.Neutral, ResonanceChart.Relation(Resonance.Basic, Resonance.Arc));
-        }
-
         [TestCase("Volt", Resonance.Arc)]
         [TestCase("None", Resonance.Basic)]
         [TestCase("Void", Resonance.Basic)]
@@ -48,15 +29,17 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void Damage_ResonanceAdvantage_DealsMore_DisadvantageLess()
+        public void Damage_NoResonanceWheel_StaggerAddsTheBonus()
         {
             var cfg = CombatConfig.Default;
             var star = TestFactory.Unit(TestFactory.Character("Star", Resonance.Arc, 100f), Team.Player);
             var mineral = TestFactory.Unit(TestFactory.Enemy("Mineral", resonance: Resonance.Cinder), Team.Enemy);
             var plant = TestFactory.Unit(TestFactory.Enemy("Plant", resonance: Resonance.Root), Team.Enemy);
 
-            Assert.AreEqual(Mathf.RoundToInt(100 * cfg.advantageDamage), DamageCalculator.Compute(star, mineral, 1f, false, cfg, null).Amount);
-            Assert.AreEqual(Mathf.RoundToInt(100 * cfg.disadvantageDamage), DamageCalculator.Compute(star, plant, 1f, false, cfg, null).Amount);
+            Assert.AreEqual(100, DamageCalculator.Compute(star, mineral, 1f, false, cfg, null).Amount, "Arc gets nothing extra on Cinder");
+            Assert.AreEqual(100, DamageCalculator.Compute(star, plant, 1f, false, cfg, null).Amount, "nor less on Root");
+            plant.StaggerTurns = 1;
+            Assert.AreEqual(Mathf.RoundToInt(100 * BreakRules.StaggerMultiplier), DamageCalculator.Compute(star, plant, 1f, false, cfg, null).Amount);
         }
 
         [Test]

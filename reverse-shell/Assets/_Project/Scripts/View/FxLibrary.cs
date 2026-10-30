@@ -36,8 +36,17 @@ namespace Combat.View
             {
                 var parts = line.Trim().Split(' ');
                 if (parts.Length < 5) continue;
-                int x = int.Parse(parts[1]), y = int.Parse(parts[2]), w = int.Parse(parts[3]), h = int.Parse(parts[4]);
-                var sprite = Sprite.Create(tex, new Rect(x, tex.height - y - h, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+                int x, y, w, h;
+                if (!int.TryParse(parts[1], out x) || !int.TryParse(parts[2], out y) || !int.TryParse(parts[3], out w) || !int.TryParse(parts[4], out h)) continue;
+                var rect = new Rect(x, tex.height - y - h, w, h);
+                // A frame outside the texture (an over-size sheet the import shrank) is skipped, never an error: a
+                // missing effect must not stop the battle.
+                if (rect.xMin < 0 || rect.yMin < 0 || rect.xMax > tex.width || rect.yMax > tex.height)
+                {
+                    Debug.LogWarning("FxLibrary: '" + name + "' frame " + list.Count + " is outside its " + tex.width + "x" + tex.height + " texture (raise its Max Size)");
+                    continue;
+                }
+                var sprite = Sprite.Create(tex, rect, new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
                 sprite.name = name + "_" + list.Count;
                 list.Add(sprite);
             }

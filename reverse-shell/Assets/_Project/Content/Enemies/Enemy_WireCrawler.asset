@@ -36,6 +36,8 @@ MonoBehaviour:
     rank: 1
     weight: 1
   xpReward: 70
+  breakPoints: 6
+  weaknesses: 1
   ritual: {fileID: 11400000, guid: f72c3ac41cefba44cba76d8c5e060006, type: 2}
   innate: {fileID: 11400000, guid: 82e53188273ef8b49b0e9a2c7595fb92, type: 2}
   innateLevels: 3
