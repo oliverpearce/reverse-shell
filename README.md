@@ -87,9 +87,10 @@ The full list is in **Settings → Tutorials**.
 <img src=".github/readme/h-build.png" alt="Building from source" width="960">
 
 1. Open `reverse-shell/` in **Unity 2019.4.14f1** (C# 7.3).
-2. Open `Assets/_Project/Scenes/Overworld_Mossline.unity` and press Play. `Battle.unity` is loaded from it.
-3. For the web build: **Reverse Shell → Web Build Setup**, then **File → Build Settings → WebGL → Build**.
-   Zip the output with `index.html` at the root for itch.io.
+2. Open `reverse-shell/check-cards` and pray nothing goes wrong.
+3. Make sure `reverse-shell/play-from-title` is checked.
+4. For the web build: **Reverse Shell → Web Build Setup**, then **File → Build Settings → WebGL → Build**.
+   Zip the output with `index.html` at the root!
 
 <details>
 <summary><b>Project layout</b></summary>
@@ -100,7 +101,7 @@ The full list is in **Settings → Tutorials**.
 | `reverse-shell/Assets/_Project/Resources/Story/` | The script: `Chapter1.txt`, `World.txt`, `Guide.txt` (plain text, loaded at runtime) |
 | `reverse-shell/Assets/_Project/Art/` | Characters, portraits, tiles and third-party art (each with a `CREDITS.md`) |
 | `reverse-shell/Tools/` | Python generators: CardForge, ChibiForge, IconForge, MapForge, PortraitForge, TileForge… |
-| `reverse-shell/Tools/CardForge/` | The card pipeline: card spreadsheet → `cards.json` → Unity's card import, plus the Google Sheets export / import |
+| `reverse-shell/Tools/CardForge/` | The card pipeline: card spreadsheet → `cards.json` → Unity's card import, plus the Google Sheets export/import |
 | `reverse-shell/Tools/CardEditor/` | A local web page for editing the card spreadsheet (`py Tools/CardEditor/server.py`) |
 
 </details>
