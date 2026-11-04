@@ -69,6 +69,56 @@ namespace Combat.View
 
         public static string ControlsHelp { get { return UIText.Get("settings.input.help"); } }
 
+        // ------------------------------------------------------------------ Overworld sword
+
+        const string SwordKey = "settings.overworldSword";
+
+        /// <summary>Whether A3 carries her sword in the overworld (a set's walk_sword / battle_idle clips). Off by default;
+        /// battle always shows it. Saved (PlayerPrefs). The overworld sprite reads it every frame, so it changes at once.</summary>
+        public static bool OverworldSword
+        {
+            get { return PlayerPrefs.GetInt(SwordKey, 0) == 1; }
+            set { PlayerPrefs.SetInt(SwordKey, value ? 1 : 0); PlayerPrefs.Save(); }
+        }
+
+        public static string OverworldSwordLabel
+        {
+            get { return UIText.Get("settings.sword", "value", UIText.Get(OverworldSword ? "settings.on" : "settings.off")); }
+        }
+
+        public static void ToggleOverworldSword() { OverworldSword = !OverworldSword; }
+
+        public static string OverworldSwordHelp { get { return UIText.Get("settings.sword.help"); } }
+
+        // ------------------------------------------------------------------ Alt art
+
+        const string AltArtKey = "settings.altArt";
+
+        /// <summary>Party members show their alternate sprite (UnitDefinition.altAnimations: recolours of A3) everywhere.
+        /// Off by default. Saved (PlayerPrefs).</summary>
+        public static bool AltArt
+        {
+            get { return PlayerPrefs.GetInt(AltArtKey, 0) == 1; }
+            set
+            {
+                PlayerPrefs.SetInt(AltArtKey, value ? 1 : 0);
+                PlayerPrefs.Save();
+                if (AltArtChanged != null) AltArtChanged();
+            }
+        }
+
+        /// <summary>Raised when Alt Art changes, so sprites already on screen can switch.</summary>
+        public static event Action AltArtChanged;
+
+        public static string AltArtLabel
+        {
+            get { return UIText.Get("settings.alt_art", "value", UIText.Get(AltArt ? "settings.on" : "settings.off")); }
+        }
+
+        public static void ToggleAltArt() { AltArt = !AltArt; }
+
+        public static string AltArtHelp { get { return UIText.Get("settings.alt_art.help"); } }
+
         // ------------------------------------------------------------------ Graphics
 
         const string GraphicsKey = "settings.graphics";

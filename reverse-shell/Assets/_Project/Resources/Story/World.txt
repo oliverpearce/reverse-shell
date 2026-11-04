@@ -84,7 +84,7 @@ Cancel
 {red}Signal sent.{/c}{p} Something is {shake}stirring{/shake} in the plaza again.
 
 # ------------------------------------------------------------------ The Sandbox
-# Fill-in for sandbox.joins: {who} ("Ashe and Lucy").
+# Fill-in for sandbox.joins: {who} ("Ashe, Erin, Lotus and Zuko").
 
 [sandbox.joins]
 Sandbox | {gold}{who} joins your party!{/c}
@@ -100,7 +100,7 @@ Resistance Trader | Want to fight it? Stand on the {red}red square{/c}.{p} Bette
 [sandbox.scout]
 Resistance Scout | {wave}Whoa{/wave}{p} you're {name}?! {fast}The android from the orbital Bunker? The one who came down on the last flight?!{/fast}
 Resistance Scout | Sorry, sorry.{p} I've just never met one of you up close.
-Resistance Scout | Your crew's waiting by the road. {green}Ashe{/c}, our druid, keeps everyone on their feet, and {c=#C98AFF}Lucy{/c}... {shake}infects{/shake} things.{p} {wave}Good company down here!{/wave}
+Resistance Scout | Your crew's waiting by the road. {c=#7FA8F0}Ashe{/c} keeps everyone on their feet, {c=#FF9E4A}Erin{/c} and {c=#E8412E}Zuko{/c}... {shake}burn{/shake} things, and {green}Lotus{/c} grows on you.{p} {wave}Good company down here!{/wave}
 
 [sandbox.wanderer]
 Wanderer | {slow}The trees took this city slowly...{/slow}

@@ -68,7 +68,7 @@ namespace Game.World
         static void Jump(Beat beat)
         {
             foreach (var f in beat.Flags) StoryState.Flags.Add(f);
-            if (string.IsNullOrEmpty(StoryState.PlayerName)) StoryState.PlayerName = "MC";
+            if (string.IsNullOrEmpty(StoryState.PlayerName)) StoryState.PlayerName = "A3";
             WorldSession.TitleDone = true;
             WorldSession.CurrentArea = beat.Area;
             WorldSession.HasReturnPoint = false;

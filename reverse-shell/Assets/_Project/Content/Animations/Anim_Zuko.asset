@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ef9a189754547747a87d0b6aa80558c, type: 3}
+  m_Name: Anim_Zuko
+  m_EditorClassIdentifier: 
+  frameSize: 128
+  feetPivot: 0.109375
+  referenceSize: 64
+  soulCrop:
+    serializedVersion: 2
+    x: 0.375
+    y: 0.09375
+    width: 0.25
+    height: 0.3125
+  clips:
+  - name: idle
+    sheet: {fileID: 2800000, guid: 6c34f6cd4d5b58de82db5de9c891e9f8, type: 3}
+    fps: 5
+    loop: 1
+    firstFrame: 0
+    frameCount: 0
+  - name: walk
+    sheet: {fileID: 2800000, guid: 0a96c237d2a15f46a80148d88613e9dd, type: 3}
+    fps: 10
+    loop: 1
+    firstFrame: 0
+    frameCount: 0
+  - name: walk_sword
+    sheet: {fileID: 2800000, guid: 9b32e9ca483458d09647ba05fd61a24d, type: 3}
+    fps: 10
+    loop: 1
+    firstFrame: 0
+    frameCount: 0
+  - name: idle_sword
+    sheet: {fileID: 2800000, guid: 03deabdc901a58bd81e3d4acee2b9177, type: 3}
+    fps: 6
+    loop: 1
+    firstFrame: 0
+    frameCount: 0
+  - name: slash
+    sheet: {fileID: 2800000, guid: 627e21937b985e94acfa23c69a741997, type: 3}
+    fps: 20
+    loop: 0
+    firstFrame: 0
+    frameCount: 0
+  - name: spellcast
+    sheet: {fileID: 2800000, guid: 2653ae0e9c3957eb82fd623bb5ef9cd9, type: 3}
+    fps: 16
+    loop: 0
+    firstFrame: 0
+    frameCount: 0
+  - name: hurt
+    sheet: {fileID: 2800000, guid: e0a717243f0a54cf898ffdb2bc0c1c6d, type: 3}
+    fps: 10
+    loop: 0
+    firstFrame: 0
+    frameCount: 0
+  - name: sit
+    sheet: {fileID: 2800000, guid: 2c5330e3f9cd55b1a2c1f774b0c3cb57, type: 3}
+    fps: 8
+    loop: 0
+    firstFrame: 0
+    frameCount: 0
+  - name: read
+    sheet: {fileID: 2800000, guid: 2f000bb7a9b1555d84f5217fe0985823, type: 3}
+    fps: 8
+    loop: 0
+    firstFrame: 0
+    frameCount: 0

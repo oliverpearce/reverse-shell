@@ -2,7 +2,7 @@
 ChibiForge: draws every character as chibi pixel art from one parametric rig (our own art, no third-party assets).
 
     python Tools/ChibiForge/chibi_forge.py                  # every character: sprites + card portraits
-    python Tools/ChibiForge/chibi_forge.py MC Lucy          # only these
+    python Tools/ChibiForge/chibi_forge.py A3 Lucy          # only these
     python Tools/ChibiForge/chibi_forge.py --sheet out.png  # also a contact sheet of every character
 
 Style: big-headed chibi proportions, a bold dark plum outline around and between parts, 4-tone ramps lit from the
@@ -212,7 +212,7 @@ def rotate_cw(cv):
 
 # ---------------------------------------------------------------------------------------------------- palettes
 
-# Colours sampled from the reference sprite (Tools/ChibiForge/reference/MC.png): 16 colours in all.
+# Colours sampled from the reference sprite (Tools/ChibiForge/reference/A3.png): 16 colours in all.
 REF_SKIN = ramp('#B35420', '#D2884A', '#E6BB9A', '#F4D8BE')
 REF_SLATE = ramp('#434954', '#4F6072', '#617787', '#748492')
 REF_DARK = ramp('#20021D', '#391C2F', '#472D38', '#5E4250')
@@ -237,7 +237,7 @@ CLOTH_GRAY = ramp('#24222A', '#3E3C46', '#5E5C68', '#8A8894')
 LEAF = ramp('#1E3A1E', '#2E5E2A', '#4E8E3A', '#86C25A')
 PETAL = ramp('#8E2E52', '#C8507A', '#EE8AAE', '#FCC6DA')
 WHITE = (250, 248, 252, 255)
-ORANGE_HI = ramp('#A8401A', '#E8641E', '#FF9A3A', '#FFE2B0')   # MC's glow: deep orange to white-hot
+ORANGE_HI = ramp('#A8401A', '#E8641E', '#FF9A3A', '#FFE2B0')   # A3's glow: deep orange to white-hot
 
 
 class Spec:
@@ -271,11 +271,11 @@ class Spec:
 
 
 SPECS = {
-    # The crew all share MC's design: white plate with trim, dark leggings and sleeves with glowing knee and elbow
+    # The crew all share A3's design: white plate with trim, dark leggings and sleeves with glowing knee and elbow
     # pads, big shoulder plates, gloves, hips and chest, dark gloves with glowing cores, an earpiece like a hair
     # ornament, the card's eyes (warm lash over a crimson-to-glow iris), unarmed (strikes leave a glowing arc).
-    # Each member is a recolour of it; MC glows orange.
-    'MC': Spec(skin=REF_SKIN, hair=REF_SLATE, hair_style='long', armor=REF_WHITE,
+    # Each member is a recolour of it; A3 glows orange.
+    'A3': Spec(skin=REF_SKIN, hair=REF_SLATE, hair_style='long', armor=REF_WHITE,
                trim=ramp('#894B32', '#D2641E', '#FF8A2A', '#FFC060'), under=REF_SLATE, accent=REF_CRIMSON,
                glow=hx('#FF8A2A'), eye=hx('#FF9A3A'), headgear='earpiece', lines=False,
                joint=ramp('#14101A', '#221C2A', '#302838', '#443A4E'), hi=ORANGE_HI),
@@ -307,7 +307,9 @@ SPECS = {
                     armor=CLOTH_GREEN, under=CLOTH_BROWN, trim=CLOTH_BROWN, headgear='hood', eye=hx('#4A5A6A')),
 }
 
-PARTY = ['MC', 'Ashe', 'Lucy']
+PARTY = ['A3', 'Ashe']
+# Removed from the game (2026-11-03); their specs stay for reference, but a full run no longer rebuilds them.
+RETIRED = {'Lucy', 'Blue', 'Ashe'}   # Ashe: A3's model now (alt_recolour.py), not the knight
 
 
 # ---------------------------------------------------------------------------------------------------- poses
@@ -801,7 +803,7 @@ HEAD = 0.8   # head size relative to the original rig: an Octopath-style body ab
 
 
 def card_eye(cv, spec, exx, eyy, s, outer, narrow=False):
-    """One eye drawn like the card art (reference/MC.png): a warm orange-brown lash line that darkens at the outer
+    """One eye drawn like the card art (reference/A3.png): a warm orange-brown lash line that darkens at the outer
     corner, over an iris that is dark crimson on top and glows below. outer = +1 when the outer corner is to the
     right; narrow draws the side-view eye (two columns)."""
     glow = spec.kind == 'android'
@@ -1089,7 +1091,7 @@ def draw_machine(cv, spec, pose, facing, P, S):
 # Card portraits (see below). The crew menu pins the item sockets to the head (CHIP)
 # and the chest core (CORE): CharacterMenu.SocketSpots must match portrait_anchor() below.
 # Portraits are drawn at the reference sprite's pixel density: a 48 x 72 canvas at 1.25x rig detail, then doubled
-# into the 96 x 144 card, so every card has the same chunky pixels as MC's reference art.
+# into the 96 x 144 card, so every card has the same chunky pixels as A3's reference art.
 PORTRAIT_K, PORTRAIT_X, PORTRAIT_GROUND = 1.25, 25, 69
 
 
@@ -1142,18 +1144,27 @@ def hurt_frame(spec, i):
 
 
 def build_sheets(name):
+    if name == 'A3':
+        # A3: cut from her packed sprite sheet (reference/A3_sheet.png), not drawn here. a3_model needs Pillow.
+        try:
+            import a3_model
+        except ImportError as e:
+            print('A3 skipped (%s): run  py -3.9 Tools/ChibiForge/a3_model.py' % e)
+            return None
+        a3_model.main([])
+        return None
     import knight_model
     if knight_model.available(name):
-        knight_model.build(name)   # MC and the machines: the Free Knight (aamatniekss), reskinned per character
+        knight_model.build(name)   # the machines (and A3's card art): the Free Knight (aamatniekss), reskinned per character
         return None
     if name in PARTY:
         import sample_model
         if sample_model.available(name):
-            sample_model.build(name)   # MC: the user's own idle / walk animation (reference/sample/)
+            sample_model.build(name)   # A3: the user's own idle / walk animation (reference/sample/)
             return None
         import card_model
         if card_model.available(name):
-            card_model.build(name)   # the crew walk as their card art (reference/MC.png), animated by layers
+            card_model.build(name)   # the crew walk as their card art (reference/A3.png), animated by layers
             return None
     spec = SPECS[name]
     out_dir = os.path.join(CHARS, name)
@@ -1181,7 +1192,7 @@ REFERENCE = os.path.join(HERE, 'reference')
 
 
 def recolour_map(spec):
-    """How MC's reference colours become another crew member's: hair, mane, armour, trim (the trim also colours
+    """How A3's reference colours become another crew member's: hair, mane, armour, trim (the trim also colours
     the eyes and the sword) and accent. Outline, inner shadows and skin stay."""
     m = {}
     for i, c in enumerate(REF_SLATE):
@@ -1197,7 +1208,7 @@ def recolour_map(spec):
 
 def reference_portrait(name):
     """Card art from the user's reference sprite (2x into the 96 x 144 card, feet at the bottom): the character's
-    own reference if there is one, otherwise MC's recoloured to the character's palette. None when missing."""
+    own reference if there is one, otherwise A3's recoloured to the character's palette. None when missing."""
     ref = reference_pixels(name)
     if ref is None:
         return None
@@ -1215,12 +1226,12 @@ def reference_portrait(name):
 
 
 def reference_pixels(name):
-    """The character's reference sprite at native size as (w, h, RGBA rows): their own file, or MC's recoloured to
+    """The character's reference sprite at native size as (w, h, RGBA rows): their own file, or A3's recoloured to
     their palette. None when missing. Used by the card art and by card_model.py (the overworld sprites)."""
     path = os.path.join(REFERENCE, name + '.png')
     mapping = None
     if not os.path.exists(path):
-        path = os.path.join(REFERENCE, 'MC.png')
+        path = os.path.join(REFERENCE, 'A3.png')
         if not os.path.exists(path) or name not in PARTY:
             return None
         mapping = recolour_map(SPECS[name])
@@ -1277,7 +1288,7 @@ def open_chest(cv, spec, box, armour=None):
 
 
 def build_portraits(name):
-    """Card art: the reskinned knight (MC), MC's reference sprite (recoloured for the others), or the rig in a hero
+    """Card art: the reskinned knight (A3), A3's reference sprite (recoloured for the others), or the rig in a hero
     pose; front and opened up (internals), plus glow masks."""
     spec = SPECS[name]
     os.makedirs(PORTRAITS, exist_ok=True)
@@ -1287,7 +1298,7 @@ def build_portraits(name):
     ref = None if knight else reference_portrait(name)
     for side_name, internals in (('front', False), ('internals', True)):
         if knight:
-            # MC's card: the reskinned knight (the same art as the sprites)
+            # A3's card: the reskinned knight (the same art as the sprites)
             cv, box = knight_model.portrait(name)
             if internals:
                 plate = set(knight_model.SKINS[name]['map'][c] for c in knight_model.STEEL)
@@ -1366,7 +1377,7 @@ def main():
         i = args.index('--sheet')
         sheet = args[i + 1]
         del args[i:i + 2]
-    names = args or list(SPECS)
+    names = args or [n for n in SPECS if n not in RETIRED]
     for n in names:
         build_sheets(n)
         if n in PARTY:

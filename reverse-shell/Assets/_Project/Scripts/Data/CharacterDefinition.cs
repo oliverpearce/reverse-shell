@@ -40,13 +40,13 @@ namespace Combat
                  "Empty = the shared robot model's spots.")]
         public List<Vector2> partSockets = new List<Vector2>();
 
-        [Tooltip("Stat bars in the crew menu are scaled so this character's level-cap stats fill 90% (one per game: MC).")]
+        [Tooltip("Stat bars in the crew menu are scaled so this character's level-cap stats fill 90% (one per game: A3).")]
         public bool statBarReference;
 
         [Header("Glow / elements")]
         [Tooltip("Elements this character can channel. Empty or one = just their resonance.")]
         public List<Resonance> channels = new List<Resonance>();
-        [Tooltip("Glow in Glow Color instead of the resonance color while no element is channeled (MC).")]
+        [Tooltip("Glow in Glow Color instead of the resonance color while no element is channeled (A3).")]
         public bool neutralGlow;
         public Color glowColor = Color.white;
 

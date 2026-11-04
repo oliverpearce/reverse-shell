@@ -23,6 +23,9 @@ namespace Combat.View
 
         public string Current { get; private set; }
 
+        /// <summary>The looping clip to rest on (battle uses "battle_idle" when a set has one: A3 holds her sword only in a fight).</summary>
+        public string IdleClip = Idle;
+
         /// <summary>Animate on unscaled time (for menus shown while the game is paused).</summary>
         public bool UnscaledTime;
 
@@ -31,7 +34,7 @@ namespace Combat.View
             set = animationSet;
             facing = face;
             targets = images;
-            Play(Idle);
+            Play(IdleClip);
         }
 
         /// <summary>Length of a clip in seconds (0 if missing or looping forever).</summary>
@@ -82,7 +85,7 @@ namespace Combat.View
                     finished = true;
                     var done = onComplete;
                     onComplete = null;
-                    if (!holdLast) Play(Idle);
+                    if (!holdLast) Play(IdleClip);
                     if (done != null) done();
                     return;
                 }

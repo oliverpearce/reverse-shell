@@ -1,14 +1,14 @@
 """
 Knight model: sprites from "Fantasy Knight - Free Pixelart Animated Character" by aamatniekss
-(https://aamatniekss.itch.io/fantasy-knight-free-pixelart-animated-character), reskinned per character: MC as a white
+(https://aamatniekss.itch.io/fantasy-knight-free-pixelart-animated-character), reskinned per character: A3 as a white
 robot with an orange glow, and the machine enemies (Rust Sentry: rusted plates, red glow; Scrap Stalker: mossy plates,
 amber glow). Enemies face left in game, which the game does by mirroring (their left row). The pack's Colour2 / Outline
-sheets (120 x 80 frames in a row, facing right) are in reference/FreeKnight/. Also MC's character-card portrait
+sheets (120 x 80 frames in a row, facing right) are in reference/FreeKnight/. Also A3's character-card portrait
 (portrait(): the idle pose at 3x in the 96 x 144 card).
 
     python Tools/ChibiForge/knight_model.py [--sheet out.png] [--only clip,clip]
 
-Reskin (a fixed colour map per character, SKINS): the steel armour becomes plating (white for MC); the gold /
+Reskin (a fixed colour map per character, SKINS): the steel armour becomes plating (white for A3); the gold /
 leather (gloves, belt, boots) becomes dark mech joints with glowing highlights; the red scarf becomes a glowing collar;
 and the visor slit (outline pixels inside the head, found per frame) glows.
 Frames keep the artist's pixels. The 120 x 80 frame is cropped to 64 x 64 around the body (same window for every
@@ -63,7 +63,7 @@ def skin(plate, joint_hi, joint, collar, visor, hi):
 
 SKINS = {
     # white robot plating, dark joints with orange highlights, an orange collar and visor
-    'MC': skin(('#F4F0EE', '#C4C0CA', '#5E5A70'), '#FF9A3A', ('#302838', '#1E1826'), ('#E8641E', '#A8401A'),
+    'A3': skin(('#F4F0EE', '#C4C0CA', '#5E5A70'), '#FF9A3A', ('#302838', '#1E1826'), ('#E8641E', '#A8401A'),
                '#FF8A2A', ('#A8401A', '#E8641E', '#FF9A3A', '#FFE2B0')),
     # Ashe: pale sage plating, dark joints with green lights, a green collar and visor
     'Ashe': skin(('#E6F2DE', '#A6C29E', '#4E6A50'), '#8EF070', ('#22302A', '#141C18'), ('#5EB03A', '#2E6A1E'),

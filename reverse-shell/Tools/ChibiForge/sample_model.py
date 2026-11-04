@@ -1,6 +1,6 @@
 """
-Sample model: sprites from the user's own animation (reference/sample/, exported from Aseprite). It was MC's art;
-MC now uses knight_model.py (chibi_forge checks that first), so this only runs when the knight sheets are missing:
+Sample model: sprites from the user's own animation (reference/sample/, exported from Aseprite). It was A3's art;
+A3 now uses knight_model.py (chibi_forge checks that first), so this only runs when the knight sheets are missing:
     idle/sprite sheets/idle.png   10 frames of 46 x 55 in a row: a front three-quarter idle loop, facing the viewer's left
     walk/sprite sheets/walk.png   24 frames of 45 x 58 in a 4 x 6 grid: a side-view walk loop, facing left
     walk/sprite sheets/from idle.png  2 transition frames (not used: the game has no idle-to-walk transition)
@@ -12,7 +12,7 @@ ground row (feet pivot 0.04) and centred horizontally.
     idle 10       the drawn loop (every facing; right is the mirror)
     walk 25       frame 0 stands (idle frame 0), then the 24 drawn frames. Left as drawn, right mirrored. There is no
                   front or back walk yet: down uses the left walk, up the right one.
-    slash 10      built from idle frame 0: wind back, lunge, recover, with a glow arc in MC's orange
+    slash 10      built from idle frame 0: wind back, lunge, recover, with a glow arc in A3's orange
     spellcast 12  idle frame 0 with an orb growing at the hands
     hurt 9        recoil, sink, then lie on the ground
 """
@@ -35,7 +35,7 @@ IDLE = os.path.join(SAMPLE, 'idle', 'sprite sheets', 'idle.png')
 WALK = os.path.join(SAMPLE, 'walk', 'sprite sheets', 'walk.png')
 IDLE_CELL, IDLE_N = (46, 55), 10
 WALK_CELL, WALK_COLS, WALK_N = (45, 58), 4, 24
-NAMES = ['MC']                    # who uses this art
+NAMES = ['A3']                    # who uses this art
 OUTLINE = (0x20, 0x02, 0x1D)
 
 
@@ -180,7 +180,7 @@ def build(name):
 
 
 def contact(path, scale=4):
-    sh = frames_for('MC')
+    sh = frames_for('A3')
     cells_ = [sh['idle'][DOWN][0], sh['idle'][DOWN][5], sh['walk'][LEFT][1], sh['walk'][LEFT][7],
               sh['walk'][RIGHT][13], sh['slash'][LEFT][5], sh['spellcast'][LEFT][5], sh['hurt'][0][3], sh['hurt'][0][8]]
     W, H = len(cells_) * F, F

@@ -1,7 +1,7 @@
 # cell (left to right, top to bottom, 34 px, 4 per row) and card asset name; written by Tools/CardForge
-0 Card_MC_EdgeStrike
-1 Card_MC_CrossSlash
-2 Card_MC_SyncField
+0 Card_A3_EdgeStrike
+1 Card_A3_CrossSlash
+2 Card_A3_SyncField
 3 Card_Ashe_BrambleLash
 4 Card_Ashe_Overgrowth
 5 Card_Ashe_SapMend
@@ -18,11 +18,9 @@
 16 Menu_Quit
 17 Menu_Party
 18 Menu_Settings
-19 Card_Blue_ShieldBash
-20 Card_Blue_Bulwark
 21 Status_DefUp
-22 Card_MC_ArcEdge
-23 Card_MC_StaticField
+22 Card_A3_ArcEdge
+23 Card_A3_StaticField
 24 Status_Stunned
 25 Menu_Resonance
 26 Ui_Lock

@@ -51,7 +51,7 @@ namespace Combat.EditorTools
         const string Root = "Assets/_Project/Content";
         const string CardsDir = Root + "/Cards";
         const string StatusDir = Root + "/Statuses";
-        const string McPath = Root + "/Characters/Char_MC.asset";
+        const string A3Path = Root + "/Characters/Char_A3.asset";
         const string RatesPath = "Assets/_Project/Resources/Cards/PackRates.asset";
         static readonly string JsonPath = Path.Combine(Application.dataPath, "../Tools/CardForge/cards.json");
 
@@ -213,13 +213,13 @@ namespace Combat.EditorTools
 
         static void FillKits(List<KeyValuePair<Row, CardDefinition>> built)
         {
-            var mc = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(McPath);
-            if (mc == null) { Debug.LogWarning("CardImporter: " + McPath + " not found; kits not filled."); return; }
+            var a3 = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(A3Path);
+            if (a3 == null) { Debug.LogWarning("CardImporter: " + A3Path + " not found; kits not filled."); return; }
             var kits = new List<ResonanceKit>();
             foreach (var element in KitOrder)
             {
                 string pool = element.ToString();
-                var old = mc.KitFor(element);
+                var old = a3.KitFor(element);
                 var rows = built.Where(b => !b.Key.ult && b.Key.pool == pool).ToList();
                 var main = rows.Where(b => b.Key.main).Select(b => b.Value).FirstOrDefault() ?? rows.Select(b => b.Value).FirstOrDefault();
                 var ult = built.Where(b => b.Key.ult && !b.Key.enemy && b.Key.resonance == pool).Select(b => b.Value).FirstOrDefault();
@@ -230,14 +230,14 @@ namespace Combat.EditorTools
                     foreach (var b in rows) if (b.Value != main) kit.cards.Add(b.Value);
                 kits.Add(kit);
             }
-            mc.resonances = kits;
+            a3.resonances = kits;
             var physical = built.Where(b => !b.Key.ult && b.Key.pool == "Basic").Select(b => b.Value).ToList();
-            mc.cardPool = physical;
-            if (kits[0].cards.Count > 0) mc.incantations = new List<CardDefinition> { kits[0].cards[0] };
-            if (kits[0].ultimate != null) mc.ritual = kits[0].ultimate;
+            a3.cardPool = physical;
+            if (kits[0].cards.Count > 0) a3.incantations = new List<CardDefinition> { kits[0].cards[0] };
+            if (kits[0].ultimate != null) a3.ritual = kits[0].ultimate;
             // The cards tagged Starter: owned from the start, in the Alt slots until the player picks others.
-            mc.starterCards = built.Where(b => b.Key.starter && !b.Key.ult).Select(b => b.Value).ToList();
-            EditorUtility.SetDirty(mc);
+            a3.starterCards = built.Where(b => b.Key.starter && !b.Key.ult).Select(b => b.Value).ToList();
+            EditorUtility.SetDirty(a3);
         }
 
         static void FillPacks(Sheet sheet)

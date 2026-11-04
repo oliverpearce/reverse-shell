@@ -16,8 +16,9 @@ MonoBehaviour:
   party:
   - {fileID: 11400000, guid: bafede59cb9b6224bb94438da32117bb, type: 2}
   - {fileID: 11400000, guid: b36d6ba7d8f3f2c4c9f4c574bb68f675, type: 2}
-  - {fileID: 11400000, guid: 931e4faa858967d43b44ae082f21ce87, type: 2}
-  - {fileID: 11400000, guid: 75bceeb20546ebd4882545b763efcfc8, type: 2}
+  - {fileID: 11400000, guid: 1fc7a79c4b6e5c6cb4328dc04bffb954, type: 2}
+  - {fileID: 11400000, guid: 205829a2429e5a46b19ab7be4d152d20, type: 2}
+  - {fileID: 11400000, guid: 7db7561b81735506863c5e0701dc0207, type: 2}
   backup: {fileID: 0}
   enemies:
   - {fileID: 11400000, guid: 8cb18e3bb06a9da4f9b173e3a5683359, type: 2}

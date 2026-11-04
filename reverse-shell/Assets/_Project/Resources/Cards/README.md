@@ -1,6 +1,6 @@
 # Cards (pixel art)
 
-Painted by `python Tools/CardForge/card_forge.py [--preview out.png]` (our own art; the Ult cards use the user's MC
+Painted by `python Tools/CardForge/card_forge.py [--preview out.png]` (our own art; the Ult cards use the user's knight
 reference sprite, recoloured per member by `Tools/ChibiForge`). Loaded at runtime by `CardArt` (Scripts/View/CardArt.cs).
 
 - `CardSwirl.png`: the background in greys, tinted with the card owner's colour in game.

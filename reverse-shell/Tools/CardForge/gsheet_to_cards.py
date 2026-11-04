@@ -163,7 +163,7 @@ def card_values(c, effects, main, starter):
 
 
 def asset_for(pool, name, taken):
-    prefix = {'Basic': 'Physical', 'Ult': 'MC'}.get(pool, pool)
+    prefix = {'Basic': 'Physical', 'Ult': 'A3'}.get(pool, pool)
     base = 'Card_%s_%s' % (prefix, ''.join(w[:1].upper() + w[1:] for w in re.sub(r'[^A-Za-z0-9 ]', '', name).split()) or 'New')
     asset, n = base, 2
     while asset in taken:

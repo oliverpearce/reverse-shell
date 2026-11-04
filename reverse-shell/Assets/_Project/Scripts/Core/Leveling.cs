@@ -47,7 +47,7 @@ namespace Combat
         public const int MaxLevel = 60;   // the story's last enemies are ~Lv 90, beatable around Lv 50-60
 
         /// <summary>
-        /// How full a stat bar is for the reference character (MC) at the level cap: the bars keep 10% headroom,
+        /// How full a stat bar is for the reference character (A3) at the level cap: the bars keep 10% headroom,
         /// so even a maxed character doesn't fill them (Parts and later growth can push past).
         /// </summary>
         public const float BarFillAtCap = 0.9f;

@@ -19,6 +19,8 @@ namespace Game.World
         static readonly DialogueVoice MemoryVoice = new DialogueVoice(1.05f, 0.7f, new Color(1f, 0.86f, 0.6f));
         static readonly DialogueVoice ScannerVoice = new DialogueVoice(1.4f, 1.3f, WorldArt.WarpCyan);
         static readonly DialogueVoice CollectorVoice = new DialogueVoice(0.8f, 1.05f, new Color(0.75f, 0.8f, 0.9f));
+        /// <summary>Erin: warm, quick, ember-orange.</summary>
+        static readonly DialogueVoice ErinVoice = new DialogueVoice(1.18f, 1.15f, new Color(1f, 0.6f, 0.28f));
 
         /// <summary>The Collector: a scripted fight at the clinic gate, no map machine.</summary>
         public static readonly WorldAreas.EncounterDef CollectorFight = new WorldAreas.EncounterDef
@@ -38,6 +40,7 @@ namespace Game.World
             {
                 case "Scanner": return ScannerVoice;
                 case "Collector": return CollectorVoice;
+                case "Erin": return ErinVoice;
                 case "Memory":
                 case "Memory Fragment": return MemoryVoice;
                 default: return Narrator;
@@ -132,7 +135,9 @@ namespace Game.World
             {
                 Prop(b, StoryProps.Pod(b.transform, map.CellCenter(cell.x, cell.y)), w => Say(w, "pod"));
                 SpawnBinder(b, cell);
+                if (id == WorldAreas.City) SpawnErin(b, cell);
             }
+            if (id == WorldAreas.City || id == WorldAreas.Tunnel || id == WorldAreas.Chamber) b.StartCoroutine(ErinCatchesUp(b));
 
             for (char c = '1'; c <= '3'; c++)
             {
@@ -176,6 +181,62 @@ namespace Game.World
         }
 
         static GameObject wall;
+
+        // ------------------------------------------------------------------ Erin (her bond, bible §2 Bonds)
+
+        static ChapterOneDirector()
+        {
+            Bonds.Erin.OnJoined = OfferTutorial;
+        }
+
+        /// <summary>Erin waits in the room you wake in (3 squares right of the pod, 1 up) until she joins you.</summary>
+        static void SpawnErin(OverworldBuilder b, Vector2Int pod)
+        {
+            if (!InStory || Bonds.Joined(Bonds.Erin.Character) || StoryState.Has(Chapter1.ErinLost)) return;
+            var erin = b.AllCharacters.Find(c => c != null && c.name == Bonds.Erin.Character);
+            if (erin == null || erin.Anim == null) return;
+            var npc = b.SpawnCharacter(erin.DisplayName, erin.Anim, b.Map.CellCenter(pod.x + 3, pod.y - 1));
+            npc.SetFacing(1);   // facing the pod
+            Prop(b, npc.gameObject, w => w.StartCoroutine(TalkToErin(w, npc.gameObject)));
+        }
+
+        static IEnumerator TalkToErin(OverworldBuilder b, GameObject npc)
+        {
+            yield return Bonds.Play(b, Bonds.Erin, VoiceFor);
+            if (Bonds.Joined(Bonds.Erin.Character) && npc != null) npc.SetActive(false);   // she walks with you now
+        }
+
+        /// <summary>Once Erin is in the party her next scenes find you: after an area loads (back from a fight, say), if
+        /// one has unlocked, she pulls you aside.</summary>
+        static IEnumerator ErinCatchesUp(OverworldBuilder b)
+        {
+            if (!InStory || !Bonds.Joined(Bonds.Erin.Character) || StoryState.Has(Chapter1.ErinLost)) yield break;
+            yield return new WaitForSeconds(1.2f);
+            while (b.UI == null || b.UI.DialogueOpen) yield return null;
+            if (Bonds.WhatsNext(Bonds.Erin) == Bonds.Next.Scene) yield return Bonds.Play(b, Bonds.Erin, VoiceFor);
+        }
+
+        /// <summary>Right after Erin joins: her battle tutorial (Yes), or straight on (I know how).</summary>
+        static void OfferTutorial(OverworldBuilder b)
+        {
+            b.StartCoroutine(OfferTutorialRoutine(b));
+        }
+
+        static IEnumerator OfferTutorialRoutine(OverworldBuilder b)
+        {
+            b.SetCutscene(true);
+            int answer = -1;
+            var ask = Script("tutorial.offer");
+            if (ask.Count > 1) yield return Talk(b, ask.GetRange(0, ask.Count - 1));
+            if (ask.Count > 0)
+            {
+                b.UI.Dialogue.Ask(ask[ask.Count - 1], StoryText.Texts("tutorial.offer.options"), i => answer = i);
+                while (answer < 0) yield return null;
+            }
+            b.SetCutscene(false);
+            if (answer == 0) BattleTutorial.Start(b, true);
+            else yield return Talk(b, Script("tutorial.skip"));
+        }
 
         static void Prop(OverworldBuilder b, GameObject go, System.Action<OverworldBuilder> interact)
         {
@@ -392,6 +453,15 @@ namespace Game.World
 
         static IEnumerator Ending(OverworldBuilder b)
         {
+            if (Bonds.Joined(Bonds.Erin.Character) && !StoryState.Has(Chapter1.ErinLost))
+            {
+                // The old machine takes her: converted, and the card it makes is obliterated (bible §4, Chapter One).
+                yield return Talk(b, Script("erin.lost"));
+                WorldSession.Leave(Bonds.Erin.Character);
+                StoryState.Set(Chapter1.ErinLost);
+                SaveGame.Save();
+                b.RefreshParty();
+            }
             yield return Talk(b, Script("ending"));
             StoryState.Set(Chapter1.Complete);
             SaveGame.Save();

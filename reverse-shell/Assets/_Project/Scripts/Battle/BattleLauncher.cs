@@ -16,6 +16,9 @@ namespace Combat
         public Dictionary<CharacterDefinition, Loadout> Loadouts;
         /// <summary>Called when the player leaves the battle (result screen, or "Leave Fight" from pause).</summary>
         public Action<BattleResult> OnComplete;
+        /// <summary>A guided tutorial to run in this fight ("erin"), or null. The battle scene raises
+        /// <see cref="BattleBootstrap.TutorialStarted"/> with it.</summary>
+        public string Tutorial;
     }
 
     /// <summary>What the caller gets back when a requested fight ends.</summary>
@@ -69,6 +72,12 @@ namespace Combat
             Dictionary<CharacterDefinition, Loadout> loadouts, Action<BattleResult> onComplete)
         {
             pending = new BattleRequest { Setup = setup, Party = party, Loadouts = loadouts, OnComplete = onComplete };
+        }
+
+        /// <summary>Marks the request just made as a guided tutorial (call right after <see cref="Request"/>).</summary>
+        public static void SetTutorial(string tutorial)
+        {
+            if (pending != null) pending.Tutorial = tutorial;
         }
 
         public static BattleRequest Consume()

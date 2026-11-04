@@ -134,12 +134,12 @@ namespace Combat.Tests
             catalog.parts.Add(core);
             catalog.starterCore = core;
             WorldSession.GiveStarterParts();   // also hands out the spare plating
-            var mc = TestFactory.Character(WorldSession.StartingMember, Resonance.Basic, 100f, null, strike);
-            Assert.IsTrue(WorldSession.IsBound(WorldSession.PartIn(mc, PartSlot.Core)));
-            WorldSession.Unequip(mc, PartSlot.Core);
-            Assert.AreEqual(core, WorldSession.PartIn(mc, PartSlot.Core), "your own Core never comes out");
-            Assert.IsFalse(WorldSession.Equip(mc, plating), "nor is it swapped for another Core");
-            Assert.AreEqual(core, WorldSession.PartIn(mc, PartSlot.Core));
+            var a3 = TestFactory.Character(WorldSession.StartingMember, Resonance.Basic, 100f, null, strike);
+            Assert.IsTrue(WorldSession.IsBound(WorldSession.PartIn(a3, PartSlot.Core)));
+            WorldSession.Unequip(a3, PartSlot.Core);
+            Assert.AreEqual(core, WorldSession.PartIn(a3, PartSlot.Core), "your own Core never comes out");
+            Assert.IsFalse(WorldSession.Equip(a3, plating), "nor is it swapped for another Core");
+            Assert.AreEqual(core, WorldSession.PartIn(a3, PartSlot.Core));
             Assert.AreEqual(1, WorldSession.CountOf(plating));
         }
 
@@ -196,11 +196,50 @@ namespace Combat.Tests
             data.partyOrder.Add("Char_V2");
             SaveGame.Restore(data);
 
-            Assert.AreEqual(5, WorldSession.Party["Char_MC"].Level);
-            Assert.AreEqual(3, WorldSession.Party["Char_Ashe"].Level);
-            Assert.AreEqual(2, WorldSession.Party["Char_Lucy"].Level);
-            CollectionAssert.AreEqual(new[] { "Char_Lucy" }, WorldSession.PartyOrder);
+            Assert.AreEqual(5, WorldSession.Party["Char_A3"].Level);
+            Assert.AreEqual(3, WorldSession.Party["Char_Ashe"].Level, "V1 (Lv 3) and V2 (Lv 2, Lucy's old id) both became Ashe: the higher stays");
+            CollectionAssert.AreEqual(new[] { "Char_Ashe" }, WorldSession.PartyOrder);
             Assert.IsFalse(WorldSession.StarterPartsGiven, "an old save gets the starter parts");
+        }
+
+        [Test]
+        public void Restore_LucyAndBlueBecomeAshe()
+        {
+            var data = new SaveGame.Data();
+            data.party.Add(new SaveGame.Member { id = "Char_Ashe", progress = new MemberProgress { Level = 4 } });
+            data.party.Add(new SaveGame.Member { id = "Char_Lucy", progress = new MemberProgress { Level = 9 } });
+            data.party.Add(new SaveGame.Member { id = "Char_Blue", progress = new MemberProgress { Level = 6 } });
+            data.members.AddRange(new[] { "Char_A3", "Char_Ashe", "Char_Lucy", "Char_Blue" });
+            data.partyOrder.AddRange(new[] { "Char_Lucy", "Char_Ashe", "Char_Blue" });
+            SaveGame.Restore(data);
+
+            Assert.AreEqual(9, WorldSession.Party["Char_Ashe"].Level, "the furthest-along progress is kept");
+            Assert.IsFalse(WorldSession.Party.ContainsKey("Char_Lucy"));
+            Assert.IsFalse(WorldSession.Party.ContainsKey("Char_Blue"));
+            CollectionAssert.AreEqual(new[] { "Char_Ashe" }, WorldSession.PartyOrder);
+            CollectionAssert.AreEquivalent(new[] { "Char_A3", "Char_Ashe" }, WorldSession.Members);
+        }
+
+        [Test]
+        public void Restore_MigratesMcToA3()
+        {
+            var data = new SaveGame.Data();
+            data.party.Add(new SaveGame.Member { id = "Char_MC", progress = new MemberProgress { Level = 7, Cards = new List<string> { "Card_MC_ArcEdge" } } });
+            data.partyOrder.Add("Char_MC");
+            data.members.Add("Char_MC");
+            data.formation.Add("Char_MC");
+            data.cardCopies.Add(new SaveGame.PartStack { id = "Card_MC_StaticField", count = 2 });
+            data.unseenCards.Add("Card_MC_ArcTempest");
+            SaveGame.Restore(data);
+
+            Assert.AreEqual(7, WorldSession.Party["Char_A3"].Level);
+            CollectionAssert.AreEqual(new[] { "Card_A3_ArcEdge" }, WorldSession.Party["Char_A3"].Cards);
+            CollectionAssert.AreEqual(new[] { "Char_A3" }, WorldSession.PartyOrder);
+            Assert.IsTrue(WorldSession.Members.Contains("Char_A3"));
+            Assert.AreEqual("Char_A3", WorldSession.Formation[0]);
+            Assert.AreEqual(2, WorldSession.CardCopies["Card_A3_StaticField"]);
+            Assert.IsTrue(WorldSession.UnseenCards.Contains("Card_A3_ArcTempest"));
+            Assert.AreEqual("Card_Ashe_Mend", SaveGame.MigrateCard("Card_HealBot_Mend"), "older renames still work");
         }
 
         [Test]

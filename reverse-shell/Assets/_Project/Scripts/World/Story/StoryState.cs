@@ -52,9 +52,9 @@ namespace Game.World
         }
 
         /// <summary>The protagonist's asset; their chosen name replaces its display name everywhere.</summary>
-        public const string ProtagonistAsset = "Char_MC";
+        public const string ProtagonistAsset = "Char_A3";
 
-        /// <summary>Sets the protagonist's name (shown in place of "MC" in every menu, HUD and battle).</summary>
+        /// <summary>Sets the protagonist's name (shown in place of "A3" in every menu, HUD and battle).</summary>
         public static void SetName(string name)
         {
             PlayerName = name ?? "";

@@ -53,7 +53,7 @@ CUSTOM = {
     'rei_white': ['#2A2833', '#5C5A6E', '#9C9BB0', '#C9C8D8', '#E6E6F0', '#FFFFFF'],
     'yorha_white': ['#3A3C46', '#6E7180', '#A5A8B4', '#CDD0D8', '#E8EAEE', '#FFFFFF'],
     # Machine lifeform plating: sun-baked rust over brown steel, and a moss-grown variant.
-    # Party robots (MC, Ashe, Lucy): clean white and charcoal plating, plus element accents.
+    # Party robots (A3, Ashe, Lucy): clean white and charcoal plating, plus element accents.
     'android_white': ['#2A2C34', '#5A5E6A', '#9599A6', '#C4C7D0', '#E4E6EC', '#FFFFFF'],
     'android_dark': ['#0E0F13', '#1C1E25', '#2D3039', '#41454F', '#5C616C', '#8A909C'],
     'eye_moss': ['#1E4A1A', '#6ED04E', '#D8FFB8'],
@@ -144,8 +144,8 @@ RECIPES = {
             ('sheet_definitions/headwear/accessories/glasses/facial_glasses_shades.json', {'variant': 'black', 'mask': 'eyes:#C98AFF'}),
         ],
     },
-    # MC: the standout model. A long dark trench coat over white plating, a smooth helm, white eyes and trims.
-    'MC': {
+    # A3: the standout model. A long dark trench coat over white plating, a smooth helm, white eyes and trims.
+    'A3': {
         'body': 'male', 'skin': 'fur_grey', 'eyes': 'eye_white', 'head': 'sheet_definitions/head/heads/human/heads_human_male.json',
         'layers': [
             ('sheet_definitions/feet/feet_armour.json', {'material': 'android_dark'}),

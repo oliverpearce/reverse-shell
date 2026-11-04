@@ -667,7 +667,7 @@ def icon_menu_quit():
 
 def icon_menu_party():
     c = Canvas(CELL, CELL)
-    for (x, y, pal) in ((8, 15, GREEN), (24, 15, VIOLET), (16, 12, STEEL)):   # Ashe, Lucy, MC in front
+    for (x, y, pal) in ((8, 15, GREEN), (24, 15, VIOLET), (16, 12, STEEL)):   # Ashe, Lucy, A3 in front
         c.disc(x, y + 8, 6.5, pal[2])             # shoulders
         c.disc(x, y, 5.2, pal[2])                 # helmet
         c.disc(x - 1, y - 1, 3.4, pal[1])
@@ -755,8 +755,8 @@ def icon_stunned():
 
 # Chapter One: the protagonist's Electric cards and the Stunned status.
 CH1_ICONS = [
-    ('Card_MC_ArcEdge', icon_arc_edge),
-    ('Card_MC_StaticField', icon_static_field),
+    ('Card_A3_ArcEdge', icon_arc_edge),
+    ('Card_A3_StaticField', icon_static_field),
     ('Status_Stunned', icon_stunned),
 ]
 
@@ -896,8 +896,8 @@ UI_ICONS = [
 # instead of the drawing above. Cards with no drawing of their own are added to the atlas from here too.
 RAVEN_DIR = os.path.join(ROOT, 'Assets', '_Project', 'Art', 'ThirdParty', 'RavenFantasyIcons', '32x32')
 RAVEN_PICKS = {
-    'Card_MC_EdgeStrike': 724, 'Card_MC_CrossSlash': 155, 'Card_MC_SyncField': 1047, 'Card_MC_ArcEdge': 731,
-    'Card_MC_StaticField': 1039,
+    'Card_A3_EdgeStrike': 724, 'Card_A3_CrossSlash': 155, 'Card_A3_SyncField': 1047, 'Card_A3_ArcEdge': 731,
+    'Card_A3_StaticField': 1039,
     'Card_Ashe_BrambleLash': 1067, 'Card_Ashe_Overgrowth': 1110, 'Card_Ashe_SapMend': 1073,
     'Card_Lucy_VirusSpike': 741, 'Card_Lucy_Corrupt': 1117, 'Card_Lucy_Worm': 342,
     'Card_Blue_ShieldBash': 1811, 'Card_Blue_Bulwark': 2151,
@@ -1001,9 +1001,9 @@ def raven_only_icons(existing):
 
 
 ICONS = [
-    ('Card_MC_EdgeStrike', icon_edge_strike),
-    ('Card_MC_CrossSlash', icon_cross_slash),
-    ('Card_MC_SyncField', icon_sync_field),
+    ('Card_A3_EdgeStrike', icon_edge_strike),
+    ('Card_A3_CrossSlash', icon_cross_slash),
+    ('Card_A3_SyncField', icon_sync_field),
     ('Card_Ashe_BrambleLash', icon_bramble_lash),
     ('Card_Ashe_Overgrowth', icon_overgrowth),
     ('Card_Ashe_SapMend', icon_sap_mend),
@@ -1028,20 +1028,23 @@ ULT_ENEMIES = [
 CHARS = os.path.join(ROOT, 'Assets', '_Project', 'Art', 'Characters')
 
 
-def sprite_art(folder):
-    """The idle sheet's first front-facing frame (row 2 of 64 px frames), cropped to its pixels, as (w, h, rows)."""
+def sprite_art(folder, full=False):
+    """The idle sheet's first front-facing frame (row 2 of 4), cropped to its pixels, as (w, h, rows): a 2x bust, or
+    with full=True the whole figure at 1x (A3's cards, the same pixels as her Soul card)."""
     from pngtool import read_png
     path = os.path.join(CHARS, folder, 'idle.png')
     if not os.path.exists(path):
         return None
     w, h, px = read_png(path)
-    f = 64
+    f = h // 4 if h % 4 == 0 else h   # 4 facing rows of square frames (64 px; A3's are 128)
     y0 = 2 * f if h >= 3 * f else 0
     cells = [(x, y) for y in range(y0, y0 + f) for x in range(f) if px[y][x][3] > 0]
     if not cells:
         return None
     x1, x2 = min(c[0] for c in cells), max(c[0] for c in cells)
     y1, y2 = min(c[1] for c in cells), max(c[1] for c in cells)
+    if full:
+        return x2 - x1 + 1, y2 - y1 + 1, [[tuple(px[y][x]) for x in range(x1, x2 + 1)] for y in range(y1, y2 + 1)]
     # A 2x bust: the top of the figure, as much as fits inside the rim, centred on the figure.
     k = 2
     cw, ch = min(x2 - x1 + 1, (W - 6) // k), min(y2 - y1 + 1, (H - 4) // k)
@@ -1052,18 +1055,34 @@ def sprite_art(folder):
 
 # Party members' card colours (Char_*.asset "color"), used to bake the Ult cards' swirl.
 ULT_OWNERS = [
-    ('Char_MC', 'MC', (0.92, 0.92, 0.95)),
-    ('Char_Ashe', 'Ashe', (0.5, 0.86, 0.45)),
-    ('Char_Lucy', 'Lucy', (0.72, 0.45, 0.95)),
-    ('Char_Blue', 'Blue', (0.45, 0.65, 1.0)),
+    ('Char_A3', 'A3', (0.92, 0.92, 0.95)),
+    ('Char_Ashe', 'Ashe', (0.39, 0.58, 0.93)),
+    ('Char_Erin', 'Erin', (1.0, 0.62, 0.3)),
+    ('Char_Lotus', 'Lotus', (0.55, 0.8, 0.4)),
+    ('Char_Zuko', 'Zuko', (0.9, 0.25, 0.2)),
+]
+
+# Settings > Alt Art: each member's recolour of A3 gets its own picture, Ult_<asset>_Alt (CardArt.Ult picks it).
+# (character asset, sprite folder, swirl colour)
+ULT_ALTS = [
 ]
 
 
 # Resonance Ults with their own full art (CardArt.Ult tries "Ult_<card asset>" before the owner's card):
 # (card asset, sprite folder, swirl colour = ResonanceInfo.Color of the resonance, extra decoration)
 ULT_CARDS = [
-    ('Card_MC_Thunderheart', 'MC', (1.0, 0.84, 0.18), 'bolts'),   # Electric: yellow, lightning down both sides
+    ('Card_A3_Thunderheart', 'A3', (1.0, 0.84, 0.18), 'bolts'),   # Electric: yellow, lightning down both sides
 ]
+
+
+# Characters whose Ult pictures show the whole figure at 1x (like their Soul card in the Cards menu), not a 2x bust.
+FULL_FIGURE = {'A3', 'Ashe', 'Erin', 'Lotus', 'Zuko'}
+
+
+def ult_for(char, color):
+    if char in FULL_FIGURE:
+        return make_ult(char, color, sprite_art(char, full=True), feet_gap=6)
+    return make_ult(char, color, sprite_art(char))
 
 
 def add_bolts(card):
@@ -1079,7 +1098,7 @@ def tint(grey, color):
     return tuple(int(grey[i] * color[i]) for i in range(3)) + (grey[3],)
 
 
-def make_ult(char_name, color, ref=None):
+def make_ult(char_name, color, ref=None, feet_gap=1):
     if ref is None:
         import chibi_forge as cf
         ref = cf.reference_pixels(char_name)
@@ -1097,7 +1116,7 @@ def make_ult(char_name, color, ref=None):
                 p = rows[y][x]
                 art.px[y][x] = tuple(p) if len(p) == 4 else tuple(p) + (255,)
         # full art: the figure fills the card, feet at the bottom edge (the frame crops a little)
-        card.paste(art, (W - rw) // 2, H - rh - 1)
+        card.paste(art, (W - rw) // 2, H - rh - feet_gap)
     # the pale border and plum outline, like the jester card
     for y in range(H):
         for x in range(W):
@@ -1185,12 +1204,16 @@ def main():
     ults = []
     for asset, char, color in ULT_OWNERS:
         # The crew share one in-game model in different colours, so their Ult cards use that battle sprite (the same
-        # 2x bust as the enemies) rather than the old card reference art.
-        u = make_ult(char, color, sprite_art(char))
+        # 2x bust as the enemies) rather than the old card reference art. A3: her whole figure (FULL_FIGURE).
+        u = ult_for(char, color)
         save(u, 'Ult_%s.png' % asset)
         ults.append(u)
+    for asset, folder, color in ULT_ALTS:
+        u = ult_for(folder, color)
+        save(u, 'Ult_%s_Alt.png' % asset)
+        ults.append(u)
     for asset, char, color, extra in ULT_CARDS:
-        u = make_ult(char, color, sprite_art(char))
+        u = ult_for(char, color)
         if extra == 'bolts':
             add_bolts(u)
         save(u, 'Ult_%s.png' % asset)
@@ -1205,13 +1228,13 @@ def main():
 
     if '--preview' in sys.argv:
         out = sys.argv[sys.argv.index('--preview') + 1]
-        owners = {'MC': (0.92, 0.92, 0.95), 'Ashe': (0.5, 0.86, 0.45), 'Lucy': (0.72, 0.45, 0.95),
+        owners = {'A3': (0.92, 0.92, 0.95), 'Ashe': (0.5, 0.86, 0.45), 'Lucy': (0.72, 0.45, 0.95),
                   'Enemy': (0.66, 0.46, 0.3)}
         cards = []
         owners['Menu'] = (0.6, 0.55, 0.75)
         owners['Blue'] = (0.45, 0.65, 1.0)
         owners['Status'] = (0.45, 0.65, 1.0)
-        owners['MC'] = (0.92, 0.92, 0.95)
+        owners['A3'] = (0.92, 0.92, 0.95)
         for name, _ in entries:
             owner = name.split('_')[1]
             cards.append(build_normal(swirl, frame, pips, icons[name], owners.get(owner, owners['Enemy']), 2, 3))

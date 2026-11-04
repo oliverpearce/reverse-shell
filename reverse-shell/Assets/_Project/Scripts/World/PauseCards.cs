@@ -774,6 +774,12 @@ namespace Game.World
                 },
                 new RowMenu.Row
                 {
+                    Label = GameSettings.OverworldSwordLabel,
+                    Action = () => { GameSettings.ToggleOverworldSword(); ShowSettings(3); },
+                    Help = GameSettings.OverworldSwordHelp,
+                },
+                new RowMenu.Row
+                {
                     Label = GameSettings.SfxLabel, Action = () => { }, Help = GameSettings.SfxHelp,
                     SliderGet = () => GameSettings.SfxVolume, SliderSet = v => GameSettings.SfxVolume = v,
                 },
@@ -789,6 +795,26 @@ namespace Game.World
                     Help = GameSettings.GuideHelp,
                 },
             };
+            // Alt Art only when someone has an alternate sprite (every ally is A3's model now, so usually nobody).
+            if (world != null && world.AllCharacters.Exists(m => m != null && m.altAnimations != null))
+                rows.Insert(4, new RowMenu.Row
+                {
+                    Label = GameSettings.AltArtLabel,
+                    Action = () => { GameSettings.ToggleAltArt(); ShowSettings(4); },
+                    Help = GameSettings.AltArtHelp,
+                });
+            // Erin's battle tutorial, again, once you've met her (not in the Sandbox).
+            if (BattleTutorial.PracticeUnlocked && !inSandbox)
+                rows.Add(new RowMenu.Row
+                {
+                    Label = UIText.Get("pause.practice_erin"),
+                    Action = () =>
+                    {
+                        HideNow(false);
+                        BattleTutorial.Start(world, false);
+                    },
+                    Help = UIText.Get("pause.practice_erin.help"),
+                });
             // Sandbox Mode is entered from the title screen; here you can only leave it.
             if (inSandbox)
                 rows.Add(new RowMenu.Row

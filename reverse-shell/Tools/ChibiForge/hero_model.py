@@ -53,7 +53,7 @@ FACE = (9, 9, 22, 18)             # x0, y0, x1, y1 (exclusive)
 
 SPECS = {
     # The crew: android girls; glowing eyes in their colour, own hair and accent.
-    'MC': {'hair': HAIR, 'eye': hx('#BFE6FF'), 'accent': ACCENT, 'top': None, 'pants': None},
+    'A3': {'hair': HAIR, 'eye': hx('#BFE6FF'), 'accent': ACCENT, 'top': None, 'pants': None},
     'Ashe': {'hair': ramp('#14261A', '#1E3A26', '#2A5232', '#5E9A58'), 'eye': hx('#8EF070'),
                 'accent': ramp('#2E5A2A', '#5E9A44'), 'top': None, 'pants': None},
     'Lucy': {'hair': ramp('#24102E', '#341A44', '#4A265E', '#8A58AE'), 'eye': hx('#D07AFF'),

@@ -50,7 +50,7 @@ namespace Combat
         }
 
         /// <summary>
-        /// The glow a character shows. A neutral-glow member (MC) shows its own glow color until it channels an
+        /// The glow a character shows. A neutral-glow member (A3) shows its own glow color until it channels an
         /// element; everyone else glows in their element. Pass <paramref name="channeled"/> once channeling exists.
         /// </summary>
         public static Color GlowFor(CharacterDefinition member, Resonance? channeled = null)

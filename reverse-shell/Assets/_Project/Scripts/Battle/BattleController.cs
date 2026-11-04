@@ -190,6 +190,13 @@ namespace Combat
             return true;
         }
 
+        /// <summary>Replaces the hand outright (a guided tutorial deals a set hand). No merges are run.</summary>
+        public void SetHand(List<CardInstance> cards)
+        {
+            State.Hand.Restore(cards);
+            Emit(new HandRestoredEvent { HandAfter = State.Hand.Snapshot(), QueueAfter = new List<CardInstance>(State.Queue) });
+        }
+
         public void SelectEnemy(BattleUnit enemy)
         {
             if (enemy == null || enemy.Team != Team.Enemy || !enemy.IsAlive) return;

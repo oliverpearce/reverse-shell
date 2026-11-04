@@ -204,6 +204,8 @@ namespace Game.World
             public List<string> resonances = new List<string>();
             public string activeResonance = "";
             public string playerName = "";
+            /// <summary>Bonds (Bonds.cs): rank and points per character; empty in older saves.</summary>
+            public List<BondStack> bonds = new List<BondStack>();
             /// <summary>The Sandbox chest (0 in older saves = the default level).</summary>
             public int sandboxLevel;
             public bool sandboxBoss;
@@ -234,10 +236,13 @@ namespace Game.World
         /// <summary>Characters that were renamed: old save keys (asset names) to the new ones.</summary>
         static readonly Dictionary<string, string> Renamed = new Dictionary<string, string>
         {
-            { "Char_2B", "Char_MC" },
+            { "Char_2B", "Char_A3" },
+            { "Char_MC", "Char_A3" },
             { "Char_V1", "Char_Ashe" },
             { "Char_HealBot", "Char_Ashe" },
-            { "Char_V2", "Char_Lucy" },
+            { "Char_V2", "Char_Ashe" },
+            { "Char_Lucy", "Char_Ashe" },   // Lucy and Blue were removed (2026-11-03)
+            { "Char_Blue", "Char_Ashe" },
         };
 
         public static string Migrate(string id)
@@ -246,12 +251,21 @@ namespace Game.World
             return id != null && Renamed.TryGetValue(id, out renamed) ? renamed : id;
         }
 
-        /// <summary>Card asset names from older saves: Heal Bot's cards became Ashe's (Card_HealBot_X is Card_Ashe_X).</summary>
+        /// <summary>Card asset names from older saves: Heal Bot's cards became Ashe's (Card_HealBot_X is Card_Ashe_X) and
+        /// MC's became A3's (Card_MC_X is Card_A3_X).</summary>
         public static string MigrateCard(string id)
         {
-            const string old = "Card_HealBot_";
-            return id != null && id.StartsWith(old) ? "Card_Ashe_" + id.Substring(old.Length) : id;
+            if (id == null) return null;
+            foreach (var r in RenamedCardPrefixes)
+                if (id.StartsWith(r.Key)) return r.Value + id.Substring(r.Key.Length);
+            return id;
         }
+
+        static readonly KeyValuePair<string, string>[] RenamedCardPrefixes =
+        {
+            new KeyValuePair<string, string>("Card_HealBot_", "Card_Ashe_"),
+            new KeyValuePair<string, string>("Card_MC_", "Card_A3_"),
+        };
 
         static void MigrateCards(List<string> ids)
         {
@@ -273,6 +287,14 @@ namespace Game.World
         {
             public string id;
             public MemberProgress progress;
+        }
+
+        [Serializable]
+        public class BondStack
+        {
+            public string id;
+            public int rank;
+            public int points;
         }
 
         public static Data Capture()
@@ -301,6 +323,8 @@ namespace Game.World
             foreach (var r in WorldSession.UnlockedResonances) data.resonances.Add(r.ToString());
             data.activeResonance = WorldSession.ActiveResonance.ToString();
             data.playerName = StoryState.PlayerName ?? "";
+            foreach (var entry in WorldSession.Bonds)
+                if (entry.Value != null) data.bonds.Add(new BondStack { id = entry.Key, rank = entry.Value.Rank, points = entry.Value.Points });
             data.sandboxLevel = WorldSession.SandboxEnemyLevel;
             data.sandboxBoss = WorldSession.SandboxBoss;
             data.hasSandboxReturn = WorldSession.HasSandboxReturn;
@@ -326,6 +350,7 @@ namespace Game.World
             WorldSession.StarterPartsGiven = false;
             WorldSession.UsedItems.Clear();   // picked-up chips and items come back on a new game
             WorldSession.Members.Clear();
+            WorldSession.Bonds.Clear();
             StoryState.Clear();
             WorldSession.UnlockedResonances.Clear();
             WorldSession.ActiveResonance = Combat.Resonance.Basic;
@@ -360,16 +385,28 @@ namespace Game.World
             if (data.members != null)
                 foreach (var id in data.members) WorldSession.Members.Add(Migrate(id));
             if (data.partyOrder != null)
-                foreach (var id in data.partyOrder) WorldSession.PartyOrder.Add(Migrate(id));
+                foreach (var id in data.partyOrder)
+                {
+                    var to = Migrate(id);
+                    if (!WorldSession.PartyOrder.Contains(to)) WorldSession.PartyOrder.Add(to);   // two old ids can become one
+                }
             foreach (var member in data.party)
                 if (!string.IsNullOrEmpty(member.id) && member.progress != null)
                 {
                     var progress = member.progress.Clone();
                     MigrateCards(progress.Cards);
                     MigrateCards(progress.ExtraCards);
-                    WorldSession.Party[Migrate(member.id)] = progress;
+                    // Two old characters can merge into one (Lucy and Blue became Ashe): keep the further-along progress.
+                    string to = Migrate(member.id);
+                    MemberProgress had;
+                    if (!WorldSession.Party.TryGetValue(to, out had) || had == null || progress.Level > had.Level)
+                        WorldSession.Party[to] = progress;
                 }
             foreach (var id in data.defeatedEncounters) WorldSession.DefeatedEncounters.Add(id);
+            if (data.bonds != null)
+                foreach (var b in data.bonds)
+                    if (!string.IsNullOrEmpty(b.id))
+                        WorldSession.Bonds[Migrate(b.id)] = new WorldSession.BondProgress { Rank = b.rank, Points = b.points };
             if (data.inventory != null)
                 foreach (var stack in data.inventory)
                     if (!string.IsNullOrEmpty(stack.id) && stack.count > 0) WorldSession.Inventory[stack.id] = stack.count;

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -32,6 +33,12 @@ namespace Combat.View
 
         BattleView view;
         BattleRequest request;
+
+        /// <summary>A fight with a guided tutorial began (the request's Tutorial id). The world side (Game.World's
+        /// BattleTutorial) listens and drives it; battle code doesn't know any tutorial.</summary>
+        public static event Action<BattleBootstrap, BattleView, string> TutorialStarted;
+
+        public BattleView View { get { return view; } }
         bool lastVictory;
 
         void Start()
@@ -71,6 +78,8 @@ namespace Combat.View
             };
             view = BattleView.Create(this, Controller);
             Controller.StartBattle();
+            if (request != null && !string.IsNullOrEmpty(request.Tutorial) && TutorialStarted != null)
+                TutorialStarted(this, view, request.Tutorial);
         }
 
         /// <summary>Result screen button: return to the caller, or replay when run standalone.</summary>

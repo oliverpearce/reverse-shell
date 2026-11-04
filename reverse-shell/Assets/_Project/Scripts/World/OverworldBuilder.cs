@@ -174,7 +174,7 @@ namespace Game.World
             // Nothing tall just south of a walkable square, where it would hide the player (OverworldMap.ApplyCameraRule).
             var follow = cam != null ? cam.GetComponent<OverworldCamera>() : null;
             Map.ApplyCameraRule(follow != null ? follow.pitch : 38f, 0.9f, theme != null);
-            // The Sandbox brings the whole crew in (a new game is just MC until then).
+            // The Sandbox brings the whole crew in (a new game is just A3 until then).
             if (area.Id == WorldAreas.Sandbox && encounterSetup != null)
             {
                 var joined = WorldSession.RecruitAll(encounterSetup.party);
@@ -249,6 +249,7 @@ namespace Game.World
             RefreshPartyHud();
             ChapterOneDirector.OnAreaBuilt(this);
             StoryState.Changed += OnStoryChanged;
+            Combat.View.GameSettings.AltArtChanged += OnAltArtChanged;
             RefreshObjective();
             StoryDebugPanel.Ensure();
             StartCoroutine(Arrive());
@@ -257,6 +258,16 @@ namespace Game.World
         void OnDestroy()
         {
             StoryState.Changed -= OnStoryChanged;
+            Combat.View.GameSettings.AltArtChanged -= OnAltArtChanged;
+        }
+
+        CharacterSprite leadSprite;
+
+        /// <summary>Settings > Alt Art: the leader you're walking switches sprite at once.</summary>
+        void OnAltArtChanged()
+        {
+            var lead = Lead;
+            if (leadSprite != null && lead != null) leadSprite.SetAnimations(lead.Anim);
         }
 
         void OnStoryChanged(string flag)
@@ -772,9 +783,9 @@ namespace Game.World
         {
             var lead = Lead;
             CharacterSprite sprite;
-            if (playerSheet == null && lead != null && lead.animations != null)
+            if (playerSheet == null && lead != null && lead.Anim != null)
             {
-                sprite = CharacterSprite.Create(transform, LeaderName, lead.animations, animatedCharacterScale, start);
+                sprite = CharacterSprite.Create(transform, LeaderName, lead.Anim, animatedCharacterScale, start);
             }
             else
             {
@@ -783,6 +794,7 @@ namespace Game.World
                 sprite = CharacterSprite.Create(transform, LeaderName, frames ?? PlaceholderFrames(), characterScale, start);
             }
             sprite.SetFacing(facing);
+            leadSprite = sprite;
 
             PlayerSilhouette.Attach(sprite.Renderer);   // an outline where scenery stands in front of you
             player = sprite.gameObject.AddComponent<PlayerController>();
@@ -1241,16 +1253,24 @@ namespace Game.World
             get
             {
                 var lead = Lead;
-                return Portrait(lead != null ? lead.animations : null);
+                return Portrait(lead != null ? lead.Anim : null);
             }
         }
 
         /// <summary>The front-facing idle frame of an animation set, used as a dialogue portrait.</summary>
+        public static Sprite PortraitOf(SpriteAnimationSet set) { return Portrait(set); }
+
+        /// <summary>A story character standing in the world (a bond companion), at the size the party walks at.</summary>
+        public CharacterSprite SpawnCharacter(string name, SpriteAnimationSet set, Vector3 position)
+        {
+            return CharacterSprite.Create(transform, name, set, animatedCharacterScale, position);
+        }
+
         static Sprite Portrait(SpriteAnimationSet set)
         {
             if (set == null) return null;
             var frames = set.Frames("idle", Combat.Facing.Down, true) ?? set.Frames("walk", Combat.Facing.Down, true);
-            return frames != null && frames.Length > 0 ? frames[0] : null;
+            return frames != null && frames.Length > 0 ? set.Window(frames[0]) : null;
         }
 
         public void StartEncounter(EncounterInteractable encounter)
@@ -1321,7 +1341,7 @@ namespace Game.World
                 if (setup.enemies.Count > 0) return setup;
                 setup.enemies = new List<EnemyDefinition>(encounter.setup.enemies);
             }
-            // No more machines than active members: MC alone (a new game) faces one, the full crew faces them all.
+            // No more machines than active members: A3 alone (a new game) faces one, the full crew faces them all.
             if (setup.party.Count > 0 && setup.enemies.Count > setup.party.Count)
                 setup.enemies = setup.enemies.GetRange(0, setup.party.Count);
             // Sandbox fights use the chest's level; a boss fight is one big machine.
@@ -1350,6 +1370,7 @@ namespace Game.World
             string winMessage = encounter.def == null ? null
                 : encounter.def.WinKey != null ? StoryText.Text(encounter.def.WinKey) : encounter.def.WinMessage;
             string reward = encounter.def != null ? encounter.def.Reward : null;
+            bool practice = BattleTutorial.IsPractice(id);   // a tutorial replay: no packs, nothing recorded
             string leader = LeaderName;
             var setup = BuildSetup(encounter);
             // Levels, HP and loadouts for everyone who comes (the backup too).
@@ -1359,6 +1380,15 @@ namespace Game.World
             Combat.PackRates.ActiveArea = WorldSession.CurrentArea;   // the results screen counts this area's packs
             BattleLauncher.Request(setup, party, WorldSession.LoadoutsFor(everyone), result =>
             {
+                if (practice && result.Outcome == BattleOutcome.Victory)
+                {
+                    WorldSession.PendingSpeaker = leader;
+                    WorldSession.Apply(result.Party);
+                    WorldSession.PendingMessage = StoryText.Text("tutorial.practice.done");
+                    SaveGame.Save();
+                    ScreenFade.LoadScene(returnScene);
+                    return;
+                }
                 WorldSession.PendingSpeaker = leader;
                 // Levels, XP and HP carry over; a defeat sends the party back to regroup at full HP.
                 WorldSession.Apply(result.Party);
@@ -1402,6 +1432,7 @@ namespace Game.World
                 ScreenFade.LoadScene(returnScene);
             });
 
+            BattleLauncher.SetTutorial(BattleTutorial.TutorialFor(id));
             // Red alert flash, then the ink fade into battle.
             UI.SetFade(new Color(1f, 0.3f, 0.2f, 0.7f));
             ScreenFade.LoadScene(battleScene);

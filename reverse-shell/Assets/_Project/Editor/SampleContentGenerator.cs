@@ -10,7 +10,7 @@ namespace Combat.EditorTools
 {
     /// <summary>
     /// Tools > Combat > Generate Sample Content. Creates whatever is missing of
-    /// the main party (MC the Prototype, Ashe and Lucy), two machine enemies, the Parts and their catalog,
+    /// the main party (A3 the Prototype and Ashe), two machine enemies, the Parts and their catalog,
     /// cards/statuses/animations and a Battle scene. Sprites come from Assets/_Project/Art
     /// (Tools/SpriteForge builds the cast sheets, Tools/PortraitForge the character-card portraits).
     /// All three party members are original robots. Non-commercial fan project.
@@ -39,8 +39,32 @@ namespace Combat.EditorTools
             fresh.Clear();
             kept = 0;
             running = true;
-            try { GenerateAll(); }
+            try { GenerateAll(); LinkAltArt(); }
             finally { running = false; }
+        }
+
+        /// <summary>
+        /// Settings > Alt Art: gives each character its recolour of A3 (Anim_Alt_&lt;name&gt;, made by
+        /// Tools/ChibiForge/alt_recolour.py) and keeps the recolour-only crew (Erin, Lotus, Zuko) in Battle_Sample's roster.
+        /// Run after the characters are (re)built, since rebuilding clears the link. Safe to run again.
+        /// </summary>
+        public static void LinkAltArt()
+        {
+            foreach (var path in AssetDatabase.FindAssets("t:CharacterDefinition", new[] { Root + "/Characters" }))
+            {
+                var c = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(AssetDatabase.GUIDToAssetPath(path));
+                if (c == null) continue;
+                var alt = AssetDatabase.LoadAssetAtPath<SpriteAnimationSet>(Root + "/Animations/Anim_Alt_" + c.name.Replace("Char_", "") + ".asset");
+                if (alt != null && c.altAnimations != alt) { c.altAnimations = alt; EditorUtility.SetDirty(c); }
+            }
+            var setup = AssetDatabase.LoadAssetAtPath<BattleSetup>(Root + "/Battle_Sample.asset");
+            if (setup != null)
+                foreach (var n in new[] { "Erin", "Lotus", "Zuko" })
+                {
+                    var c = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(Root + "/Characters/Char_" + n + ".asset");
+                    if (c != null && !setup.party.Contains(c)) { setup.party.Add(c); EditorUtility.SetDirty(setup); }
+                }
+            AssetDatabase.SaveAssets();
         }
 
         static void GenerateAll()
@@ -96,14 +120,14 @@ namespace Combat.EditorTools
             var atkDown = Status("Status_AtkDown", "ATK Down", "ATK", new Color(0.72f, 0.42f, 0.95f), true,
                 StackRule.RefreshDuration, 1, "-20% ATK.", 0f, 0f, new StatModifier(StatType.Attack, ModifierKind.Percent, -0.2f));
 
-            // ---------------------------------------------------------------- MC, the main character (Basic, Arc)
+            // ---------------------------------------------------------------- A3, the main character (Basic, Arc)
             // Party leader and the standout model. Glows white for now; it will channel several elements later
             // (channels + ResonanceInfo.GlowFor). A heavy single-target strike plus a team damage buff.
-            var mc1 = Card("Card_MC_EdgeStrike", "Edge Strike", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
+            var a3Card1 = Card("Card_A3_EdgeStrike", "Edge Strike", CardKind.Attack, TargetMode.SingleEnemy, false, seqStrike,
                 new CardEffect[] { new DamageEffect { multiplier = 1.8f } },
                 new CardEffect[] { new DamageEffect { multiplier = 2.7f } },
                 new CardEffect[] { new DamageEffect { multiplier = 4.5f } });
-            var mc2 = Card("Card_MC_SyncField", "Sync Field", CardKind.Buff, TargetMode.AllAllies, false, seqSupport,
+            var a3Card2 = Card("Card_A3_SyncField", "Sync Field", CardKind.Buff, TargetMode.AllAllies, false, seqSupport,
                 new CardEffect[] { new ApplyStatusEffect { status = mightUp, stacks = 1, duration = 2 } },
                 new CardEffect[] { new ApplyStatusEffect { status = mightUp, stacks = 2, duration = 2 } },
                 new CardEffect[]
@@ -111,27 +135,27 @@ namespace Combat.EditorTools
                     new ApplyStatusEffect { status = mightUp, stacks = 3, duration = 2 },
                     new GainMoxieEffect { target = EffectTarget.RandomAlly, amount = 1 }
                 });
-            var mc3 = Card("Card_MC_CrossSlash", "Cross Slash", CardKind.Attack, TargetMode.AllEnemies, false, seqSweep,
+            var a3Card3 = Card("Card_A3_CrossSlash", "Cross Slash", CardKind.Attack, TargetMode.AllEnemies, false, seqSweep,
                 new CardEffect[] { new DamageEffect { multiplier = 1f } },
                 new CardEffect[] { new DamageEffect { multiplier = 1.5f } },
                 new CardEffect[] { new DamageEffect { multiplier = 2.4f } });
-            var mcUlt = Card("Card_MC_EdgeBreaker", "Edge Breaker", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
+            var a3Ult = Card("Card_A3_EdgeBreaker", "Edge Breaker", CardKind.Attack, TargetMode.SingleEnemy, true, seqRitual,
                 new CardEffect[]
                 {
                     new DamageEffect { multiplier = 6f, hits = 2 },
                     new ApplyStatusEffect { target = EffectTarget.AllAllies, status = atkUp, stacks = 2, duration = 2 }
                 });
-            var mc = Character("Char_MC", "MC", "Prototype", new Color(0.92f, 0.92f, 0.95f), Resonance.Arc, DamageType.Physical,
-                2200, 240f, 130f, 130f, new[] { mc1, mc2 }, mcUlt, AnimSet("MC"));
-            if (Fresh(mc))
+            var a3 = Character("Char_A3", "A3", "Prototype", new Color(0.92f, 0.92f, 0.95f), Resonance.Arc, DamageType.Physical,
+                2200, 240f, 130f, 130f, new[] { a3Card1, a3Card2 }, a3Ult, AnimSet("A3"));
+            if (Fresh(a3))
             {
-                mc.cardPool = new List<CardDefinition> { mc3 };
-                mc.neutralGlow = true;
-                mc.glowColor = new Color(1f, 0.55f, 0.18f); // orange, matching the sprite's glow pads
-                mc.statBarReference = true; // crew-menu stat bars: MC at level 30 fills 90%
-                mc.partSockets = new List<Vector2>(); // all crew cards share the reference knight's layout (CharacterMenu.SocketSpots)
-                mc.channels = new List<Resonance> { Resonance.Arc, Resonance.Root, Resonance.Cryo, Resonance.Cinder, Resonance.Prism };
-                Portraits(mc, "MC");
+                a3.cardPool = new List<CardDefinition> { a3Card3 };
+                a3.neutralGlow = true;
+                a3.glowColor = new Color(1f, 0.55f, 0.18f); // orange, matching the sprite's glow pads
+                a3.statBarReference = true; // crew-menu stat bars: A3 at level 30 fills 90%
+                a3.partSockets = new List<Vector2>(); // all crew cards share the reference knight's layout (CharacterMenu.SocketSpots)
+                a3.channels = new List<Resonance> { Resonance.Arc, Resonance.Root, Resonance.Cryo, Resonance.Cinder, Resonance.Prism };
+                Portraits(a3, "A3");
             }
 
             // ---------------------------------------------------------------- Ashe (Earth, Special)
@@ -166,8 +190,8 @@ namespace Combat.EditorTools
                 Portraits(ashe, "Ashe");
             }
 
-            // ---------------------------------------------------------------- Lucy (Arc, Special)
-            // The same robot model with purple accents. Viruses: damage over time and debuffs.
+            // ---------------------------------------------------------------- Virus cards (Lucy's, retired)
+            // Lucy was removed (2026-11-03); her cards stay because Erin and Zuko use them as placeholder kits.
             var lucy1 = Card("Card_Lucy_VirusSpike", "Virus Spike", CardKind.Attack, TargetMode.SingleEnemy, false, seqBolt,
                 new CardEffect[] { new DamageEffect { multiplier = 1.2f }, new ApplyStatusEffect { status = poison, duration = 2 } },
                 new CardEffect[] { new DamageEffect { multiplier = 1.8f }, new ApplyStatusEffect { status = poison, stacks = 2, duration = 2 } },
@@ -187,14 +211,7 @@ namespace Combat.EditorTools
                     new ApplyStatusEffect { status = poison, stacks = 2, duration = 3 },
                     new ApplyStatusEffect { status = defDown, duration = 2 }
                 });
-            var lucy = Character("Char_Lucy", "Lucy", "Hacker", new Color(0.72f, 0.45f, 0.95f), Resonance.Arc, DamageType.Special,
-                2100, 215f, 120f, 150f, new[] { lucy1, lucy2 }, lucyUlt, AnimSet("Lucy"));
-            if (Fresh(lucy))
-            {
-                lucy.cardPool = new List<CardDefinition> { lucy3 };
-                Portraits(lucy, "Lucy");
-            }
-            foreach (var c in new[] { mc, ashe, lucy }) EditorUtility.SetDirty(c);
+            foreach (var c in new[] { a3, ashe }) EditorUtility.SetDirty(c);
 
             // ---------------------------------------------------------------- Parts (internal slots on the character card)
             var parts = new List<PartDefinition>
@@ -262,17 +279,16 @@ namespace Combat.EditorTools
             var setup = ScriptableObject.CreateInstance<BattleSetup>();
             setup.config = config;
             setup.backdrop = backdrop;
-            setup.party = new List<CharacterDefinition> { mc, ashe, lucy };
+            setup.party = new List<CharacterDefinition> { a3, ashe };
             setup.enemies = new List<EnemyDefinition> { sentry, stalker };
             setup = Save(setup, Root + "/Battle_Sample.asset");
-            EnsureBlue();
             EnsureChapterOne();
             EnsurePackRates();
 
             AssetDatabase.SaveAssets();
             if (overwrite || AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null) CreateScene(setup);
 
-            Selection.activeObject = mc;
+            Selection.activeObject = a3;
             EditorUtility.DisplayDialog("Combat", (overwrite ? "Sample content rebuilt." : "Sample content generated: "
                 + fresh.Count + " assets made, " + kept + " existing ones left as they were.")
                 + "\n\nScene: " + ScenePath + "\nPress Play to fight!", "OK");
@@ -318,49 +334,6 @@ namespace Combat.EditorTools
             EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath));
         }
 
-        // -------------------------------------------------------------------- Blue (the backup)
-
-        public const string BluePath = Root + "/Characters/Char_Blue.asset";
-
-        /// <summary>
-        /// Blue, the blue robot backup who joins in the Sandbox: a Light support / tank. Builds the DEF Up
-        /// status, Blue's cards and character from Art/Characters/Blue (Tools/ChibiForge/knight_model.py), and adds
-        /// Blue to the end of Battle_Sample's roster (a 4th member fights as the backup). Safe to run again: only
-        /// missing assets are made.
-        /// </summary>
-        public static void EnsureBlue()
-        {
-            BeginStandalone();
-            var defUp = Status("Status_DefUp", "DEF Up", "DF", new Color(0.45f, 0.75f, 1f), false,
-                StackRule.AddStacks, 2, "+20% Physical and Special DEF per level.", 0f, 0f,
-                new StatModifier(StatType.PhysicalDefense, ModifierKind.Percent, 0.2f),
-                new StatModifier(StatType.SpecialDefense, ModifierKind.Percent, 0.2f));
-
-            var bash = Card("Card_Blue_ShieldBash", "Shield Bash", CardKind.Attack, TargetMode.SingleEnemy, false, null,
-                new CardEffect[] { new DamageEffect { multiplier = 1.1f }, new ApplyStatusEffect { target = EffectTarget.Self, status = defUp, stacks = 1, duration = 2 } },
-                new CardEffect[] { new DamageEffect { multiplier = 1.6f }, new ApplyStatusEffect { target = EffectTarget.Self, status = defUp, stacks = 1, duration = 2 } },
-                new CardEffect[] { new DamageEffect { multiplier = 2.4f }, new ApplyStatusEffect { target = EffectTarget.Self, status = defUp, stacks = 2, duration = 2 } });
-            var bulwark = Card("Card_Blue_Bulwark", "Bulwark", CardKind.Buff, TargetMode.AllAllies, false, null,
-                new CardEffect[] { new ApplyStatusEffect { status = defUp, stacks = 1, duration = 2 } },
-                new CardEffect[] { new ApplyStatusEffect { status = defUp, stacks = 1, duration = 3 } },
-                new CardEffect[] { new ApplyStatusEffect { status = defUp, stacks = 2, duration = 3 } });
-            var aegis = Card("Card_Blue_AegisDawn", "Aegis Dawn", CardKind.Heal, TargetMode.AllAllies, true, null,
-                new CardEffect[] { new HealEffect { target = EffectTarget.CardTargets, multiplier = 1.4f },
-                                   new ApplyStatusEffect { status = defUp, stacks = 2, duration = 2 } });
-
-            var anim = AnimSet("Blue");
-            var blue = Character("Char_Blue", "Blue", "Guardian", new Color(0.45f, 0.65f, 1f), Resonance.Prism, DamageType.Physical,
-                3200, 120f, 190f, 170f, new[] { bash, bulwark }, aegis, anim);
-
-            var setup = AssetDatabase.LoadAssetAtPath<BattleSetup>(Root + "/Battle_Sample.asset");
-            if (setup != null && Fresh(blue) && !setup.party.Contains(blue))
-            {
-                setup.party.Add(blue);
-                EditorUtility.SetDirty(setup);
-            }
-            AssetDatabase.SaveAssets();
-        }
-
         // -------------------------------------------------------------------- Chapter One
 
         public const string BestiaryPath = "Assets/_Project/Resources/Bestiary.asset";
@@ -389,26 +362,26 @@ namespace Combat.EditorTools
             var defDown = AssetDatabase.LoadAssetAtPath<StatusDefinition>(Root + "/Statuses/Status_PhysicalDefDown.asset");
 
             // ---- The protagonist's Arc kit: chains and stuns rather than just "the same hit, but yellow".
-            var arcEdge = Card("Card_MC_ArcEdge", "Arc Edge", CardKind.Attack, TargetMode.SingleEnemy, false, null,
+            var arcEdge = Card("Card_A3_ArcEdge", "Arc Edge", CardKind.Attack, TargetMode.SingleEnemy, false, null,
                 new CardEffect[] { new DamageEffect { multiplier = 1.4f }, new DamageEffect { target = EffectTarget.RandomEnemy, multiplier = 0.5f } },
                 new CardEffect[] { new DamageEffect { multiplier = 2.1f }, new DamageEffect { target = EffectTarget.RandomEnemy, multiplier = 0.8f } },
                 new CardEffect[] { new DamageEffect { multiplier = 3.4f }, new DamageEffect { target = EffectTarget.RandomEnemy, multiplier = 1.3f } });
-            var staticField = Card("Card_MC_StaticField", "Static Field", CardKind.Debuff, TargetMode.AllEnemies, false, null,
+            var staticField = Card("Card_A3_StaticField", "Static Field", CardKind.Debuff, TargetMode.AllEnemies, false, null,
                 new CardEffect[] { new DamageEffect { multiplier = 0.5f }, new ApplyStatusEffect { status = stunned, duration = 1, chance = 0.25f } },
                 new CardEffect[] { new DamageEffect { multiplier = 0.8f }, new ApplyStatusEffect { status = stunned, duration = 1, chance = 0.4f } },
                 new CardEffect[] { new DamageEffect { multiplier = 1.2f }, new ApplyStatusEffect { status = stunned, duration = 1, chance = 0.6f } });
-            var thunderheart = Card("Card_MC_ArcTempest", "Arc Tempest", CardKind.Attack, TargetMode.AllEnemies, true, null,
+            var thunderheart = Card("Card_A3_ArcTempest", "Arc Tempest", CardKind.Attack, TargetMode.AllEnemies, true, null,
                 new CardEffect[] { new DamageEffect { multiplier = 3.2f, hits = 3 }, new ApplyStatusEffect { status = stunned, duration = 1, chance = 0.5f } });
 
-            var mc = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(Root + "/Characters/Char_MC.asset");
-            if (mc != null && (overwrite || mc.resonances == null || mc.resonances.Count == 0))
+            var a3 = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(Root + "/Characters/Char_A3.asset");
+            if (a3 != null && (overwrite || a3.resonances == null || a3.resonances.Count == 0))
             {
-                mc.resonances = new List<ResonanceKit>
+                a3.resonances = new List<ResonanceKit>
                 {
-                    new ResonanceKit { element = Resonance.Basic, cards = new List<CardDefinition>(mc.incantations), ultimate = mc.ritual },
+                    new ResonanceKit { element = Resonance.Basic, cards = new List<CardDefinition>(a3.incantations), ultimate = a3.ritual },
                     new ResonanceKit { element = Resonance.Arc, cards = new List<CardDefinition> { arcEdge, staticField }, ultimate = thunderheart },
                 };
-                EditorUtility.SetDirty(mc);
+                EditorUtility.SetDirty(a3);
             }
 
             // ---- Enemies: all on the red Rust Sentry sprite for now (placeholder art).
@@ -633,6 +606,8 @@ namespace Combat.EditorTools
             // ChibiForge draws smooth, many-frame clips (8 / 13 / 10 / 12 / 9 frames); these rates keep the old timings.
             AddClip(set, folder, "idle", 6f, true, 0);
             AddClip(set, folder, "walk", 15f, true, 1); // frame 0 is the standing pose
+            AddClip(set, folder, "idle_sword", 6f, true, 0);    // optional: standing with the sword (Settings > Sword)
+            AddClip(set, folder, "walk_sword", 10f, true, 0);   // optional: the walk with the sword (Settings → Sword)
             AddClip(set, folder, "slash", 22f, false, 0);
             AddClip(set, folder, "spellcast", 20f, false, 0);
             AddClip(set, folder, "hurt", 15f, false, 0);
@@ -648,14 +623,35 @@ namespace Combat.EditorTools
             // base model). Frames are one world unit / one UI sprite box either way, so both show at the same size.
             var idle = set.Find("idle");
             if (idle != null && idle.sheet.height >= 4 && idle.sheet.height % 4 == 0) set.frameSize = idle.sheet.height / 4;
-            // One walk cycle takes 0.8 s whatever its frame count (12 frames at 15 fps; MC's hand-drawn 24 at 30 fps).
+            // One walk cycle takes 0.8 s whatever its frame count (12 frames at 15 fps; a hand-drawn 24 at 30 fps).
             var walk = set.Find("walk");
             if (walk != null)
             {
                 int cycle = walk.sheet.width / set.frameSize - walk.firstFrame;
                 if (cycle > 0) walk.fps = cycle / 0.8f;
             }
+            if (System.Array.IndexOf(A3Model, folder) >= 0) A3Layout(set);   // every ally is A3's model
             return Save(set, Root + "/Animations/Anim_" + folder + ".asset");
+        }
+
+        /// <summary>The allies drawn on A3's model (Tools/ChibiForge/alt_recolour.py dresses each one).</summary>
+        static readonly string[] A3Model = { "A3", "Ashe", "Erin", "Lotus", "Zuko" };
+
+        /// <summary>A3's sheets (Tools/ChibiForge/a3_model.py) are cut from a packed sheet: 128 px cells for the sword
+        /// swings, art at 64 px scale (shrunk to 75%), feet 14 px up, and few frames per clip, so the clips play slower.</summary>
+        static void A3Layout(SpriteAnimationSet set)
+        {
+            set.referenceSize = 64;
+            set.feetPivot = 14f / 128f;
+            // The knight's Soul crop in pixels (32 x 40, the same card resolution), centred on her feet.
+            set.soulCrop = new Rect(48f / 128f, 12f / 128f, 32f / 128f, 40f / 128f);
+            foreach (var c in set.clips) c.firstFrame = 0;          // no standing frame before the walk cycle
+            var fps = new Dictionary<string, float> { { "idle", 5f }, { "walk", 10f }, { "walk_sword", 10f }, { "idle_sword", 6f }, { "slash", 20f }, { "spellcast", 16f }, { "hurt", 10f }, { "sit", 8f }, { "read", 8f } };
+            foreach (var c in set.clips)
+            {
+                float f;
+                if (fps.TryGetValue(c.name, out f)) c.fps = f;
+            }
         }
 
         public const string PackRatesPath = "Assets/_Project/Resources/Cards/PackRates.asset";
@@ -735,7 +731,7 @@ namespace Combat.EditorTools
                 string path = Root + "/" + file + ".asset";
                 if (AssetDatabase.LoadAssetAtPath<Object>(path) != null) AssetDatabase.DeleteAsset(path);
             }
-            // Retired character art (2B, V1 and V2 became MC, Ashe and Lucy).
+            // Retired character art (2B, V1 and V2 became MC, now A3, plus Ashe and Lucy).
             foreach (var folder in new[] { "2B", "V1", "V2" })
                 if (AssetDatabase.IsValidFolder(CharacterArt + folder)) AssetDatabase.DeleteAsset(CharacterArt + folder);
         }

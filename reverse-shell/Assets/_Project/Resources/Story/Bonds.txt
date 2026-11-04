@@ -1,0 +1,194 @@
+# REVERSE SHELL — Bonds (how party members join) and Erin's battle tutorial
+#
+# Same format as Chapter1.txt: [key] starts a block, "Speaker | text" is one box, # is a comment, {name} is the
+# protagonist's name. A bond scene is [bond.<who>.<rank>], then .ask (its LAST line is the question asked with the
+# choices), .options (one answer per line, best first: 3 / 2 / 1 bond points), and .answer.1 / .2 / .3.
+# Every 3 points is a rank (5 in all); at rank 3 they give you their Soul Card and join the party.
+#
+# DRAFT: Erin's bond scenes below are placeholders for the author to rewrite. The tutorial lines follow the brief.
+
+# ------------------------------------------------------------------ Erin
+
+# Talking to her when no new scene has unlocked yet (the story moves her on).
+[bond.erin.idle]
+Erin | Go on, look around. I'll be right here.{p} I've had a lot of practice at waiting.
+
+# Her scene's done but the bond needs a little more: spend some time together (+1 point).
+[bond.erin.hangout]
+Erin | Sit with me a minute?
+You talk about nothing much. It helps more than it should.
+
+[bond.erin.max]
+Erin | You don't have to keep checking on me, you know.{p} ...I'm glad you do.
+
+# Rank 1: you wake; she's been here a long time. (DRAFT)
+[bond.erin.1]
+Erin | Oh! You're awake. You're actually awake.
+Erin | I'm Erin. I've been waiting here... a while. Long enough to stop counting.
+
+[bond.erin.1.ask]
+Erin | Waiting for what, you're wondering?{p} For someone. Anyone. Is that strange?
+
+[bond.erin.1.options]
+Not strange. I'm glad you waited.
+I'd have left by now.
+...Who are you, really?
+
+[bond.erin.1.answer.1]
+Erin | {wave}Glad.{/wave} Huh. Nobody's been glad to see me in a long time.
+
+[bond.erin.1.answer.2]
+Erin | Ha. Maybe I should have. Then again, then you'd have woken up alone.
+
+[bond.erin.1.answer.3]
+Erin | I told you. Erin.{p} That's all I've got for now.
+
+# Rank 2: after you pick up the card binder. (DRAFT)
+[bond.erin.2]
+Erin | You found a binder? Cards... I used to know someone who collected those.
+Erin | Funny. I can't remember their face. Just the sound of the cards shuffling.
+
+[bond.erin.2.ask]
+Erin | Do you ever feel like something's missing, and you can't say what?
+
+[bond.erin.2.options]
+All the time. We can look for it together.
+Not really.
+Maybe it's better not to know.
+
+[bond.erin.2.answer.1]
+Erin | Together. Okay.{p} I like the sound of that.
+
+[bond.erin.2.answer.2]
+Erin | Lucky you. Hold on to that.
+
+[bond.erin.2.answer.3]
+Erin | Maybe. But I'd rather know.
+
+# Rank 3: after the scanner. Your souls bond: she gives you her Soul Card and joins you. (DRAFT)
+[bond.erin.3]
+Erin | That scanner... it's reading something off you. Off both of us.
+Erin | I can feel it too. Like a string pulled tight between us.
+
+[bond.erin.3.ask]
+Erin | If I came with you... would that be all right?
+
+[bond.erin.3.options]
+I want you to come.
+If you can keep up.
+It's dangerous out there.
+
+[bond.erin.3.answer.1]
+Erin | {wave}Then it's settled.{/wave}
+
+[bond.erin.3.answer.2]
+Erin | Keep up? Watch me.
+
+[bond.erin.3.answer.3]
+Erin | Everywhere's dangerous. At least out there I won't be alone.
+
+# Rank 3 reached: the Soul Card.
+[bond.erin.soul]
+Erin | Here. Take this.
+She presses a card into your hand. It is warm, like a held breath.
+Erin | My Soul Card. I don't know how I know, but it's yours to carry now.{p} So am I, I suppose.
+
+# Rank 4: after the Collector (she finds you once you're back). (DRAFT)
+[bond.erin.4]
+Erin | That man wanted what's in you. In us.{p} He said "traces of souls" like it was a price tag.
+
+[bond.erin.4.ask]
+Erin | Do you think we have them? Souls?
+
+[bond.erin.4.options]
+You do. I've seen it.
+I don't know.
+Does it matter?
+
+[bond.erin.4.answer.1]
+Erin | ...Thank you. I needed someone to say it.
+
+[bond.erin.4.answer.2]
+Erin | Me neither. Let's find out together.
+
+[bond.erin.4.answer.3]
+Erin | It matters to me.
+
+# Rank 5: after you've seen the dragon. (DRAFT)
+[bond.erin.5]
+Erin | Whatever's down there, it's guarding something important. I can feel it humming.
+Erin | If something happens to me—{p} no. Forget I said that.
+
+[bond.erin.5.ask]
+Erin | Promise me something? Remember me. Whatever happens.
+
+[bond.erin.5.options]
+I promise.
+Nothing's going to happen.
+...
+
+[bond.erin.5.answer.1]
+Erin | Okay. {p}Okay. That's enough, then.
+
+[bond.erin.5.answer.2]
+Erin | Ha. Right. Of course not.
+
+[bond.erin.5.answer.3]
+Erin | You don't have to say it. I know.
+
+# The end of Chapter One: the old machine takes her, and her Soul Card is obliterated. (DRAFT; the bible leaves the
+# exact circumstances open.)
+[erin.lost]
+Erin | Something's wrong. The machine— it's pulling at me. At the card.
+Erin | {name}, don't let go— {p=0.8}
+The old machine screams. Light pours through Erin until there is nothing left to pour through.
+Her Soul Card falls from your hand, cracked straight through, and crumbles to grey dust.
+{gray}Erin is gone.{/c}
+
+# ------------------------------------------------------------------ Erin's battle tutorial
+
+# Right after she joins: "want a quick rundown?" (the last line asks; the answers are tutorial.offer.options).
+[tutorial.offer]
+Erin | Something's moving out there. A machine, a small one.
+Erin | Want a quick rundown before we fight together?
+
+[tutorial.offer.options]
+Yes, show me.
+I know how.
+
+[tutorial.skip]
+Erin | Then let's go. I'll follow your lead.
+
+[tutorial.erin.intro]
+Erin | Okay! Fighting together's all about the cards. Every card costs 1 AP, and we get 1 AP each per turn.
+
+# Step 1: tap a Physical card.
+[tutorial.erin.1]
+Erin | First, tap a Physical card. That one, glowing. It costs 1 AP.
+
+# Step 2: move a card next to its match so they merge into Rank II.
+[tutorial.erin.2]
+Erin | See those two matching cards? Spend 1 AP to slide one next to the other, and they'll merge into Rank II.
+
+# Out of AP: press Go.
+[tutorial.erin.go]
+Erin | We're out of AP. Press Go and watch the cards play out.
+
+# Step 3: cast the Rank II card.
+[tutorial.erin.3]
+Erin | Now cast the Rank II card. Merged cards hit harder, and their Break power is bigger too. That grey bar under its health? Empty it.
+
+[tutorial.erin.go_break]
+Erin | That's it. Press Go, and hit that guard!
+
+# Step 4: BREAK, then the finishing strike.
+[tutorial.erin.4]
+Erin | {shake}BREAK!{/shake} It's stunned and loses its turn, and every hit on it does extra damage while it's down.
+Erin | Finish it! Play anything you like, then Go.
+
+[tutorial.erin.done]
+Erin | {wave}Nice!{/wave} You've got it. From here on, it's all you.
+
+# After winning a practice replay (Settings > Practice with Erin).
+[tutorial.practice.done]
+Erin | Good practice. Same time tomorrow?

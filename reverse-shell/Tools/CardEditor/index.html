@@ -653,7 +653,7 @@ function nextId(pool) {
 }
 
 function assetFor(pool, name) {
-  const prefixes = W.cards.filter(c => c.Pool === pool).map(c => /^Card_([A-Za-z]+)_/.exec(c['In-game asset'] || '')).filter(m => m && m[1] !== 'MC').map(m => m[1]);
+  const prefixes = W.cards.filter(c => c.Pool === pool).map(c => /^Card_([A-Za-z]+)_/.exec(c['In-game asset'] || '')).filter(m => m && m[1] !== 'A3').map(m => m[1]);
   const prefix = mostCommon(prefixes) || (pool === 'Basic' ? 'Physical' : pool);
   const clean = String(name || 'New').replace(/[^A-Za-z0-9 ]/g, '').split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join('');
   return 'Card_' + prefix + '_' + (clean || 'New');

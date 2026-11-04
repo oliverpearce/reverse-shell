@@ -70,7 +70,7 @@ namespace Game.EditorTools
 
             var world = new GameObject("Overworld").AddComponent<OverworldBuilder>();
             world.tileAtlas = atlas;
-            world.playerSheet = null; // uses the party leader's sprite (MC) from the battle setup
+            world.playerSheet = null; // uses the party leader's sprite (A3) from the battle setup
             world.enemySheet = Load("Yakuza1.png");
             world.npcSheet = Load("streetPeople.png");
             // LPC animated look (falls back to the CyberCity sheets above if SpriteForge output is missing).

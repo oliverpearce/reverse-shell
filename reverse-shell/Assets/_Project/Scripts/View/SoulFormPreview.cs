@@ -33,7 +33,27 @@ namespace Combat.View
             return preview;
         }
 
-        bool hidden;
+        bool hidden, lost;
+
+        /// <summary>A Soul Card that was destroyed (Erin, Chapter One): a dark, cracked back under "OBLITERATED".</summary>
+        public static SoulFormPreview AttachLost(GameObject target, float scale)
+        {
+            var preview = Attach(target, (face, s) =>
+            {
+                CardView.BuildBack(face, new Color(0.35f, 0.08f, 0.06f));
+                var wash = UIFactory.CreateImage(face, "Ash", new Color(0.05f, 0.03f, 0.03f, 0.55f));
+                wash.rectTransform.Fill();
+                for (int i = 0; i < 3; i++)
+                {
+                    var crack = UIFactory.CreateImage(face, "Crack" + i, new Color(1f, 0.55f, 0.3f, 0.75f));
+                    crack.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                        new Vector2((i - 1) * 14f * s, (i - 1) * -10f * s), new Vector2(3f * s, 90f * s));
+                    crack.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 25f - i * 22f);
+                }
+            }, scale);
+            if (preview != null) preview.lost = true;
+            return preview;
+        }
 
         /// <param name="buildFace">Draws the Soul card into the rect it's given (CardView.Size * scale), as a card only (its
         /// text and numbers are for the card popup's Swap to Soul form).</param>
@@ -65,7 +85,7 @@ namespace Combat.View
             InkStyle.Frame(panel, UIFactory.WithAlpha(InkStyle.Gold, 0.8f), 2f);
             panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
             panel.sizeDelta = box;
-            var label = InkStyle.Label(panel, "Label", UIText.Get(hidden ? "card.soul_form_hidden" : "card.soul_form"), UIFactory.TextSize.Small, InkStyle.Gold, TextAnchor.MiddleCenter);
+            var label = InkStyle.Label(panel, "Label", UIText.Get(lost ? "card.soul_form_lost" : hidden ? "card.soul_form_hidden" : "card.soul_form"), UIFactory.TextSize.Small, InkStyle.Gold, TextAnchor.MiddleCenter);
             label.rectTransform.TopStrip(Pad, LabelH, Pad);
             var face = UIFactory.CreateRect("Face", panel);
             face.anchorMin = face.anchorMax = new Vector2(0.5f, 0f);

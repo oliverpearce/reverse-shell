@@ -91,6 +91,24 @@ settings.graphics.fast = Fast
 settings.graphics.pretty = Pretty
 settings.graphics.help = Fast: no glow or colour filter and fewer leaves, so the game runs cooler (best in a browser). Pretty: the full look.
 
+# {value} = settings.on / settings.off (overworld only: A3 always has her sword in battle)
+settings.sword = Sword:  {value}
+settings.sword.help = Show A3 carrying her sword while exploring. She always draws it in battle.
+
+# {value} = settings.on / settings.off
+settings.alt_art = Alt Art:  {value}
+settings.alt_art.help = Party members wear A3's look in their own colours: in the world, in battle, in menus and on their cards.
+
+# Esc > Settings, once you have met Erin: her battle tutorial again
+pause.practice_erin = Practice with Erin
+pause.practice_erin.help = Replay Erin's battle tutorial: tap, merge, Break, finish. No rewards.
+
+# Bonds (talk with a companion; at rank 3 they give you their Soul Card and join). {n} = the rank, {name} = who
+bond.rank_up = BOND RANK UP
+bond.rank = Rank {n}
+bond.soul_card = {name}'s Soul Card
+bond.joined = {name} joined the party.
+
 # Volume sliders (both 70% to start). Drag, or Left / Right when the row is selected.
 settings.sfx = Sound Effects
 settings.sfx.help = How loud sound effects are, like the dialogue blips. Drag the slider, or use Left / Right.
@@ -299,6 +317,8 @@ card.kind.defense = Defense
 card.soul_form = SOUL FORM
 # The same, before its resonance is unlocked / its character is met
 card.soul_form_hidden = SOUL FORM  ???
+# A companion whose Soul Card was destroyed (Erin, after Chapter One)
+card.soul_form_lost = OBLITERATED
 # The card popup's button on an innate card, and on its Soul form to go back
 card.soul_swap = Swap to Soul form
 card.innate_swap = Back to innate card

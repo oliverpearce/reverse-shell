@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Area_IntroConservatoryHall
   m_EditorClassIdentifier: 
   id: intro_conservatory_hall
-  displayName: GREENHOUSE
+  displayName: '[GREENHOUSE]'
   subtitle: 
   dim: 0
   theme: Conservatory_Hall
@@ -23,25 +23,33 @@ MonoBehaviour:
 
     H##BB##BB##BBBBBB##BB##BB##kkH
 
-    Hk,,m,,,,,,,,SJ,,,,,,,,,m,,,kH
+    Hke,mzuzzg,m,SJ,,,fm,,,,mr,,kH
 
-    H,,,,f,,,,,,,,,,,,,,,,,f,,,,,H
+    H,,dezzz#ke,,m,ed,,,gkefLommeH
 
-    H,B,,,,,,zzzzzzzzzz,,,,,,,B,,H
+    Hg,,fzzzzz,m,,,,,,,,,roLB#BerH
 
-    H,,,,,,,,zLLLLLLLLz,,,,,,,,,,H
+    H,rekmzzzzz,,,,,m,,edfeemLod,H
 
-    Hf,,n,,,,zL######Lz,,,,E,,,,fH
+    Hf,,n,zzuzzf,ed,,,fzzz,Ee,refH
 
-    H,,,,,,,,zLLLLLLLLz,,,,X,,,,,H
+    H,,,erzzzzz,,,,,,rzzuz,X,,m,kH
 
-    H,B,,,,,,zzzzzzzzzz,,,,,,,B,,H
+    Hed,.=ezzz_r,,,m,zzzzr,,,,,,eH
 
-    H,,,,m,,,,,,,,,,,,,,,,,,A,,,,H
+    H,,,=m._=_._,=,,_zzz,,,,Af,,,H
 
-    Hk,,,,,,f,,,,,,,,,,,f,,,,,,,kH
+    Hk,eezz=e.=e,_.e=.rff,m,,,,k,H
 
-    H,,m,,,,,,,,,,,,,,,,,,,,,m,,,H
+    H,,mLBr,,md,_=m.m._ed,,,,m,e,H
+
+    Hm,ozLr,f,,,,,,,m=e_.=,,,f,,mH
+
+    H,,mzoede,,m,,,,,,m.._..e,,d,H
+
+    Hmzuz,e,,m,ed,,m,,,m,=.m_.,e,H
+
+    H,zzzB#ge,,,,mekedf,,e_..=_,fH
 
     LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
 

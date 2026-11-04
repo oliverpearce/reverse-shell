@@ -241,7 +241,7 @@ namespace Game.World
                 accountText.text = UIText.Get("cards.account.none");
                 return;
             }
-            string name = string.IsNullOrEmpty(summary.PlayerName) ? "MC" : summary.PlayerName;
+            string name = string.IsNullOrEmpty(summary.PlayerName) ? "A3" : summary.PlayerName;
             accountText.text = UIText.Get("cards.account", "name", name);
         }
 
@@ -683,7 +683,9 @@ namespace Game.World
             if (e.Kind == EntryKind.Ability)
             {
                 var ultForm = CardCollection.UltFormOf(e.Owner, e.Card);
-                if (ultForm != null && CardCollection.SoulFormKnown(e.Owner, e.Card))
+                if (ultForm != null && e.Owner != null && StoryState.Has("lost." + e.Owner.name))
+                    SoulFormPreview.AttachLost(rt.gameObject, FaceScale);   // their Soul Card was destroyed
+                else if (ultForm != null && CardCollection.SoulFormKnown(e.Owner, e.Card))
                 {
                     var soul = new Entry { Kind = EntryKind.Soul, Card = ultForm, Owner = e.Owner, Element = e.Element };
                     SoulFormPreview.Attach(rt.gameObject, (f, s) => CardView.BuildFace(f, Instance(soul), s, true), FaceScale);

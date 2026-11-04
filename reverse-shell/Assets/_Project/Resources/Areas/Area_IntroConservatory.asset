@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Area_IntroConservatory
   m_EditorClassIdentifier: 
   id: intro_conservatory
-  displayName: CONSERVATORY
+  displayName: '[CONSERVATORY]'
   subtitle: 
   dim: 0
   theme: Conservatory
@@ -21,27 +21,27 @@ MonoBehaviour:
 
     HHHH####HHHHHHHHHHHH####HHHHHH
 
-    H#kk##kk###kHHHH#kk###kk##kk#H
+    H#,,##zzz##kHHHH#BB###zz##zz#H
 
-    Hk,,m,,,zzz#.J.#,,,zzzz,,,,,kH
+    H,PPm,zzzuB#_J.#BLrzzzzuzzz,kH
 
-    H,,,,,f,,zzz,,,,,,f,,zz,,,m,,H
+    H,,Te,f,zzzz_e.rLrf,,zzzz,m,,H
 
-    H,m,b,,,,,zz,,,=====,,,,,,b,,H
+    H,m,b,,,,,zzo_.,P,,,P,,,,PbP,H
 
-    H,,,,,,,,,,,,,,=S.W=,,,,,,,,,H
+    H,,P,PPm,,,.__e,,P,,,,P***,T,H
 
-    Hf,,zz,,,,n,,,,=...=,,,,E,,,fH
+    Hf,,zz,,P,ne_e.P,,,PT*,*E*,efH
 
-    H,,zzz,,,,,,,,,=====,,,,X,,,,H
+    HP,zuz,P,,..e..,,,m,e,,,X****H
 
-    H,,,z,,m,,,,,,,,,,,,,,,,,,m,,H
+    H,zzzz,m,==....,,P,,m,,P,,m**H
 
-    H,b,,,,,,,,,,,,,,,,,,zz,,A,,,H
+    H,bzz,PP,=*W*.,,m,,P,zz,,A,P*H
 
-    Hk,,,,m,,,,,,,,,,,,,,zzz,,,,kH
+    Hk,P,,m,*TeSl***PT,,zzzz,,,,kH
 
-    H,,,,,,,,,,,,,,,,,,,,,,,,m,,,H
+    HP,,,P*******==**eP,zuz,,mP,,H
 
     LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
 

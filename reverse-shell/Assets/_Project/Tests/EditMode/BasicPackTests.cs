@@ -5,14 +5,14 @@ using UnityEditor;
 
 namespace Combat.Tests
 {
-    /// <summary>The real Basic pack (PackRates) on the real protagonist (Char_MC): only Basic cards, and all of them.</summary>
+    /// <summary>The real Basic pack (PackRates) on the real protagonist (Char_A3): only Basic cards, and all of them.</summary>
     public class BasicPackTests
     {
         static CharacterDefinition Mc()
         {
-            var mc = AssetDatabase.LoadAssetAtPath<CharacterDefinition>("Assets/_Project/Content/Characters/Char_MC.asset");
-            Assert.IsNotNull(mc, "Char_MC.asset");
-            return mc;
+            var a3 = AssetDatabase.LoadAssetAtPath<CharacterDefinition>("Assets/_Project/Content/Characters/Char_A3.asset");
+            Assert.IsNotNull(a3, "Char_A3.asset");
+            return a3;
         }
 
         [Test]

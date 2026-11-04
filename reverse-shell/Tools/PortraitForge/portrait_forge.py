@@ -12,10 +12,10 @@ For each character it writes four 96x144 PNGs into Assets/_Project/Art/Portraits
     <Name>_internals_glow.png  the same for the internals
 
 Accent pixels are painted light gray in the base art so the glow layer decides their color. That is how a
-character's hue can change with the element it channels (MC) without repainting anything.
+character's hue can change with the element it channels (A3) without repainting anything.
 
 Ashe and Lucy are the same robot model (robot_base); Ashe is overgrown with plants, Lucy carries a virus
-look (cable twin-tails, circuit traces, glitch rows). MC is its own, taller model with a halo and a coat.
+look (cable twin-tails, circuit traces, glitch rows). A3 is its own, taller model with a halo and a coat.
 Every robot has two glowing eyes (no visor band) and glowing scale-pattern trims along its armour edges.
 Deterministic: same script, same pixels. Uses pngtool.py from Tools/SpriteForge.
 """
@@ -307,7 +307,7 @@ def robot_body(cv, plate=PLATE, internals=False):
 
 def eye(cv, x, y, slant=0):
     """One glowing eye: a dark almond socket with a 3x2 light (the glow colors it) and a white glint.
-    slant tilts the outer end down a pixel (MC's sharper look); pass -1 / 1 for the left / right eye."""
+    slant tilts the outer end down a pixel (A3's sharper look); pass -1 / 1 for the left / right eye."""
     for dx in range(-1, 4):
         cv.set(x + dx, y, JOINT[0])
         cv.set(x + dx, y + 1, JOINT[0])
@@ -538,7 +538,7 @@ def virus_internals(cv, rng):
                 cv.set(x + 1, y, ACCENT, True)
 
 
-# ---------------------------------------------------------------------------------------------------- MC: the standout model
+# ---------------------------------------------------------------------------------------------------- A3: the standout model
 
 def mc_body(cv, internals=False):
     """Taller, slimmer frame: a smooth oval head with sharp eyes, a halo crest, a long coat with tails,
@@ -615,7 +615,7 @@ def mc_details(cv, internals=False):
 
 
 def mc_internals(cv, rng):
-    """MC opened up: a frame of struts and a multi-chamber element core. Each chamber is ready for one
+    """A3 opened up: a frame of struts and a multi-chamber element core. Each chamber is ready for one
     element (they show the six element tints faintly; the glow decides the main color)."""
     for i, y in enumerate((42, 47, 52, 57, 62)):
         w = 9 - i
@@ -678,7 +678,7 @@ def lucy(internals):
     return cv
 
 
-def mc(internals):
+def a3(internals):
     rng = random.Random(5)
     cv = Canvas()
     mc_body(cv, internals)
@@ -688,7 +688,7 @@ def mc(internals):
     return cv
 
 
-CHARACTERS = {'MC': mc, 'Ashe': ashe, 'Lucy': lucy}
+CHARACTERS = {'A3': a3, 'Ashe': ashe, 'Lucy': lucy}
 
 
 def finish(cv):
@@ -708,7 +708,7 @@ def build(name):
     return results
 
 
-GLOW_PREVIEW = {'MC': (255, 255, 255), 'Ashe': (128, 235, 115), 'Lucy': (200, 115, 255)}
+GLOW_PREVIEW = {'A3': (255, 255, 255), 'Ashe': (128, 235, 115), 'Lucy': (200, 115, 255)}
 
 
 def sheet(path, built, scale=4):

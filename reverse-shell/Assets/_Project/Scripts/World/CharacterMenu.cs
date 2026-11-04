@@ -309,15 +309,16 @@ namespace Game.World
             var shadow = UIFactory.CreateImage(detail, "Shadow", new Color(0f, 0f, 0f, 0.4f));
             shadow.sprite = CircleSprite();
             shadow.rectTransform.Place(center, center, new Vector2(cx, ground + 10f), new Vector2(300f, 50f));
-            if (member.animations == null || !member.animations.Has(UISpriteAnimator.Idle)) return;
-            float size = 64f * SpriteScale;
+            var set = member.Anim;
+            if (set == null || !set.Has(UISpriteAnimator.Idle)) return;
+            float size = 64f * SpriteScale * set.CellScale;
             var img = UIFactory.CreateImage(detail, "Sprite", Color.white);
             img.preserveAspect = true;
-            // The frame's feet sit ~2 px above its bottom edge.
-            img.rectTransform.Place(center, new Vector2(0.5f, 0f), new Vector2(cx, ground - 2f * SpriteScale), new Vector2(size, size));
+            // Stand the frame's feet (feetPivot up its height; ~2 px for a standard frame) on the ground line.
+            img.rectTransform.Place(center, new Vector2(0.5f, 0f), new Vector2(cx, ground - set.feetPivot * size), new Vector2(size, size));
             var anim = img.gameObject.AddComponent<UISpriteAnimator>();
             anim.UnscaledTime = true;
-            anim.Init(member.animations, Facing.Right, img);
+            anim.Init(set, Facing.Right, img);
         }
 
         /// <summary>The glowing element orb, the name in big serif and the level with an XP hairline.</summary>

@@ -23,6 +23,8 @@ namespace Combat.View
         const float SpriteSize = 384f;
         /// <summary>A boss is drawn this much bigger.</summary>
         const float BossScale = 1.5f;
+        /// <summary>A set's optional battle-only idle (the plain "idle" is used outside battle).</summary>
+        const string BattleIdle = "battle_idle";
         /// <summary>The intent card floats just above the sprite's head: this high for an ordinary enemy, raised for a
         /// boss by the extra height of its head (the figure's head is about 5/8 of the way up its frame).</summary>
         const float IntentY = 64f, HeadShare = 0.625f;
@@ -112,7 +114,7 @@ namespace Combat.View
             Body = UIFactory.CreateRect("Body", transform).Place(top, new Vector2(0.5f, 0.5f), new Vector2(0f, -144f), new Vector2(180f, 180f));
             BodyOrigin = Body.anchoredPosition;
 
-            if (def.animations != null && def.animations.Has(UISpriteAnimator.Idle)) BuildAnimatedBody(unit);
+            if (def.Anim != null && def.Anim.Has(UISpriteAnimator.Idle)) BuildAnimatedBody(unit);
             else BuildPanelBody(unit);
             if (intentIcon != null) intentIcon.transform.SetAsLastSibling();   // never behind the sprite
 
@@ -200,6 +202,11 @@ namespace Combat.View
 
             // 64 px frames at exactly 6x keep pixels crisp (a boss is drawn at 9x); the feet sit ~2 px above the frame bottom.
             float size = unit.IsBoss ? SpriteSize * BossScale : SpriteSize;
+            // A set with roomier cells (A3's 128 px) is drawn bigger so its pixels match; its feet sit where a standard
+            // frame's would (a standard frame's feet are 4% up).
+            var anim = unit.Definition.Anim;
+            float drawn = size * anim.CellScale;
+            float feetY = -20f + 0.04f * size - anim.feetPivot * drawn;
             var images = new List<Image>();
             // A resonance (the protagonist's Arc) glows in its element; Basic keeps the character's own glow.
             Resonance? resonance = unit.Character != null && unit.Character.resonances.Count > 0 && unit.Resonance != Resonance.Basic
@@ -210,19 +217,20 @@ namespace Combat.View
                                       new Vector2(-4.5f, 4.5f), new Vector2(4.5f, 4.5f), new Vector2(-4.5f, -4.5f), new Vector2(4.5f, -4.5f) })
             {
                 var glow = UIFactory.CreateImage(Body, "Glow", glowColor);
-                glow.rectTransform.Place(bottom, bottom, new Vector2(0f, -20f) + o, new Vector2(size, size));
+                glow.rectTransform.Place(bottom, bottom, new Vector2(0f, feetY) + o, new Vector2(drawn, drawn));
                 images.Add(glow);
             }
             sprite = UIFactory.CreateImage(Body, "Sprite", Color.white);
-            sprite.rectTransform.Place(bottom, bottom, new Vector2(0f, -20f), new Vector2(size, size));
+            sprite.rectTransform.Place(bottom, bottom, new Vector2(0f, feetY), new Vector2(drawn, drawn));
             flash = UIFactory.CreateImage(Body, "Flash", Color.clear);
             flash.material = AdditiveUI();
-            flash.rectTransform.Place(bottom, bottom, new Vector2(0f, -20f), new Vector2(size, size));
+            flash.rectTransform.Place(bottom, bottom, new Vector2(0f, feetY), new Vector2(drawn, drawn));
             images.Add(sprite);
             images.Add(flash);
 
             animator = Body.gameObject.AddComponent<UISpriteAnimator>();
-            animator.Init(unit.Definition.animations, unit.Team == Team.Player ? Facing.Right : Facing.Left, images.ToArray());
+            if (anim.Has(BattleIdle)) animator.IdleClip = BattleIdle;   // e.g. A3 draws her sword only in battle
+            animator.Init(anim, unit.Team == Team.Player ? Facing.Right : Facing.Left, images.ToArray());
 
         }
 
@@ -380,7 +388,7 @@ namespace Combat.View
             if (animator != null && Unit.IsAlive && staggered != wasStaggered)
             {
                 if (staggered) animator.Play("sit", true);
-                else animator.Play(UISpriteAnimator.Idle);
+                else animator.Play(animator.IdleClip);
             }
             if (breakFill == null) return;
             breakBack.color = staggered ? BrokenBack : PanelDark;

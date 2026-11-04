@@ -1,3 +1,5 @@
+using System;
+using Random = UnityEngine.Random;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -42,6 +44,40 @@ namespace Combat.View
         BattleUnit selectedTarget;
 
         public bool IsPaused { get { return pause != null && pause.IsOpen; } }
+
+        /// <summary>A guided tutorial's gate: (action, card, hand index) -> allowed. Actions: "queue", "move", "drag",
+        /// "go", "undo". Null (every normal fight) = everything allowed.</summary>
+        public Func<string, CardInstance, int, bool> Allow;
+
+        public bool Allowed(string action, CardInstance card = null, int index = -1)
+        {
+            return Allow == null || Allow(action, card, index);
+        }
+
+        /// <summary>Nothing queued to animate and nothing animating (a tutorial waits for this before it speaks).</summary>
+        public bool Idle { get { return !playing && Controller.Events.Count == 0; } }
+
+        /// <summary>After each event's animation has played (a tutorial reacts to merges, Break and the BREAK banner).</summary>
+        public event Action<BattleEvent> EventPlayed;
+
+        public RectTransform Root { get { return root; } }
+
+        public CardView ViewOf(CardInstance card) { return hand != null ? hand.Get(card) : null; }
+
+        /// <summary>A guided tutorial's starting state for an enemy (its HP and Break value), shown at once. Only a
+        /// tutorial calls this, before the first turn; the Break and Stagger rules themselves are untouched.</summary>
+        public void SetUpEnemy(BattleUnit enemy, int hp, int breakValue)
+        {
+            if (enemy == null) return;
+            enemy.HP = Mathf.Clamp(hp, 1, enemy.MaxHP);
+            enemy.Break = Mathf.Clamp(breakValue, 0, enemy.MaxBreak);
+            UnitView v;
+            if (unitViews.TryGetValue(enemy, out v) && v != null)
+            {
+                v.SetHP(enemy.HP, enemy.MaxHP, true);
+                v.SetBreak(enemy.Break, enemy.MaxBreak, enemy.Staggered, true);
+            }
+        }
 
         public bool InputEnabled
         {
@@ -206,12 +242,12 @@ namespace Combat.View
 
         public void OnCardClicked(CardInstance card)
         {
-            if (InputEnabled) Controller.QueueCard(card);
+            if (InputEnabled && Allowed("queue", card)) Controller.QueueCard(card);
         }
 
         public bool RequestMove(CardInstance card, int toIndex)
         {
-            return InputEnabled && Controller.MoveCard(card, toIndex);
+            return InputEnabled && Allowed("move", card, toIndex) && Controller.MoveCard(card, toIndex);
         }
 
         public void OnUnitClicked(BattleUnit unit)
@@ -309,7 +345,7 @@ namespace Combat.View
 
         public void OnGo()
         {
-            if (!InputEnabled) return;
+            if (!InputEnabled || !Allowed("go")) return;
             Controller.EndPlanning();
             SetTurnPlaying(true);
         }
@@ -318,7 +354,7 @@ namespace Combat.View
         /// moves and merges made in the hand are undone too and all AP comes back.</summary>
         public void OnReturnAll()
         {
-            if (!InputEnabled) return;
+            if (!InputEnabled || !Allowed("undo")) return;
             while (Controller.CanUndo && Controller.Undo()) { }
         }
 
@@ -340,8 +376,14 @@ namespace Combat.View
             hand.HideAnyPreview();
             while (Controller.Events.Count > 0)
             {
-                var routine = Play(Controller.Events.Dequeue());
+                var e = Controller.Events.Dequeue();
+                var routine = Play(e);
                 if (routine != null) yield return StartCoroutine(Safely(routine));
+                if (EventPlayed != null)
+                {
+                    try { EventPlayed(e); }
+                    catch (System.Exception ex) { Debug.LogException(ex); }
+                }
             }
             playing = false;
         }

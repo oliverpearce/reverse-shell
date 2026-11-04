@@ -11,6 +11,8 @@ namespace Combat
         public Sprite portrait;
         [Tooltip("Animated pixel sprite (idle, walk, slash, spellcast, hurt). Takes priority over Sprite Sheet.")]
         public SpriteAnimationSet animations;
+        [Tooltip("Optional alternate sprite (Settings > Alt Art), e.g. a recolour of A3's. Empty = always Animations.")]
+        public SpriteAnimationSet altAnimations;
         [Tooltip("Legacy: pixel-art walk sheet in RPG Maker layout: columns = walk frames, rows = down, left, right, up. " +
                  "Shown in battle (facing the enemy) and used for overworld characters.")]
         public Texture2D spriteSheet;
@@ -23,10 +25,17 @@ namespace Combat
 
         /// <summary>
         /// Runtime names that replace an asset's display name, keyed by asset name (the protagonist's chosen name
-        /// replaces "MC"). Never saved into the asset.
+        /// replaces "A3"). Never saved into the asset.
         /// </summary>
         public static readonly System.Collections.Generic.Dictionary<string, string> NameOverrides =
             new System.Collections.Generic.Dictionary<string, string>();
+
+        /// <summary>The sprite to show: the alt art when Settings > Alt Art is on and this unit has one, else Animations.
+        /// Everything that draws a unit (battle, overworld, menus, Soul cards) reads this.</summary>
+        public SpriteAnimationSet Anim
+        {
+            get { return altAnimations != null && Combat.View.GameSettings.AltArt ? altAnimations : animations; }
+        }
 
         public string DisplayName
         {

@@ -643,7 +643,7 @@ namespace Game.World
         }
 
         /// <summary>A terminal line on the monitor: 1-12 letters, digits, spaces, - and ', a green block caret. Enter
-        /// confirms (an empty name becomes "MC").</summary>
+        /// confirms (an empty name becomes "A3").</summary>
         static InputField NameField(RectTransform parent, Action<string> confirmed)
         {
             var box = UIFactory.CreateImage(parent, "NameField", new Color(0f, 0f, 0f, 0.35f), true);
@@ -659,7 +659,7 @@ namespace Game.World
             var text = UIFactory.CreateText(box.transform, "Text", "", UIFactory.TextSize.XLarge, TerminalGreen, TextAnchor.MiddleCenter);
             text.rectTransform.Fill(8f);
             text.supportRichText = false;
-            var placeholder = UIFactory.CreateText(box.transform, "Placeholder", "MC", UIFactory.TextSize.XLarge, new Color(TerminalGreen.r, TerminalGreen.g, TerminalGreen.b, 0.25f), TextAnchor.MiddleCenter);
+            var placeholder = UIFactory.CreateText(box.transform, "Placeholder", "A3", UIFactory.TextSize.XLarge, new Color(TerminalGreen.r, TerminalGreen.g, TerminalGreen.b, 0.25f), TextAnchor.MiddleCenter);
             placeholder.rectTransform.Fill(8f);
             var field = box.gameObject.AddComponent<InputField>();
             field.textComponent = text;
@@ -676,7 +676,7 @@ namespace Game.World
             {
                 if (!Input.GetKeyDown(KeyCode.Return) && !Input.GetKeyDown(KeyCode.KeypadEnter)) return;
                 string name = (value ?? "").Trim();
-                confirmed(name.Length == 0 ? "MC" : name);
+                confirmed(name.Length == 0 ? "A3" : name);
             });
             return field;
         }

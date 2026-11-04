@@ -125,9 +125,22 @@ namespace Combat.View
         {
             if (owner == null) return null;
             Sprite s;
+            if (UsesAlt(owner))
+            {
+                // Alt Art: the recolour's own picture (Ult_<asset>_Alt), else the usual one
+                string alt = owner.name + "_Alt";
+                if (!ults.TryGetValue(alt, out s))
+                    ults[alt] = s = Whole("Cards/Ult_" + alt);
+                if (s != null) return s;
+            }
             if (!ults.TryGetValue(owner.name, out s))
                 ults[owner.name] = s = Whole("Cards/Ult_" + owner.name);
             return s;
+        }
+
+        static bool UsesAlt(UnitDefinition owner)
+        {
+            return owner != null && owner.altAnimations != null && GameSettings.AltArt;
         }
 
         /// <summary>Old tarot Soul cards (retired 2026-10-27); kept so older callers compile. Always false now.</summary>
@@ -140,22 +153,23 @@ namespace Combat.View
         /// if it has no animation set.</summary>
         public static Sprite SoulSprite(UnitDefinition owner)
         {
-            if (owner == null || owner.animations == null || !owner.animations.Has("idle")) return null;
+            var set = owner != null ? owner.Anim : null;
+            if (set == null || !set.Has("idle")) return null;
             Sprite s;
-            if (souls.TryGetValue(owner.name, out s) && s != null) return s;
-            var frames = owner.animations.Frames("idle", Facing.Down, false);
+            string key = owner.name + "/" + set.name;   // the alt art has its own Soul card
+            if (souls.TryGetValue(key, out s) && s != null) return s;
+            var frames = set.Frames("idle", Facing.Down, false);
             if (frames == null || frames.Length == 0) return null;
             // Cropped to the figure (the frame has a lot of empty room around it), so the character fills the card.
             var r = frames[0].rect;
-            var crop = new Rect(r.x + r.width * SoulCropX, r.y + r.height * 0.02f, r.width * (1f - SoulCropX * 2f), r.height * SoulCropTop);
+            var c = set.soulCrop;
+            var crop = new Rect(r.x + r.width * c.x, r.y + r.height * c.y, r.width * c.width, r.height * c.height);
             s = Sprite.Create(frames[0].texture, crop, new Vector2(0.5f, 0f), 100f, 0, SpriteMeshType.FullRect);
             s.name = "Soul_" + owner.name;
-            souls[owner.name] = s;
+            souls[key] = s;
             return s;
         }
 
-        /// <summary>How much of an idle frame the figure takes: the middle half across, the bottom 62% up (feet to head).</summary>
-        const float SoulCropX = 0.25f, SoulCropTop = 0.62f;
         static readonly Dictionary<string, Sprite> souls = new Dictionary<string, Sprite>();
 
         static readonly Dictionary<string, Sprite> pictures = new Dictionary<string, Sprite>();
@@ -188,7 +202,7 @@ namespace Combat.View
         /// <summary>An Ult card's full art: its own (Ult_&lt;card asset&gt;, e.g. a resonance's Ult), else its owner's.</summary>
         public static Sprite Ult(CardDefinition card, UnitDefinition owner)
         {
-            if (card != null)
+            if (card != null && !UsesAlt(owner))   // Alt Art shows the recolour, not the card's own art
             {
                 Sprite s;
                 string key = "card:" + card.name;

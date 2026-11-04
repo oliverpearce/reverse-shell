@@ -51,7 +51,7 @@ TRIM = hx('#877473')
 
 SPECS = {
     # The crew: android girls; glowing eyes in their colour, own hair.
-    'MC': {'hair': ramp('#1C2234', '#26304A', '#34446A', '#4A5E8C', '#6A82B0'), 'eye': hx('#BFE6FF'), 'outfit': None},
+    'A3': {'hair': ramp('#1C2234', '#26304A', '#34446A', '#4A5E8C', '#6A82B0'), 'eye': hx('#BFE6FF'), 'outfit': None},
     'Ashe': {'hair': ramp('#14261A', '#1C3624', '#2A5232', '#3E7444', '#5E9A58'), 'eye': hx('#8EF070'), 'outfit': None},
     'Lucy': {'hair': ramp('#24102E', '#341A44', '#4A265E', '#653A82', '#8A58AE'), 'eye': hx('#D07AFF'), 'outfit': None},
     # Ruin survivors: own hair, plain eyes, outfits in their own colours.

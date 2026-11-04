@@ -1,8 +1,8 @@
 """
-Card model: the crew's overworld and battle sprites are their card art (reference/MC.png, 48 x 63, recoloured per
+Card model: the crew's overworld and battle sprites are their card art (reference/A3.png, 48 x 63, recoloured per
 member by chibi_forge.reference_pixels), animated by layers at native 64 px.
 
-    python Tools/ChibiForge/card_model.py [MC Ashe Lucy] [--sheet out.png]
+    python Tools/ChibiForge/card_model.py [A3 Ashe Lucy] [--sheet out.png]
 
 The sword is taken out (SWORD = False): its blade pixels in the top-left are cleared, leaving the raised gauntlet.
 Layers on the art: the far leg (x >= 30, from row 45), the near leg (x <= 29, from row 46) and the body. A moved
@@ -51,7 +51,7 @@ def load(name):
         # the blade: gold / orange pixels left of the hand (and the hilt beside it); the gold crest on the head
         # (x >= 21) stays
         gold = {c for c in GOLD}
-        if name != 'MC':
+        if name != 'A3':
             gold = {tuple(cf.SPECS[name].trim[i][:3]) for i in range(4)}
         for y in range(0, 29):
             for x in range(0, 22):
@@ -80,7 +80,7 @@ def back_view(grid, name):
     hair = [c[:3] for c in spec.hair]
     armor = [c[:3] for c in spec.armor]
     h, w = len(grid), len(grid[0])
-    front_bits = {c[:3] for c in (spec.trim if name != 'MC' else cf.REF_GOLD)}
+    front_bits = {c[:3] for c in (spec.trim if name != 'A3' else cf.REF_GOLD)}
     front_bits |= {cf.REF_CRIMSON[1][:3], spec.accent[1][:3]} | {c[:3] for c in cf.REF_SKIN}
     cx = 31
 
@@ -298,7 +298,7 @@ def build(name):
         write_png(os.path.join(out_dir, anim + '.png'), F * cols, F * len(rows), img)
     with open(os.path.join(out_dir, 'CREDITS.md'), 'w', encoding='utf-8') as f:
         f.write('# %s: sprite credits\n\nAnimated by `Tools/ChibiForge/card_model.py` from the card art '
-                '`Tools/ChibiForge/reference/MC.png` (the user\'s reference sprite; see that folder\'s README for its '
+                '`Tools/ChibiForge/reference/A3.png` (the user\'s reference sprite; see that folder\'s README for its '
                 'rights note), recoloured per character. Native 64 px frames.\n' % name)
     print('built', name, '(card model)')
 

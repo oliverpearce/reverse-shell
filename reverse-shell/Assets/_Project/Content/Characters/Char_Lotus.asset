@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf22662e2936bd543a3f13e4bc9cb4b9, type: 3}
+  m_Name: Char_Lotus
+  m_EditorClassIdentifier: 
+  displayName: Lotus
+  color: {r: 0.55, g: 0.8, b: 0.4, a: 1}
+  portrait: {fileID: 0}
+  animations: {fileID: 11400000, guid: 04c178503f0d57d7b02e80400a0f058b, type: 2}
+  altAnimations: {fileID: 0}
+  spriteSheet: {fileID: 0}
+  sheetColumns: 3
+  sheetRows: 4
+  resonance: 2
+  damageType: 1
+  stats:
+    maxHP: 2800
+    attack: 190
+    physicalDefense: 160
+    specialDefense: 150
+    critRate: 0.1
+    critDamage: 1.5
+  archetype: Druid
+  incantations:
+  - {fileID: 11400000, guid: 2f17e255275e77f499b947acd51a626f, type: 2}
+  - {fileID: 11400000, guid: 33d31f179718eb04799e99e6bffbbd2f, type: 2}
+  cardPool:
+  - {fileID: 11400000, guid: 5a6db6bb4ab89e240bfc33cf63c48df2, type: 2}
+  ritual: {fileID: 11400000, guid: 157ff0ac7cde0b2419be20cc9a4935e1, type: 2}
+  starterCards:
+  - {fileID: 11400000, guid: 33d31f179718eb04799e99e6bffbbd2f, type: 2}
+  - {fileID: 11400000, guid: 5a6db6bb4ab89e240bfc33cf63c48df2, type: 2}
+  growthPerLevel: 0.08
+  portraitFront: {fileID: 21300000, guid: 3fdd3dd974f9cb442841b5b03b6bfa7c, type: 3}
+  portraitInternals: {fileID: 21300000, guid: 51120539b86221141a0f556d47caf8af, type: 3}
+  portraitGlow: {fileID: 21300000, guid: e220745c8eabf314885d8d6e4cee443d, type: 3}
+  portraitInternalsGlow: {fileID: 21300000, guid: 663ebdbbd5bd92248b1c0aceb5148526,
+    type: 3}
+  partSockets: []
+  statBarReference: 0
+  channels: 
+  neutralGlow: 0
+  glowColor: {r: 1, g: 1, b: 1, a: 1}

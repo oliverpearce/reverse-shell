@@ -18,7 +18,7 @@ namespace Combat
         [Tooltip("Ritual (ultimate) cards never merge and cost all Moxie.")]
         public bool isRitual;
         [Tooltip("Power level, 1 (weakest) to 20 (strongest): party abilities 3-6, enemy abilities 5-10, Soul / Ult " +
-                 "cards 10-15 (15 = MC). Merges, copy upgrades and bosses add to it in a fight (CardLevels).")]
+                 "cards 10-15 (15 = A3). Merges, copy upgrades and bosses add to it in a fight (CardLevels).")]
         [Range(1, 20)] public int level = 4;
         [Tooltip("Which pool the card belongs to (its resonance, or Basic). Packs give a chapter's resonance cards and Basic ones.")]
         public Resonance pool = Resonance.Basic;

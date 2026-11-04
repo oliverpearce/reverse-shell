@@ -97,7 +97,7 @@ namespace Game.World
         static string FillName(string s)
         {
             if (string.IsNullOrEmpty(s)) return s ?? "";
-            string name = string.IsNullOrEmpty(StoryState.PlayerName) ? "MC" : StoryState.PlayerName;
+            string name = string.IsNullOrEmpty(StoryState.PlayerName) ? "A3" : StoryState.PlayerName;
             return s.Replace("{name}", name);
         }
 

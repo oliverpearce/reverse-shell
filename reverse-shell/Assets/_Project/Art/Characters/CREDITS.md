@@ -1,6 +1,9 @@
 # Character sprites
 
-Every folder here (MC, Ashe, Lucy, RustSentry, ScrapStalker, NoodleVendor, Courier, Drifter) is **original pixel
+**A3 is not original art.** It is cut from the Last Cloudia unit sheet for A2 (NieR:Automata collab), (c) Aidis /
+Square Enix, by `Tools/ChibiForge/a3_model.py`. See `A3/CREDITS.md`.
+
+Every other folder here (Ashe, RustSentry, ScrapStalker, NoodleVendor, Courier, Drifter; Erin, Lotus, Zuko and Alt_Ashe are recolours of A3 by Tools/ChibiForge/alt_recolour.py) is **original pixel
 art**, drawn in code by `Tools/ChibiForge/chibi_forge.py` (no third-party assets, no license strings):
 
 - Chibi proportions in 64×64 frames, a bold plum outline, 4-tone ramps and a limited warm palette.

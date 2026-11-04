@@ -70,11 +70,11 @@ namespace Combat.Tests
         [Test]
         public void ChosenName_ReplacesTheProtagonistsDisplayName()
         {
-            var mc = TestFactory.Character(StoryState.ProtagonistAsset);
+            var a3 = TestFactory.Character(StoryState.ProtagonistAsset);
             StoryState.SetName("Wren");
-            Assert.AreEqual("Wren", mc.DisplayName);
+            Assert.AreEqual("Wren", a3.DisplayName);
             StoryState.SetName("");
-            Assert.AreEqual(StoryState.ProtagonistAsset, mc.DisplayName);
+            Assert.AreEqual(StoryState.ProtagonistAsset, a3.DisplayName);
         }
 
         static CharacterDefinition Protagonist(out CardDefinition physical, out CardDefinition electric, out CardDefinition ult)
@@ -82,33 +82,33 @@ namespace Combat.Tests
             physical = TestFactory.Card("Strike");
             electric = TestFactory.Card("Arc");
             ult = TestFactory.Card("Thunder", 5f, ritual: true);
-            var mc = TestFactory.Character("Hero", Resonance.Arc, 100f, null, physical);
-            mc.resonances = new List<ResonanceKit>
+            var a3 = TestFactory.Character("Hero", Resonance.Arc, 100f, null, physical);
+            a3.resonances = new List<ResonanceKit>
             {
                 new ResonanceKit { element = Resonance.Basic, cards = new List<CardDefinition> { physical } },
                 new ResonanceKit { element = Resonance.Arc, cards = new List<CardDefinition> { electric }, ultimate = ult },
             };
-            return mc;
+            return a3;
         }
 
         [Test]
         public void Resonance_StartsBasic_ElectricNeedsUnlocking_AndSwapsCardsElementAndUlt()
         {
             CardDefinition physical, electric, ult;
-            var mc = Protagonist(out physical, out electric, out ult);
+            var a3 = Protagonist(out physical, out electric, out ult);
 
-            Assert.AreEqual(new[] { Resonance.Basic }, WorldSession.AvailableResonances(mc).ToArray());
+            Assert.AreEqual(new[] { Resonance.Basic }, WorldSession.AvailableResonances(a3).ToArray());
             WorldSession.SetResonance(Resonance.Arc);   // not unlocked yet: still Basic
-            Assert.AreEqual(Resonance.Basic, WorldSession.ElementOf(mc));
-            CollectionAssert.AreEqual(new[] { physical }, WorldSession.DeckOf(mc));
+            Assert.AreEqual(Resonance.Basic, WorldSession.ElementOf(a3));
+            CollectionAssert.AreEqual(new[] { physical }, WorldSession.DeckOf(a3));
 
             WorldSession.UnlockResonance(Resonance.Arc);
-            Assert.AreEqual(Resonance.Arc, WorldSession.ElementOf(mc));
-            CollectionAssert.AreEqual(new[] { electric }, WorldSession.DeckOf(mc));
-            Assert.AreSame(ult, WorldSession.UltimateOf(mc));
+            Assert.AreEqual(Resonance.Arc, WorldSession.ElementOf(a3));
+            CollectionAssert.AreEqual(new[] { electric }, WorldSession.DeckOf(a3));
+            Assert.AreSame(ult, WorldSession.UltimateOf(a3));
 
-            var unit = new BattleUnit(mc, Team.Player);
-            unit.ApplyLoadout(WorldSession.LoadoutsFor(new[] { mc })[mc]);
+            var unit = new BattleUnit(a3, Team.Player);
+            unit.ApplyLoadout(WorldSession.LoadoutsFor(new[] { a3 })[a3]);
             Assert.AreEqual(Resonance.Arc, unit.Resonance);
             Assert.AreSame(ult, unit.Ultimate);
         }
@@ -117,13 +117,13 @@ namespace Combat.Tests
         public void SandboxMode_LendsElectric_AndUnlocksTheResonanceMenu()
         {
             CardDefinition physical, electric, ult;
-            var mc = Protagonist(out physical, out electric, out ult);
+            var a3 = Protagonist(out physical, out electric, out ult);
             WorldSession.CurrentArea = WorldAreas.City;
             Assert.IsFalse(WorldSession.ResonanceMenuUnlocked);
 
             WorldSession.CurrentArea = WorldAreas.Sandbox;
             Assert.IsTrue(WorldSession.ResonanceMenuUnlocked);
-            Assert.AreEqual(new[] { Resonance.Basic, Resonance.Arc }, WorldSession.AvailableResonances(mc).ToArray());
+            Assert.AreEqual(new[] { Resonance.Basic, Resonance.Arc }, WorldSession.AvailableResonances(a3).ToArray());
 
             WorldSession.CurrentArea = WorldAreas.City;
             StoryState.Set(Chapter1.Complete);
@@ -134,18 +134,18 @@ namespace Combat.Tests
         public void Resonance_SetsTheColour_ElectricYellow_BasicOwn()
         {
             CardDefinition physical, electric, ult;
-            var mc = Protagonist(out physical, out electric, out ult);
-            mc.color = Color.white;
-            Assert.AreEqual(Color.white, WorldSession.ColorOf(mc));
+            var a3 = Protagonist(out physical, out electric, out ult);
+            a3.color = Color.white;
+            Assert.AreEqual(Color.white, WorldSession.ColorOf(a3));
 
             WorldSession.UnlockResonance(Resonance.Arc);
             WorldSession.SetResonance(Resonance.Arc);
             var yellow = ResonanceInfo.Color(Resonance.Arc);
             Assert.Greater(yellow.r, yellow.b + 0.5f, "Electric reads as yellow");
-            Assert.AreEqual(yellow, WorldSession.ColorOf(mc));
+            Assert.AreEqual(yellow, WorldSession.ColorOf(a3));
 
-            var unit = new BattleUnit(mc, Team.Player);
-            unit.ApplyLoadout(WorldSession.LoadoutsFor(new[] { mc })[mc]);
+            var unit = new BattleUnit(a3, Team.Player);
+            unit.ApplyLoadout(WorldSession.LoadoutsFor(new[] { a3 })[a3]);
             Assert.AreEqual(yellow, unit.Color);
         }
 

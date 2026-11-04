@@ -21,6 +21,12 @@ namespace Game.World
         const float BoxW = 1320f, BoxH = 236f;
 
         RectTransform root, label, portraitFrame, nextArrow;
+        Image portraitImage;
+
+        /// <summary>Where the box rests above the bottom of the screen (battle raises it over the hand).</summary>
+        public float BaseY = 70f;
+
+        const float PortraitSize = 192f, PortraitPad = 216f;   // the speaker's sprite at 3x, and the text's indent beside it
         Image accentBar, tagAccent;
         Text speakerText, bodyText;
         DynamicText dynamic;
@@ -73,8 +79,15 @@ namespace Game.World
             accentBar.rectTransform.offsetMin = Vector2.zero;
             accentBar.rectTransform.offsetMax = new Vector2(5f, 0f);
 
-            // No portraits any more (kept as an always-hidden frame so line data with a portrait still works).
-            portraitFrame = UIFactory.CreateRect("Portrait", rt);
+            // Persona-style portrait: the speaker's own sprite, large, on the left of the panel (only lines that carry
+            // one, e.g. bond talks; everyone else keeps the full-width box).
+            portraitFrame = UIFactory.CreateRect("Portrait", paper.transform);
+            portraitFrame.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(18f, 4f), new Vector2(PortraitSize, PortraitSize));
+            var backing = UIFactory.CreateImage(portraitFrame, "Back", new Color(1f, 1f, 1f, 0.05f));
+            backing.rectTransform.Fill();
+            portraitImage = UIFactory.CreateImage(portraitFrame, "Face", Color.white);
+            portraitImage.rectTransform.Fill();
+            portraitImage.preserveAspect = true;
             portraitFrame.gameObject.SetActive(false);
 
             bodyText = UIFactory.CreateText(paper.transform, "Text", "", 40, NierStyle.Text, TextAnchor.UpperLeft);
@@ -137,7 +150,7 @@ namespace Game.World
             foreach (var l in lines)
             {
                 if (l == null) continue;
-                SizeTextArea(!string.IsNullOrEmpty(l.Speaker));
+                SizeTextArea(!string.IsNullOrEmpty(l.Speaker), l.Portrait != null);
                 foreach (var page in DialoguePager.Split(l.Text, Fits))
                     queue.Add(new DialogueLine(l.Speaker, page, l.Voice, l.Portrait));
             }
@@ -180,12 +193,12 @@ namespace Game.World
         }
 
         /// <summary>The text area inside the box (smaller under a speaker name).</summary>
-        void SizeTextArea(bool hasSpeaker)
+        void SizeTextArea(bool hasSpeaker, bool hasPortrait = false)
         {
             var trt = bodyText.rectTransform;
             trt.anchorMin = Vector2.zero;
             trt.anchorMax = Vector2.one;
-            trt.offsetMin = new Vector2(48f, 30f);
+            trt.offsetMin = new Vector2(hasPortrait ? PortraitPad + 24f : 48f, 30f);
             trt.offsetMax = new Vector2(-70f, hasSpeaker ? -76f : -30f);
         }
 
@@ -266,10 +279,13 @@ namespace Game.World
             bool hasSpeaker = !string.IsNullOrEmpty(line.Speaker);
             label.gameObject.SetActive(hasSpeaker);
             label.sizeDelta = new Vector2(Mathf.Max(80f, speakerText.preferredWidth + 4f), 48f);
-            label.anchoredPosition = new Vector2(48f, -16f);
+            bool hasPortrait = line.Portrait != null;
+            portraitFrame.gameObject.SetActive(hasPortrait);
+            if (hasPortrait) portraitImage.sprite = line.Portrait;
+            label.anchoredPosition = new Vector2(hasPortrait ? PortraitPad + 24f : 48f, -16f);
             if (newSpeaker) labelPop = 0f;
 
-            SizeTextArea(hasSpeaker);
+            SizeTextArea(hasSpeaker, hasPortrait);
 
             dynamic.SetLine(DialogueMarkup.Parse(line.Text, line.Voice.Speed));
             lastBlipCount = 0;
@@ -287,7 +303,7 @@ namespace Game.World
             {
                 // A gentle rise and fade in (no tilt, no bounce).
                 float e = 1f - (1f - openT) * (1f - openT) * (1f - openT);
-                root.anchoredPosition = new Vector2(0f, Mathf.Lerp(30f, 70f, e));
+                root.anchoredPosition = new Vector2(0f, Mathf.Lerp(BaseY - 40f, BaseY, e));
                 group.alpha = e;
             }
             label.localScale = Vector3.one;

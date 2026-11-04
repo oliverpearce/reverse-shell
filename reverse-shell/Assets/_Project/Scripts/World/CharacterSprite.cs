@@ -18,6 +18,12 @@ namespace Game.World
 
         Sprite[,] frames;
         SpriteAnimationSet animations;
+
+        /// <summary>Swaps the animation set in place (Settings > Alt Art while you're standing in the world).</summary>
+        public void SetAnimations(SpriteAnimationSet set)
+        {
+            if (set != null && animations != null) animations = set;
+        }
         bool moving, running;
         float animTime;
         float bobAmount;
@@ -155,9 +161,14 @@ namespace Game.World
             return true;
         }
 
+        const string SwordWalk = "walk_sword";
+
         void AnimateFromSet()
         {
             string clipName = moving && animations.Has("walk") ? "walk" : "idle";
+            // Settings → Sword: a set that has a sword walk (A3) carries it, and stands in its battle stance.
+            if (Combat.View.GameSettings.OverworldSword && animations.Has(SwordWalk))
+                clipName = clipName == "walk" ? SwordWalk : animations.Has("idle_sword") ? "idle_sword" : clipName;
             var clip = animations.Find(clipName);
             var set = clip != null ? animations.Frames(clipName, FacingByIndex[Facing], true) : null;
             if (set == null || set.Length == 0) return;

@@ -111,11 +111,33 @@ namespace Combat.View
 
         /// <summary>The plate sits as faint as the Go button's resting look (its 0.35 tint) until hovered; the icon or
         /// label on it stays clear.</summary>
+        /// <summary>The whole button (plate, icon and its Tab / Esc key badge) rests see-through and comes up on hover.</summary>
         static void Faint(Button button)
         {
-            var colors = button.colors;
-            colors.normalColor = new Color(1f, 1f, 1f, 0.35f);
-            button.colors = colors;
+            button.gameObject.AddComponent<FaintUntilHovered>();
+        }
+
+        /// <summary>Fades a HUD button and everything on it (its key badge too) to <see cref="Rest"/> until the pointer is over it.</summary>
+        class FaintUntilHovered : MonoBehaviour, UnityEngine.EventSystems.IPointerEnterHandler, UnityEngine.EventSystems.IPointerExitHandler
+        {
+            const float Rest = 0.38f;
+            CanvasGroup group;
+            bool over;
+
+            void Awake()
+            {
+                group = gameObject.GetComponent<CanvasGroup>();
+                if (group == null) group = gameObject.AddComponent<CanvasGroup>();
+                group.alpha = Rest;
+            }
+
+            public void OnPointerEnter(UnityEngine.EventSystems.PointerEventData e) { over = true; }
+            public void OnPointerExit(UnityEngine.EventSystems.PointerEventData e) { over = false; }
+
+            void Update()
+            {
+                group.alpha = Mathf.MoveTowards(group.alpha, over ? 1f : Rest, Time.unscaledDeltaTime * 6f);
+            }
         }
 
         /// <summary>The button's key on a small badge hanging just under it, in the same translucent ink plate and rule

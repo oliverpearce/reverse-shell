@@ -3,8 +3,8 @@ using UnityEditor;
 namespace Combat.EditorTools
 {
     /// <summary>
-    /// Creates content the project needs the first time the editor loads without it: Blue (SampleContentGenerator.EnsureBlue)
-    /// and Chapter One's enemies, kits and bestiary (SampleContentGenerator.EnsureChapterOne).
+    /// Creates content the project needs the first time the editor loads without it: Chapter One's enemies, kits and
+    /// bestiary (SampleContentGenerator.EnsureChapterOne), the pack rates and the sit clips. (Blue was removed 2026-11-03.)
     /// </summary>
     [InitializeOnLoad]
     static class BlueContentBootstrap
@@ -14,12 +14,6 @@ namespace Combat.EditorTools
             EditorApplication.delayCall += () =>
             {
                 if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-                if (AssetDatabase.LoadAssetAtPath<CharacterDefinition>(SampleContentGenerator.BluePath) == null
-                    && AssetDatabase.IsValidFolder("Assets/_Project/Art/Characters/Blue"))
-                {
-                    SampleContentGenerator.EnsureBlue();
-                    UnityEngine.Debug.Log("Created Blue (the backup robot) and added Blue to Battle_Sample's roster.");
-                }
                 var bestiary = AssetDatabase.LoadAssetAtPath<EnemyCatalog>(SampleContentGenerator.BestiaryPath);
                 if (bestiary == null || bestiary.contentVersion < SampleContentGenerator.ChapterOneVersion)
                 {

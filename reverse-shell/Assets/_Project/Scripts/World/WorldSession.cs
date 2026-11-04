@@ -22,13 +22,13 @@ namespace Game.World
         public static readonly List<string> PartyOrder = new List<string>();
 
         /// <summary>
-        /// Who is in the party (asset names). A new game starts with just MC; entering the Sandbox recruits the
+        /// Who is in the party (asset names). A new game starts with just A3; entering the Sandbox recruits the
         /// rest (<see cref="RecruitAll"/>). Empty = everyone (saves from before recruiting existed).
         /// </summary>
         public static readonly HashSet<string> Members = new HashSet<string>();
 
         /// <summary>The first member of a new game.</summary>
-        public const string StartingMember = "Char_MC";
+        public const string StartingMember = "Char_A3";
 
         /// <summary>The roster filtered to who has joined, in the player's order.</summary>
         public static List<CharacterDefinition> Joined(IList<CharacterDefinition> roster)
@@ -105,6 +105,38 @@ namespace Game.World
             for (int i = 0; i < ActiveSlots; i++) if (!string.IsNullOrEmpty(Formation[i])) return i;
             return -1;
         }
+
+        /// <summary>One character joins the party (a bond's Soul Card, Bonds.cs): a member from now on, put in the first
+        /// empty formation slot. True if they weren't in it yet.</summary>
+        public static bool Recruit(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            bool added = Members.Count == 0 || Members.Add(name);   // an old save (no members list) already has everyone
+            AddToFormation(name);
+            return added;
+        }
+
+        /// <summary>A member leaves the party for good (Erin, at the end of Chapter One): out of the members, the
+        /// formation and the party order. Their progress stays in <see cref="Party"/> (the Cards book still knows them).</summary>
+        public static void Leave(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return;
+            Members.Remove(name);
+            PartyOrder.Remove(name);
+            for (int i = 0; i < FormationSlots; i++)
+                if (Formation[i] == name) Formation[i] = "";
+        }
+
+        // ------------------------------------------------------------------ Bonds (Bonds.cs)
+
+        public class BondProgress
+        {
+            public int Rank;
+            public int Points;
+        }
+
+        /// <summary>Bond rank and points by character asset name (saved). Missing = rank 0.</summary>
+        public static readonly Dictionary<string, BondProgress> Bonds = new Dictionary<string, BondProgress>();
 
         /// <summary>Puts a newcomer in the first empty slot (active first, then the backup slot).</summary>
         static void AddToFormation(string name)
@@ -328,7 +360,7 @@ namespace Game.World
             if (newGame)
             {
                 SaveGame.Delete();
-                Members.Add(StartingMember);   // a new game is just MC
+                Members.Add(StartingMember);   // a new game is just A3
                 Formation[0] = StartingMember;
                 CurrentArea = WorldAreas.Office;   // it opens at the office's PC, then wakes in the start area
             }

@@ -613,6 +613,7 @@ namespace Combat.View
             }
             pressing = false;
             if (!hand.View.InputEnabled || !hand.View.Controller.CanAct) return; // moving costs 1 AP
+            if (!hand.View.Allowed("drag", Card)) { eventData.pointerDrag = null; return; }   // a tutorial step
             hand.HidePreview(this);
             dragging = true;
             SetHovered(false);

@@ -24,13 +24,16 @@ namespace Game.World
         public const string DragonBeaten = "ch1.dragon.beaten";
         public const string ResonanceArc = "ch1.resonance.volt"; // the Soul Card bound to the Core
         public const string Complete = "ch1.complete";           // saw the ending
+        /// <summary>Erin was lost at the end: converted in the old machine, her Soul Card obliterated. A "lost.&lt;asset&gt;"
+        /// flag, which the Cards book reads for any member.</summary>
+        public const string ErinLost = "lost.Char_Erin";
 
         /// <summary>Every flag in story order (the debug panel lists them).</summary>
         public static readonly string[] All =
         {
             Named, Awake, Binder, Memory1, Memory2, Memory3, LanguageChip, Scanner, ColoursChip, CollectorMet, CollectorBeaten, Route, Tunnel,
             NumbersChip,
-            DragonSeen, DragonBeaten, ResonanceArc, Complete,
+            DragonSeen, DragonBeaten, ResonanceArc, ErinLost, Complete,
         };
 
         /// <summary>The chapter asset's id (Resources/Chapters/Chapter_1).</summary>

@@ -13,13 +13,14 @@ MonoBehaviour:
   m_Name: Char_Ashe
   m_EditorClassIdentifier: 
   displayName: Ashe
-  color: {r: 0.5, g: 0.86, b: 0.45, a: 1}
+  color: {r: 0.39, g: 0.58, b: 0.93, a: 1}
   portrait: {fileID: 0}
   animations: {fileID: 11400000, guid: a51640fcfe644444cbb99c74c4d3761b, type: 2}
+  altAnimations: {fileID: 0}
   spriteSheet: {fileID: 0}
   sheetColumns: 3
   sheetRows: 4
-  resonance: 2
+  resonance: 3
   damageType: 1
   stats:
     maxHP: 2800
