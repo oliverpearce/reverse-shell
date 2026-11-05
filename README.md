@@ -1,6 +1,6 @@
 <div align="center">
 
-<a href="https://silvered.itch.io/reverse-shell-demo"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/banner.png" alt="Reverse Shell: it's all in the [soul] of the cards!" width="960"></a>
+<a href="https://silvered.itch.io/reverse-shell-demo"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/banner.png" alt="Reverse Shell: it's all in the [soul] of the cards!" width="960"></a>
 
 <br>
 
@@ -32,8 +32,8 @@ at the heart of the ruins!
 
 <table>
   <tr>
-    <td width="50%"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/story-office.png" alt="The office PC asking for your name"></td>
-    <td width="50%"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/story-awakening.png" alt="Waking up beside the cracked capsule"></td>
+    <td width="50%"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/story-office.png" alt="The office PC asking for your name"></td>
+    <td width="50%"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/story-awakening.png" alt="Waking up beside the cracked capsule"></td>
   </tr>
 </table>
 
@@ -73,7 +73,7 @@ and is told apart by their hair, eyes, outfit and accent (the trim and highlight
 
 <img src=".github/readme/h-cards.png" alt="Every card is a decision" width="960">
 
-<p align="center"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/combat-card-merge.png" alt="A battle on the overgrown street, a merged card in hand" width="720"></p>
+<p align="center"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/combat-card-merge.png" alt="A battle on the overgrown street, a merged card in hand" width="720"></p>
 
 - **Plan, then press Go.** Each fighter standing gives you 1 AP (action point), the squares at the top. Playing a
   card or rearranging a card in your hand both cost 1 AP.
@@ -86,7 +86,7 @@ and is told apart by their hair, eyes, outfit and accent (the trim and highlight
   learn to read it yourself.
 - **Read the field.** Hold any card or unit to see more information.
 
-<p align="center"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/combat-turn-playing-out.png" alt="An attack landing with the camera pushed in" width="720"></p>
+<p align="center"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/combat-turn-playing-out.png" alt="An attack landing with the camera pushed in" width="720"></p>
 
 <img src=".github/readme/h-demo.png" alt="In the demo" width="960">
 
@@ -116,28 +116,28 @@ and is told apart by their hair, eyes, outfit and accent (the trim and highlight
 
 <table>
   <tr>
-    <td width="50%"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/01-title-screen.png" alt="The title screen"></td>
-    <td width="50%"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/02-overgrown-forest.png" alt="The overgrown forest complex"></td>
+    <td width="50%"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/01-title-screen.png" alt="The title screen"></td>
+    <td width="50%"><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/02-overgrown-forest.png" alt="The overgrown forest complex"></td>
   </tr>
   <tr>
-    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/03-pause-menu.png" alt="The pause menu as cards"></td>
-    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/04-pre-combat.png" alt="Prepare for Battle"></td>
+    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/03-pause-menu.png" alt="The pause menu as cards"></td>
+    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/04-pre-combat.png" alt="Prepare for Battle"></td>
   </tr>
   <tr>
-    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/05-unit-inspect.png" alt="Holding an enemy: its Break and weaknesses"></td>
-    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/06-units-page.png" alt="The Units page: A3 with her Soul Card"></td>
+    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/05-unit-inspect.png" alt="Holding an enemy: its Break and weaknesses"></td>
+    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/06-units-page.png" alt="The Units page: A3 with her Soul Card"></td>
   </tr>
   <tr>
-    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/07-ashe-leng-storm.png" alt="Ashe casting Leng Storm"></td>
-    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/09-machine-look-tech-dungeon.png" alt="Settings: Machine Look set to Tech Dungeon"></td>
+    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/07-ashe-leng-storm.png" alt="Ashe casting Leng Storm"></td>
+    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/09-machine-look-tech-dungeon.png" alt="Settings: Machine Look set to Tech Dungeon"></td>
   </tr>
   <tr>
-    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/10-city-ruins.png" alt="The City Ruins street"></td>
-    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/11-overgrowth.png" alt="The Overgrowth"></td>
+    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/10-city-ruins.png" alt="The City Ruins street"></td>
+    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/11-overgrowth.png" alt="The Overgrowth"></td>
   </tr>
   <tr>
-    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/12-conservatory.png" alt="The Conservatory"></td>
-    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/demo-v1.0/13-greenhouse.png" alt="The Greenhouse"></td>
+    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/12-conservatory.png" alt="The Conservatory"></td>
+    <td><img src="https://github.com/oliverpearce/reverse-shell/releases/download/readme-images/13-greenhouse.png" alt="The Greenhouse"></td>
   </tr>
 </table>
 
