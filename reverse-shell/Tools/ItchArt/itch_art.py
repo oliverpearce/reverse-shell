@@ -121,14 +121,21 @@ def banner():
     W, H = 960, 240
     # The battle with the merged card on the right: the party, the enemies and the top of the hand (the merged card).
     out = Image.new('RGB', (W, H), INK)
-    battle = shot(BACKGROUND).crop((250, 400, 1550, 920)).resize((600, 240), Image.LANCZOS)
+    # The crop is placed so the units (source x ~340-1400, centre ~870) sit centred in the clear part of the banner
+    # (x 420-960, right of the fade).
+    scale = 0.34
+    units_cx, clear_cx = 870, 690
+    left = int(units_cx - (clear_cx - (W - 600)) / scale)
+    top = 300
+    box = (left, top, left + int(600 / scale), top + int(H / scale))
+    battle = shot(BACKGROUND).crop(box).resize((600, 240), Image.LANCZOS)
     out.paste(darken(battle, 0.85), (W - 600, 0))
     # The title panel on the left: the card back, tiled, fading into the battle.
     panel = card_back_tile(W, H, 2, 0.55)
     fade = Image.new('L', (W, H), 0)
     d = ImageDraw.Draw(fade)
     for x in range(W):
-        a = 255 if x < 360 else max(0, 255 - int((x - 360) / 120 * 255))
+        a = 255 if x < 360 else max(0, 255 - int((x - 360) / 60 * 255))
         d.line([(x, 0), (x, H)], fill=a)
     out = Image.composite(panel, out, fade)
     # A soft ink plate behind the words so they read over the pattern.
