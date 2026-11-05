@@ -9,8 +9,8 @@ namespace Game.World
     /// <summary>
     /// Bonds: how party members join (bible §2, Bonds). You talk with a companion over a few scenes; each scene ends on
     /// a choice, and the better the answer the more bond points. Every <see cref="PointsPerRank"/> points is a rank (five in
-    /// all). At <see cref="SoulRank"/> your souls bond: they give you their Soul Card and join the party. Ranks after that
-    /// raise their Soul level.
+    /// all). At <see cref="SoulRank"/> your souls bond: they give you their Soul Card. They join the party at their
+    /// <see cref="Def.JoinRank"/> (the Soul Card's rank unless set). Ranks after that raise their Soul level.
     ///
     /// A scene unlocks with story progress (its Requires flag). If a scene's answer fell short of the next rank, the
     /// companion offers to just spend time together (the .hangout block, <see cref="HangoutPoints"/>) until it's reached.
@@ -31,6 +31,9 @@ namespace Game.World
             public string Requires;
             /// <summary>Points for each answer, in the .options order.</summary>
             public int[] OptionPoints = { 3, 2, 1 };
+            /// <summary>Runs after the scene's answer (its index, -1 if it asks nothing), before the points: gifts and
+            /// story beats (Erin hands over the binder and the language chip).</summary>
+            public Func<OverworldBuilder, int, IEnumerator> OnDone;
         }
 
         public class Def
@@ -41,21 +44,24 @@ namespace Game.World
             public string Id;
             /// <summary>One scene per rank, in order.</summary>
             public Scene[] Scenes;
-            /// <summary>After the Soul Card scene (Erin's battle tutorial).</summary>
+            /// <summary>After they join the party (Erin's battle tutorial).</summary>
             public Action<OverworldBuilder> OnJoined;
+            /// <summary>The rank they join the party at (default: the Soul Card's, as Erin does: after the Collector).</summary>
+            public int JoinRank = SoulRank;
         }
 
         public static readonly Def Erin = new Def
         {
             Character = "Char_Erin",
             Id = "erin",
+            // Every answer completes a rank: she isn't waiting around for hangouts (she vanishes after rank 1, and from
+            // rank 2 her scenes find you, ChapterOneDirector.ErinCatchesUp). The scenes' gifts are set by the director.
             Scenes = new[]
             {
-                new Scene { Requires = Chapter1.Awake },
-                new Scene { Requires = Chapter1.Binder },
-                new Scene { Requires = Chapter1.Scanner },   // rank 3: the Soul Card, before the Collector
-                // after she joins, her scenes find you (ChapterOneDirector.ErinCatchesUp): every answer completes the rank
-                new Scene { Requires = Chapter1.CollectorBeaten, OptionPoints = new[] { 3, 3, 3 } },
+                new Scene { Requires = Chapter1.Awake, OptionPoints = new[] { 3, 3, 3 } },   // the pod room; she vanishes
+                new Scene { Requires = Chapter1.Awake, OptionPoints = new[] { 3, 3 } },      // by the goggles: the binder, the tutorial
+                new Scene { Requires = Chapter1.CollectorBeaten, OptionPoints = new[] { 3, 3, 3 } }, // rank 3: joins, Soul Card
+                new Scene { Requires = Chapter1.Tunnel, OptionPoints = new[] { 3, 3, 3 } },
                 new Scene { Requires = Chapter1.DragonSeen, OptionPoints = new[] { 3, 3, 3 } },
             },
         };
@@ -82,7 +88,15 @@ namespace Game.World
             return WorldSession.Bonds.TryGetValue(character, out p) && p != null ? p.Rank : 0;
         }
 
-        public static bool Joined(string character) { return Rank(character) >= SoulRank; }
+        /// <summary>In the party (or was): their bond reached the rank they join at.</summary>
+        public static bool Joined(string character)
+        {
+            var d = Find(character);
+            return Rank(character) >= (d != null ? d.JoinRank : SoulRank);
+        }
+
+        /// <summary>Whether this bond scene (1-based rank) has played.</summary>
+        public static bool Seen(Def d, int rank) { return StoryState.Has(SeenFlag(d, rank)); }
 
         static string SeenFlag(Def d, int rank) { return "bond." + d.Id + "." + rank; }
 
@@ -132,6 +146,7 @@ namespace Game.World
                     while (answer < 0) yield return null;
                     yield return Talk(b, Lines(key + ".answer." + (answer + 1), voiceFor, member));
                 }
+                if (d.Scenes[before].OnDone != null) yield return d.Scenes[before].OnDone(b, answer);
                 var pts = d.Scenes[before].OptionPoints;
                 gained = answer >= 0 && answer < pts.Length ? pts[answer] : 1;
                 StoryState.Set(SeenFlag(d, before + 1));
@@ -154,13 +169,23 @@ namespace Game.World
             {
                 var canvas = (RectTransform)b.UI.transform;
                 yield return BondRankUp.Show(canvas, member, rank);
+                bool joins = rank == d.JoinRank;
                 if (rank == SoulRank)
                 {
                     yield return Talk(b, Lines("bond." + d.Id + ".soul", voiceFor, member));
-                    WorldSession.Recruit(d.Character);
                     if (member != null) CardCollection.MarkNew(CardCollection.SoulKey(member));
+                    if (joins) WorldSession.Recruit(d.Character);
                     SaveGame.Save();
                     yield return BondRankUp.SoulCard(canvas, member);
+                }
+                else if (joins)
+                {
+                    yield return Talk(b, Lines("bond." + d.Id + ".join", voiceFor, member));
+                    WorldSession.Recruit(d.Character);
+                    SaveGame.Save();
+                }
+                if (joins)
+                {
                     b.SetCutscene(false);
                     b.RefreshParty();
                     if (d.OnJoined != null) d.OnJoined(b);

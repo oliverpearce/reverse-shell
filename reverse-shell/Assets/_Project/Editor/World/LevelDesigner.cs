@@ -630,32 +630,69 @@ namespace Game.EditorTools
                 + (brushTile != null ? (brushTile.Solid ? "  · solid" : "  · walkable") : ""), EditorStyles.boldLabel);
             paletteFilter = EditorGUILayout.TextField("Search tiles", paletteFilter);
             string filter = (paletteFilter ?? "").Trim().ToLowerInvariant();
+            string here = area != null ? TileLegend.SectionFor(area.id, area.theme) : null;
+            // Terrain by chapter / subarea (each split into Deco / Solids / Misc), then Interactables, Portals, Story.
+            // Each is a foldout; Shared, the open area's chapter and the non-terrain groups start open. A search shows
+            // every match, whatever is folded.
             foreach (var group in TileLegend.Groups)
             {
                 var tiles = TileLegend.All.Where(t => t.Group == group && (filter.Length == 0
                     || t.Name.ToLowerInvariant().Contains(filter) || t.Char.ToString() == filter || t.Note.ToLowerInvariant().Contains(filter))).ToList();
                 if (tiles.Count == 0) continue;
-                GUILayout.Label(group, EditorStyles.miniBoldLabel);
-                for (int i = 0; i < tiles.Count; i += 6)
+                bool terrain = TileLegend.IsTerrain(group);
+                string key = "LevelDesigner.palette." + group + (terrain && group != TileLegend.Shared ? "@" + here : "");
+                bool startOpen = !terrain || group == TileLegend.Shared || group == here;
+                bool open = SessionState.GetBool(key, startOpen);
+                bool now = EditorGUILayout.Foldout(open, group + "  (" + tiles.Count + ")", true, FoldoutBold);
+                if (now != open) SessionState.SetBool(key, now);
+                if (!now && filter.Length == 0) continue;
+                if (!terrain)
                 {
-                    EditorGUILayout.BeginHorizontal();
-                    for (int j = i; j < Mathf.Min(i + 6, tiles.Count); j++)
-                    {
-                        var t = tiles[j];
-                        var r = GUILayoutUtility.GetRect(46f, 30f, GUILayout.Width(46f));
-                        EditorGUI.DrawRect(r, t.Color);
-                        if (t.Char == Brush) Outline(r, new Color(1f, 0.85f, 0.2f));
-                        cellLabel.normal.textColor = t.Color.grayscale > 0.55f ? Color.black : Color.white;
-                        string tip = t.Name + (t.Solid ? " (solid" + (t.Height > 0 ? ", height " + t.Height : "") + ")" : " (walkable)")
-                                     + (t.Note.Length > 0 ? "\n" + t.Note : "");
-                        if (GUI.Button(r, new GUIContent(t.Char.ToString(), tip), cellLabel))
-                        {
-                            Brush = t.Char;
-                            if (tool == Tool.Select) tool = Tool.Paint;
-                        }
-                    }
-                    EditorGUILayout.EndHorizontal();
+                    DrawSwatches(tiles);
+                    continue;
                 }
+                foreach (var kind in TileLegend.Kinds)
+                {
+                    var ofKind = tiles.Where(t => t.Kind == kind).ToList();
+                    if (ofKind.Count == 0) continue;
+                    GUILayout.Label("   " + kind, EditorStyles.miniBoldLabel);
+                    DrawSwatches(ofKind);
+                }
+            }
+        }
+
+        static GUIStyle foldoutBold;
+        static GUIStyle FoldoutBold
+        {
+            get
+            {
+                if (foldoutBold == null) foldoutBold = new GUIStyle(EditorStyles.foldout) { fontStyle = FontStyle.Bold };
+                return foldoutBold;
+            }
+        }
+
+        /// <summary>A palette group's swatches, 6 to a row: click one to paint with it (the tooltip names it).</summary>
+        void DrawSwatches(List<TileLegend.Tile> tiles)
+        {
+            for (int i = 0; i < tiles.Count; i += 6)
+            {
+                EditorGUILayout.BeginHorizontal();
+                for (int j = i; j < Mathf.Min(i + 6, tiles.Count); j++)
+                {
+                    var t = tiles[j];
+                    var r = GUILayoutUtility.GetRect(46f, 30f, GUILayout.Width(46f));
+                    EditorGUI.DrawRect(r, t.Color);
+                    if (t.Char == Brush) Outline(r, new Color(1f, 0.85f, 0.2f));
+                    cellLabel.normal.textColor = t.Color.grayscale > 0.55f ? Color.black : Color.white;
+                    string tip = t.Name + (t.Solid ? " (solid" + (t.Height > 0 ? ", height " + t.Height : "") + ")" : " (walkable)")
+                                 + (t.Note.Length > 0 ? "\n" + t.Note : "");
+                    if (GUI.Button(r, new GUIContent(t.Char.ToString(), tip), cellLabel))
+                    {
+                        Brush = t.Char;
+                        if (tool == Tool.Select) tool = Tool.Paint;
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
             }
         }
 

@@ -53,7 +53,26 @@ namespace Combat
         {
             var controller = new BattleController(setup.party, setup.enemies, setup.config, setup.seed, setup.backup);
             foreach (var enemy in controller.State.Enemies) enemy.SetEnemyLevel(setup.enemyLevel, setup.boss);
+            controller.PartyCantFall = setup.partyCantFall;
             return controller;
+        }
+
+        /// <summary>Nobody on the player's side drops below 1 HP (a story fight you can't lose, BattleSetup.partyCantFall).</summary>
+        public bool PartyCantFall;
+        bool holdOnWarned;
+
+        static bool PlayerSide(BattleUnit unit) { return unit != null && unit.Team == Team.Player; }
+
+        /// <summary>A hit that would take a protected party member to 0 leaves them at 1 HP instead.</summary>
+        int HoldOn(BattleUnit target, int amount)
+        {
+            if (!PartyCantFall || !PlayerSide(target) || amount < target.HP) return amount;
+            if (!holdOnWarned)
+            {
+                holdOnWarned = true;
+                Log(target.Name + " holds on!");
+            }
+            return Mathf.Max(0, target.HP - 1);
         }
 
         /// <summary>
@@ -384,7 +403,11 @@ namespace Combat
                 if (shield.Power <= 0f) target.Statuses.Remove(shield);
                 EmitStatuses(target);
             }
+            // A Soul Dummy: any Soul Card (Ult) hit finishes it; nothing else can (ApplyDamage stops at 1 HP).
+            if (isRitual && SoulOnly(target)) amount = Mathf.Max(amount, target.HP);
+            soulStrike = isRitual;
             ApplyDamage(source, target, amount, result.Crit, result.StaggerBonus, false, blocked, isCounter);
+            soulStrike = false;
             if (card != null && !IsOver) ApplyBreak(source, target, card, breakDealt);
             if (!isCounter && !IsOver) TryCounter(target, source);
         }
@@ -403,6 +426,22 @@ namespace Combat
             target.Break = Mathf.Max(0, target.Break - amount);
             if (target.Break == 0) Stagger(target);
             else EmitBreak(target);
+        }
+
+        /// <summary>Makes an enemy weak to <paramref name="weakness"/> for <paramref name="turns"/> rounds (this one
+        /// included), shown at once like a found weakness. Not written into the weakness book: it's the card's doing.</summary>
+        public void AddWeakness(BattleUnit target, Weakness weakness, int turns)
+        {
+            if (target == null || !target.IsAlive || target.Enemy == null || weakness == Weakness.None || turns <= 0) return;
+            if (target.ExtraWeaknessTurns <= 0) target.ExtraWeaknesses = Weakness.None;
+            target.ExtraWeaknesses |= weakness;
+            target.ExtraWeaknessTurns = Mathf.Max(target.ExtraWeaknessTurns, turns);
+            foreach (var w in BreakRules.All)
+            {
+                if ((weakness & w) == 0) continue;
+                Log(target.Name + " is weak to " + BreakRules.Label(w) + "!");
+                Emit(new WeaknessRevealedEvent { Unit = target, Weakness = w });
+            }
         }
 
         void RevealWeaknesses(BattleUnit target, Weakness match)
@@ -740,6 +779,10 @@ namespace Combat
         {
             var units = new List<BattleUnit>(State.AllUnits);
 
+            // 0. Weaknesses a card added wear off.
+            foreach (var unit in units)
+                if (unit.ExtraWeaknessTurns > 0 && --unit.ExtraWeaknessTurns == 0) unit.ExtraWeaknesses = Weakness.None;
+
             // 1. Buffs and debuffs.
             foreach (var unit in units)
             {
@@ -808,6 +851,16 @@ namespace Combat
         void ApplyDamage(BattleUnit source, BattleUnit target, int amount, bool crit, bool staggerBonus, bool isTick,
             int blocked = 0, bool isCounter = false, StatusDefinition tick = null)
         {
+            if (!soulStrike && SoulOnly(target) && amount >= target.HP)
+            {
+                amount = Mathf.Max(0, target.HP - 1);
+                if (!soulOnlyWarned)
+                {
+                    soulOnlyWarned = true;
+                    Log("Only a Soul Card can finish " + target.Name + "!");
+                }
+            }
+            amount = HoldOn(target, amount);
             target.HP = Mathf.Max(0, target.HP - amount);
             Emit(new DamageEvent
             {
@@ -876,6 +929,22 @@ namespace Combat
             if (first == null) return;
             State.SelectedEnemy = first;
             Emit(new TargetSelectedEvent { Target = first });
+        }
+
+        bool soulStrike, soulOnlyWarned;
+
+        /// <summary>Soul-bound (the tutorial's Soul Dummy): only a Soul Card hit can take its last HP.</summary>
+        public static bool SoulOnly(BattleUnit unit)
+        {
+            return unit != null && unit.Enemy != null && unit.Enemy.soulOnly;
+        }
+
+        /// <summary>Fills a member's Ult points and deals their Soul Card into the hand (Erin's tutorial, the Ult lesson).</summary>
+        public void FillUlt(BattleUnit unit)
+        {
+            if (unit == null || !unit.IsAlive) return;
+            SetMoxie(unit, Config.moxieCap);
+            TrySpawnRitual(unit);
         }
 
         void SetMoxie(BattleUnit unit, int value)

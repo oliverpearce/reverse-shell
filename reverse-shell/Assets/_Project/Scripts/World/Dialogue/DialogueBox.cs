@@ -11,7 +11,8 @@ namespace Game.World
     /// Conversation box, one default look for every character (Reverse: 1999 style, <see cref="InkStyle"/>): a dark
     /// ink panel with a gold hairline frame and a thin bar in the speaker's accent colour, the speaker's name in gold
     /// serif with a short accent underline, animated text (<see cref="DynamicText"/>) in paper white, a bobbing gold
-    /// "next" diamond and per-character voice blips. No portraits. Everything animates on unscaled time.
+    /// "next" diamond and per-character voice blips. A speaker with a sprite gets their animated face on the left (their
+    /// Soul card face, or their idle zoomed in: DialogueFaces, CardArt.FaceFrames). Everything animates on unscaled time.
     ///
     /// Advance(): finishes the current line if it's still typing, otherwise moves on (closing after the last).
     /// </summary>
@@ -19,6 +20,8 @@ namespace Game.World
     {
         static readonly Color Panel = NierStyle.PanelGray;   // NieR-style: dark grey panel, light text
         const float BoxW = 1320f, BoxH = 236f;
+        /// <summary>The answer buttons' width range: they fit the longest answer, and wrap past the maximum.</summary>
+        const float ChoiceMinW = 300f, ChoiceMaxW = 860f;
 
         RectTransform root, label, portraitFrame, nextArrow;
         Image portraitImage;
@@ -51,6 +54,89 @@ namespace Game.World
         bool closing;
 
         public bool IsOpen { get { return gameObject.activeSelf && !closing; } }
+
+        /// <summary>Who is speaking on the line showing now ("" for narration or when closed).</summary>
+        public string CurrentSpeaker
+        {
+            get { return IsOpen && index >= 0 && index < queue.Count ? queue[index].Speaker ?? "" : ""; }
+        }
+
+        // ------------------------------------------------------------------ Auto-advance and skipping read lines
+        // Settings > Auto-Advance moves on a moment after a line finishes. Holding Space / Enter / F skips through lines you have already read (remembered across sessions); a new line stops the skip.
+        float autoT, holdT, skipT;
+        Sprite[] face;          // the speaker's animated face on the left (null: the static Portrait or none)
+        float faceFps = 6f, faceTime;
+        bool lineWasSeen;   // read in an earlier conversation (or session) before it showed this time
+        const float HoldToSkip = 0.45f, SkipEvery = 0.06f;
+        const string SeenKey = "dialogue.seen";
+        static HashSet<uint> seen;
+        static bool seenDirty;
+
+        static HashSet<uint> Seen
+        {
+            get
+            {
+                if (seen != null) return seen;
+                seen = new HashSet<uint>();
+                foreach (var part in PlayerPrefs.GetString(SeenKey, "").Split(','))
+                {
+                    uint h;
+                    if (uint.TryParse(part, System.Globalization.NumberStyles.HexNumber, null, out h)) seen.Add(h);
+                }
+                return seen;
+            }
+        }
+
+        /// <summary>FNV-1a of speaker and text: stable across sessions and platforms (string.GetHashCode isn't).</summary>
+        static uint LineHash(DialogueLine line)
+        {
+            uint h = 2166136261;
+            string s = (line.Speaker ?? "") + "\n" + (line.Text ?? "");
+            for (int i = 0; i < s.Length; i++) { h ^= s[i]; h *= 16777619; }
+            return h;
+        }
+
+        static void SaveSeen()
+        {
+            if (!seenDirty || seen == null) return;
+            seenDirty = false;
+            var parts = new List<string>(seen.Count);
+            foreach (var h in seen) parts.Add(h.ToString("x8"));
+            PlayerPrefs.SetString(SeenKey, string.Join(",", parts.ToArray()));
+            PlayerPrefs.Save();
+        }
+
+        static bool HoldingSkip
+        {
+            get { return Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.F); }
+        }
+
+        void UpdateAutoAndSkip(bool done)
+        {
+            float dt = Time.unscaledDeltaTime;
+            bool waitingOnChoice = choices != null && index == queue.Count - 1;
+            if (done && index < queue.Count && Seen.Add(LineHash(queue[index]))) seenDirty = true;
+
+            holdT = HoldingSkip ? holdT + dt : 0f;
+            if (holdT >= HoldToSkip && !waitingOnChoice && lineWasSeen)
+            {
+                // Only lines read before are skipped; a new line stops the skip and types as usual.
+                skipT += dt;
+                if (skipT >= SkipEvery)
+                {
+                    skipT = 0f;
+                    if (!done) dynamic.Complete();
+                    else Advance();
+                }
+                return;
+            }
+            skipT = 0f;
+
+            if (!GameSettings.AutoAdvance || !done || waitingOnChoice) { autoT = 0f; return; }
+            autoT += dt;
+            string text = index < queue.Count ? queue[index].Text ?? "" : "";
+            if (autoT >= 1.1f + 0.025f * text.Length) Advance();
+        }
 
         public static DialogueBox Create(RectTransform parent)
         {
@@ -150,9 +236,15 @@ namespace Game.World
             foreach (var l in lines)
             {
                 if (l == null) continue;
-                SizeTextArea(!string.IsNullOrEmpty(l.Speaker), l.Portrait != null);
+                if (l.Face == null)
+                {
+                    float fps;
+                    l.Face = DialogueFaces.For(l.Speaker, out fps);
+                    l.FaceFps = fps;
+                }
+                SizeTextArea(!string.IsNullOrEmpty(l.Speaker), l.Portrait != null || l.Face != null);
                 foreach (var page in DialoguePager.Split(l.Text, Fits))
-                    queue.Add(new DialogueLine(l.Speaker, page, l.Voice, l.Portrait));
+                    queue.Add(new DialogueLine(l.Speaker, page, l.Voice, l.Portrait) { Face = l.Face, FaceFps = l.FaceFps });
             }
             onDone = done;
             if (queue.Count == 0)
@@ -224,20 +316,45 @@ namespace Game.World
             UIFactory.ClearChildren(choiceRoot);
             choiceBacks.Clear();
             choiceTexts.Clear();
-            const float rowH = 58f, width = 300f;
-            choiceRoot.sizeDelta = new Vector2(width, choices.Length * (rowH + 10f));
+            // The rows are as wide as the longest answer (ChoiceMinW..ChoiceMaxW); an answer longer than that wraps
+            // onto more lines and its row grows, so nothing runs out of its button.
+            const float rowH = 58f, gap = 10f, padX = 30f, padY = 10f;
+            var labels = new List<Text>();
+            float width = ChoiceMinW;
             for (int i = 0; i < choices.Length; i++)
             {
-                // Stacked ink rows (the last one on the bottom) with a gold hairline.
-                float y = (choices.Length - 1 - i) * (rowH + 10f);
                 var back = UIFactory.CreateImage(choiceRoot, choices[i], Panel);
-                back.rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, y), new Vector2(width, rowH));
-                NierStyle.Rules(back.rectTransform, 6f);
                 var label = UIFactory.CreateText(back.transform, "Label", choices[i], 38, NierStyle.Text, TextAnchor.MiddleCenter);
                 label.font = UIFactory.SerifFont;
-                label.rectTransform.Fill();
+                label.horizontalOverflow = HorizontalWrapMode.Wrap;
+                label.verticalOverflow = VerticalWrapMode.Overflow;
+                labels.Add(label);
                 choiceBacks.Add(back);
                 choiceTexts.Add(label);
+                width = Mathf.Max(width, label.preferredWidth + 2f * padX);
+            }
+            width = Mathf.Min(width, ChoiceMaxW);
+            var heights = new float[choices.Length];
+            float total = 0f;
+            for (int i = 0; i < choices.Length; i++)
+            {
+                var settings = labels[i].GetGenerationSettings(new Vector2(width - 2f * padX, 0f));
+                float textH = labels[i].cachedTextGeneratorForLayout.GetPreferredHeight(choices[i], settings) / labels[i].pixelsPerUnit;
+                heights[i] = Mathf.Max(rowH, textH + 2f * padY);
+                total += heights[i] + (i > 0 ? gap : 0f);
+            }
+            choiceRoot.sizeDelta = new Vector2(width, total);
+            // Stacked ink rows (the last one on the bottom) with a gold hairline.
+            float y = 0f;
+            for (int i = choices.Length - 1; i >= 0; i--)
+            {
+                var back = choiceBacks[i];
+                back.rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, y), new Vector2(width, heights[i]));
+                NierStyle.Rules(back.rectTransform, 6f);
+                labels[i].rectTransform.Fill();
+                labels[i].rectTransform.offsetMin = new Vector2(padX, 0f);
+                labels[i].rectTransform.offsetMax = new Vector2(-padX, 0f);
+                y += heights[i] + gap;
             }
             choiceRoot.gameObject.SetActive(false);
         }
@@ -279,9 +396,14 @@ namespace Game.World
             bool hasSpeaker = !string.IsNullOrEmpty(line.Speaker);
             label.gameObject.SetActive(hasSpeaker);
             label.sizeDelta = new Vector2(Mathf.Max(80f, speakerText.preferredWidth + 4f), 48f);
-            bool hasPortrait = line.Portrait != null;
+            bool hasFace = line.Face != null && line.Face.Length > 0;
+            bool hasPortrait = hasFace || line.Portrait != null;
             portraitFrame.gameObject.SetActive(hasPortrait);
-            if (hasPortrait) portraitImage.sprite = line.Portrait;
+            face = hasFace ? line.Face : null;
+            faceFps = line.FaceFps > 0f ? line.FaceFps : 6f;
+            if (newSpeaker || !hasFace || queue[index - 1].Face != line.Face) faceTime = 0f;   // same speaker: it keeps playing
+            if (hasFace) portraitImage.sprite = face[0];
+            else if (hasPortrait) portraitImage.sprite = line.Portrait;
             label.anchoredPosition = new Vector2(hasPortrait ? PortraitPad + 24f : 48f, -16f);
             if (newSpeaker) labelPop = 0f;
 
@@ -289,6 +411,8 @@ namespace Game.World
 
             dynamic.SetLine(DialogueMarkup.Parse(line.Text, line.Voice.Speed));
             lastBlipCount = 0;
+            autoT = 0f;
+            lineWasSeen = Seen.Contains(LineHash(line));
         }
 
         // ------------------------------------------------------------------ Animation
@@ -311,9 +435,15 @@ namespace Game.World
             nameColor.a = Mathf.Clamp01(labelPop);
             speakerText.color = nameColor;
 
+            if (face != null && face.Length > 1)
+            {
+                faceTime += dt;
+                portraitImage.sprite = face[(int)(faceTime * faceFps) % face.Length];
+            }
             bool done = dynamic.FullyRevealed;
             nextArrow.gameObject.SetActive(done && !closing && choices == null);
             UpdateChoices();
+            if (!closing) UpdateAutoAndSkip(done);
             if (done) nextArrow.anchoredPosition = new Vector2(-40f, 34f + Mathf.Round(Mathf.Sin(Time.unscaledTime * 6f) * 3f));
 
             // Voice: a blip every other letter as it appears.
@@ -335,6 +465,7 @@ namespace Game.World
         IEnumerator CloseRoutine()
         {
             closing = true;
+            SaveSeen();
             float t = 0f;
             var start = root.anchoredPosition;
             while (t < 1f)

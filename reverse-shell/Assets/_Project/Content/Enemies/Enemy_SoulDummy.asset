@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01c7f95fb3fdedb42b6544a2cc432e43, type: 3}
+  m_Name: Enemy_SoulDummy
+  m_EditorClassIdentifier: 
+  displayName: Dummy Robot
+  color: {r: 0.79, g: 0.61, b: 0.39, a: 1}
+  portrait: {fileID: 0}
+  animations: {fileID: 11400000, guid: 0658375394eb0054e841e736f08bfe1c, type: 2}
+  altAnimations: {fileID: 0}
+  spriteSheet: {fileID: 0}
+  sheetColumns: 3
+  sheetRows: 4
+  resonance: 5
+  damageType: 0
+  stats:
+    maxHP: 3000
+    attack: 120
+    physicalDefense: 100
+    specialDefense: 100
+    critRate: 0.1
+    critDamage: 1.5
+  skills:
+  - card: {fileID: 11400000, guid: 4e1d34b5dd203614aa931a34228edc19, type: 2}
+    rank: 1
+    weight: 1
+  xpReward: 20
+  breakPoints: 3
+  weaknesses: 1
+  soulOnly: 1
+  ritual: {fileID: 0}
+  innate: {fileID: 0}
+  innateLevels: 3
+  innateWeight: 1

@@ -754,7 +754,75 @@ def icon_stunned():
 
 
 # Chapter One: the protagonist's Electric cards and the Stunned status.
+# ---- Ashe's ice Legendaries: 16 x 16 pixel art, each art pixel 2 x 2 card pixels (the 32 px icon window).
+ICE = {'w': hx('ffffff'), 'l': hx('c8ecff'), 'b': hx('7cc4f4'), 'd': hx('3a7fd0'), 'n': hx('22407a'),
+       'k': hx('20021d'), 'p': hx('ff9fc0')}
+
+
+def from16(rows):
+    """A 16 x 16 drawing (one char per pixel, ICE colours, '.' clear) doubled into a 32 px icon Canvas."""
+    c = Canvas(CELL, CELL)
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            if ch in ICE:
+                for dy in (0, 1):
+                    for dx in (0, 1):
+                        c.put(x * 2 + dx, y * 2 + dy, ICE[ch])
+    return c
+
+
+# Absolute Zero (Ashe names it): a little snowflake with a face, rosy cheeks and a tiny smile.
+ABSOLUTE_ZERO = [
+    '.......bb.......',
+    '...b...ll...b...',
+    '....b..ll..b....',
+    '.....b.ll.b.....',
+    '......bllb......',
+    '.b...lwwwwl...b.',
+    '..bbbwkwwkwbbb..',
+    'lllllwwwwwwlllll',
+    'lllllwpwwpwlllll',
+    '..bbbwwkkwwbbb..',
+    '.b...lwwwwl...b.',
+    '......bllb......',
+    '.....b.ll.b.....',
+    '....b..ll..b....',
+    '...b...ll...b...',
+    '.......bb.......',
+]
+
+# Leng Storm: the character for cold, 冷 (the two ice strokes of 冫 beside 令), icy blue with a white top edge.
+LENG = [
+    '................',
+    '..........w.....',
+    '.w.......lbl....',
+    '..b.....lb.bl...',
+    '..b....lb...bl..',
+    '......lb.....bl.',
+    '.....bb.......bb',
+    '.........wl.....',
+    '........lbbbl...',
+    '................',
+    '......llllllb...',
+    '.........b..b...',
+    '...d.....b..b...',
+    '..d......b.bb...',
+    '.d.......b......',
+    '.........b......',
+]
+
+
+def icon_absolute_zero():
+    return from16(ABSOLUTE_ZERO)
+
+
+def icon_leng_storm():
+    return from16(LENG)
+
+
 CH1_ICONS = [
+    ('Card_Cryo_AbsoluteZero', icon_absolute_zero),
+    ('Card_Cryo_LengStorm', icon_leng_storm),
     ('Card_A3_ArcEdge', icon_arc_edge),
     ('Card_A3_StaticField', icon_static_field),
     ('Status_Stunned', icon_stunned),
@@ -899,6 +967,7 @@ RAVEN_PICKS = {
     'Card_A3_EdgeStrike': 724, 'Card_A3_CrossSlash': 155, 'Card_A3_SyncField': 1047, 'Card_A3_ArcEdge': 731,
     'Card_A3_StaticField': 1039,
     'Card_Ashe_BrambleLash': 1067, 'Card_Ashe_Overgrowth': 1110, 'Card_Ashe_SapMend': 1073,
+    'Card_Ashe_FrostLash': 694, 'Card_Ashe_RimeMend': 1073, 'Card_Ashe_GlacierWard': 692,
     'Card_Lucy_VirusSpike': 741, 'Card_Lucy_Corrupt': 1117, 'Card_Lucy_Worm': 342,
     'Card_Blue_ShieldBash': 1811, 'Card_Blue_Bulwark': 2151,
     'Card_Enemy_CorrodedBlade': 722, 'Card_Enemy_NetworkLink': 905,
@@ -1029,10 +1098,13 @@ CHARS = os.path.join(ROOT, 'Assets', '_Project', 'Art', 'Characters')
 
 
 def sprite_art(folder, full=False):
-    """The idle sheet's first front-facing frame (row 2 of 4), cropped to its pixels, as (w, h, rows): a 2x bust, or
+    """The portrait's (else the idle sheet's) first front-facing frame (row 2 of 4), cropped to its pixels, as (w, h, rows): a 2x bust, or
     with full=True the whole figure at 1x (A3's cards, the same pixels as her Soul card)."""
     from pngtool import read_png
-    path = os.path.join(CHARS, folder, 'idle.png')
+    # A3: the A2 study portrait (Tools/ChibiForge/a3_portrait.py) when there is one, the menus' and cards' art
+    path = os.path.join(CHARS, folder, 'portrait.png')
+    if not os.path.exists(path):
+        path = os.path.join(CHARS, folder, 'idle.png')
     if not os.path.exists(path):
         return None
     w, h, px = read_png(path)
@@ -1043,6 +1115,17 @@ def sprite_art(folder, full=False):
         return None
     x1, x2 = min(c[0] for c in cells), max(c[0] for c in cells)
     y1, y2 = min(c[1] for c in cells), max(c[1] for c in cells)
+    # Sprites stored upscaled (npc_packs.py draws the machines at 3x): back to their own pixels, so the bust isn't a
+    # blow-up of a blow-up.
+    for k in (4, 3, 2):
+        bw0, bh0 = x2 - x1 + 1, y2 - y1 + 1
+        if bw0 % k or bh0 % k:
+            continue
+        if all(px[y][x] == px[y1 + (y - y1) // k * k][x1 + (x - x1) // k * k]
+               for y in range(y1, y2 + 1) for x in range(x1, x2 + 1)):
+            px = [[px[y1 + yy * k][x1 + xx * k] for xx in range(bw0 // k)] for yy in range(bh0 // k)]
+            x1, y1, x2, y2 = 0, 0, bw0 // k - 1, bh0 // k - 1
+            break
     if full:
         return x2 - x1 + 1, y2 - y1 + 1, [[tuple(px[y][x]) for x in range(x1, x2 + 1)] for y in range(y1, y2 + 1)]
     # A 2x bust: the top of the figure, as much as fits inside the rim, centred on the figure.
@@ -1054,13 +1137,17 @@ def sprite_art(folder, full=False):
     return bw, bh, rows
 
 # Party members' card colours (Char_*.asset "color"), used to bake the Ult cards' swirl.
-ULT_OWNERS = [
-    ('Char_A3', 'A3', (0.92, 0.92, 0.95)),
-    ('Char_Ashe', 'Ashe', (0.39, 0.58, 0.93)),
-    ('Char_Erin', 'Erin', (1.0, 0.62, 0.3)),
-    ('Char_Lotus', 'Lotus', (0.55, 0.8, 0.4)),
-    ('Char_Zuko', 'Zuko', (0.9, 0.25, 0.2)),
-]
+def _accent(name):
+    """A party member's card colour: their card swirl (else accent) from Tools/ChibiForge/palettes/palettes.json (Lospec palettes;
+    Ashe's is exactly cornflower blue, #6495ED). The swirl's white highlights show it exactly."""
+    import json
+    pal = json.load(open(os.path.join(ROOT, 'Tools', 'ChibiForge', 'palettes', 'palettes.json'), encoding='utf-8'))
+    pal = pal.get('characters', pal)
+    h = pal[name].get('card', {}).get('swirl') or pal[name]['accent']   # the palette editor's card swirl
+    return tuple(int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+
+
+ULT_OWNERS = [(('Char_' + n), n, _accent(n)) for n in ('A3', 'Ashe', 'Erin', 'Lotus', 'Zuko')]
 
 # Settings > Alt Art: each member's recolour of A3 gets its own picture, Ult_<asset>_Alt (CardArt.Ult picks it).
 # (character asset, sprite folder, swirl colour)
@@ -1081,7 +1168,7 @@ FULL_FIGURE = {'A3', 'Ashe', 'Erin', 'Lotus', 'Zuko'}
 
 def ult_for(char, color):
     if char in FULL_FIGURE:
-        return make_ult(char, color, sprite_art(char, full=True), feet_gap=6)
+        return make_ult(char, color, sprite_art(char, full=True), feet_gap=6, outline=_darkest(char))
     return make_ult(char, color, sprite_art(char))
 
 
@@ -1095,10 +1182,22 @@ def add_bolts(card):
 
 def tint(grey, color):
     """The same multiply the game applies to CardSwirl (Image.color)."""
-    return tuple(int(grey[i] * color[i]) for i in range(3)) + (grey[3],)
+    return tuple(int(round(grey[i] * color[i])) for i in range(3)) + (grey[3],)
 
 
-def make_ult(char_name, color, ref=None, feet_gap=1):
+def _darkest(name):
+    """A party member's darkest palette colour (their hair ramp's first), for the figure's outline on their card, so
+    hair in the card's own colour still stands out from the swirl. None if they have no palette."""
+    import json
+    pal = json.load(open(os.path.join(ROOT, 'Tools', 'ChibiForge', 'palettes', 'palettes.json'), encoding='utf-8'))
+    pal = pal.get('characters', pal)
+    if name not in pal:
+        return None
+    h = pal[name]['hair'][0]
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4)) + (255,)
+
+
+def make_ult(char_name, color, ref=None, feet_gap=1, outline=None):
     if ref is None:
         import chibi_forge as cf
         ref = cf.reference_pixels(char_name)
@@ -1117,6 +1216,14 @@ def make_ult(char_name, color, ref=None, feet_gap=1):
                 art.px[y][x] = tuple(p) if len(p) == 4 else tuple(p) + (255,)
         # full art: the figure fills the card, feet at the bottom edge (the frame crops a little)
         card.paste(art, (W - rw) // 2, H - rh - feet_gap)
+        if outline is not None:
+            # a 1 px ring round the figure (the 4 neighbours of its pixels that are empty)
+            ox, oy = (W - rw) // 2, H - rh - feet_gap
+            solid = {(x + ox, y + oy) for y in range(rh) for x in range(rw) if art.px[y][x][3]}
+            for (x, y) in solid:
+                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if (nx, ny) not in solid and 0 <= nx < W and 0 <= ny < H:
+                        card.px[ny][nx] = outline
     # the pale border and plum outline, like the jester card
     for y in range(H):
         for x in range(W):

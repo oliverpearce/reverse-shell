@@ -702,7 +702,13 @@ namespace Game.World
 
         // ------------------------------------------------------------------ Save: pick a slot
 
-        void Save() { ShowSlots(); }
+        /// <summary>The story picks a slot; the Sandbox always saves to its own file (it never touches a story slot).</summary>
+        void Save()
+        {
+            if (!SaveGame.InSandboxSlot) { ShowSlots(); return; }
+            SaveGame.Save();
+            StartCoroutine(Flash(cards[1], UIText.Get("pause.saved.sandbox")));
+        }
 
         void ShowSlots()
         {
@@ -795,14 +801,36 @@ namespace Game.World
                     Help = GameSettings.GuideHelp,
                 },
             };
-            // Alt Art only when someone has an alternate sprite (every ally is A3's model now, so usually nobody).
-            if (world != null && world.AllCharacters.Exists(m => m != null && m.altAnimations != null))
-                rows.Insert(4, new RowMenu.Row
-                {
-                    Label = GameSettings.AltArtLabel,
-                    Action = () => { GameSettings.ToggleAltArt(); ShowSettings(4); },
-                    Help = GameSettings.AltArtHelp,
-                });
+            // Machine Look: the machines and NPCs in Snoblin's or Tech Dungeon's sprites (GameSettings.AltArt).
+            rows.Insert(4, new RowMenu.Row
+            {
+                Label = GameSettings.AltArtLabel,
+                Action = () => { GameSettings.ToggleAltArt(); ShowSettings(4); },
+                Help = GameSettings.AltArtHelp,
+            });
+            // The camera's push-in on attacks.
+            int zoomRow = rows.Count;
+            rows.Add(new RowMenu.Row
+            {
+                Label = GameSettings.BattleZoomLabel,
+                Action = () => { GameSettings.BattleZoom = !GameSettings.BattleZoom; ShowSettings(zoomRow); },
+                Help = GameSettings.BattleZoomHelp,
+            });
+            // Dialogue: how fast it types, and whether it moves on by itself.
+            int speedRow = rows.Count;
+            rows.Add(new RowMenu.Row
+            {
+                Label = GameSettings.TextSpeedLabel,
+                Action = () => { GameSettings.CycleTextSpeed(); ShowSettings(speedRow); },
+                Help = GameSettings.TextSpeedHelp,
+            });
+            int autoRow = rows.Count;
+            rows.Add(new RowMenu.Row
+            {
+                Label = GameSettings.AutoAdvanceLabel,
+                Action = () => { GameSettings.AutoAdvance = !GameSettings.AutoAdvance; ShowSettings(autoRow); },
+                Help = GameSettings.AutoAdvanceHelp,
+            });
             // Erin's battle tutorial, again, once you've met her (not in the Sandbox).
             if (BattleTutorial.PracticeUnlocked && !inSandbox)
                 rows.Add(new RowMenu.Row
@@ -815,18 +843,7 @@ namespace Game.World
                     },
                     Help = UIText.Get("pause.practice_erin.help"),
                 });
-            // Sandbox Mode is entered from the title screen; here you can only leave it.
-            if (inSandbox)
-                rows.Add(new RowMenu.Row
-                {
-                    Label = UIText.Get("pause.sandbox.leave"),
-                    Action = () =>
-                    {
-                        HideNow(true);   // the area reloads
-                        world.LeaveSandbox();
-                    },
-                    Help = UIText.Get("pause.sandbox.leave.help"),
-                });
+            // Sandbox Mode is its own mode with its own save (title screen); there's no way from it to the story.
             rows.Add(new RowMenu.Row { Label = UIText.Get("menu.back"), Action = pages.Hide });
             pages.Show(UIText.Get("pause.settings.title"), rows, pages.Hide, select);
         }

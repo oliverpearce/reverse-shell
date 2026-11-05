@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Palette Editor</title>
+<style>
+  @font-face { font-family: monogram; src: url(/picture/font) format('truetype'); }
+  :root { --ink: #1b1a18; --panel: #24221f; --line: #3a362f; --gold: #c2a061; --gold-dim: #5a4c32; --paper: #ece5d3; --dim: #968e80; --bad: #e0675b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ink); color: var(--paper); font: 20px/1.25 monogram, ui-monospace, monospace; }
+  header { display: flex; align-items: center; gap: 18px; padding: 12px 18px; border-bottom: 1px solid var(--gold-dim); position: sticky; top: 0; background: var(--ink); z-index: 2; }
+  h1 { margin: 0; font-size: 34px; color: var(--gold); font-weight: normal; }
+  .tabs button, button { font: inherit; background: var(--panel); color: var(--paper); border: 1px solid var(--line); padding: 4px 12px; cursor: pointer; }
+  button:hover { border-color: var(--gold); }
+  .tabs button.on { border-color: var(--gold); color: var(--gold); }
+  button.save { margin-left: auto; background: var(--gold-dim); border-color: var(--gold); color: var(--paper); }
+  main { display: grid; grid-template-columns: 220px 1fr 380px; gap: 0; min-height: calc(100vh - 62px); }
+  nav, section, aside { padding: 14px; }
+  nav { border-right: 1px solid var(--line); }
+  aside { border-left: 1px solid var(--line); }
+  nav .group { color: var(--dim); font-size: 16px; margin: 12px 0 4px; }
+  nav .item { padding: 3px 8px; cursor: pointer; border-left: 3px solid transparent; }
+  nav .item.on { border-left-color: var(--gold); color: var(--gold); background: var(--panel); }
+  nav .item .dot { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: middle; }
+  h2 { margin: 0 0 8px; font-size: 30px; font-weight: normal; }
+  h3 { margin: 16px 0 6px; font-size: 20px; color: var(--gold); font-weight: normal; }
+  .muted { color: var(--dim); font-size: 16px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 2px; }
+  .sw { width: 24px; height: 24px; border: 1px solid #0006; cursor: pointer; position: relative; }
+  .sw.big { width: 34px; height: 34px; }
+  .sw.picked { outline: 2px solid var(--gold); outline-offset: 1px; }
+  .ramp { display: flex; gap: 2px; align-items: center; min-height: 30px; }
+  .ramp .sw:hover::after { content: '×'; position: absolute; inset: 0; color: #fff; text-shadow: 0 0 2px #000; text-align: center; line-height: 22px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 4px 0; }
+  .roles button.on { border-color: var(--gold); color: var(--gold); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border: 1px solid var(--line); margin: 2px; }
+  .chip b { cursor: pointer; color: var(--bad); font-weight: normal; }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+  .preview { display: flex; gap: 22px; align-items: flex-end; margin-top: 10px; flex-wrap: wrap; }
+  .card-wrap { padding: 24px; }
+  .card-wrap canvas { transition: box-shadow .25s; }
+  .card-wrap:hover canvas { box-shadow: 0 0 34px 10px var(--glow, #fff); }
+  input, select { font: inherit; background: var(--panel); color: var(--paper); border: 1px solid var(--line); padding: 2px 6px; }
+  .result { border: 1px solid var(--line); padding: 6px; margin: 6px 0; }
+  .result .t { display: flex; justify-content: space-between; gap: 6px; }
+  .result .t span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  pre { white-space: pre-wrap; font-size: 15px; color: var(--dim); max-height: 280px; overflow: auto; background: var(--panel); padding: 8px; }
+  .hexlabel { font-size: 15px; color: var(--dim); }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } nav, aside { border: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Palettes</h1>
+  <div class="tabs">
+    <button data-tab="chars" class="on">Characters</button>
+    <button data-tab="cards">Cards</button>
+    <button data-tab="areas">Areas (world)</button>
+  </div>
+  <span id="status" class="muted"></span>
+  <button class="save" id="save">Save &amp; rebuild</button>
+</header>
+<main>
+  <nav id="nav"></nav>
+  <section id="editor"></section>
+  <aside>
+    <h3 style="margin-top:0">Lospec</h3>
+    <div class="row">
+      <input id="tag" placeholder="tag (blue, ice, fire…)" size="14">
+      <select id="filter"><option value="any">any size</option><option value="max">at most</option><option value="min">at least</option><option value="exact">exactly</option></select>
+      <input id="count" type="number" value="16" min="2" max="256" style="width:62px">
+    </div>
+    <div class="row">
+      <select id="sort"><option value="downloads">most downloaded</option><option value="default">featured</option><option value="newest">newest</option><option value="alphabetical">A–Z</option></select>
+      <button id="search">Search</button>
+      <button id="prev">‹</button><span id="page" class="muted">1</span><button id="next">›</button>
+    </div>
+    <div class="row">
+      <input id="slug" placeholder="open by slug, e.g. endesga-32" size="22"><button id="open">Open</button>
+    </div>
+    <div class="row">
+      <input id="hex" placeholder="closest to #6495ed" size="12"><button id="near">Find closest</button>
+    </div>
+    <div class="muted" id="target"></div>
+    <div id="results"></div>
+  </aside>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+let D = null;               // /api/data
+let tab = 'chars', sel = null, role = 'hair', cardRole = 'swirl', page = 0;
+const palCache = {};        // slug -> {title, colors}
+const img = {};             // loaded pictures
+let anim = null;
+
+const rgb = h => [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16));
+const hex = c => c.map(v => v.toString(16).padStart(2, '0')).join('');
+const lum = h => { const [r, g, b] = rgb(h); return 0.299 * r + 0.587 * g + 0.114 * b; };
+const dist = (a, b) => (a[0] - b[0]) ** 2 * 2 + (a[1] - b[1]) ** 2 * 4 + (a[2] - b[2]) ** 2 * 3;
+const status = t => $('#status').textContent = t;
+
+async function api(path) { const r = await fetch(path); const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); return j; }
+function load(name) {
+  return img[name] || (img[name] = new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = '/picture/' + name; }));
+}
+async function paletteOf(slug) {
+  if (!palCache[slug]) palCache[slug] = await api('/api/palette?slug=' + encodeURIComponent(slug));
+  return palCache[slug];
+}
+
+function swatch(h, opts = {}) {
+  const d = document.createElement('div');
+  d.className = 'sw' + (opts.big ? ' big' : '') + (opts.picked ? ' picked' : '');
+  d.style.background = '#' + h;
+  d.title = '#' + h + (opts.title ? ' · ' + opts.title : '');
+  if (opts.click) d.onclick = opts.click;
+  return d;
+}
+
+// ---------------------------------------------------------------- nav
+function renderNav() {
+  const nav = $('#nav'); nav.innerHTML = '';
+  if (tab === 'areas') {
+    let last = '';
+    for (const a of D.areas) {
+      if (a.chapter !== last) { last = a.chapter; const g = document.createElement('div'); g.className = 'group'; g.textContent = a.chapter; nav.append(g); }
+      const p = D.palettes.areas[a.id] || {};
+      const it = document.createElement('div'); it.className = 'item' + (sel === a.id ? ' on' : '');
+      it.innerHTML = `<span class="dot" style="background:${p.enabled && p.colors.length ? '#' + p.colors[Math.floor(p.colors.length / 2)] : 'transparent'};border:1px solid #555"></span>${a.name}`;
+      it.onclick = () => { sel = a.id; render(); };
+      nav.append(it);
+    }
+  } else {
+    const chars = Object.entries(D.palettes.characters).sort((a, b) => chapterOrder(a[1].home) - chapterOrder(b[1].home));
+    let last = '';
+    for (const [name, c] of chars) {
+      const area = D.areas.find(a => a.id === c.home);
+      const ch = area ? area.chapter.split(' · ')[0] : '';
+      if (ch !== last) { last = ch; const g = document.createElement('div'); g.className = 'group'; g.textContent = ch; nav.append(g); }
+      const it = document.createElement('div'); it.className = 'item' + (sel === name ? ' on' : '');
+      it.innerHTML = `<span class="dot" style="background:#${c.accent}"></span>${name}`;
+      it.onclick = () => { sel = name; render(); };
+      nav.append(it);
+    }
+  }
+}
+function chapterOrder(aid) { const a = D.areas.find(x => x.id === aid); return a ? a.order : 9; }
+
+// ---------------------------------------------------------------- character tab
+async function unionOf(c) {
+  const out = [];
+  for (const s of c.sources || []) { try { for (const h of (await paletteOf(s)).colors) if (!out.includes(h)) out.push(h); } catch (e) { status('could not load ' + s); } }
+  return out;
+}
+async function renderChar() {
+  const c = D.palettes.characters[sel];
+  const ed = $('#editor');
+  ed.innerHTML = `<h2>${sel}</h2><div class="muted">${c.area || ''} · ${c.resonance || ''} · home area: ${c.home}</div>
+    <h3>Lospec palettes</h3><div id="sources"></div><div class="muted">Add one with “Use” in the Lospec panel →</div>
+    <h3>All their colours <span class="muted">(click to add to the selected part)</span></h3>
+    <div class="row roles">${['hair', 'eyes', 'outfit', 'accent'].map(r => `<button data-role="${r}" class="${role === r ? 'on' : ''}">${r}</button>`).join('')}</div>
+    <div class="swatches" id="union"></div>
+    <h3>Parts <span class="muted">(dark → light; click a swatch to remove it)</span></h3>
+    <div id="ramps"></div>
+    <h3>Preview <span class="muted">(the Esc menu's idle: wind, shrug, blink)</span></h3>
+    <div class="preview"><canvas id="portrait"></canvas></div>`;
+  document.querySelector('#target').textContent = 'Use → adds a palette to ' + sel;
+  ed.querySelectorAll('.roles button').forEach(b => b.onclick = () => { role = b.dataset.role; renderChar(); });
+  const src = $('#sources');
+  for (const s of c.sources || []) {
+    const chip = document.createElement('span'); chip.className = 'chip'; chip.innerHTML = `${s} <b title="remove">×</b>`;
+    chip.querySelector('b').onclick = () => { c.sources = c.sources.filter(x => x !== s); renderChar(); };
+    src.append(chip);
+  }
+  const union = await unionOf(c);
+  c.colors = union;
+  const u = $('#union');
+  for (const h of union) u.append(swatch(h, { picked: [...c.hair, ...(c.eyes || []), ...c.outfit, c.accent].includes(h), click: () => {
+    if (role === 'accent') c.accent = h;
+    else { c[role] = c[role] || []; if (!c[role].includes(h)) c[role].push(h); }
+    renderChar();
+  } }));
+  const ramps = $('#ramps');
+  for (const part of ['hair', 'eyes', 'outfit']) {
+    const row = document.createElement('div'); row.className = 'row';
+    row.innerHTML = `<span style="width:70px">${part}</span>`;
+    const r = document.createElement('div'); r.className = 'ramp';
+    for (const h of c[part] || []) r.append(swatch(h, { big: true, click: () => { c[part] = c[part].filter(x => x !== h); renderChar(); } }));
+    row.append(r);
+    const sort = document.createElement('button'); sort.textContent = 'sort dark → light';
+    sort.onclick = () => { c[part] = (c[part] || []).slice().sort((a, b) => lum(a) - lum(b)); renderChar(); };
+    row.append(sort);
+    if (part === 'eyes') { const n = document.createElement('span'); n.className = 'muted'; n.textContent = sel === 'A3' ? '' : ''; row.append(n); }
+    ramps.append(row);
+  }
+  const acc = document.createElement('div'); acc.className = 'row';
+  acc.innerHTML = '<span style="width:70px">accent</span>'; acc.append(swatch(c.accent, { big: true }));
+  const al = document.createElement('span'); al.className = 'hexlabel'; al.textContent = '#' + c.accent.toUpperCase(); acc.append(al);
+  ramps.append(acc);
+  startPortrait(c);
+}
+
+async function startPortrait(c) {
+  if (anim) clearInterval(anim);
+  const sheet = await load('study'); if (!sheet) return;
+  const S = D.study, cell = S.w, ch = S.h, scale = 4;
+  const cv = $('#portrait'); if (!cv) return;
+  cv.width = S.w * scale; cv.height = S.h * scale;
+  const off = document.createElement('canvas'); off.width = cell; off.height = ch;
+  const ox = off.getContext('2d', { willReadFrequently: true });
+  const hair = S.hair, iris = S.iris;
+  const frames = [];
+  for (let f = 0; f < S.frames; f++) {
+    ox.clearRect(0, 0, cell, ch);
+    ox.drawImage(sheet, f * cell, 0, cell, ch, 0, 0, cell, ch);   // the bare study, frame f
+    const id = ox.getImageData(0, 0, cell, ch), p = id.data;
+    const mapOf = (list, ramp) => { const m = {}; if (ramp && ramp.length) list.forEach((h, i) => m[h] = rgb(ramp[Math.round(i * (ramp.length - 1) / Math.max(1, list.length - 1))])); return m; };
+    const hm = sel === 'A3' ? {} : mapOf(hair, c.hair), em = mapOf(iris, c.eyes);
+    for (let i = 0; i < p.length; i += 4) {
+      if (!p[i + 3]) continue;
+      const h = hex([p[i], p[i + 1], p[i + 2]]);
+      const to = hm[h] || em[h];
+      if (to) { p[i] = to[0]; p[i + 1] = to[1]; p[i + 2] = to[2]; }
+    }
+    ox.putImageData(id, 0, 0);
+    const fc = document.createElement('canvas'); fc.width = cell; fc.height = ch; fc.getContext('2d').drawImage(off, 0, 0);
+    frames.push(fc);
+  }
+  let t = 0;
+  const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
+  const draw = () => { ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(frames[t % frames.length], 0, 0, cv.width, cv.height); t++; };
+  draw(); anim = setInterval(draw, 1000 / S.fps);
+}
+
+// ---------------------------------------------------------------- cards tab
+async function renderCards() {
+  const c = D.palettes.characters[sel];
+  const home = D.palettes.areas[c.home] || { colors: [] };
+  const ed = $('#editor');
+  const mine = await unionOf(c);
+  ed.innerHTML = `<h2>${sel}'s cards</h2><div class="muted">Swirl = the card's colour (its white highlights show it exactly); glow = the soft halo when you hover a Soul card.</div>
+    <div class="row roles">${['swirl', 'glow'].map(r => `<button data-role="${r}" class="${cardRole === r ? 'on' : ''}">${r}</button>`).join('')}
+      <span class="muted">click a colour below</span></div>
+    <h3>${sel}'s colours</h3><div class="swatches" id="u1"></div>
+    <h3>Home area: ${c.home} <span class="muted">${home.colors.length ? '(' + (home.source || 'world') + ')' : '(no world palette chosen yet)'}</span></h3><div class="swatches" id="u2"></div>
+    <div class="row" style="margin-top:12px"><span>swirl</span><span id="s1"></span><span class="hexlabel">#${c.card.swirl.toUpperCase()}</span>
+      <span style="margin-left:18px">glow</span><span id="s2"></span><span class="hexlabel">#${c.card.glow.toUpperCase()}</span></div>
+    <h3>Preview <span class="muted">(hover it)</span></h3><div class="preview"><div class="card-wrap" style="--glow:#${c.card.glow}"><canvas id="card"></canvas></div></div>`;
+  ed.querySelectorAll('.roles button').forEach(b => b.onclick = () => { cardRole = b.dataset.role; renderCards(); });
+  const pick = h => () => { c.card[cardRole] = h; renderCards(); };
+  for (const h of mine) $('#u1').append(swatch(h, { picked: h === c.card[cardRole], click: pick(h) }));
+  for (const h of home.colors) $('#u2').append(swatch(h, { picked: h === c.card[cardRole], click: pick(h) }));
+  $('#s1').append(swatch(c.card.swirl, { big: true })); $('#s2').append(swatch(c.card.glow, { big: true }));
+  drawCard(c);
+}
+async function drawCard(c) {
+  const [sw, fr, pt] = await Promise.all([load('swirl'), load('frame'), load('study')]);
+  if (!sw) return;
+  const cv = $('#card'); const s = 5; cv.width = 48 * s; cv.height = 64 * s;
+  const o = document.createElement('canvas'); o.width = 48; o.height = 64; const x = o.getContext('2d', { willReadFrequently: true });
+  x.drawImage(sw, 0, 0);
+  const id = x.getImageData(0, 0, 48, 64), p = id.data, t = rgb(c.card.swirl);
+  for (let i = 0; i < p.length; i += 4) { p[i] = Math.round(p[i] * t[0] / 255); p[i + 1] = Math.round(p[i + 1] * t[1] / 255); p[i + 2] = Math.round(p[i + 2] * t[2] / 255); }
+  x.putImageData(id, 0, 0);
+  if (fr) x.drawImage(fr, 0, 0);
+  if (pt) {   // the Soul card's crop of the portrait's first frame (recoloured like the preview)
+    const cell = D.study.cell, cr = D.study.crop, off = D.study.offset;   // the crop is in the 128 px cell; the strip is the bare study
+    const sx = Math.round(cr.x * cell) - off[0], sy = Math.round(cell - (cr.y + cr.height) * cell) - off[1];
+    const w = Math.round(cr.width * cell), h = Math.round(cr.height * cell);
+    const pc = document.createElement('canvas'); pc.width = w; pc.height = h; const px = pc.getContext('2d', { willReadFrequently: true });
+    px.drawImage(pt, sx, sy, w, h, 0, 0, w, h);
+    const d = px.getImageData(0, 0, w, h), q = d.data;
+    const S = D.study, mapOf = (list, ramp) => { const m = {}; if (ramp && ramp.length) list.forEach((hh, i) => m[hh] = rgb(ramp[Math.round(i * (ramp.length - 1) / Math.max(1, list.length - 1))])); return m; };
+    const hm = sel === 'A3' ? {} : mapOf(S.hair, c.hair), em = mapOf(S.iris, c.eyes);
+    for (let i = 0; i < q.length; i += 4) { if (!q[i + 3]) continue; const to = hm[hex([q[i], q[i + 1], q[i + 2]])] || em[hex([q[i], q[i + 1], q[i + 2]])]; if (to) { q[i] = to[0]; q[i + 1] = to[1]; q[i + 2] = to[2]; } }
+    px.putImageData(d, 0, 0);
+    x.drawImage(pc, 3, 3);
+  }
+  const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false; ctx.drawImage(o, 0, 0, cv.width, cv.height);
+}
+
+// ---------------------------------------------------------------- areas tab
+async function renderArea() {
+  const a = D.areas.find(x => x.id === sel), p = D.palettes.areas[sel];
+  const ed = $('#editor');
+  ed.innerHTML = `<h2>${a.name}</h2><div class="muted">${a.chapter} · ${a.id}</div>
+    <h3>World palette</h3>
+    <div class="row"><label><input type="checkbox" id="en" ${p.enabled ? 'checked' : ''}> snap this area's world to the palette</label></div>
+    <div class="row"><span>source</span><span class="chip">${p.source || '(none: “Use” one from the Lospec panel)'}</span></div>
+    <div class="swatches" id="cols"></div>
+    <div class="row"><span>dither</span><input type="range" id="dith" min="0" max="1" step="0.05" value="${p.dither || 0}"><span class="hexlabel" id="dv">${(+p.dither || 0).toFixed(2)}</span></div>
+    <div class="muted">Characters, cards and the UI keep their own palettes; only the world (ground, walls, plants, props, fog) snaps.</div>
+    <h3>Preview</h3><div class="preview"><canvas id="shot"></canvas></div><div class="muted" id="shotnote"></div>`;
+  document.querySelector('#target').textContent = 'Use → sets the world palette of ' + a.name;
+  for (const h of p.colors || []) $('#cols').append(swatch(h));
+  $('#en').onchange = e => { p.enabled = e.target.checked; renderNav(); };
+  $('#dith').oninput = e => { p.dither = +e.target.value; $('#dv').textContent = p.dither.toFixed(2); drawShot(a, p); };
+  drawShot(a, p);
+}
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+async function drawShot(a, p) {
+  const cv = $('#shot');
+  if (!a.shot) { $('#shotnote').textContent = 'No screenshot of this area yet: the swatches above are the palette.'; cv.width = 0; return; }
+  const im = await load('shot_' + a.id); if (!im) return;
+  const w = 320, h = Math.round(im.height * w / im.width);
+  cv.width = w * 2; cv.height = h * 2;
+  const o = document.createElement('canvas'); o.width = w; o.height = h; const x = o.getContext('2d', { willReadFrequently: true });
+  x.drawImage(im, 0, 0, w, h);
+  if (p.colors && p.colors.length) {
+    const pal = p.colors.map(rgb), d = x.getImageData(0, 0, w, h), q = d.data, amt = (p.dither || 0) * 0.15 * 255;
+    for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) {
+      const i = (y * w + xx) * 4, thr = ((BAYER[(y % 4) * 4 + (xx % 4)] + 0.5) / 16 - 0.5) * amt;
+      const c = [q[i] + thr, q[i + 1] + thr, q[i + 2] + thr].map(v => Math.max(0, Math.min(255, v)));
+      let best = pal[0], bd = 1e12; for (const pc of pal) { const dd = dist(c, pc); if (dd < bd) { bd = dd; best = pc; } }
+      q[i] = best[0]; q[i + 1] = best[1]; q[i + 2] = best[2];
+    }
+    x.putImageData(d, 0, 0);
+  }
+  const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false; ctx.drawImage(o, 0, 0, cv.width, cv.height);
+  $('#shotnote').textContent = 'A README screenshot of this area, snapped the way the world shader does it (the real game snaps before the UI and characters are drawn).';
+}
+
+// ---------------------------------------------------------------- Lospec panel
+function showResults(list, note) {
+  const box = $('#results'); box.innerHTML = note ? `<div class="muted">${note}</div>` : '';
+  for (const p of list) {
+    const r = document.createElement('div'); r.className = 'result';
+    r.innerHTML = `<div class="t"><span title="${p.slug}">${p.title}${p.author ? ' <span class=muted>by ' + p.author + '</span>' : ''}</span><button>Use</button></div>`;
+    const sw = document.createElement('div'); sw.className = 'swatches';
+    for (const h of p.colors) sw.append(swatch(h, { picked: p.color === h }));
+    r.append(sw);
+    if (p.color) { const m = document.createElement('div'); m.className = 'hexlabel'; m.textContent = 'closest: #' + p.color.toUpperCase() + (p.distance === 0 ? '  (exact)' : ''); r.append(m); }
+    r.querySelector('button').onclick = () => use(p);
+    box.append(r);
+  }
+}
+function use(p) {
+  palCache[p.slug] = { slug: p.slug, title: p.title, colors: p.colors };
+  if (tab === 'areas') {
+    const a = D.palettes.areas[sel]; a.source = p.slug; a.colors = p.colors.slice(); a.enabled = true; renderArea(); renderNav();
+  } else {
+    const c = D.palettes.characters[sel]; c.sources = c.sources || []; if (!c.sources.includes(p.slug)) c.sources.push(p.slug); tab === 'cards' ? renderCards() : renderChar();
+  }
+  status('using ' + p.title);
+}
+async function doSearch() {
+  status('searching Lospec…');
+  try {
+    const q = new URLSearchParams({ tag: $('#tag').value.trim(), filter: $('#filter').value, count: $('#count').value, sort: $('#sort').value, page });
+    const r = await api('/api/lospec?' + q);
+    $('#page').textContent = page + 1;
+    showResults(r.palettes, r.total + ' palettes');
+    status('');
+  } catch (e) { status('Lospec: ' + e.message); }
+}
+$('#search').onclick = () => { page = 0; doSearch(); };
+$('#prev').onclick = () => { if (page > 0) { page--; doSearch(); } };
+$('#next').onclick = () => { page++; doSearch(); };
+$('#open').onclick = async () => { try { const p = await api('/api/palette?slug=' + encodeURIComponent($('#slug').value.trim())); showResults([p]); } catch (e) { status('not found'); } };
+$('#near').onclick = async () => {
+  status('looking through the most downloaded Lospec palettes…');
+  try { const r = await api('/api/nearest?hex=' + encodeURIComponent($('#hex').value.trim().replace('#', '') || '6495ed')); showResults(r, 'closest colours'); status(''); }
+  catch (e) { status(e.message); }
+};
+
+// ---------------------------------------------------------------- tabs, save
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  tab = b.dataset.tab;
+  sel = tab === 'areas' ? D.areas[0].id : Object.keys(D.palettes.characters)[0];
+  render();
+});
+function render() {
+  if (anim) { clearInterval(anim); anim = null; }
+  renderNav();
+  if (tab === 'areas') renderArea(); else if (tab === 'cards') renderCards(); else renderChar();
+}
+$('#save').onclick = async () => {
+  status('saving and rebuilding sprites, portraits and cards… (a minute)');
+  $('#save').disabled = true;
+  try {
+    const r = await fetch('/api/save', { method: 'POST', body: JSON.stringify(D.palettes) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error);
+    $('#editor').insertAdjacentHTML('beforeend', '<h3>Rebuild</h3><pre>' + j.log.replace(/</g, '&lt;') + '</pre>');
+    img.swirl = null;   // new card art
+    status(/FAILED/.test(j.log) ? 'saved, but a rebuild step failed (see below)' : 'saved and rebuilt ✓');
+  } catch (e) { status('save failed: ' + e.message); }
+  $('#save').disabled = false;
+};
+(async () => {
+  D = await api('/api/data');
+  sel = Object.keys(D.palettes.characters)[0];
+  render();
+})();
+</script>
+</body>
+</html>

@@ -14,6 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   frameSize: 64
   feetPivot: 0.04
+  referenceSize: 85
+  soulCrop:
+    serializedVersion: 2
+    x: 0.25
+    y: 0.02
+    width: 0.5
+    height: 0.62
+  portraitCrop:
+    serializedVersion: 2
+    x: 0.25
+    y: 0.02
+    width: 0.5
+    height: 0.62
   clips:
   - name: idle
     sheet: {fileID: 2800000, guid: fffd8ac6776105144987af4fa508570c, type: 3}
@@ -23,7 +36,7 @@ MonoBehaviour:
     frameCount: 0
   - name: walk
     sheet: {fileID: 2800000, guid: a4c15d75ef2b6e4438bd4c871d3ec3d1, type: 3}
-    fps: 15
+    fps: 5
     loop: 1
     firstFrame: 1
     frameCount: 0
@@ -45,15 +58,5 @@ MonoBehaviour:
     loop: 0
     firstFrame: 0
     frameCount: 0
-  - name: sit
-    sheet: {fileID: 2800000, guid: 0435bba378b71b84faef78367baf34af, type: 3}
-    fps: 12
-    loop: 0
-    firstFrame: 0
-    frameCount: 0
-  - name: read
-    sheet: {fileID: 2800000, guid: c50c8e8ece1378c4e8ba698fd0bddbd6, type: 3}
-    fps: 10
-    loop: 0
-    firstFrame: 0
-    frameCount: 0
+  alternate: {fileID: 11400000, guid: 11a3ca7bc6f41834486836ef37eb91db, type: 2}
+  tintColors: []

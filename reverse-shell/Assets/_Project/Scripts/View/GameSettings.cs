@@ -90,12 +90,79 @@ namespace Combat.View
 
         public static string OverworldSwordHelp { get { return UIText.Get("settings.sword.help"); } }
 
+        // ------------------------------------------------------------------ Walk style
+
+        /// <summary>How many walks A3's model's sheets carry (walk_s1..walk_s3, Tools/ChibiForge/a3_walks.py).</summary>
+        public const int WalkStyles = 3;
+
+        /// <summary>Which of those walks the overworld plays: always 1, Stride. (The Settings row that picked one was
+        /// removed on 2026-11-05; the other clips stay in the sheets.)</summary>
+        public static int WalkStyle { get { return 1; } }
+
         // ------------------------------------------------------------------ Alt art
 
         const string AltArtKey = "settings.altArt";
 
-        /// <summary>Party members show their alternate sprite (UnitDefinition.altAnimations: recolours of A3) everywhere.
-        /// Off by default. Saved (PlayerPrefs).</summary>
+        /// <summary>Settings > Machine Look: off = Snoblin's sprites for the machines and NPCs (the default), on = Tech
+        /// Dungeon's (SpriteAnimationSet.alternate). Also still switches a member's UnitDefinition.altAnimations. Saved
+        /// (PlayerPrefs).</summary>
+        const string BattleZoomKey = "settings.battleZoom";
+
+        /// <summary>The camera pushes in on attacker and target during attacks (on by default).</summary>
+        public static bool BattleZoom
+        {
+            get { return PlayerPrefs.GetInt(BattleZoomKey, 1) == 1; }
+            set { PlayerPrefs.SetInt(BattleZoomKey, value ? 1 : 0); PlayerPrefs.Save(); }
+        }
+
+        public static string BattleZoomLabel
+        {
+            get { return UIText.Get("settings.battle_zoom", "value", UIText.Get(BattleZoom ? "settings.on" : "settings.off")); }
+        }
+
+        public static string BattleZoomHelp { get { return UIText.Get("settings.battle_zoom.help"); } }
+
+        // ------------------------------------------------------------------ Text speed and auto-advance
+
+        const string TextSpeedKey = "settings.textSpeed", AutoAdvanceKey = "settings.autoAdvance";
+        public const int TextSpeeds = 4;
+        static readonly float[] TextSpeedScales = { 0.6f, 1f, 1.8f, 1000f };
+        static readonly string[] TextSpeedNames = { "settings.text_speed.slow", "settings.text_speed.normal", "settings.text_speed.fast", "settings.text_speed.instant" };
+
+        /// <summary>How fast dialogue types out: 0 Slow, 1 Normal (the default), 2 Fast, 3 Instant. Saved (PlayerPrefs).</summary>
+        public static int TextSpeed
+        {
+            get { return Mathf.Clamp(PlayerPrefs.GetInt(TextSpeedKey, 1), 0, TextSpeeds - 1); }
+            set { PlayerPrefs.SetInt(TextSpeedKey, ((value % TextSpeeds) + TextSpeeds) % TextSpeeds); PlayerPrefs.Save(); }
+        }
+
+        /// <summary>The dialogue clock's multiplier for <see cref="TextSpeed"/> (Instant shows the whole line at once).</summary>
+        public static float TextSpeedScale { get { return TextSpeedScales[TextSpeed]; } }
+
+        /// <summary>Slow → Normal → Fast → Instant → Slow.</summary>
+        public static void CycleTextSpeed() { TextSpeed = TextSpeed + 1; }
+
+        public static string TextSpeedLabel
+        {
+            get { return UIText.Get("settings.text_speed", "value", UIText.Get(TextSpeedNames[TextSpeed])); }
+        }
+
+        public static string TextSpeedHelp { get { return UIText.Get("settings.text_speed.help"); } }
+
+        /// <summary>Dialogue moves on by itself a moment after a line has finished (off by default). Saved (PlayerPrefs).</summary>
+        public static bool AutoAdvance
+        {
+            get { return PlayerPrefs.GetInt(AutoAdvanceKey, 0) == 1; }
+            set { PlayerPrefs.SetInt(AutoAdvanceKey, value ? 1 : 0); PlayerPrefs.Save(); }
+        }
+
+        public static string AutoAdvanceLabel
+        {
+            get { return UIText.Get("settings.auto_advance", "value", UIText.Get(AutoAdvance ? "settings.on" : "settings.off")); }
+        }
+
+        public static string AutoAdvanceHelp { get { return UIText.Get("settings.auto_advance.help"); } }
+
         public static bool AltArt
         {
             get { return PlayerPrefs.GetInt(AltArtKey, 0) == 1; }
@@ -112,7 +179,7 @@ namespace Combat.View
 
         public static string AltArtLabel
         {
-            get { return UIText.Get("settings.alt_art", "value", UIText.Get(AltArt ? "settings.on" : "settings.off")); }
+            get { return UIText.Get("settings.alt_art", "value", UIText.Get(AltArt ? "settings.alt_art.tech" : "settings.alt_art.snoblin")); }
         }
 
         public static void ToggleAltArt() { AltArt = !AltArt; }

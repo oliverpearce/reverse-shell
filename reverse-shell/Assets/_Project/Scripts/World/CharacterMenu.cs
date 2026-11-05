@@ -239,7 +239,8 @@ namespace Game.World
         {
             BuildTabs();
             BuildDetail();
-            var c = ResonanceInfo.GlowFor(Member);
+            // The page glows in the member's own colour (the protagonist: her resonance's, white on Basic).
+            var c = Member != null ? SoulGlow.ColorOf(Member) : Color.white;
             c.a = 0.16f;
             glowBackdrop.color = c;
         }
@@ -301,11 +302,12 @@ namespace Game.World
             SetFocus(Mathf.Clamp(focus, 0, Mathf.Max(0, focusTargets.Count - 1)));
         }
 
-        /// <summary>The member's idle animation, large, standing on a soft shadow on the left.</summary>
+        /// <summary>The member's portrait (or idle animation), large, standing on a soft shadow on the left.</summary>
         void BuildSprite(CharacterDefinition member)
         {
             var center = new Vector2(0.5f, 0.5f);
             float cx = (Left + InfoX) / 2f, ground = -420f;
+            BuildMemberCard(member, cx, ground);
             var shadow = UIFactory.CreateImage(detail, "Shadow", new Color(0f, 0f, 0f, 0.4f));
             shadow.sprite = CircleSprite();
             shadow.rectTransform.Place(center, center, new Vector2(cx, ground + 10f), new Vector2(300f, 50f));
@@ -318,7 +320,75 @@ namespace Game.World
             img.rectTransform.Place(center, new Vector2(0.5f, 0f), new Vector2(cx, ground - set.feetPivot * size), new Vector2(size, size));
             var anim = img.gameObject.AddComponent<UISpriteAnimator>();
             anim.UnscaledTime = true;
+            anim.IdleClip = set.MenuClip;   // A3: the A2 study (portrait), not her overworld sprite
             anim.Init(set, Facing.Right, img);
+        }
+
+        /// <summary>Their card stands behind them, a little tilted and faded, glowing in their colour.</summary>
+        void BuildMemberCard(CharacterDefinition member, float cx, float ground)
+        {
+            var art = CardArt.Ult(WorldSession.UltimateOf(member), member);
+            if (art == null) return;
+            var center = new Vector2(0.5f, 0.5f);
+            const float scale = 2.1f;
+            var rt = UIFactory.CreateRect("MemberCard", detail).Place(center, center, new Vector2(cx + 20f, ground + 380f), CardView.Size * scale);
+            rt.localRotation = Quaternion.Euler(0f, 0f, -5f);
+            var group = rt.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 0.72f;
+            var color = SoulGlow.ColorOf(member);
+            // A rim of light that wakes up while the pointer is over the card (behind it, wider than the soul glow).
+            var light = UIFactory.CreateImage(rt, "HoverLight", new Color(color.r, color.g, color.b, 0f));
+            light.sprite = UiParticles.GlowSprite();
+            light.raycastTarget = false;
+            light.rectTransform.Place(center, center, Vector2.zero, CardView.Size * scale * 1.75f);
+            var face = UIFactory.CreateImage(rt, "Art", Color.white);
+            face.sprite = art;
+            face.raycastTarget = true;   // so hovering the card lights it (it has no click of its own)
+            face.rectTransform.Fill();
+            UltShine.Add(rt, art, CardArt.HandPixel * scale);
+            SoulGlow.AddStatic(rt, color);
+            rt.gameObject.AddComponent<CardSway>().Set(group, light, color);
+        }
+
+        /// <summary>The member card's life: a slow sway and half-turn spin (it turns a little on its vertical axis, then
+        /// back), and on hover a rim of light in their colour, the card lifting and coming fully opaque.</summary>
+        class CardSway : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+        {
+            CanvasGroup group;
+            Image light;
+            Color color;
+            bool hovered;
+            float hover, phase;
+
+            public void Set(CanvasGroup g, Image l, Color c)
+            {
+                group = g;
+                light = l;
+                color = c;
+                phase = Random.Range(0f, 10f);
+            }
+
+            public void OnPointerEnter(PointerEventData e) { hovered = true; }
+            public void OnPointerExit(PointerEventData e) { hovered = false; }
+
+            void Update()
+            {
+                float t = Time.unscaledTime + phase;
+                hover = Mathf.MoveTowards(hover, hovered ? 1f : 0f, Time.unscaledDeltaTime * 6f);
+                float h = hover * hover * (3f - 2f * hover);
+                // Sway (roll) and spin (yaw): slow, and calmer while hovered.
+                float calm = 1f - 0.6f * h;
+                float roll = -5f + 2.5f * Mathf.Sin(t * 0.9f) * calm;
+                float yaw = 16f * Mathf.Sin(t * 0.55f) * calm;
+                transform.localRotation = Quaternion.Euler(0f, yaw, roll);
+                transform.localScale = Vector3.one * (1f + 0.05f * h);
+                if (group != null) group.alpha = Mathf.Lerp(0.72f, 1f, h);
+                if (light != null)
+                {
+                    float pulse = 0.85f + 0.15f * Mathf.Sin(t * 3f);
+                    light.color = new Color(color.r, color.g, color.b, 0.6f * h * pulse);
+                }
+            }
         }
 
         /// <summary>The glowing element orb, the name in big serif and the level with an XP hairline.</summary>
@@ -420,8 +490,22 @@ namespace Game.World
                 var part = WorldSession.PartIn(member, slot);
                 var row = UIFactory.CreateImage(detail, SlotLabel(slot), new Color(0.06f, 0.055f, 0.05f, 0.62f)).rectTransform;
                 row.Place(center, tl, new Vector2(x0 + s * (w + gap), y), new Vector2(w, h));
-                var icon = UIFactory.CreateImage(row, "Icon", part != null ? Color.white : new Color(1f, 1f, 1f, 0.3f));
-                icon.sprite = SlotIcon((int)slot);
+                bool core = slot == PartSlot.Core;
+                bool resonant = core && part != null && WorldSession.Catalog != null && part == WorldSession.Catalog.boundCore;
+                if (resonant)
+                {
+                    // The Resonant Core hums: a soft halo in its colour, breathing behind the icon.
+                    var halo = UIFactory.CreateImage(row, "CoreGlow", part.color);
+                    halo.sprite = Combat.View.UiParticles.GlowSprite();
+                    halo.raycastTarget = false;
+                    halo.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(48f, 0f), new Vector2(120f, 120f));
+                    halo.gameObject.AddComponent<PulseAlpha>().Set(part.color, 0.25f, 0.6f, 1.6f);
+                }
+                Color tint = part != null ? (core ? part.color : Color.white) : new Color(1f, 1f, 1f, 0.3f);
+                if (core && part == null) tint = new Color(0.75f, 0.7f, 0.62f, 0.3f);
+                var icon = UIFactory.CreateImage(row, "Icon", tint);
+                // The Core: its own crisp pixel orb (cracked until the Soul Card seals it), tinted by the Part's colour.
+                icon.sprite = core ? CoreIcon(!resonant) : SlotIcon((int)slot);
                 icon.preserveAspect = true;
                 icon.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(64f, 64f));
                 var slotText = InkStyle.Label(row, "Slot", SlotLabel(slot), 26, InkStyle.Gold, TextAnchor.UpperLeft);
@@ -853,6 +937,72 @@ namespace Game.World
         static Sprite circle;
         static Texture2D radial;
         static readonly Sprite[] slotIcons = new Sprite[4];
+        static Sprite fragmentedCore, resonantCore;
+
+        /// <summary>The Core slot's icon: a 16 px pixel orb in greys (the Image tints it with the Part's colour), lit from
+        /// the top left, a bright heart in a grooved shell. <paramref name="cracked"/>: the Fragmented Core (cracks and a
+        /// chipped edge); otherwise whole, the Resonant Core.</summary>
+        public static Sprite CoreIcon(bool cracked)
+        {
+            var cached = cracked ? fragmentedCore : resonantCore;
+            if (cached != null) return cached;
+            const int n = 16;
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+            var crack = new System.Collections.Generic.HashSet<int>();
+            if (cracked)
+            {
+                // a jagged crack from the top edge through the heart, and a branch to the right
+                int[,] path = { { 5, 1 }, { 6, 2 }, { 6, 3 }, { 7, 4 }, { 7, 5 }, { 8, 6 }, { 7, 7 }, { 7, 8 }, { 8, 9 }, { 9, 10 }, { 9, 11 }, { 10, 12 },
+                                { 9, 7 }, { 10, 7 }, { 11, 6 }, { 12, 6 } };
+                for (int i = 0; i < path.GetLength(0); i++) crack.Add(path[i, 1] * n + path[i, 0]);
+            }
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float dx = x + 0.5f - n / 2f, dy = y + 0.5f - n / 2f;   // y down (row 0 = top)
+                    float d = Mathf.Sqrt(dx * dx + dy * dy);
+                    float light = Mathf.Clamp(-(dx * 0.6f + dy * 0.8f) / 7f, -1f, 1f);
+                    float v;
+                    if (d > 7.6f) v = -1f;
+                    else if (d > 6.6f) v = 0.2f;                                 // outline
+                    else if (d > 4.6f) v = 0.5f + 0.22f * light;                 // shell
+                    else if (d > 3.6f) v = 0.3f;                                 // groove
+                    else v = d < 1.6f ? 1f : 0.8f + 0.15f * light;               // heart
+                    if (cracked && x >= 11 && y <= 4 && d > 4.6f) v = -1f;     // a chip broken off the shell
+                    if (v >= 0f && crack.Contains(y * n + x)) v = 0.12f;
+                    tex.SetPixel(x, n - 1 - y, v < 0f ? Color.clear : new Color(v, v, v, 1f));
+                }
+            tex.Apply();
+            var sprite = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f);
+            if (cracked) fragmentedCore = sprite; else resonantCore = sprite;
+            return sprite;
+        }
+
+        /// <summary>A glow that breathes: its alpha eases between two values.</summary>
+        class PulseAlpha : MonoBehaviour
+        {
+            Color color;
+            float low, high, period;
+            Image image;
+
+            public void Set(Color c, float lo, float hi, float seconds)
+            {
+                color = c;
+                low = lo;
+                high = hi;
+                period = Mathf.Max(0.1f, seconds);
+                image = GetComponent<Image>();
+            }
+
+            void Update()
+            {
+                if (image == null) return;
+                float t = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f / period);
+                var c = color;
+                c.a = Mathf.Lerp(low, high, t);
+                image.color = c;
+            }
+        }
 
         static Sprite CircleSprite()
         {

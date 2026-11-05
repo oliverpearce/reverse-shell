@@ -20,19 +20,30 @@ namespace Game.World
         public const int SlotCount = 3;
         public static int Slot = 1;
 
+        /// <summary>Sandbox Mode's own save (save_sandbox.json): the whole crew, kept apart from the story slots, which
+        /// only ever hold who has joined in the story. Never listed with the story slots.</summary>
+        public const int SandboxSlot = 0;
+        public static bool InSandboxSlot { get { return Slot == SandboxSlot; } }
+
         public static string FilePath { get { return SlotPath(Slot); } }
+
+        /// <summary>Where the slot files live: persistentDataPath, or another folder (the screenshot run, ShotTour, keeps
+        /// its saves apart so it never touches the player's).</summary>
+        public static string FolderOverride;
+
+        static string Folder { get { return string.IsNullOrEmpty(FolderOverride) ? Application.persistentDataPath : FolderOverride; } }
 
         public static string SlotPath(int slot)
         {
             MigrateLegacyFile();
-            return Path.Combine(Application.persistentDataPath, "save_" + slot + ".json");
+            return Path.Combine(Folder, slot == SandboxSlot ? "save_sandbox.json" : "save_" + slot + ".json");
         }
 
         /// <summary>The single save.json from before slots becomes slot 1 (once).</summary>
         static void MigrateLegacyFile()
         {
-            string legacy = Path.Combine(Application.persistentDataPath, "save.json");
-            string first = Path.Combine(Application.persistentDataPath, "save_1.json");
+            string legacy = Path.Combine(Folder, "save.json");
+            string first = Path.Combine(Folder, "save_1.json");
             try
             {
                 if (File.Exists(legacy) && !File.Exists(first)) File.Move(legacy, first);
@@ -465,10 +476,10 @@ namespace Game.World
             WebSync.Flush();
         }
 
-        /// <summary>Deletes every slot (Tools > Overworld > Delete Save Data).</summary>
+        /// <summary>Deletes every slot and the Sandbox's save (Tools > Overworld > Delete Save Data).</summary>
         public static void DeleteAll()
         {
-            for (int i = 1; i <= SlotCount; i++)
+            for (int i = SandboxSlot; i <= SlotCount; i++)
                 if (File.Exists(SlotPath(i))) File.Delete(SlotPath(i));
             WebSync.Flush();
         }

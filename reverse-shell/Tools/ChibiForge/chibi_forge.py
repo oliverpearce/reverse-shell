@@ -1153,9 +1153,9 @@ def build_sheets(name):
             return None
         a3_model.main([])
         return None
-    import knight_model
-    if knight_model.available(name):
-        knight_model.build(name)   # the machines (and A3's card art): the Free Knight (aamatniekss), reskinned per character
+    import npc_packs
+    if name in npc_packs.CAST:
+        npc_packs.main()   # the machines and NPCs: Snoblin's and Tech Dungeon's packs (Settings > Machine Look)
         return None
     if name in PARTY:
         import sample_model
@@ -1293,8 +1293,7 @@ def build_portraits(name):
     spec = SPECS[name]
     os.makedirs(PORTRAITS, exist_ok=True)
     results = {}
-    import knight_model
-    knight = knight_model.available(name) and name in PARTY
+    knight = False   # the Fantasy Knight card art is gone (knight_model.py retired: its licence rules out AI creations)
     ref = None if knight else reference_portrait(name)
     for side_name, internals in (('front', False), ('internals', True)):
         if knight:

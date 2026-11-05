@@ -1,0 +1,253 @@
+{
+  "characters": {
+    "A3": {
+      "area": "Ruined City",
+      "resonance": "Arc",
+      "hair": [
+        "4a5462",
+        "6d758d",
+        "8b93af",
+        "b3b9d1",
+        "dae0ea",
+        "ffffff"
+      ],
+      "outfit": [
+        "060608",
+        "141013",
+        "242234",
+        "403353"
+      ],
+      "accent": "dae0ea",
+      "home": "city",
+      "sources": [
+        "aap-64"
+      ],
+      "eyes": [
+        "dae0ea",
+        "ffffff"
+      ],
+      "card": {
+        "swirl": "dae0ea",
+        "glow": "dae0ea"
+      }
+    },
+    "Erin": {
+      "area": "Ruined City",
+      "resonance": "Cinder",
+      "hair": [
+        "3b2027",
+        "7d3833",
+        "ab5130",
+        "cf752b",
+        "ff8933",
+        "ffae70"
+      ],
+      "outfit": [
+        "21181b",
+        "3b2027",
+        "52333f"
+      ],
+      "accent": "ff8933",
+      "home": "city",
+      "sources": [
+        "rosy-42"
+      ],
+      "eyes": [
+        "ab5130",
+        "ff8933"
+      ],
+      "card": {
+        "swirl": "ff8933",
+        "glow": "ff8933"
+      }
+    },
+    "Lotus": {
+      "area": "Corrupted Conservatory",
+      "resonance": "Root",
+      "hair": [
+        "134c4c",
+        "1e6f50",
+        "33984b",
+        "5ac54f",
+        "99e65f",
+        "d3fc7e"
+      ],
+      "outfit": [
+        "1b1b1b",
+        "134c4c",
+        "1e6f50"
+      ],
+      "accent": "99e65f",
+      "home": "intro_conservatory",
+      "sources": [
+        "endesga-64"
+      ],
+      "eyes": [
+        "1e6f50",
+        "99e65f"
+      ],
+      "card": {
+        "swirl": "99e65f",
+        "glow": "99e65f"
+      }
+    },
+    "Ashe": {
+      "area": "Frozen Region",
+      "resonance": "Cryo",
+      "hair": [
+        "222533",
+        "3f48c2",
+        "6495ed",
+        "a3c0e6",
+        "fafffc"
+      ],
+      "outfit": [
+        "222533",
+        "36354d",
+        "3f48c2"
+      ],
+      "accent": "6495ed",
+      "home": "intro_frozen",
+      "sources": [
+        "cornsole2",
+        "taffy-16"
+      ],
+      "eyes": [
+        "3f48c2",
+        "a3c0e6"
+      ],
+      "card": {
+        "swirl": "6495ed",
+        "glow": "6495ed"
+      }
+    },
+    "Zuko": {
+      "area": "Cindercore",
+      "resonance": "Cinder",
+      "hair": [
+        "300f0a",
+        "550f0a",
+        "9b1a0a",
+        "ef3a0c",
+        "ef692f",
+        "efb775"
+      ],
+      "outfit": [
+        "300f0a",
+        "36170c",
+        "45230d"
+      ],
+      "accent": "ef3a0c",
+      "home": "intro_cinderworks",
+      "sources": [
+        "fantasy-24"
+      ],
+      "eyes": [
+        "9b1a0a",
+        "ef692f"
+      ],
+      "card": {
+        "swirl": "ef3a0c",
+        "glow": "ef3a0c"
+      }
+    }
+  },
+  "areas": {
+    "chamber": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "city": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "intro_cinderworks": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "intro_cinderworks_foundry": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "intro_conservatory": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "intro_conservatory_hall": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "intro_forest": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "intro_forest_lab": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "intro_frozen": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "intro_frozen_cave": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "intro_frozen_mountain": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "intro_sanctuary": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "intro_sanctuary_hall": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "office": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "sandbox": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    },
+    "tunnel": {
+      "source": "",
+      "colors": [],
+      "dither": 0.0,
+      "enabled": false
+    }
+  }
+}

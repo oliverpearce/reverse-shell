@@ -81,8 +81,20 @@ namespace Combat
 
         public bool Breakable { get { return MaxBreak > 0; } }
 
-        /// <summary>What its Break value is weak to (none for party members).</summary>
-        public Weakness Weaknesses { get { return Enemy != null ? Enemy.weaknesses : Weakness.None; } }
+        /// <summary>What its Break value is weak to (none for party members): its own weaknesses plus any a card gave
+        /// it for a while (<see cref="ExtraWeaknesses"/>, e.g. Ashe's Absolute Zero).</summary>
+        public Weakness Weaknesses
+        {
+            get
+            {
+                var own = Enemy != null ? Enemy.weaknesses : Weakness.None;
+                return ExtraWeaknessTurns > 0 ? own | ExtraWeaknesses : own;
+            }
+        }
+
+        /// <summary>Weaknesses added in battle, and the rounds they last (counted down at round end).</summary>
+        public Weakness ExtraWeaknesses;
+        public int ExtraWeaknessTurns;
 
         public string Name { get { return Definition.DisplayName; } }
         public bool IsAlive { get { return HP > 0; } }

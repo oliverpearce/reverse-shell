@@ -1,0 +1,48 @@
+# Purged from history only (not ignored): art that is being replaced, so the new versions can be committed.
+# Fantasy Knight (aamatniekss): its licence rules out AI creations. The robots it drew are now Snoblin / Tech Dungeon
+# sprites, which are private (PRIVATE_ASSETS.txt purges and ignores those folders); this removes the old model script.
+reverse-shell/Tools/ChibiForge/knight_model.py
+# Major Arcana card back (Stars in a Box): its terms rule out AI projects. Replaced by an original back.
+reverse-shell/Assets/_Project/Art/ThirdParty/MajorArcana/
+reverse-shell/Assets/_Project/Art/ThirdParty/MajorArcana.meta
+reverse-shell/Assets/_Project/Resources/Cards/CardBack.png
+# Old character sprites that are no longer in the game (Fantasy Knight reskins and earlier fan sprites).
+reverse-shell/Assets/_Project/Art/Characters/2B/
+reverse-shell/Assets/_Project/Art/Characters/2B.meta
+reverse-shell/Assets/_Project/Art/Characters/Blue/
+reverse-shell/Assets/_Project/Art/Characters/Blue.meta
+reverse-shell/Assets/_Project/Art/Characters/HealBot/
+reverse-shell/Assets/_Project/Art/Characters/HealBot.meta
+reverse-shell/Assets/_Project/Art/Characters/Lucy/
+reverse-shell/Assets/_Project/Art/Characters/Lucy.meta
+reverse-shell/Assets/_Project/Art/Characters/MC/
+reverse-shell/Assets/_Project/Art/Characters/MC.meta
+reverse-shell/Assets/_Project/Art/Characters/Miku/
+reverse-shell/Assets/_Project/Art/Characters/Miku.meta
+reverse-shell/Assets/_Project/Art/Characters/Rei/
+reverse-shell/Assets/_Project/Art/Characters/Rei.meta
+reverse-shell/Assets/_Project/Art/Characters/StaticEnforcer/
+reverse-shell/Assets/_Project/Art/Characters/StaticEnforcer.meta
+reverse-shell/Assets/_Project/Art/Characters/StaticThug/
+reverse-shell/Assets/_Project/Art/Characters/StaticThug.meta
+reverse-shell/Assets/_Project/Art/Characters/Teto/
+reverse-shell/Assets/_Project/Art/Characters/Teto.meta
+reverse-shell/Assets/_Project/Art/Characters/V1/
+reverse-shell/Assets/_Project/Art/Characters/V1.meta
+reverse-shell/Assets/_Project/Art/Characters/V2/
+reverse-shell/Assets/_Project/Art/Characters/V2.meta
+# Old Ult card pictures of those characters (drawn from the knight reference)
+reverse-shell/Assets/_Project/Resources/Cards/Ult_Card_MC_Thunderheart.png
+reverse-shell/Assets/_Project/Resources/Cards/Ult_Card_MC_Thunderheart.png.meta
+reverse-shell/Assets/_Project/Resources/Cards/Ult_Char_Blue.png
+reverse-shell/Assets/_Project/Resources/Cards/Ult_Char_Blue.png.meta
+reverse-shell/Assets/_Project/Resources/Cards/Ult_Char_HealBot.png
+reverse-shell/Assets/_Project/Resources/Cards/Ult_Char_HealBot.png.meta
+reverse-shell/Assets/_Project/Resources/Cards/Ult_Char_Lucy.png
+reverse-shell/Assets/_Project/Resources/Cards/Ult_Char_Lucy.png.meta
+reverse-shell/Assets/_Project/Resources/Cards/Ult_Char_MC.png
+reverse-shell/Assets/_Project/Resources/Cards/Ult_Char_MC.png.meta
+# The itch.io store kit was committed early on (its screenshots show the party); it's git-ignored and local now.
+itch/
+# An old README screenshot (showed the party)
+.github/readme/02-overgrown-plaza.png

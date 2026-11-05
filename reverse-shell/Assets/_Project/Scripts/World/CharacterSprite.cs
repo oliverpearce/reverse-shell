@@ -18,11 +18,23 @@ namespace Game.World
 
         Sprite[,] frames;
         SpriteAnimationSet animations;
+        SpriteAnimationSet baseSet;   // what it was made with; Settings > Machine Look draws its alternate instead
 
         /// <summary>Swaps the animation set in place (Settings > Alt Art while you're standing in the world).</summary>
         public void SetAnimations(SpriteAnimationSet set)
         {
-            if (set != null && animations != null) animations = set;
+            if (set == null || animations == null) return;
+            baseSet = set;
+            animations = set.Current;
+        }
+
+        void OnEnable() { Combat.View.GameSettings.AltArtChanged += FollowLook; }
+        void OnDisable() { Combat.View.GameSettings.AltArtChanged -= FollowLook; }
+
+        /// <summary>Settings > Machine Look changed: switch to the matching look at once.</summary>
+        void FollowLook()
+        {
+            if (baseSet != null && animations != null) animations = baseSet.Current;
         }
         bool moving, running;
         float animTime;
@@ -60,9 +72,11 @@ namespace Game.World
         /// <summary>Animated character from a SpriteAnimationSet (LPC: 64px frames, ~32x48 body). Uses "walk" and "idle".</summary>
         public static CharacterSprite Create(Transform parent, string name, SpriteAnimationSet set, float scale, Vector3 position)
         {
-            var standing = set.Frames("idle", Combat.Facing.Down, true) ?? set.Frames("walk", Combat.Facing.Down, true);
+            var look = set.Current;
+            var standing = look.Frames("idle", Combat.Facing.Down, true) ?? look.Frames("walk", Combat.Facing.Down, true);
             var cs = Create(parent, name, new Sprite[1, 1] { { standing != null ? standing[0] : null } }, scale, position);
-            cs.animations = set;
+            cs.baseSet = set;
+            cs.animations = look;
             var shadow = cs.transform.Find("Shadow");
             if (shadow != null) shadow.localScale = new Vector3(0.42f, 0.2f, 1f) * scale;
             return cs;
@@ -169,6 +183,9 @@ namespace Game.World
             // Settings → Sword: a set that has a sword walk (A3) carries it, and stands in its battle stance.
             if (Combat.View.GameSettings.OverworldSword && animations.Has(SwordWalk))
                 clipName = clipName == "walk" ? SwordWalk : animations.Has("idle_sword") ? "idle_sword" : clipName;
+            // Settings → Walk Style: A3's model has five walks (walk_s1..5); other sets just have walk.
+            else if (clipName == "walk")
+                clipName = animations.WalkClip(Combat.View.GameSettings.WalkStyle);
             var clip = animations.Find(clipName);
             var set = clip != null ? animations.Frames(clipName, FacingByIndex[Facing], true) : null;
             if (set == null || set.Length == 0) return;

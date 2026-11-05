@@ -20,6 +20,10 @@ namespace Combat
         [Tooltip("What its Break value is weak to: attack types and resonances. Every Chapter One enemy is weak to Physical.")]
         public Weakness weaknesses = Weakness.Physical;
 
+        [Tooltip("Soul-bound: other hits leave it at 1 HP; only a Soul Card (Ult) hit can finish it, and any Soul Card hit " +
+                 "does. Erin's tutorial dummy.")]
+        public bool soulOnly;
+
         [Tooltip("Ult: replaces the round's skill once the enemy's Ult points are full (it gains them by acting, like the party). " +
                  "It's the Soul form of the innate card below.")]
         public CardDefinition ritual;

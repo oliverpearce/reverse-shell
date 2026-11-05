@@ -4,6 +4,9 @@
 #   [key]                 starts a block (the game asks for blocks by key; keep the keys as they are)
 #   Speaker | text        one dialogue box spoken by Speaker
 #   text                  one box of narration (no speaker)
+#   Thought | text        the protagonist's inner voice (no name plate, soft blue-grey). The protagonist barely speaks
+#                         out loud: keep their lines as Thoughts and their answers short, so scenes read the same
+#                         whichever ally leads the party.
 #   # anything            a comment, ignored
 # A whole paragraph can go on one line: lines too long for the box are split into several boxes automatically.
 # {name} is replaced by the protagonist's name.
@@ -42,18 +45,65 @@ Thank you, {name}, for choosing us!
 
 [awakening]
 {slow}...{/slow}
-{name} | Light.{p} Too much of it.
+Thought | Light.{p} Too much of it.
 Grass where a floor should be. A capsule beside you, its lid cracked open to the sky.
 On its side, a small red light blinks the same words over and over.{p} {red}TRANSFER INCOMPLETE{/c}
-{name} | {slow}Where...{/slow}{p} Where is everyone?
+Thought | {slow}Where...{/slow}{p} Where is everyone?
 
-[binder.pickup]
-A small leather binder lies by the capsule, its cover worn soft. A gold strap holds it shut.
-{name} | {gray}...Cards?{/c}{p} Most of the sleeves are empty.
-{gold}Card Binder{/c} obtained.{p} Open it from the {gold}Esc{/c} menu.
+# Erin's first talk ends with "find me": she flickers out (ChapterOneDirector.TalkToErin).
+[erin.vanished]
+Thought | ...Erin?
+The spot where she stood is empty. Only the hum of the pod is left.
+
+# Bond rank 2, after the binder: before she joins you.
+[erin.goggles]
+Erin | Oh, and those goggles over there? Grab them.{p} Not that I care. You just clearly need help seeing things.
+
+# The language chip, from Erin: at rank 2 if you said you can't read, else after the Collector (rank 3).
+[erin.chip]
+Erin | Here. Hold out your hand. {p}...Don't make it weird.
+She drops a chip no bigger than a fingernail into your palm, its core glowing green. It warms in your hand.
+Core | {gray}LANGUAGE PACK FOUND. INSTALLING...{/c}
+{gold}You got the language chip.{/c}{p} The runes on your cards read as words now.
 
 [pod]
 The capsule's light still blinks.{p} {red}TRANSFER INCOMPLETE{/c}
+
+# ------------------------------------------------------------------ The reflection (DRAFT)
+# Right after waking: a hint to move, then her first steps carry on a moment on their own and stop at a puddle. Then
+# full-screen panels: her reflection; a glitch, then seams on her skin and a plate over her chest opening on the cracked
+# Fragmented Core; her hand touching it; her Soul Card rising out of it, its picture flickering to static.
+
+# She has just stumbled to a stop.
+[reflection.notice]
+Your legs carry you further than you meant to go.{p} You stop.
+Water, at your feet.{p} Rain, left in a crack in the road.
+
+# Looking down at her reflection.
+[reflection.look]
+Thought | {slow}That's...{/slow}{p} me?
+A girl looks back. White hair. Tired eyes.
+
+# After the glitch: seams on her skin, the chest plate open on the cracked Core.
+[reflection.seams]
+The water shivers{p=0.4}... and when it settles, the girl has seams.
+Lines where skin should be smooth.{p} A plate in her chest slides open, and something inside it glows, cracked straight through.
+Thought | {shake}No.{/shake}{p} {slow}That's not...{/slow}
+
+# Close on the Core, before she touches it.
+[reflection.touch]
+Thought | It's warm.
+
+# Her Soul Card has risen out of the Core: it glows, but the picture keeps dropping to static.
+[reflection.card]
+A card rises out of the light. It is warm, and it is {gold}yours{/c}.
+Your face is on it.{p} Then static.{p} Then your face again.
+Thought | {slow}Is that...{/slow}{p} all of me?
+
+# The card sinks back, the panels fade to the world.
+[reflection.after]
+It sinks back into your chest, and the plate closes over it.
+Thought | Someone put me in here.{p} {slow}I need to know who.{/slow}
 
 # ------------------------------------------------------------------ Memory fragments
 
@@ -67,7 +117,7 @@ Memory Fragment | This street, but crowded. Rain.{p} You are holding an umbrella
 Memory Fragment | A form on a bright screen. A box to sign.{p} Your hand hovers over it{p=0.5}... and the memory ends there.
 
 [memory.after]
-{name} | {gray}...Whose memory was that?{/c}
+Thought | ...Whose memory was that?
 
 # ------------------------------------------------------------------ Records (city 4-7, tunnel 4)
 
@@ -94,11 +144,6 @@ Record | A maintenance log on the wall.{p} {gray}"Line closed. Something down he
 It sets one flower down by your feet,{p} then goes back to the others.
 
 # ------------------------------------------------------------------ The scanner
-
-[chip.pickup]
-Something glints by the capsule: a chip no bigger than a fingernail, its core glowing green. It warms in your hand.
-Core | {gray}LANGUAGE PACK FOUND. INSTALLING...{/c}
-{gold}You got the language chip.{/c}{p} The runes on your cards read as words now.
 
 [chip.colours.pickup]
 A chip lies by the rails, its core flickering violet, then every colour at once.
@@ -158,6 +203,14 @@ Collector | I won't ask twice.
 [collector.again]
 Collector | Back for another try? Fine.
 
+# Just before the Collector fight: Erin steps in and joins you (she fights beside you; nobody can fall here). (DRAFT)
+[collector.erin]
+Erin | Hey! Hands off, tin can.
+Erin | ...Don't look at me like that. I'm not here to save you.
+Erin | You're weird, and I'm bored. Following you around is the most interesting thing that's happened in years.
+Erin | So I'm coming with you. Try to keep up.
+{gold}Erin joins the party!{/c}
+
 [collector.win]
 The Collector drops to one knee{p=0.4}... and laughs, quietly.
 {gray}"Keep it, then. It'll lead you somewhere you won't like."{/c}
@@ -202,17 +255,78 @@ Unlocked. Switch it any time outside battle: Esc, then Units.
 The cracks in your Core have sealed over with a faint blue light.
 {gold}Your Fragmented Core is now the Resonant Core.{/c}{p} {gray}+10% damage while Arc.{/c}
 
-[ending]
-Scanner | {gray}NEW TRACE.{/c}
-Far off, past the edge of the city, something answers the scanner's ping.
-Scanner | {gray}SIGNATURE MATCH.{/c}
-The readout lays a second signature over your own.{p} They match.{p} {slow}And it is moving.{/slow}
-{name} | {slow}...Who are you?{/slow}
+# ------------------------------------------------------------------ The ending: the Collector's trap (DRAFT)
+# After the Soul Card binds (bible §4, Erin and the Soul Card Event). The Collector comes back, traps you in a cage of
+# light and beats Erin down, then you; you black out. Then the full-screen panels: you wake to Erin in the old machine,
+# her Soul Card forms bright, his dark glasses read it as blank, and he rips it apart. Then the end card.
+# All of this is a first draft: rewrite freely.
+
+# He walks in from the hall's entrance and stops in front of you.
+[ending.trap]
+Footsteps on the stone behind you. Unhurried. You know them.
+Collector | Told you it would lead you somewhere you wouldn't like.
+Collector | A guardian-class Soul Card. And you just{p=0.4}... swallowed it.{p} {slow}Do you know what that was worth?{/slow}
+Erin | Back off, tin can. You already lost once.
+Collector | I lost to two of you.{p} Let's fix that.
+
+# The EMP has just gone off and the cage of light has slammed down around the protagonist.
+[ending.cage]
+Thought | {shake}Can't move.{/shake}{p} Every joint locked tight.
+Erin | {name}!{p} Hey! You want a fight? I'm right here!
+
+# One blow lands before each line (so the number of lines is the number of blows).
+[ending.beating]
+Erin | Is that all you've—
+Erin | {shake}...Hah.{/shake} Still standing.
+Collector | You fight like you've got something to lose.
+Erin | {slow}{name}...{p} run...{/slow}
+
+# In the dark, after he strikes the protagonist. Muffled, far away.
+[ending.blackout]
+Collector | {gray}Take them both.{/c}
+Collector | {gray}The loud one goes in the machine first.{/c}
+{slow}...{/slow}
+
+# Waking: a dark room of server racks, Erin inside the old machine.
+[ending.wake]
+Thought | {slow}Light again.{/slow}{p} Cold, this time.
+Rows of old servers hum in the dark, their lights blinking.
+In the middle of the room stands an old machine.{p} Erin is inside it.
+Thought | {shake}Erin!{/shake}
+
+# Her Soul Card has just formed: it glows bright.
+[ending.convert]
+Collector | {gray}Process complete.{/c}
+The light settles into a card.{p} It is warm.{p} It is {gold}bright{/c}.{p} It is {slow}her{/slow}.
+
+# What his dark glasses read, typed across the lenses one line at a time (plain text, no colours).
+[ending.readout]
+SOUL CARD DETECTED
+SIGNAL: NONE
+STATUS: BLANK
+VALUE: NONE
+
+# The close-up, after the readout.
+[ending.closeup]
+Collector | ...Blank.{p} Another empty one.
+Collector | All that noise, and nothing inside.
+
+# After the card is torn and the last of it has crumbled away.
+[ending.rip]
+{gray}Erin is gone.{/c}
 
 # The end card: title, subtitle, thank-you line, the Sandbox Mode line, then the hint at the bottom.
 [endcard]
 End of Chapter One
 The Overgrown City
 Thank you for playing the Reverse Shell demo.
-That's it for now, but please explore Sandbox Mode!  (Esc, then Settings)
+That's it for now, but please explore Sandbox Mode!  (from the title screen)
 Enter  continue exploring
+
+# The thank-you screen after the end card: title, the Chapter Two heading, the teaser, then the hint at the
+# bottom. The feedback line in the middle comes from UI.txt (thanks.feedback_url).
+[thanks]
+Thanks for playing!
+Next: Chapter Two, the Corrupted Conservatory
+A garden that never stopped growing. Machines and vines have grown into one, and at its heart the Bloom Engine still guards the Root Soul Card.
+Enter  continue

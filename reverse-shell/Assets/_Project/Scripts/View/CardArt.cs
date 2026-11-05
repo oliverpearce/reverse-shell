@@ -149,8 +149,8 @@ namespace Combat.View
             return art != null && art.name.StartsWith("Soul_");
         }
 
-        /// <summary>The character's own pixel sprite for its Soul card: the first idle frame facing the viewer, or null
-        /// if it has no animation set.</summary>
+        /// <summary>The character's own pixel sprite for its Soul card: its portrait (A3's A2 study) if the set has one,
+        /// else the first idle frame, facing the viewer; null if it has no animation set.</summary>
         public static Sprite SoulSprite(UnitDefinition owner)
         {
             var set = owner != null ? owner.Anim : null;
@@ -158,11 +158,12 @@ namespace Combat.View
             Sprite s;
             string key = owner.name + "/" + set.name;   // the alt art has its own Soul card
             if (souls.TryGetValue(key, out s) && s != null) return s;
-            var frames = set.Frames("idle", Facing.Down, false);
+            bool portrait = set.Has(SpriteAnimationSet.Portrait);
+            var frames = set.Frames(portrait ? SpriteAnimationSet.Portrait : "idle", Facing.Down, false);
             if (frames == null || frames.Length == 0) return null;
             // Cropped to the figure (the frame has a lot of empty room around it), so the character fills the card.
             var r = frames[0].rect;
-            var c = set.soulCrop;
+            var c = portrait ? set.portraitCrop : set.soulCrop;
             var crop = new Rect(r.x + r.width * c.x, r.y + r.height * c.y, r.width * c.width, r.height * c.height);
             s = Sprite.Create(frames[0].texture, crop, new Vector2(0.5f, 0f), 100f, 0, SpriteMeshType.FullRect);
             s.name = "Soul_" + owner.name;
@@ -171,6 +172,39 @@ namespace Combat.View
         }
 
         static readonly Dictionary<string, Sprite> souls = new Dictionary<string, Sprite>();
+
+        /// <summary>
+        /// A speaker's animated face for the dialogue box: the set's portrait clip (the Soul card face: A3's study and
+        /// the crew) or else its idle, facing the viewer, each frame cropped to <see cref="SpriteAnimationSet.FaceRect"/>.
+        /// Cached per set (a tinted or alternate set has its own). Null when the set has neither clip.
+        /// </summary>
+        public static Sprite[] FaceFrames(SpriteAnimationSet set, out float fps)
+        {
+            fps = 6f;
+            if (set == null) return null;
+            string clipName = set.Has(SpriteAnimationSet.Portrait) ? SpriteAnimationSet.Portrait : "idle";
+            var clip = set.Find(clipName);
+            if (clip == null) return null;
+            fps = clip.fps > 0f ? clip.fps : 6f;
+            Sprite[] faces;
+            if (facesBySet.TryGetValue(set, out faces) && faces != null && faces.Length > 0 && faces[0] != null) return faces;
+            var frames = set.Frames(clipName, Facing.Down, false);
+            if (frames == null || frames.Length == 0) return null;
+            var f = set.FaceRect;
+            faces = new Sprite[frames.Length];
+            for (int i = 0; i < frames.Length; i++)
+            {
+                var r = frames[i].rect;
+                var crop = new Rect(Mathf.Round(r.x + r.width * f.x), Mathf.Round(r.y + r.height * f.y),
+                                    Mathf.Max(1f, Mathf.Round(r.width * f.width)), Mathf.Max(1f, Mathf.Round(r.height * f.height)));
+                faces[i] = Sprite.Create(frames[i].texture, crop, new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+                faces[i].name = "Face_" + set.name + "_" + i;
+            }
+            facesBySet[set] = faces;
+            return faces;
+        }
+
+        static readonly Dictionary<SpriteAnimationSet, Sprite[]> facesBySet = new Dictionary<SpriteAnimationSet, Sprite[]>();
 
         static readonly Dictionary<string, Sprite> pictures = new Dictionary<string, Sprite>();
 

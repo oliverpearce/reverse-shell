@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Char_A3
   m_EditorClassIdentifier: 
   displayName: A3
-  color: {r: 0.92, g: 0.92, b: 0.95, a: 1}
+  color: {r: 0.854902, g: 0.878431, b: 0.917647, a: 1}
   portrait: {fileID: 0}
   animations: {fileID: 11400000, guid: df40602cce302604787afe32bf2767df, type: 2}
   spriteSheet: {fileID: 0}
@@ -57,6 +57,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d9c0ad83ead185a47b62b378679a746e, type: 2}
   ritual: {fileID: 11400000, guid: 34edb817f953b444c9bf24763d8463b1, type: 2}
   growthPerLevel: 0.08
+  battleIdle: 1
   portraitFront: {fileID: 21300000, guid: 77cb898fbba3d0944a12b8301b33d9c0, type: 3}
   portraitInternals: {fileID: 21300000, guid: 10be175dfe0e2b3458bd963d703ac55d, type: 3}
   portraitGlow: {fileID: 21300000, guid: 6914129caa742794a90fa08babf3b57e, type: 3}

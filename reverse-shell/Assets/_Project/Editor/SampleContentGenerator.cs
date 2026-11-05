@@ -145,7 +145,7 @@ namespace Combat.EditorTools
                     new DamageEffect { multiplier = 6f, hits = 2 },
                     new ApplyStatusEffect { target = EffectTarget.AllAllies, status = atkUp, stacks = 2, duration = 2 }
                 });
-            var a3 = Character("Char_A3", "A3", "Prototype", new Color(0.92f, 0.92f, 0.95f), Resonance.Arc, DamageType.Physical,
+            var a3 = Character("Char_A3", "A3", "Prototype", new Color(0.854902f, 0.878431f, 0.917647f), Resonance.Arc, DamageType.Physical,
                 2200, 240f, 130f, 130f, new[] { a3Card1, a3Card2 }, a3Ult, AnimSet("A3"));
             if (Fresh(a3))
             {
@@ -294,6 +294,38 @@ namespace Combat.EditorTools
                 + "\n\nScene: " + ScenePath + "\nPress Play to fight!", "OK");
         }
 
+        /// <summary>The machines and NPCs drawn by Tools/ChibiForge/npc_packs.py (Snoblin by default, Tech Dungeon as the
+        /// alternate, Settings > Machine Look).</summary>
+        public static readonly string[] MachineLooks = { "RustSentry", "ScrapStalker", "Courier", "Drifter", "NoodleVendor" };
+
+        /// <summary>How big the machines and NPCs are drawn against their sheets (1 = as tall as the party). Change it and
+        /// run Tools > Combat > Rebuild Machine Looks.</summary>
+        public const float MachineScale = 0.75f;
+
+        /// <summary>
+        /// Rebuilds just the machines' and NPCs' animation sets from their sheets (frame size, clips and timings) and links
+        /// each one's Tech Dungeon set as its alternate. Run after npc_packs.py. The enemies, NPCs and overworld encounters
+        /// already point at these assets, so nothing else needs rebuilding.
+        ///   Batch: Unity -batchmode -quit -projectPath . -executeMethod Combat.EditorTools.SampleContentGenerator.RebuildMachineLooks
+        /// </summary>
+        [MenuItem("Tools/Combat/Rebuild Machine Looks")]
+        public static void RebuildMachineLooks()
+        {
+            AssetDatabase.Refresh();
+            overwrite = true;
+            try
+            {
+                foreach (var folder in MachineLooks)
+                {
+                    var set = AnimSet(folder);
+                    Debug.Log("Machine look " + folder + ": " + (set == null ? "no sheets" : set.clips.Count + " clips, alternate "
+                        + (set.alternate != null ? set.alternate.name : "none")));
+                }
+            }
+            finally { overwrite = false; fresh.Clear(); }
+            AssetDatabase.SaveAssets();
+        }
+
         [MenuItem("Tools/Combat/Rebuild Sample Content (overwrites edits)")]
         static void Rebuild()
         {
@@ -339,7 +371,7 @@ namespace Combat.EditorTools
         public const string BestiaryPath = "Assets/_Project/Resources/Bestiary.asset";
         /// <summary>Bump when Chapter One gains new assets: the bootstrap re-runs EnsureChapterOne on older projects, which
         /// adds whatever is missing (it never changes assets that already exist).</summary>
-        public const int ChapterOneVersion = 3;
+        public const int ChapterOneVersion = 5;
 
         /// <summary>
         /// Chapter One's content (bible §9; numbers are first drafts, bible §13): the protagonist's resonance kits
@@ -434,7 +466,19 @@ namespace Combat.EditorTools
                 dragon.ritual = storm;
                 dragon.xpReward = 300;
             }
-            foreach (var e in new[] { hound, crawler, collector, dragon }) EditorUtility.SetDirty(e);
+            // The Dummy Robot: Erin's tutorial target, on the red Rust Sentry sprite. Only a Soul Card can finish it.
+            // (Tools/ChibiForge/soul_dummy.py's stitched dummy art is kept in Art/Characters/SoulDummy, unused.)
+            var poke = Card("Card_Enemy_Poke", "Poke", CardKind.Attack, TargetMode.SingleEnemy, false, null,
+                new CardEffect[] { new DamageEffect { multiplier = 0.25f } });
+            var dummy = Enemy("Enemy_SoulDummy", "Dummy Robot", new Color(0.78f, 0.36f, 0.3f), Resonance.Basic, DamageType.Physical,
+                3000, 120f, 100f, 100f, red, new EnemySkill { card = poke, weight = 1f });
+            if (Fresh(dummy))
+            {
+                dummy.soulOnly = true;
+                dummy.xpReward = 20;
+                dummy.weaknesses = Weakness.Physical;
+            }
+            foreach (var e in new[] { hound, crawler, collector, dragon, dummy }) EditorUtility.SetDirty(e);
 
             // ---- The protagonist starts with their own Fragmented Core fitted and no spare Parts (bible §3, §9).
             var partCatalog = AssetDatabase.LoadAssetAtPath<PartCatalog>(PartCatalogPath);
@@ -450,6 +494,8 @@ namespace Combat.EditorTools
                 EditorUtility.SetDirty(partCatalog);
             }
 
+            EnsureAsheIce();
+
             // ---- The bestiary: every enemy, by asset name, for story encounters at runtime. It only ever gains enemies.
             EnsureFolder("Assets/_Project/Resources");
             var catalog = AssetDatabase.LoadAssetAtPath<EnemyCatalog>(BestiaryPath);
@@ -464,10 +510,91 @@ namespace Combat.EditorTools
                 var e = AssetDatabase.LoadAssetAtPath<EnemyDefinition>(AssetDatabase.GUIDToAssetPath(guid));
                 if (e != null && !catalog.enemies.Contains(e)) catalog.enemies.Add(e);
             }
-            foreach (var e in new[] { hound, crawler, collector, dragon })
+            foreach (var e in new[] { hound, crawler, collector, dragon, dummy })
                 if (!catalog.enemies.Contains(e)) catalog.enemies.Add(e);
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// Ashe, Cryo: freezes and shatters. Her old plant kit (Bramble Lash, Sap Mend, Overgrowth, Verdant Bloom) is
+        /// replaced; those assets stay on disk, unused. Chill stacks to 3 and becomes Frozen (Status_Chill). Her two
+        /// Legendaries: Absolute Zero (makes the target weak to Cryo, so her cards Break it) and Leng Storm (冷, "cold":
+        /// a two-hit storm on every enemy, much harder on the Frozen). Icons: Tools/CardForge (16 x 16 art, doubled).
+        /// Her kit is set only when these cards are first made, so later hand edits are kept.
+        /// </summary>
+        static void EnsureAsheIce()
+        {
+            var chill = AssetDatabase.LoadAssetAtPath<StatusDefinition>(Root + "/Statuses/Status_Chill.asset");
+            var frozen = AssetDatabase.LoadAssetAtPath<StatusDefinition>(Root + "/Statuses/Status_Frozen.asset");
+            var defUp = AssetDatabase.LoadAssetAtPath<StatusDefinition>(Root + "/Statuses/Status_DefUp.asset");
+            var shield = AssetDatabase.LoadAssetAtPath<StatusDefinition>(Root + "/Statuses/Status_Shield.asset");
+            if (chill == null || frozen == null) { Debug.LogWarning("Ashe's ice kit needs Status_Chill and Status_Frozen."); return; }
+
+            var frostLash = Card("Card_Ashe_FrostLash", "Frost Lash", CardKind.Attack, TargetMode.SingleEnemy, false, null,
+                new CardEffect[] { new DamageEffect { multiplier = 1.4f }, new ApplyStatusEffect { status = chill, duration = 3, stacks = 1 } },
+                new CardEffect[] { new DamageEffect { multiplier = 2.1f }, new ApplyStatusEffect { status = chill, duration = 3, stacks = 1 } },
+                new CardEffect[] { new DamageEffect { multiplier = 3.2f }, new ApplyStatusEffect { status = chill, duration = 3, stacks = 2 } });
+            var rimeMend = Card("Card_Ashe_RimeMend", "Rime Mend", CardKind.Heal, TargetMode.SingleAlly, false, null,
+                new CardEffect[] { new HealEffect { multiplier = 1.6f } },
+                new CardEffect[] { new HealEffect { multiplier = 2.4f } },
+                shield != null
+                    ? new CardEffect[] { new HealEffect { multiplier = 3.6f }, new ShieldEffect { status = shield, multiplier = 1.2f, duration = 1 } }
+                    : new CardEffect[] { new HealEffect { multiplier = 3.6f } });
+            var glacierWard = Card("Card_Ashe_GlacierWard", "Glacier Ward", CardKind.Defense, TargetMode.AllAllies, false, null,
+                GlacierWardRank(defUp, shield, 2, 0.8f), GlacierWardRank(defUp, shield, 3, 1.1f), GlacierWardRank(defUp, shield, 4, 1.5f));
+            var absoluteZero = Card("Card_Cryo_AbsoluteZero", "Absolute Zero", CardKind.Debuff, TargetMode.SingleEnemy, false, null,
+                new CardEffect[] { new AddWeaknessEffect { weakness = Weakness.Cryo, turns = 3 }, new DamageEffect { multiplier = 1.2f },
+                                   new ApplyStatusEffect { status = chill, duration = 3, stacks = 2 } },
+                new CardEffect[] { new AddWeaknessEffect { weakness = Weakness.Cryo, turns = 3 }, new DamageEffect { multiplier = 1.8f },
+                                   new ApplyStatusEffect { status = chill, duration = 3, stacks = 2 } },
+                new CardEffect[] { new AddWeaknessEffect { weakness = Weakness.Cryo, turns = 4 }, new DamageEffect { multiplier = 2.6f },
+                                   new ApplyStatusEffect { status = chill, duration = 3, stacks = 2 } });
+            var lengStorm = Card("Card_Cryo_LengStorm", "Leng Storm", CardKind.Attack, TargetMode.AllEnemies, false, null,
+                new CardEffect[] { new DamageEffect { multiplier = 1.0f, hits = 2, bonusVs = frozen, bonusPerStack = 0.5f },
+                                   new ApplyStatusEffect { status = chill, duration = 3, stacks = 1 } },
+                new CardEffect[] { new DamageEffect { multiplier = 1.5f, hits = 2, bonusVs = frozen, bonusPerStack = 0.5f },
+                                   new ApplyStatusEffect { status = chill, duration = 3, stacks = 1 } },
+                new CardEffect[] { new DamageEffect { multiplier = 2.2f, hits = 2, bonusVs = frozen, bonusPerStack = 0.5f },
+                                   new ApplyStatusEffect { status = chill, duration = 3, stacks = 1 } });
+            var whiteout = Card("Card_Ashe_Whiteout", "Whiteout", CardKind.Attack, TargetMode.AllEnemies, true, null,
+                new CardEffect[] { new ApplyStatusEffect { status = frozen, duration = 1, stacks = 1 },
+                                   new DamageEffect { multiplier = 3f, bonusVs = frozen, bonusPerStack = 0.5f },
+                                   new HealEffect { multiplier = 1.2f, target = EffectTarget.AllAllies } });
+
+            foreach (var card in new[] { frostLash, rimeMend, glacierWard, absoluteZero, lengStorm, whiteout })
+            {
+                if (!Fresh(card)) continue;
+                card.pool = Resonance.Cryo;
+                card.attackType = AttackType.Incantation;
+                EditorUtility.SetDirty(card);
+            }
+            if (Fresh(frostLash)) { frostLash.level = 5; frostLash.rarity = CardRarity.Common; }
+            if (Fresh(rimeMend)) { rimeMend.level = 5; rimeMend.rarity = CardRarity.Common; }
+            if (Fresh(glacierWard)) { glacierWard.level = 4; glacierWard.rarity = CardRarity.Rare; }
+            if (Fresh(absoluteZero)) { absoluteZero.level = 8; absoluteZero.rarity = CardRarity.Legendary; absoluteZero.breakValue = 2; }
+            if (Fresh(lengStorm)) { lengStorm.level = 8; lengStorm.rarity = CardRarity.Legendary; lengStorm.breakValue = 2; }
+            if (Fresh(whiteout)) { whiteout.level = 14; whiteout.rarity = CardRarity.Legendary; whiteout.breakValue = 2; }
+
+            var ashe = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(Root + "/Characters/Char_Ashe.asset");
+            if (ashe != null && (Fresh(absoluteZero) || overwrite))
+            {
+                ashe.incantations = new List<CardDefinition> { frostLash, rimeMend };
+                ashe.cardPool = new List<CardDefinition> { glacierWard, absoluteZero, lengStorm };
+                ashe.starterCards = new List<CardDefinition> { frostLash, absoluteZero };
+                ashe.ritual = whiteout;
+                ashe.resonance = Resonance.Cryo;
+                ashe.stats.attack = Mathf.Max(ashe.stats.attack, 230f);
+                EditorUtility.SetDirty(ashe);
+            }
+        }
+
+        static CardEffect[] GlacierWardRank(StatusDefinition defUp, StatusDefinition shield, int turns, float shieldPower)
+        {
+            var list = new List<CardEffect>();
+            if (defUp != null) list.Add(new ApplyStatusEffect { status = defUp, duration = turns, stacks = 1, target = EffectTarget.AllAllies });
+            if (shield != null) list.Add(new ShieldEffect { status = shield, multiplier = shieldPower, duration = 1, target = EffectTarget.AllAllies });
+            return list.ToArray();
         }
 
         // -------------------------------------------------------------------- Builders
@@ -613,6 +740,9 @@ namespace Combat.EditorTools
             AddClip(set, folder, "hurt", 15f, false, 0);
             AddClip(set, folder, "sit", 12f, false, 0);   // the Esc menu: sitting down on the mat (holds the last frame)
             AddClip(set, folder, "read", 10f, false, 0);  // Items → Cards: opening the book (holds the last frame)
+            for (int i = 1; i <= GameSettings.WalkStyles; i++)   // optional: Settings > Walk Style (A3's model)
+                AddClip(set, folder, "walk_s" + i, 10f, true, 0);
+            AddClip(set, folder, SpriteAnimationSet.Portrait, 1f, true, 0);   // optional: menus and Soul cards (A3)
             if (set.clips.Count == 0)
             {
                 Debug.LogWarning("No sprite sheets in " + CharacterArt + folder + " - run Tools/ChibiForge/chibi_forge.py. Using placeholder.");
@@ -631,6 +761,17 @@ namespace Combat.EditorTools
                 if (cycle > 0) walk.fps = cycle / 0.8f;
             }
             if (System.Array.IndexOf(A3Model, folder) >= 0) A3Layout(set);   // every ally is A3's model
+            // The machines and NPCs (both looks) are drawn at MachineScale of their sheets' size, in battle and the world.
+            if (System.Array.IndexOf(MachineLooks, folder.StartsWith("Alt_") ? folder.Substring(4) : folder) >= 0)
+            {
+                set.referenceSize = Mathf.RoundToInt(set.frameSize / MachineScale);
+                // Dialogue faces: the head square (npc_packs.py stands Snoblin 3x in 64 px cells, Tech Dungeon 3x in 96).
+                set.faceCrop = folder.StartsWith("Alt_") ? new Rect(0.37f, 0.26f, 0.26f, 0.26f) : new Rect(0.32f, 0.33f, 0.36f, 0.36f);
+            }
+            // Settings > Machine Look: a machine or NPC drawn in both packs (Tools/ChibiForge/npc_packs.py) gets its
+            // Tech Dungeon set (Art/Characters/Alt_<folder>) as the alternate.
+            if (!folder.StartsWith("Alt_") && AssetDatabase.IsValidFolder(CharacterArt.TrimEnd('/') + "/Alt_" + folder))
+                set.alternate = AnimSet("Alt_" + folder);
             return Save(set, Root + "/Animations/Anim_" + folder + ".asset");
         }
 
@@ -645,8 +786,11 @@ namespace Combat.EditorTools
             set.feetPivot = 14f / 128f;
             // The knight's Soul crop in pixels (32 x 40, the same card resolution), centred on her feet.
             set.soulCrop = new Rect(48f / 128f, 12f / 128f, 32f / 128f, 40f / 128f);
+            // The A2 study portrait (A3 only, Tools/ChibiForge/a3_portrait.py): 42 x 48 px, one card pixel each.
+            set.portraitCrop = new Rect(46f / 128f, 20f / 128f, 42f / 128f, 48f / 128f);
             foreach (var c in set.clips) c.firstFrame = 0;          // no standing frame before the walk cycle
-            var fps = new Dictionary<string, float> { { "idle", 5f }, { "walk", 10f }, { "walk_sword", 10f }, { "idle_sword", 6f }, { "slash", 20f }, { "spellcast", 16f }, { "hurt", 10f }, { "sit", 8f }, { "read", 8f } };
+            var fps = new Dictionary<string, float> { { "idle", 5f }, { "battle_idle2", 5f }, { "battle_idle3", 5f }, { "walk", 10f }, { "walk_sword", 10f }, { "idle_sword", 6f }, { "slash", 16f }, { "spellcast", 16f }, { "hurt", 10f }, { "sit", 8f }, { "read", 8f },
+                { "walk_s1", 10f }, { "walk_s2", 15f }, { "walk_s3", 13.5f }, { "portrait", 8f } };
             foreach (var c in set.clips)
             {
                 float f;
@@ -694,6 +838,8 @@ namespace Combat.EditorTools
         static void AddClip(SpriteAnimationSet set, string folder, string clip, float fps, bool loop, int firstFrame)
         {
             string path = CharacterArt + folder + "/" + clip + ".png";
+            // Most clips are optional (sword, sit, read, walk styles, portrait): a set without that sheet just skips it.
+            if (!File.Exists(path)) return;
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
             var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             if (tex == null) return;

@@ -14,6 +14,26 @@ namespace Combat.Tests
         public void TearDown() { SaveGame.Restore(null); }
 
         [Test]
+        public void ThoughtLines_HaveNoSpeaker_AndAreTinted()
+        {
+            var blocks = new Dictionary<string, List<StoryText.Entry>>();
+            StoryText.Parse("[t]\nThought | Light.\nErin | Hi.", blocks);
+            Assert.AreEqual(StoryText.Thought, blocks["t"][0].Speaker);
+
+            StoryState.SetName("Wren");
+            foreach (var key in new[] { "awakening", "erin.vanished", "memory.after", "ending" })
+                foreach (var line in StoryText.Lines(key, s => DialogueVoice.Default))
+                {
+                    Assert.AreNotEqual("Wren", line.Speaker, key + ": the protagonist thinks, they don't get a name plate");
+                    Assert.AreNotEqual(StoryText.Thought, line.Speaker, key);
+                }
+            var light = StoryText.Lines("awakening", s => DialogueVoice.Default).Find(l => l.Text.Contains("Light."));
+            Assert.IsNotNull(light);
+            Assert.AreEqual("", light.Speaker);
+            StringAssert.StartsWith("{c=" + StoryText.ThoughtColor + "}", light.Text);
+        }
+
+        [Test]
         public void Objective_FollowsTheFlags()
         {
             Assert.AreEqual("", Chapter1.CurrentObjective(), "nothing before waking");

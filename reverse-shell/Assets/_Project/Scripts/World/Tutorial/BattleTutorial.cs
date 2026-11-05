@@ -7,14 +7,18 @@ using UnityEngine;
 namespace Game.World
 {
     /// <summary>
-    /// Erin's battle tutorial: the first fight after she joins (Bonds), and Settings > Tutorials > Practice with Erin
-    /// once you've met her. One weak machine; Erin talks you through four steps and only the step's action is allowed:
-    ///   1. tap a Physical card (1 AP)
-    ///   2. spend 1 AP moving a card next to its match, so they merge into Rank II
-    ///   3. play the Rank II card: its Break damage empties the machine's Break value (BREAK, Staggered)
-    ///   4. the BREAK banner, then the finishing strike
+    /// Erin's battle tutorial: right after her rank-2 scene (she coaches from the side; she hasn't joined yet), and
+    /// Settings > Tutorials > Practice with Erin once you've met her. The target is the Dummy Robot (Enemy_SoulDummy, the red sprite)
+    /// (EnemyDefinition.soulOnly: other hits leave it at 1 HP, only a Soul Card finishes it). Erin talks you through
+    /// the steps and only the step's action is allowed:
+    ///   1. hold a card to read its info (her line depends on whether you told her you can read)
+    ///   2. hold the dummy robot to zoom in on it (its Break bar and weakness)
+    ///   3. tap a Physical card (1 AP)
+    ///   4. spend 1 AP moving a card next to its match, so they merge into Rank II
+    ///   5. play the Rank II card: its Break damage empties the dummy's Break value (BREAK, Staggered)
+    ///   6. the BREAK banner; then the Ult: the lead's Ult points fill, their Soul Card comes into the hand, play it
     /// Pressing Go is a step of its own whenever the AP runs out. The hands are set (each round the tutorial deals the
-    /// cards the step needs), and the machine starts with exactly enough Break for steps 1 + 3, so it always works out;
+    /// cards the step needs), and the dummy starts with exactly enough Break for steps 3 + 5, so it always works out;
     /// the Break and Stagger rules themselves are the normal ones. Erin's words: [tutorial.*] in Resources/Story/Bonds.txt.
     /// </summary>
     public static class BattleTutorial
@@ -22,11 +26,21 @@ namespace Game.World
         public const string Id = "erin";
         const string StoryFight = "tutorial.erin", PracticeFight = "tutorial.erin.practice";
 
-        /// <summary>The tutorial's machine: a Scrap Hound at level 1.</summary>
+        /// <summary>The tutorial's target: the Dummy Robot at level 1.</summary>
         public static readonly WorldAreas.EncounterDef Fight = new WorldAreas.EncounterDef
         {
-            Enemies = new[] { "Enemy_ScrapHound" }, Level = 1,
+            Enemies = new[] { "Enemy_SoulDummy" }, Level = 1,
         };
+
+        /// <summary>Erin's line for the card-info step: you told her you can read (and have no chip) = she teases you;
+        /// you have the language chip = she's heard of other chips; otherwise the plain line.</summary>
+        public static string InfoLineKey()
+        {
+            bool chip = StoryState.Has(Chapter1.LanguageChip);
+            if (StoryState.Has(Chapter1.SaidCanRead) && !chip) return "tutorial.erin.info.read";
+            if (chip && !(StoryState.Has(Chapter1.NumbersChip) && StoryState.Has(Chapter1.ColoursChip))) return "tutorial.erin.info.chip";
+            return "tutorial.erin.info";
+        }
 
         /// <summary>Starts the guided fight (story: right after Erin joins; otherwise a practice replay).</summary>
         public static void Start(OverworldBuilder b, bool story)
@@ -48,7 +62,8 @@ namespace Game.World
         }
 
         /// <summary>Settings > Tutorials offers the practice fight once you've met Erin.</summary>
-        public static bool PracticeUnlocked { get { return StoryState.Has("bond.erin.1"); } }
+        /// <summary>Once you've met Erin: her first talk, or the Collector fight she joined you for.</summary>
+        public static bool PracticeUnlocked { get { return StoryState.Has("bond.erin.1") || StoryState.Has(Chapter1.CollectorBeaten); } }
 
         [RuntimeInitializeOnLoadMethod]
         static void Hook()
@@ -69,12 +84,12 @@ namespace Game.World
     /// <summary>Runs <see cref="BattleTutorial"/> inside the battle scene.</summary>
     public class ErinTutorial : MonoBehaviour
     {
-        enum Step { Talking, Tap, Move, Cast, Go, Finish, Free }
+        enum Step { Talking, Info, Zoom, Tap, Move, Cast, Go, Ult, Free }
 
         BattleView view;
         BattleController c;
         DialogueBox box;
-        BattleUnit lead, enemy;
+        BattleUnit lead, enemy, ultUnit;
         CardDefinition strike;
         readonly List<CardDefinition> fillers = new List<CardDefinition>();
         Step step = Step.Talking, afterGo;
@@ -117,12 +132,27 @@ namespace Game.World
             Pick();
             if (strike == null || enemy == null) { Release(); yield break; }   // nothing to teach with: a normal fight
 
-            // Exactly enough Break for a Rank I and then a Rank II Strike, and HP for a short fight.
+            // Exactly enough Break for a Rank I and then a Rank II Strike, at full HP (it can't drop below 1 anyway).
             int breakNeeded = BreakRules.Value(strike, 1) + BreakRules.Value(strike, 2);
-            view.SetUpEnemy(enemy, Mathf.Max(1, enemy.MaxHP / 3), breakNeeded);
+            view.SetUpEnemy(enemy, enemy.MaxHP, breakNeeded);
 
             yield return Say("tutorial.erin.intro");
             DealForTap();
+
+            // Hold a card: its info.
+            yield return Say("tutorial.erin.hold");
+            Enter(Step.Info);
+            while (!CardDetailPopup.IsOpen) yield return null;
+            while (CardDetailPopup.IsOpen) yield return null;
+            yield return Say(BattleTutorial.InfoLineKey());
+
+            // Hold the dummy: zoom in on it.
+            yield return Say("tutorial.erin.zoom");
+            Enter(Step.Zoom);
+            while (!view.Inspecting) yield return null;
+            while (view.Inspecting) yield return null;
+            yield return Say("tutorial.erin.zoom.after");
+
             yield return Say("tutorial.erin.1");
             Enter(Step.Tap);
         }
@@ -146,6 +176,8 @@ namespace Game.World
                 if (u != null && u.IsAlive)
                     foreach (var card in u.Incantations)
                         if (card != null && !card.isRitual && card != strike && !fillers.Contains(card)) fillers.Add(card);
+            // Who plays the Soul Card at the end: the lead, or anyone in the party with an Ult.
+            ultUnit = lead != null && lead.Ultimate != null ? lead : c.State.Party.Find(u => u != null && u.IsAlive && u.Ultimate != null);
             var erin = c.State.Party.Find(u => u != null && u.Definition != null && u.Definition.name == Bonds.Erin.Character);
             var erinDef = erin != null ? erin.Definition : null;
             if (erinDef == null)
@@ -209,8 +241,9 @@ namespace Game.World
             {
                 var v = view.ViewOf(card);
                 if (v == null) continue;
-                bool focus = card == target && (step == Step.Tap || step == Step.Move || step == Step.Cast);
-                bool dim = step == Step.Tap || step == Step.Move || step == Step.Cast;
+                bool aimed = step == Step.Tap || step == Step.Move || step == Step.Cast || step == Step.Ult;
+                bool focus = card == target && aimed;
+                bool dim = aimed;
                 v.SetMergeHighlight(focus, card.Rank);
                 if (v.Group != null) v.Group.alpha = dim && !focus ? 0.45f : 1f;
             }
@@ -220,17 +253,18 @@ namespace Game.World
 
         bool Gate(string action, CardInstance card, int index)
         {
+            if (action == "detail" || action == "inspect")
+                return step == Step.Info ? action == "detail" : step == Step.Zoom ? action == "inspect" : step != Step.Talking;
             switch (step)
             {
                 case Step.Tap:
                 case Step.Cast:
+                case Step.Ult:
                     return action == "queue" && card == target;
                 case Step.Move:
                     return (action == "drag" && card == target) || (action == "move" && card == target && Merges(index));
                 case Step.Go:
                     return action == "go";
-                case Step.Finish:
-                    return action == "queue" || action == "go";
                 case Step.Free:
                     return true;
                 default:
@@ -256,7 +290,11 @@ namespace Game.World
         {
             if (e is CardQueuedEvent q && (step == Step.Tap || step == Step.Cast) && q.Card == target)
             {
-                StartCoroutine(AfterAction(step == Step.Tap ? Step.Move : Step.Finish));
+                StartCoroutine(AfterAction(step == Step.Tap ? Step.Move : Step.Ult));
+            }
+            else if (e is CardQueuedEvent u && step == Step.Ult && u.Card == target)
+            {
+                StartCoroutine(AfterUlt());
             }
             else if (e is CardsMergedEvent m && step == Step.Move && m.Merge.Result.Rank == 2)
             {
@@ -300,9 +338,43 @@ namespace Game.World
             else
             {
                 afterGo = next;
-                yield return Say(next == Step.Finish ? "tutorial.erin.go_break" : "tutorial.erin.go");
+                yield return Say(next == Step.Ult ? "tutorial.erin.go_break" : "tutorial.erin.go");
                 Enter(Step.Go);
             }
+        }
+
+        /// <summary>The Soul Card is queued: Go plays it, and it finishes the dummy (the fight ends).</summary>
+        IEnumerator AfterUlt()
+        {
+            step = Step.Talking;
+            Highlight();
+            while (!view.Idle) yield return null;
+            afterGo = Step.Free;
+            yield return Say("tutorial.erin.go_ult");
+            Enter(Step.Go);
+        }
+
+        /// <summary>After BREAK: fill the Ult points, so the Soul Card comes into the hand, and point at it.</summary>
+        IEnumerator TeachUlt()
+        {
+            yield return Say("tutorial.erin.4");
+            CardInstance soul = null;
+            if (ultUnit != null)
+            {
+                c.FillUlt(ultUnit);
+                while (!view.Idle) yield return null;
+                foreach (var card in c.State.Hand.Cards) if (card.IsRitual && card.Owner == ultUnit) soul = card;
+            }
+            if (soul == null)
+            {
+                // No Ult to teach with (shouldn't happen: A3 always has one): let the fight go on as normal.
+                yield return Say("tutorial.erin.done");
+                Release();
+                yield break;
+            }
+            target = soul;
+            yield return Say("tutorial.erin.ult");
+            Enter(Step.Ult);
         }
 
         /// <summary>After Go, the next round: the BREAK lesson (step 4), or the step that waited for AP.</summary>
@@ -310,15 +382,14 @@ namespace Game.World
         {
             step = Step.Talking;
             while (!view.Idle) yield return null;
-            if (broken && afterGo == Step.Finish)
+            if (broken && afterGo == Step.Ult)
             {
-                yield return Say("tutorial.erin.4");
-                Enter(Step.Finish);
                 afterGo = Step.Free;
+                yield return TeachUlt();
             }
             else if (afterGo == Step.Free)
             {
-                yield return Say("tutorial.erin.done");
+                // Go was pressed without the Soul Card hitting home: open play, the Soul Card still in hand.
                 Release();
             }
             else if (afterGo == Step.Move)
@@ -335,7 +406,7 @@ namespace Game.World
                 yield return Say("tutorial.erin.3");
                 Enter(Step.Cast);
             }
-            else if (afterGo == Step.Finish && !broken)
+            else if (afterGo == Step.Ult && !broken)
             {
                 // the Rank II hit didn't break it (shouldn't happen): let the fight go on as normal
                 yield return Say("tutorial.erin.done");

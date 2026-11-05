@@ -179,7 +179,7 @@ namespace Game.World
         void ShowCredits()
         {
             Page(ShowMain);
-            InfoPanel(UIText.Get("title.credits.text"), 600f);   // tall enough for every credit line
+            InfoPanel(UIText.Get("title.credits.text"), 680f);   // tall enough for every credit line
             Row(UIText.Get("menu.back"), ShowMain, true);
             Select(0);
         }
@@ -196,7 +196,7 @@ namespace Game.World
             rowTop = height + 16f;
         }
 
-        /// <summary>Sandbox Mode: the latest save (or a new game), starting in the Sandbox.</summary>
+        /// <summary>Sandbox Mode: its own save with the whole crew (a fresh one the first time), never a story slot.</summary>
         void StartSandbox()
         {
             WorldSession.StartSandbox();

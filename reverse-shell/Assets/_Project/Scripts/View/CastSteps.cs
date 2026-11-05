@@ -47,25 +47,71 @@ namespace Combat.View
         public override IEnumerator Play(CastContext ctx) { yield return Tween.Wait(duration); }
     }
 
-    /// <summary>Caster dashes toward the targets and back.</summary>
+    /// <summary>
+    /// The attack: the camera pushes in on attacker and target, the caster crouches, dashes most of the way across, and
+    /// the step ends on the slash clip's strike frame, so the next step (the target's flash) lands with the blow. The hop
+    /// back home and the zoom out carry on behind it. Plays the "slash" clip itself (PlayCast doesn't add one).
+    /// </summary>
     [Serializable]
     public class LungeStep : CastStep
     {
+        [Tooltip("How far to dash at least (canvas px); it goes further when the target is far away.")]
         public float distance = 90f;
+        [Tooltip("The dash and the hop back together (s).")]
         public float duration = 0.3f;
+        [Tooltip("Share of the gap to the target covered by the dash (it stops short so the two don't overlap).")]
+        public float reach = 0.62f;
+        [Tooltip("Keep at least this much room (canvas px) between attacker and target.")]
+        public float gap = 200f;
+        [Tooltip("The anticipation crouch before the dash (s).")]
+        public float windup = 0.08f;
+        [Tooltip("Camera push-in on attacker and target (1 = none); a hit on several targets pushes in half as much.")]
+        public float zoom = 1.25f;
+
+        /// <summary>Which frame of "slash" is the blow (A3's model: frame 4, the raised strike).</summary>
+        public const float ImpactShare = 0.5f;
 
         public override IEnumerator Play(CastContext ctx)
         {
             if (ctx.Caster == null) yield break;
             var body = ctx.Caster.Body;
             Vector2 origin = ctx.Caster.BodyOrigin;
-            Vector3 dir3 = ctx.TargetsCenter() - ctx.Caster.Center;
-            Vector2 dir = new Vector2(dir3.x, dir3.y).normalized;
-            if (dir == Vector2.zero) dir = ctx.Caster.Unit.Team == Team.Player ? Vector2.right : Vector2.left;
+            // The gap in the unit's own space, measured before the camera moves.
+            var space = body.parent as RectTransform;
+            Vector3 from = space != null ? space.InverseTransformPoint(ctx.Caster.Center) : ctx.Caster.Center;
+            Vector3 to = space != null ? space.InverseTransformPoint(ctx.TargetsCenter()) : ctx.TargetsCenter();
+            Vector2 delta = new Vector2(to.x - from.x, to.y - from.y);
+            Vector2 dir = delta.sqrMagnitude > 1f ? delta.normalized
+                : (ctx.Caster.Unit.Team == Team.Player ? Vector2.right : Vector2.left);
+            float dash = Mathf.Max(distance, Mathf.Min(delta.magnitude * reach, delta.magnitude - gap));
 
-            yield return Tween.Run(duration * 0.45f, p => { if (body != null) body.anchoredPosition = origin + dir * distance * p; }, Tween.OutCubic);
-            yield return Tween.Run(duration * 0.55f, p => { if (body != null) body.anchoredPosition = origin + dir * distance * (1f - p); }, Tween.InOutQuad);
+            float push = ctx.Targets.Count > 1 ? 1f + (zoom - 1f) * 0.5f : zoom;
+            if (ctx.Ritual) push += 0.1f;
+            if (push > 1.001f) ctx.View.CameraFocus(ctx.Caster.Center, ctx.TargetsCenter(), push, 0.18f);
+
+            float clip = ctx.Caster.PlayAnimation("slash");
+            float impact = clip > 0f ? clip * ImpactShare : windup + duration * 0.45f;
+            float dashTime = Mathf.Max(0.08f, Mathf.Min(duration * 0.5f, impact - windup));
+            float t = 0f;
+            // Crouch (the clip's first frames), then the dash, arriving on the blow.
+            yield return Tween.Wait(Mathf.Max(0f, impact - dashTime));
+            t += Mathf.Max(0f, impact - dashTime);
+            yield return Tween.Run(dashTime, p => { if (body != null) body.anchoredPosition = origin + dir * dash * p; }, Tween.OutCubic);
+            ctx.View.StartCoroutine(HopBack(ctx, body, origin, dir * dash));
+        }
+
+        IEnumerator HopBack(CastContext ctx, RectTransform body, Vector2 origin, Vector2 offset)
+        {
+            yield return Tween.Wait(0.12f);   // the follow-through holds a beat
+            float back = Mathf.Max(0.16f, duration * 0.75f);
+            yield return Tween.Run(back, p =>
+            {
+                if (body == null) return;
+                // a low hop home: up a little at the middle, no squash
+                body.anchoredPosition = origin + offset * (1f - p) + new Vector2(0f, Mathf.Sin(p * Mathf.PI) * 18f);
+            }, Tween.InOutQuad);
             if (body != null) body.anchoredPosition = origin;
+            ctx.View.CameraReset(0.25f);
         }
     }
 
@@ -146,7 +192,7 @@ namespace Combat.View
 
         public override IEnumerator Play(CastContext ctx)
         {
-            yield return Tween.Shake(ctx.View.Stage, Vector2.zero, strength, duration);
+            yield return ctx.View.ShakeStage(strength, duration);
         }
     }
 

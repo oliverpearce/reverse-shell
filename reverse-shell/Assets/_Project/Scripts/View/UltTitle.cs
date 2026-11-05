@@ -18,7 +18,8 @@ namespace Combat.View
         const float LetterStagger = 0.045f, LetterIn = 0.26f, Hold = 0.45f, Out = 0.3f;
 
         /// <param name="unscaled">Real time instead (Pack Mode runs over the paused title screen).</param>
-        public static IEnumerator Play(RectTransform layer, string name, Color color, bool unscaled = false)
+        /// <param name="runes">The name in runes (no language chip yet): one rune row slams in instead of the letters.</param>
+        public static IEnumerator Play(RectTransform layer, string name, Color color, bool unscaled = false, bool runes = false)
         {
             var center = new Vector2(0.5f, 0.5f);
             var host = layer.gameObject.AddComponent<CanvasGroup>();
@@ -47,7 +48,7 @@ namespace Combat.View
             var letters = new List<Text>();
             var widths = new List<float>();
             float total = 0f;
-            foreach (char c in name)
+            foreach (char c in runes ? "" : name)
             {
                 var t = UIFactory.CreateText(layer, "L", c.ToString(), FontSize, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
                 t.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -74,6 +75,14 @@ namespace Combat.View
                 x += w;
             }
 
+            RectTransform runeRow = null;
+            if (runes)
+            {
+                runeRow = UIFactory.CreateRect("RuneName", layer).Place(center, center, Vector2.zero, new Vector2(width - 160f, FontSize * 1.1f));
+                RuneText.Build(runeRow, name, Color.white, width - 160f, FontSize * 1.1f, FontSize * 0.72f);
+                runeRow.localScale = Vector3.zero;
+            }
+
             // Open: the band and the hairlines.
             yield return Tween.Run(0.18f, p =>
             {
@@ -88,6 +97,7 @@ namespace Combat.View
             for (int i = 0; i < letters.Count; i++) tilts.Add(Random.Range(-18f, 18f));
             yield return Tween.Run(inTime, p =>
             {
+                if (runeRow != null) runeRow.localScale = Vector3.one * Mathf.LerpUnclamped(2.4f, 1f, Tween.OutBack(p));
                 float t = p * inTime;
                 for (int i = 0; i < letters.Count; i++)
                 {

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Char_Ashe
   m_EditorClassIdentifier: 
   displayName: Ashe
-  color: {r: 0.39, g: 0.58, b: 0.93, a: 1}
+  color: {r: 0.392157, g: 0.584314, b: 0.929412, a: 1}
   portrait: {fileID: 0}
   animations: {fileID: 11400000, guid: a51640fcfe644444cbb99c74c4d3761b, type: 2}
   altAnimations: {fileID: 0}
@@ -24,22 +24,25 @@ MonoBehaviour:
   damageType: 1
   stats:
     maxHP: 2800
-    attack: 190
+    attack: 230
     physicalDefense: 160
     specialDefense: 150
     critRate: 0.1
     critDamage: 1.5
   archetype: Druid
   incantations:
-  - {fileID: 11400000, guid: 2f17e255275e77f499b947acd51a626f, type: 2}
-  - {fileID: 11400000, guid: 33d31f179718eb04799e99e6bffbbd2f, type: 2}
+  - {fileID: 11400000, guid: 3ff6630ef4977d2438ae860213ca531a, type: 2}
+  - {fileID: 11400000, guid: 1046633a9fb7e9a41a2caddebcb49d73, type: 2}
   cardPool:
-  - {fileID: 11400000, guid: 5a6db6bb4ab89e240bfc33cf63c48df2, type: 2}
-  ritual: {fileID: 11400000, guid: 157ff0ac7cde0b2419be20cc9a4935e1, type: 2}
+  - {fileID: 11400000, guid: 56d5a34ad4ea89e4d9af03681a4901db, type: 2}
+  - {fileID: 11400000, guid: 711f0e743e7f5b84bb88eb597fe5ea0d, type: 2}
+  - {fileID: 11400000, guid: e82ba16d0b24c9c47aeae0ce71dcbcfa, type: 2}
   starterCards:
-  - {fileID: 11400000, guid: 33d31f179718eb04799e99e6bffbbd2f, type: 2}
-  - {fileID: 11400000, guid: 5a6db6bb4ab89e240bfc33cf63c48df2, type: 2}
+  - {fileID: 11400000, guid: 3ff6630ef4977d2438ae860213ca531a, type: 2}
+  - {fileID: 11400000, guid: 711f0e743e7f5b84bb88eb597fe5ea0d, type: 2}
+  ritual: {fileID: 11400000, guid: 50bd77c490a5fb74b9e82dd89eb3f2a9, type: 2}
   growthPerLevel: 0.08
+  battleIdle: 2
   portraitFront: {fileID: 21300000, guid: 3fdd3dd974f9cb442841b5b03b6bfa7c, type: 3}
   portraitInternals: {fileID: 21300000, guid: 51120539b86221141a0f556d47caf8af, type: 3}
   portraitGlow: {fileID: 21300000, guid: e220745c8eabf314885d8d6e4cee443d, type: 3}
@@ -50,3 +53,5 @@ MonoBehaviour:
   channels: 
   neutralGlow: 0
   glowColor: {r: 1, g: 1, b: 1, a: 1}
+  soulGlow: {r: 0, g: 0, b: 0, a: 0}
+  resonances: []

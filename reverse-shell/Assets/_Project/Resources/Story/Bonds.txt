@@ -1,99 +1,113 @@
 # REVERSE SHELL — Bonds (how party members join) and Erin's battle tutorial
 #
 # Same format as Chapter1.txt: [key] starts a block, "Speaker | text" is one box, # is a comment, {name} is the
-# protagonist's name. A bond scene is [bond.<who>.<rank>], then .ask (its LAST line is the question asked with the
-# choices), .options (one answer per line, best first: 3 / 2 / 1 bond points), and .answer.1 / .2 / .3.
+# protagonist's name, "Thought | text" is the protagonist's inner voice (no name plate). A bond scene is
+# [bond.<who>.<rank>], then .ask (its LAST line is the question asked with the choices), .options (one answer per
+# line, best first: 3 / 2 / 1 bond points), and .answer.1 / .2 / .3.
 # Every 3 points is a rank (5 in all); at rank 3 they give you their Soul Card and join the party.
 #
+# The protagonist says very little: answers are short and curt, and anything longer is a Thought, so the scenes read
+# the same whichever ally leads. Keep options short (a few words): they sit on buttons.
+#
+# Erin is a tsundere: sharp and teasing on the surface, caring underneath, and annoyed when it shows.
 # DRAFT: Erin's bond scenes below are placeholders for the author to rewrite. The tutorial lines follow the brief.
 
 # ------------------------------------------------------------------ Erin
 
 # Talking to her when no new scene has unlocked yet (the story moves her on).
 [bond.erin.idle]
-Erin | Go on, look around. I'll be right here.{p} I've had a lot of practice at waiting.
+Erin | What? Go on, look around.{p} I'm not waiting for you or anything. I just happen to be standing here.
 
 # Her scene's done but the bond needs a little more: spend some time together (+1 point).
 [bond.erin.hangout]
-Erin | Sit with me a minute?
+Erin | ...Fine. Sit, if you want. It's a free ruin.
 You talk about nothing much. It helps more than it should.
 
 [bond.erin.max]
-Erin | You don't have to keep checking on me, you know.{p} ...I'm glad you do.
+Erin | You don't have to keep checking on me, you know.{p} ...Not that I mind. Shut up.
 
 # Rank 1: you wake; she's been here a long time. (DRAFT)
 [bond.erin.1]
-Erin | Oh! You're awake. You're actually awake.
-Erin | I'm Erin. I've been waiting here... a while. Long enough to stop counting.
+Erin | Oh! You're awake. You're actually— {p}I mean. Finally. Took you long enough.
+Erin | I'm Erin. I've been stuck here a while. Long enough to stop counting.
 
 [bond.erin.1.ask]
-Erin | Waiting for what, you're wondering?{p} For someone. Anyone. Is that strange?
+Erin | Waiting for someone. Anyone. {p}Don't look at me like that. Is that strange?
 
 [bond.erin.1.options]
-Not strange. I'm glad you waited.
-I'd have left by now.
-...Who are you, really?
+Not strange.
+I'd have left.
+Who are you?
 
 [bond.erin.1.answer.1]
-Erin | {wave}Glad.{/wave} Huh. Nobody's been glad to see me in a long time.
+Erin | {wave}Huh.{/wave} ...Okay. Good. Not that I needed you to say it.
+Erin | Listen. I can't stay here.{p} Find me past the clinic gate. {wave}Don't take forever.{/wave}
 
 [bond.erin.1.answer.2]
-Erin | Ha. Maybe I should have. Then again, then you'd have woken up alone.
+Erin | Ha. Maybe I should have. Then you'd have woken up alone, and serves you right.
+Erin | Listen. I can't stay here.{p} Find me past the clinic gate. {wave}Don't take forever.{/wave}
 
 [bond.erin.1.answer.3]
-Erin | I told you. Erin.{p} That's all I've got for now.
+Erin | I just told you. Erin.{p} Were you even listening?
+Erin | Listen. I can't stay here.{p} Find me past the clinic gate. {wave}Don't take forever.{/wave}
 
-# Rank 2: after you pick up the card binder. (DRAFT)
+# Rank 2: you find her by the goggles, near the clinic gate. She gives you the card binder, then asks if you can read:
+# "Yes" (option 1) and she keeps the language chip until after the Collector; "No" (option 2) and she gives it now.
+# She waits there while you face the Collector alone; she joins after it and then offers her battle tutorial. (DRAFT)
 [bond.erin.2]
-Erin | You found a binder? Cards... I used to know someone who collected those.
-Erin | Funny. I can't remember their face. Just the sound of the cards shuffling.
+Erin | There you are. Took you long enough.
+Erin | Here. Take it before I change my mind.
+She hands you a small leather binder, its cover worn soft. A gold strap holds it shut.
+{gold}Card Binder{/c} obtained.{p} Open it from the {gold}Esc{/c} menu.
 
 [bond.erin.2.ask]
-Erin | Do you ever feel like something's missing, and you can't say what?
+Erin | Well. You took so long to find me, I'm guessing there's not much of a brain in there...{p} Can you even read and write?
 
 [bond.erin.2.options]
-All the time. We can look for it together.
-Not really.
-Maybe it's better not to know.
+Yes.
+...No.
 
 [bond.erin.2.answer.1]
-Erin | Together. Okay.{p} I like the sound of that.
+Erin | {wave}Wow.{/wave} Okay, genius.{p} Then you won't be needing my little gift. Yet.
 
 [bond.erin.2.answer.2]
-Erin | Lucky you. Hold on to that.
+Erin | Figured. Lucky for you, I came prepared.{p} Not for you. I just had a spare.
 
-[bond.erin.2.answer.3]
-Erin | Maybe. But I'd rather know.
+# Only if someone joins at a rank below their Soul Card (Erin joins at rank 3 now, with her Soul Card).
+[bond.erin.join]
+Erin | Right. I'm coming with you.{p} Someone has to make sure you don't walk into a wall.
 
-# Rank 3: after the scanner. Your souls bond: she gives you her Soul Card and joins you. (DRAFT)
+# Rank 3: back from beating the Collector (she fought beside you): she sticks around for good, her Soul Card, and the
+# language chip if you told her you could read. (DRAFT)
 [bond.erin.3]
-Erin | That scanner... it's reading something off you. Off both of us.
-Erin | I can feel it too. Like a string pulled tight between us.
+Erin | Hmph. You actually won.{p} ...Don't look at me like that. I wasn't worried.
+Erin | And I only stepped in because you were taking forever. Like a sensible person.
+Erin | You fight well enough, I guess.{p} You're at least {wave}interesting{/wave} to follow.
 
 [bond.erin.3.ask]
-Erin | If I came with you... would that be all right?
+Erin | So I'm sticking around. Got a problem with that?
 
 [bond.erin.3.options]
-I want you to come.
-If you can keep up.
-It's dangerous out there.
+...Thanks.
+Whatever.
+Why?
 
 [bond.erin.3.answer.1]
-Erin | {wave}Then it's settled.{/wave}
+Erin | D-don't thank me! It's not for you. {p}...You're welcome.
 
 [bond.erin.3.answer.2]
-Erin | Keep up? Watch me.
+Erin | "Whatever." Wow. Charming.{p} ...I'm coming anyway.
 
 [bond.erin.3.answer.3]
-Erin | Everywhere's dangerous. At least out there I won't be alone.
+Erin | Because left alone you'll get yourself scrapped, and then who'd I follow around?
 
-# Rank 3 reached: the Soul Card.
+# Rank 3 reached: she joins the party and gives her Soul Card.
 [bond.erin.soul]
-Erin | Here. Take this.
+Erin | Here. Take this. And don't make a big deal out of it.
 She presses a card into your hand. It is warm, like a held breath.
-Erin | My Soul Card. I don't know how I know, but it's yours to carry now.{p} So am I, I suppose.
+Erin | My Soul Card. I don't know how I know, but it's yours to carry now.{p} Lose it and I'll never forgive you.
 
-# Rank 4: after the Collector (she finds you once you're back). (DRAFT)
+# Rank 4: in the buried tunnel, after the Collector. (DRAFT)
 [bond.erin.4]
 Erin | That man wanted what's in you. In us.{p} He said "traces of souls" like it was a price tag.
 
@@ -101,18 +115,18 @@ Erin | That man wanted what's in you. In us.{p} He said "traces of souls" like i
 Erin | Do you think we have them? Souls?
 
 [bond.erin.4.options]
-You do. I've seen it.
-I don't know.
+You do.
+Don't know.
 Does it matter?
 
 [bond.erin.4.answer.1]
-Erin | ...Thank you. I needed someone to say it.
+Erin | ...Thank you. {p}I-I mean, obviously. I knew that.
 
 [bond.erin.4.answer.2]
-Erin | Me neither. Let's find out together.
+Erin | Me neither. Guess we find out together. {p}Not because I want to. Shut up.
 
 [bond.erin.4.answer.3]
-Erin | It matters to me.
+Erin | It matters to me, idiot.
 
 # Rank 5: after you've seen the dragon. (DRAFT)
 [bond.erin.5]
@@ -124,7 +138,7 @@ Erin | Promise me something? Remember me. Whatever happens.
 
 [bond.erin.5.options]
 I promise.
-Nothing's going to happen.
+Nothing will.
 ...
 
 [bond.erin.5.answer.1]
@@ -136,35 +150,71 @@ Erin | Ha. Right. Of course not.
 [bond.erin.5.answer.3]
 Erin | You don't have to say it. I know.
 
-# The end of Chapter One: the old machine takes her, and her Soul Card is obliterated. (DRAFT; the bible leaves the
-# exact circumstances open.)
-[erin.lost]
-Erin | Something's wrong. The machine— it's pulling at me. At the card.
-Erin | {name}, don't let go— {p=0.8}
-The old machine screams. Light pours through Erin until there is nothing left to pour through.
-Her Soul Card falls from your hand, cracked straight through, and crumbles to grey dust.
-{gray}Erin is gone.{/c}
+# After the Collector, for a player who never talked to her before the fight (bond 0): she hands over the binder
+# anyway (then the language chip, [erin.chip], if you haven't got it), and says where the tutorials are. (DRAFT)
+[erin.catchup]
+Erin | Not bad, for someone who didn't even say hello first.
+Erin | Here. Take it before I change my mind.
+She hands you a small leather binder, its cover worn soft. A gold strap holds it shut.
+{gold}Card Binder{/c} obtained.{p} Open it from the {gold}Esc{/c} menu.
+
+[erin.catchup.tutorial]
+Erin | If you ever want a refresher on fighting, it's all in {gold}Esc{/c}, then {gold}Settings{/c}: {gold}Practice with Erin{/c} and the {gold}Tutorials{/c}.
+Erin | ...Not that you need it. You picked it up fast.{p} Annoyingly fast.
+
+# Losing Erin at the end of Chapter One is now the ending in Chapter1.txt (the [ending.*] blocks).
 
 # ------------------------------------------------------------------ Erin's battle tutorial
 
-# Right after she joins: "want a quick rundown?" (the last line asks; the answers are tutorial.offer.options).
+# After her rank-2 scene: "want a quick rundown?" (the last line asks; the answers are tutorial.offer.options).
+# She hasn't joined you yet: she coaches from the side.
+# Right after Erin joins you (back from the Collector): fighting together.
 [tutorial.offer]
-Erin | Something's moving out there. A machine, a small one.
-Erin | Want a quick rundown before we fight together?
+Erin | That fight was ugly, by the way. You won, but it was {wave}ugly{/wave}.
+Erin | See that old robot over there? A dummy robot, for practice. Someone wired a Soul Card into its chest, of all things.
+Erin | Want a quick rundown on fighting as a pair, before you embarrass us both? I'll go easy on you.
 
 [tutorial.offer.options]
-Yes, show me.
+Show me.
 I know how.
 
 [tutorial.skip]
-Erin | Then let's go. I'll follow your lead.
+Erin | Oh, {wave}sure{/wave} you do. Don't come crying to me.
 
 [tutorial.erin.intro]
-Erin | Okay! Fighting together's all about the cards. Every card costs 1 AP, and we get 1 AP each per turn.
+Erin | Okay, listen up, because I'm only saying this once. Fighting is all about the cards.
+Erin | AP means {gold}Action Points{/c}. Each one is a square at the top of the screen.
+Erin | Every action costs one: playing a card, or moving a card in your hand. You get 1 AP a turn for every fighter on your side.
+
+# Step: hold a card to read it.
+[tutorial.erin.hold]
+Erin | First, {gold}hold{/c} a card in your hand. Press and keep pressing. Go on.
+
+# After holding a card: you told her you could read (and she still has the language chip).
+[tutorial.erin.info.read]
+Erin | Well, since you {wave}said{/wave} you could read...{p} holding a card shows you its info. All of the {gold}readable{/c} info.
+Erin | ...Is something wrong? You look a little lost. {wave}Genius.{/wave}
+
+# After holding a card: you have the language chip (you said you couldn't read).
+[tutorial.erin.info.chip]
+Erin | See? Holding a card shows you everything on it. The chip's doing its job.
+Erin | I've heard there are other chips out there. One for numbers, one for colours.{p} Haven't found them myself. Not that I looked very hard.
+
+# After holding a card: every chip found (practice replays).
+[tutorial.erin.info]
+Erin | See? Holding a card shows you everything on it: what it does, how hard it hits.
+
+# Step: hold the dummy robot to zoom in.
+[tutorial.erin.zoom]
+Erin | Now {gold}hold{/c} the dummy robot. Same thing: press and keep pressing.
+
+[tutorial.erin.zoom.after]
+Erin | That's its sheet. What it's weak to, and that grey bar under its health: its {gold}Break{/c}.
+Erin | And see that? It's {c=#C4B0FF}Soul-bound{/c}. Regular hits won't finish it. Remember that.
 
 # Step 1: tap a Physical card.
 [tutorial.erin.1]
-Erin | First, tap a Physical card. That one, glowing. It costs 1 AP.
+Erin | Now tap a Physical card. That one, glowing. It costs 1 AP.
 
 # Step 2: move a card next to its match so they merge into Rank II.
 [tutorial.erin.2]
@@ -172,23 +222,31 @@ Erin | See those two matching cards? Spend 1 AP to slide one next to the other, 
 
 # Out of AP: press Go.
 [tutorial.erin.go]
-Erin | We're out of AP. Press Go and watch the cards play out.
+Erin | You're out of AP. Press Go and watch the cards play out.
 
 # Step 3: cast the Rank II card.
 [tutorial.erin.3]
-Erin | Now cast the Rank II card. Merged cards hit harder, and their Break power is bigger too. That grey bar under its health? Empty it.
+Erin | Now cast the Rank II card. Merged cards hit harder, and their Break power is bigger too. That grey bar? Empty it.
 
 [tutorial.erin.go_break]
 Erin | That's it. Press Go, and hit that guard!
 
-# Step 4: BREAK, then the finishing strike.
+# Step 4: BREAK.
 [tutorial.erin.4]
 Erin | {shake}BREAK!{/shake} It's stunned and loses its turn, and every hit on it does extra damage while it's down.
-Erin | Finish it! Play anything you like, then Go.
+Erin | But it's still standing, isn't it? Told you. Soul-bound.
+
+# Step 5: the Ult. The lead's Ult points fill and their Soul Card comes into the hand.
+[tutorial.erin.ult]
+Erin | Your Ult points are full, so your {gold}Soul Card{/c} just showed up in your hand. That's your Ult.
+Erin | It's the only thing that can finish a Soul-bound thing. Play it!
+
+[tutorial.erin.go_ult]
+Erin | Now Go.{p} ...And don't miss. I'm watching.
 
 [tutorial.erin.done]
-Erin | {wave}Nice!{/wave} You've got it. From here on, it's all you.
+Erin | {wave}Hmph.{/wave} Not bad. From here on, it's all you.
 
 # After winning a practice replay (Settings > Practice with Erin).
 [tutorial.practice.done]
-Erin | Good practice. Same time tomorrow?
+Erin | Good practice. Same time tomorrow? {p}...Not that I'll be waiting.

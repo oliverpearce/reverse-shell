@@ -100,6 +100,13 @@ namespace Combat.View
             InkStyle.Frame(bannerBg.rectTransform, InkStyle.Rule, 1f);
             bannerText = InkStyle.Title(bannerBg.transform, "Text", "", 46, InkStyle.Paper, TextAnchor.MiddleCenter).BestFit(20, 46);
             bannerText.rectTransform.Fill(10f);
+            // Without the language chip a card's name is runes; its rank numeral still reads (ShowRuneBanner).
+            bannerRunes = UIFactory.CreateRect("Runes", bannerBg.transform);
+            bannerRunes.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(20f, 0f), new Vector2(560f, 56f));
+            bannerSuffix = InkStyle.Title(bannerBg.transform, "Rank", "", 46, InkStyle.Paper, TextAnchor.MiddleCenter);
+            bannerSuffix.rectTransform.Place(new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-20f, 0f), new Vector2(120f, 66f));
+            bannerRunes.gameObject.SetActive(false);
+            bannerSuffix.gameObject.SetActive(false);
 
             // Result overlay: an ink wash with paper grain, a big serif title between gold rules, a gold button.
             var result = UIFactory.CreateImage(root, "Result", new Color(0.07f, 0.065f, 0.06f, 0.9f), true);
@@ -291,9 +298,31 @@ namespace Combat.View
         {
         }
 
+        RectTransform bannerRunes;
+        Text bannerSuffix;
+
+        /// <summary>A card's banner when its words don't read yet: the name in runes, then the plain
+        /// <paramref name="suffix"/> (its rank numeral, which the player can already read).</summary>
+        public void ShowRuneBanner(string name, string suffix, Color color, float hold = 0.7f)
+        {
+            ShowBanner("", color, hold);
+            bannerText.gameObject.SetActive(false);
+            UIFactory.ClearChildren(bannerRunes);
+            bannerRunes.gameObject.SetActive(true);
+            bool hasSuffix = !string.IsNullOrEmpty(suffix);
+            float w = hasSuffix ? 560f : 680f;
+            bannerRunes.sizeDelta = new Vector2(w, 56f);
+            RuneText.Build(bannerRunes, name, InkStyle.Paper, w, 56f, 34f);
+            bannerSuffix.gameObject.SetActive(hasSuffix);
+            bannerSuffix.text = suffix ?? "";
+        }
+
         public void ShowBanner(string text, Color color, float hold = 0.7f)
         {
             if (bannerRoutine != null) StopCoroutine(bannerRoutine);
+            bannerText.gameObject.SetActive(true);
+            if (bannerRunes != null) bannerRunes.gameObject.SetActive(false);
+            if (bannerSuffix != null) bannerSuffix.gameObject.SetActive(false);
             bannerText.text = text;
             bannerBg.color = Color.Lerp(PanelDark, UIFactory.WithAlpha(color, 0.9f), 0.5f);
             bannerRoutine = StartCoroutine(BannerRoutine(hold));

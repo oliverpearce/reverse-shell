@@ -16,6 +16,7 @@ MonoBehaviour:
   color: {r: 0.45, g: 0.75, b: 1, a: 1}
   portrait: {fileID: 0}
   animations: {fileID: 11400000, guid: 0658375394eb0054e841e736f08bfe1c, type: 2}
+  altAnimations: {fileID: 0}
   spriteSheet: {fileID: 0}
   sheetColumns: 3
   sheetRows: 4
@@ -41,6 +42,7 @@ MonoBehaviour:
   xpReward: 300
   breakPoints: 12
   weaknesses: 1
+  soulOnly: 0
   ritual: {fileID: 11400000, guid: 24235566bf1c5054288be25e26d09822, type: 2}
   innate: {fileID: 11400000, guid: 0a9f10b068c3d5b4dac30534a0894bbf, type: 2}
   innateLevels: 3

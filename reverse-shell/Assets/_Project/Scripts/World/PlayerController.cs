@@ -19,6 +19,24 @@ namespace Game.World
 
         public CharacterSprite Sprite { get; private set; }
 
+        /// <summary>The last direction walked (x = east, y = north), for scripted moves that carry on from it.</summary>
+        public Vector2 LastInput { get; private set; }
+
+        Vector3 drift;
+        float driftLeft, driftTotal;
+
+        /// <summary>True while a <see cref="Drift"/> is still carrying the player.</summary>
+        public bool Drifting { get { return driftLeft > 0f; } }
+
+        /// <summary>Carries the player on in <paramref name="direction"/> for <paramref name="seconds"/>, slowing to a stop
+        /// (with collisions), ignoring the keys. Works even while <see cref="Frozen"/>.</summary>
+        public void Drift(Vector2 direction, float seconds)
+        {
+            if (direction.sqrMagnitude < 0.0001f) direction = Vector2.down;
+            drift = new Vector3(direction.x, 0f, direction.y).normalized;
+            driftTotal = driftLeft = Mathf.Max(0.05f, seconds);
+        }
+
         OverworldMap map;
         OverworldBuilder world;
 
@@ -35,6 +53,18 @@ namespace Game.World
 
             if (Input.GetKeyDown(interactKey)) world.OnInteractPressed();
 
+            // A scripted stumble (the first steps out of the capsule): keeps going the way you were walking, slowing to
+            // a stop, whatever the keys say.
+            if (driftLeft > 0f)
+            {
+                driftLeft -= Time.deltaTime;
+                float k = Mathf.Clamp01(driftLeft / driftTotal);
+                Move(drift * walkSpeed * (0.25f + 0.75f * k) * Time.deltaTime);
+                Sprite.Face(new Vector2(drift.x, drift.z));
+                Sprite.SetMoving(driftLeft > 0.08f);
+                return;
+            }
+
             if (Frozen)
             {
                 Sprite.SetMoving(false);
@@ -48,6 +78,7 @@ namespace Game.World
 
             if (moving)
             {
+                LastInput = input.normalized;
                 float speed = running ? runSpeed : walkSpeed;
                 Move(new Vector3(input.x, 0f, input.y) * speed * Time.deltaTime);
                 Sprite.Face(input);

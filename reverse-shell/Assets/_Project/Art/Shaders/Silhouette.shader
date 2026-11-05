@@ -1,6 +1,7 @@
 // The player's outline when something stands in front of them (Track C). Every pixel of the sprite is tested against
-// the scenery already drawn (ZTest Greater): only the pixels something covers pass, and of those only the sprite's
-// edge is drawn (no fill by default), so the parts of you that are hidden show as an outline and nothing else changes.
+// the scenery already drawn (ZTest Greater): only the pixels something covers pass. There the outline is drawn just
+// outside the figure (empty pixels next to a solid one), so it's one unbroken line all the way round however thin a limb
+// is, with a faint fill inside so the hidden shape still reads.
 // Used by PlayerSilhouette on a copy of the player's sprite.
 Shader "Reverse Shell/Silhouette"
 {
@@ -8,7 +9,7 @@ Shader "Reverse Shell/Silhouette"
     {
         [PerRendererData] _MainTex ("Sprite", 2D) = "white" {}
         _Color ("Outline", Color) = (1, 0.9, 0.55, 1)
-        _Fill ("Fill strength", Range(0, 1)) = 0
+        _Fill ("Fill strength", Range(0, 1)) = 0.18
     }
     SubShader
     {
@@ -44,13 +45,18 @@ Shader "Reverse Shell/Silhouette"
             {
                 float a = tex2D(_MainTex, i.uv).a;
                 float2 t = _MainTex_TexelSize.xy;
-                // An edge pixel: inside the sprite, with an empty pixel beside it.
-                float around = tex2D(_MainTex, i.uv + float2(t.x, 0)).a * tex2D(_MainTex, i.uv - float2(t.x, 0)).a
-                             * tex2D(_MainTex, i.uv + float2(0, t.y)).a * tex2D(_MainTex, i.uv - float2(0, t.y)).a;
-                if (a < 0.5) discard;
-                float edge = around < 0.5 ? 1.0 : _Fill;
-                if (edge <= 0.0) discard;
-                return fixed4(_Color.rgb, _Color.a * edge);
+                // Inside the figure: the faint fill. Outside it: the outline, where any neighbour (8 around) is solid.
+                if (a >= 0.5)
+                {
+                    if (_Fill <= 0.0) discard;
+                    return fixed4(_Color.rgb, _Color.a * _Fill);
+                }
+                float near = max(max(tex2D(_MainTex, i.uv + float2(t.x, 0)).a, tex2D(_MainTex, i.uv - float2(t.x, 0)).a),
+                                 max(tex2D(_MainTex, i.uv + float2(0, t.y)).a, tex2D(_MainTex, i.uv - float2(0, t.y)).a));
+                near = max(near, max(max(tex2D(_MainTex, i.uv + t).a, tex2D(_MainTex, i.uv - t).a),
+                                     max(tex2D(_MainTex, i.uv + float2(t.x, -t.y)).a, tex2D(_MainTex, i.uv + float2(-t.x, t.y)).a)));
+                if (near < 0.5) discard;
+                return fixed4(_Color.rgb, _Color.a);
             }
             ENDCG
         }

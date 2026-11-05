@@ -25,6 +25,27 @@ namespace Combat.View
         const float BossScale = 1.5f;
         /// <summary>A set's optional battle-only idle (the plain "idle" is used outside battle).</summary>
         const string BattleIdle = "battle_idle";
+
+        /// <summary>The stance a unit idles in during battle: its character's battle idle variant (battle_idle,
+        /// battle_idle2, battle_idle3), else battle_idle, else the set's idle.</summary>
+        public static string BattleIdleOf(BattleUnit unit, SpriteAnimationSet anim)
+        {
+            if (anim == null) return UISpriteAnimator.Idle;
+            var character = unit != null ? unit.Character : null;
+            if (character != null)
+            {
+                int n = character.battleIdle;
+                if (n <= 0)
+                {
+                    int hash = 0;
+                    foreach (char ch in character.name ?? "") hash = hash * 31 + ch;
+                    n = 1 + Mathf.Abs(hash % 3);
+                }
+                string variant = n <= 1 ? BattleIdle : BattleIdle + n;
+                if (anim.Has(variant)) return variant;
+            }
+            return anim.Has(BattleIdle) ? BattleIdle : UISpriteAnimator.Idle;
+        }
         /// <summary>The intent card floats just above the sprite's head: this high for an ordinary enemy, raised for a
         /// boss by the extra height of its head (the figure's head is about 5/8 of the way up its frame).</summary>
         const float IntentY = 64f, HeadShare = 0.625f;
@@ -229,8 +250,9 @@ namespace Combat.View
             images.Add(flash);
 
             animator = Body.gameObject.AddComponent<UISpriteAnimator>();
-            if (anim.Has(BattleIdle)) animator.IdleClip = BattleIdle;   // e.g. A3 draws her sword only in battle
+            animator.IdleClip = BattleIdleOf(unit, anim);
             animator.Init(anim, unit.Team == Team.Player ? Facing.Right : Facing.Left, images.ToArray());
+            animator.Desync();   // nobody breathes in lockstep
 
         }
 

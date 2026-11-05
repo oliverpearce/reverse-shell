@@ -101,9 +101,11 @@ namespace Combat.View
             var soulSprite = card.IsRitual ? CardArt.SoulSprite(owner) : null;
             if (soulSprite != null && owner is CharacterDefinition)
             {
-                // A strong wash of the unit's colour, so whose Soul card it is reads at a glance.
-                BuildSimpleFace(root, soulSprite, Color.Lerp(card.Owner.Color, Color.white, 0.2f), card.Name, s, true);
+                // A strong wash of the unit's own colour (exactly: the swirl's white highlights show it as it is, e.g.
+                // Ashe's cornflower blue #6495ED), so whose Soul card it is reads at a glance.
+                BuildSimpleFace(root, soulSprite, card.Owner.Color, card.Name, s, true);
                 UltShine.Add(root, null, u);
+                SoulGlow.Add(root, SoulGlow.ColorOf(owner));   // every Soul card glows softly on hover
                 if (detailed) DetailPanel(root, card, s);
                 return;
             }
@@ -120,6 +122,7 @@ namespace Combat.View
                 }
                 Pixel(artRect, "UltArt", ult, Color.white).rectTransform.Fill();
                 UltShine.Add(artRect, ult, u);   // every Ult card glistens, in the hand and in every menu
+                SoulGlow.Add(root, owner != null ? SoulGlow.ColorOf(owner) : card.Owner.Color);
             }
             else
             {

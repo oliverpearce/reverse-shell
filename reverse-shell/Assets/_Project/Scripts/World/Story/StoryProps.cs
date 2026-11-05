@@ -146,6 +146,33 @@ namespace Game.World
             ring.AddComponent<Sweep>().radius = radius;
         }
 
+        /// <summary>The Collector's trap (Chapter One's ending): a ring of glowing cyan bars that slam down around
+        /// <paramref name="at"/>, with a ring on the ground and a cap of light on top.</summary>
+        public static GameObject Cage(Transform parent, Vector3 at)
+        {
+            var root = Root(parent, "Cage", at);
+            var bar = WorldArt.Emissive(Cyan, 3f);
+            const int bars = 10;
+            const float radius = 0.62f, height = 2.3f;
+            for (int i = 0; i < bars; i++)
+            {
+                float a = i * Mathf.PI * 2f / bars;
+                var b = Block(root.transform, "Bar", bar, new Vector3(Mathf.Cos(a) * radius, height * 0.5f, Mathf.Sin(a) * radius),
+                    new Vector3(0.05f, height, 0.05f));
+                b.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            var cap = WorldArt.Primitive(PrimitiveType.Quad, "Cap", root.transform, WorldArt.AdditiveTinted(WorldArt.FrameTexture(), Cyan));
+            cap.transform.localPosition = new Vector3(0f, height, 0f);
+            cap.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            cap.transform.localScale = new Vector3(radius * 2.2f, radius * 2.2f, 1f);
+            var ring = WorldArt.Primitive(PrimitiveType.Quad, "Ring", root.transform, WorldArt.AdditiveTinted(WorldArt.FrameTexture(), Cyan));
+            ring.transform.localPosition = new Vector3(0f, 0.04f, 0f);
+            ring.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            ring.transform.localScale = new Vector3(radius * 2.4f, radius * 2.4f, 1f);
+            root.AddComponent<Slam>();
+            return root;
+        }
+
         /// <summary>A revealed trace: a faint cyan mark on the ground that fades after a while.</summary>
         public static void TraceMark(Transform parent, Vector3 at, float lifetime)
         {
@@ -162,6 +189,26 @@ namespace Game.World
         Vector3 origin;
         void Start() { origin = transform.localPosition; }
         void Update() { transform.localPosition = origin + Vector3.up * Mathf.Sin(Time.time * speed) * height; }
+    }
+
+    /// <summary>Drops from above and lands hard (the cage), then hums with a faint flicker.</summary>
+    public class Slam : MonoBehaviour
+    {
+        public float drop = 3f, seconds = 0.18f;
+        Vector3 rest;
+        float t;
+        void Start()
+        {
+            rest = transform.position;
+            transform.position = rest + Vector3.up * drop;
+        }
+        void Update()
+        {
+            t += Time.deltaTime;
+            float p = Mathf.Clamp01(t / seconds);
+            transform.position = rest + Vector3.up * drop * (1f - p * p);
+            if (p >= 1f) transform.localScale = Vector3.one * (1f + 0.02f * Mathf.Sin(Time.time * 40f));
+        }
     }
 
     /// <summary>A slow turn around the vertical axis.</summary>

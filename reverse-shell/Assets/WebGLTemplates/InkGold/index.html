@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>%UNITY_WEB_NAME%</title>
+    <!-- Reverse Shell's loading page: ink and gold, in the game's monogram font (CC0, datagoblin).
+         Fills the whole frame (the itch.io embed or the browser window); the game canvas keeps 16:9 inside it. -->
+    <style>
+      @font-face { font-family: "monogram"; src: url("TemplateData/monogram.ttf") format("truetype"); }
+      :root {
+        --ink: #0b0a09; --ink-2: #16130f; --paper: #e8dfcc; --paper-dim: #9c927f;
+        --gold: #c2a061; --gold-bright: #f0cd78; --rule: rgba(194, 160, 97, 0.55);
+      }
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--ink); }
+      body { font-family: "monogram", monospace; color: var(--paper); -webkit-font-smoothing: none; }
+      #frame { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+      #unityContainer { position: relative; width: 100%; height: 100%; background: var(--ink); }
+      #unityContainer canvas { display: block; width: 100%; height: 100%; }
+      /* Unity's own splash progress is hidden: ours sits on top until the game is ready. */
+      #unityContainer .logo, #unityContainer .progress { display: none !important; }
+
+      #loader {
+        position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background: radial-gradient(ellipse at center, var(--ink-2) 0%, var(--ink) 70%); z-index: 2;
+        transition: opacity 0.6s ease;
+      }
+      #loader.done { opacity: 0; pointer-events: none; }
+      .title { font-size: clamp(40px, 9vw, 112px); color: var(--gold-bright); letter-spacing: 0.08em; line-height: 1;
+               text-shadow: 0 4px 0 #3a2a10; }
+      .rule { width: min(560px, 70vw); height: 2px; background: var(--rule); margin: 18px 0 14px; position: relative; }
+      .rule::before, .rule::after { content: ""; position: absolute; top: -4px; width: 10px; height: 10px;
+               background: var(--gold); transform: rotate(45deg); }
+      .rule::before { left: -14px; } .rule::after { right: -14px; }
+      .tagline { font-size: clamp(18px, 2.6vw, 30px); color: var(--paper-dim); margin-bottom: 34px; text-align: center; padding: 0 16px; }
+      .bar { width: min(520px, 70vw); height: 14px; border: 2px solid var(--gold); padding: 3px; box-sizing: content-box; }
+      .fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--gold) 0%, var(--gold-bright) 100%);
+              transition: width 0.25s ease; }
+      .status { margin-top: 14px; font-size: clamp(16px, 2.2vw, 26px); color: var(--paper); min-height: 1.2em; }
+      .status .pct { color: var(--gold-bright); }
+      .hint { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; font-size: clamp(14px, 1.8vw, 22px);
+              color: var(--paper-dim); padding: 0 16px; }
+      .error { color: #ff8a7a; }
+
+      #fullscreen {
+        position: absolute; right: 10px; bottom: 10px; z-index: 3; font-family: "monogram", monospace; font-size: 22px;
+        color: var(--paper); background: rgba(11, 10, 9, 0.7); border: 2px solid var(--rule); padding: 2px 10px;
+        cursor: pointer; display: none;
+      }
+      #fullscreen:hover { color: var(--gold-bright); border-color: var(--gold); }
+    </style>
+    <script src="%UNITY_WEBGL_LOADER_URL%"></script>
+  </head>
+  <body>
+    <div id="frame">
+      <div id="unityContainer"></div>
+    </div>
+    <div id="loader">
+      <div class="title">REVERSE SHELL</div>
+      <div class="rule"></div>
+      <div class="tagline">Wake in the ruins. Merge cards. Break the machines.</div>
+      <div class="bar"><div class="fill" id="fill"></div></div>
+      <div class="status" id="status">Waking up... <span class="pct">0%</span></div>
+      <div class="hint">Best in Chrome or Firefox, fullscreen. Esc or P pauses.</div>
+    </div>
+    <button id="fullscreen" title="Fullscreen">[ ] Fullscreen</button>
+    <script>
+      var lines = ["Waking up...", "Booting the Core...", "Shuffling the deck...", "Growing the moss...", "Almost there..."];
+      var fill = document.getElementById("fill");
+      var status = document.getElementById("status");
+      var loader = document.getElementById("loader");
+      var fullscreen = document.getElementById("fullscreen");
+
+      function progress(instance, value) {
+        if (!instance.Module) return;
+        var pct = Math.round(value * 100);
+        fill.style.width = pct + "%";
+        var line = lines[Math.min(lines.length - 1, Math.floor(value * lines.length))];
+        status.innerHTML = line + ' <span class="pct">' + pct + "%</span>";
+        if (value >= 1) {
+          status.textContent = "Starting...";
+          // The first frame draws a moment after the download finishes.
+          setTimeout(function () { loader.classList.add("done"); fullscreen.style.display = "block"; }, 700);
+        }
+      }
+
+      var unityInstance = UnityLoader.instantiate("unityContainer", "%UNITY_WEBGL_BUILD_URL%", { onProgress: progress });
+      fullscreen.onclick = function () { unityInstance.SetFullscreen(1); };
+
+      window.addEventListener("error", function () {
+        if (loader.classList.contains("done")) return;
+        status.innerHTML = '<span class="error">Something went wrong loading the game. Try reloading the page, or another browser.</span>';
+      });
+    </script>
+  </body>
+</html>

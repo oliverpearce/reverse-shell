@@ -21,6 +21,12 @@ MonoBehaviour:
     y: 0.09375
     width: 0.25
     height: 0.3125
+  portraitCrop:
+    serializedVersion: 2
+    x: 0.359375
+    y: 0.15625
+    width: 0.328125
+    height: 0.375
   clips:
   - name: idle
     sheet: {fileID: 2800000, guid: 6c34f6cd4d5b58de82db5de9c891e9f8, type: 3}
@@ -48,7 +54,7 @@ MonoBehaviour:
     frameCount: 0
   - name: slash
     sheet: {fileID: 2800000, guid: 627e21937b985e94acfa23c69a741997, type: 3}
-    fps: 20
+    fps: 16
     loop: 0
     firstFrame: 0
     frameCount: 0
@@ -64,15 +70,45 @@ MonoBehaviour:
     loop: 0
     firstFrame: 0
     frameCount: 0
-  - name: sit
-    sheet: {fileID: 2800000, guid: 2c5330e3f9cd55b1a2c1f774b0c3cb57, type: 3}
-    fps: 8
-    loop: 0
+  - name: walk_s1
+    sheet: {fileID: 2800000, guid: 8cc237bf597a54c58d62bb1c5d21d2a1, type: 3}
+    fps: 10
+    loop: 1
     firstFrame: 0
     frameCount: 0
-  - name: read
-    sheet: {fileID: 2800000, guid: 2f000bb7a9b1555d84f5217fe0985823, type: 3}
+  - name: walk_s2
+    sheet: {fileID: 2800000, guid: d4720d36d5705c2faa58a81bc77c7ca2, type: 3}
+    fps: 15
+    loop: 1
+    firstFrame: 0
+    frameCount: 0
+  - name: walk_s3
+    sheet: {fileID: 2800000, guid: 531da8c5db55540085fe26c915ca026c, type: 3}
+    fps: 13.5
+    loop: 1
+    firstFrame: 0
+    frameCount: 0
+  - name: battle_idle
+    sheet: {fileID: 2800000, guid: 50fa81da8b1ed8b49b8412bdd994408a, type: 3}
+    fps: 5
+    loop: 1
+    firstFrame: 0
+    frameCount: 0
+  - name: battle_idle2
+    sheet: {fileID: 2800000, guid: 7980945fba7857b1b3691e28c246c5dc, type: 3}
+    fps: 5
+    loop: 1
+    firstFrame: 0
+    frameCount: 0
+  - name: battle_idle3
+    sheet: {fileID: 2800000, guid: af321665806e58fc8536af0243368ea3, type: 3}
+    fps: 5
+    loop: 1
+    firstFrame: 0
+    frameCount: 0
+  - name: portrait
+    sheet: {fileID: 2800000, guid: 15e1dbe65193509c8be472b548609047, type: 3}
     fps: 8
-    loop: 0
+    loop: 1
     firstFrame: 0
     frameCount: 0

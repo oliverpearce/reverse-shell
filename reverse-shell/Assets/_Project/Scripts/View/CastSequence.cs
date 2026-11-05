@@ -15,13 +15,17 @@ namespace Combat.View
         [SerializeReference, SubclassSelector]
         public List<CastStep> steps = new List<CastStep>();
 
+        /// <summary>Plays the steps in order. A <see cref="LungeStep"/> ends on the blow, so once it has finished the
+        /// sequence returns at once (<see cref="CastContext.Struck"/>) and the steps after it (the target's flash, a shake)
+        /// run alongside the damage numbers, which then land on the strike frame.</summary>
         public IEnumerator Play(CastContext ctx)
         {
             foreach (var step in steps)
             {
                 if (step == null) continue;
-                if (step.runInParallel) ctx.View.StartCoroutine(step.Play(ctx));
+                if (step.runInParallel || ctx.Struck) ctx.View.StartCoroutine(step.Play(ctx));
                 else yield return ctx.View.StartCoroutine(step.Play(ctx));
+                if (step is LungeStep) ctx.Struck = true;
             }
         }
 
@@ -68,13 +72,18 @@ namespace Combat.View
         public readonly UnitView Caster;
         public readonly List<UnitView> Targets;
         public readonly Color CasterColor;
+        /// <summary>An Ult (Soul Card) cast: the camera pushes in a little further.</summary>
+        public readonly bool Ritual;
+        /// <summary>The lunge has reached the blow: the hit's events play now, with no pause after the cast.</summary>
+        public bool Struck;
 
-        public CastContext(BattleView view, UnitView caster, List<UnitView> targets, Color casterColor)
+        public CastContext(BattleView view, UnitView caster, List<UnitView> targets, Color casterColor, bool ritual = false)
         {
             View = view;
             Caster = caster;
             Targets = targets;
             CasterColor = casterColor;
+            Ritual = ritual;
         }
 
         public List<UnitView> Resolve(StepTarget at)

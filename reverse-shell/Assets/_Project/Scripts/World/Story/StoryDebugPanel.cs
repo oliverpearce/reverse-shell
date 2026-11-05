@@ -41,8 +41,14 @@ namespace Game.World
 
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.F8)) open = !open;
+            // F8, or Ctrl+Shift+D (a laptop's F8 is often a media key unless Fn is held).
+            bool ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+            bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            if (Input.GetKeyDown(KeyCode.F8) || (ctrl && shift && Input.GetKeyDown(KeyCode.D))) Toggle();
         }
+
+        /// <summary>Opens or closes the panel (F8, Ctrl+Shift+D, or Reverse Shell → Story in the editor).</summary>
+        public void Toggle() { open = !open; }
 
         void OnGUI()
         {
@@ -51,7 +57,7 @@ namespace Game.World
             GUI.skin.button.fontSize = 14;
             GUILayout.BeginArea(new Rect(10, 10, 360, Screen.height - 20), GUI.skin.box);
             scroll = GUILayout.BeginScrollView(scroll);
-            GUILayout.Label("STORY DEBUG (F8)");
+            GUILayout.Label("STORY DEBUG (F8 or Ctrl+Shift+D)");
             GUILayout.Label("Area: " + WorldSession.CurrentArea + "    Name: " + (string.IsNullOrEmpty(StoryState.PlayerName) ? "-" : StoryState.PlayerName));
             GUILayout.Label("Objective: " + Chapter1.CurrentObjective());
             GUILayout.Space(6);
@@ -61,6 +67,17 @@ namespace Game.World
             GUILayout.Label("Jump to:");
             foreach (var beat in Beats)
                 if (GUILayout.Button(beat.Label)) Jump(beat);
+            if (GUILayout.Button("0  Play the reflection here"))
+            {
+                var world = FindObjectOfType<OverworldBuilder>();
+                if (world != null) { open = false; ChapterOneDirector.ReplayReflection(world); }
+            }
+            // The ending (the Collector's trap, Erin's Soul Card ripped): plays here and now, on this save.
+            if (GUILayout.Button("8  Play the ending here"))
+            {
+                var world = FindObjectOfType<OverworldBuilder>();
+                if (world != null) { open = false; ChapterOneDirector.ReplayEnding(world); }
+            }
             GUILayout.EndScrollView();
             GUILayout.EndArea();
         }

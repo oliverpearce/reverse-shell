@@ -293,10 +293,10 @@ namespace Game.World
             return n;
         }
 
-        /// <summary>In the Sandbox (entered from Settings → Enter Sandbox Mode).</summary>
+        /// <summary>In the Sandbox (Sandbox Mode on the title screen, its own save).</summary>
         public static bool InSandbox { get { return WorldAreas.IsSandboxArea(CurrentArea); } }
 
-        /// <summary>Where Leave Sandbox Mode puts you back: the area, spot and facing you entered from. Saved.</summary>
+        /// <summary>Only read from older saves (Sandbox Mode used to share the story's save): where the story left off.</summary>
         public static bool HasSandboxReturn;
         public static string SandboxReturnArea = WorldAreas.City;
         public static Vector3 SandboxReturnPosition;
@@ -309,7 +309,10 @@ namespace Game.World
         public static Vector3 ReturnPosition;
         public static int ReturnFacing;
 
-        /// <summary>Shown in the message box when the overworld loads (e.g. a battle outcome).</summary>
+        /// <summary>Shown in the message box when the overworld loads (e.g. a battle outcome). PendingKey is a story block
+        /// played with its own speakers (narration has none: never the leader's name); PendingMessage is one more box
+        /// after it, spoken by PendingSpeaker ("" = narration).</summary>
+        public static string PendingKey;
         public static string PendingSpeaker;
         public static string PendingMessage;
 
@@ -338,8 +341,12 @@ namespace Game.World
             string id = UnityEditor.SessionState.GetString(PlayAreaKey, "");
             if (id.Length == 0) return;
             UnityEditor.SessionState.EraseString(PlayAreaKey);
-            int latest = SaveGame.LatestSlot();
-            StartSlot(latest > 0 ? latest : 1, latest <= 0);
+            if (WorldAreas.IsSandboxArea(id)) StartSlot(SaveGame.SandboxSlot, !SaveGame.Exists(SaveGame.SandboxSlot));
+            else
+            {
+                int latest = SaveGame.LatestSlot();
+                StartSlot(latest > 0 ? latest : 1, latest <= 0);
+            }
             CurrentArea = id;
             PlayerSpot = null;
             HasReturnPoint = false;
@@ -355,6 +362,7 @@ namespace Game.World
             SaveGame.Restore(null);       // clears the session
             HasReturnPoint = false;
             ArrivedFrom = null;
+            PendingKey = null;
             PendingSpeaker = null;
             PendingMessage = null;
             if (newGame)
@@ -365,33 +373,59 @@ namespace Game.World
                 CurrentArea = WorldAreas.Office;   // it opens at the office's PC, then wakes in the start area
             }
             else SaveGame.Load();
+            if (slot != SaveGame.SandboxSlot) KeepStoryParty();
             loaded = true;
             TitleDone = true;
         }
 
         /// <summary>
-        /// The title screen's Sandbox Mode: plays the latest save (or a new game in slot 1 when
-        /// there is none) but starts in the Sandbox. Leave Sandbox Mode then goes to where that save left off
-        /// (a new game: the city's start, where the opening plays). The caller reloads the area afterwards.
+        /// The title screen's Sandbox Mode: its own save (SaveGame.SandboxSlot), never a story slot. A first visit starts
+        /// fresh with the whole crew (the Sandbox recruits everyone when it loads); after that it continues where you
+        /// left the Sandbox. There's no way from here to the story: quit to the title and Continue / Load a story save.
+        /// The caller reloads the area afterwards.
         /// </summary>
         public static void StartSandbox()
         {
-            int latest = SaveGame.LatestSlot();
-            StartSlot(latest > 0 ? latest : 1, latest <= 0);
-            if (InSandbox) return;   // the save was already in the Sandbox
-            var spot = PlayerSpot;
-            HasSandboxReturn = spot != null && spot.area == CurrentArea;
-            SandboxReturnArea = CurrentArea;
-            if (HasSandboxReturn)
-            {
-                SandboxReturnPosition = spot.position;
-                SandboxReturnFacing = spot.facing;
-            }
+            StartSlot(SaveGame.SandboxSlot, !SaveGame.Exists(SaveGame.SandboxSlot));
+            HasSandboxReturn = false;
+            if (InSandbox) return;   // carries on in the Sandbox area (or chapter portal area) it was saved in
             CurrentArea = WorldAreas.Sandbox;
-            // The Sandbox places you at its start: the save's spot (Load's ReturnTo) is in the other area.
             PlayerSpot = null;
             HasReturnPoint = false;
             ArrivedFrom = null;
+        }
+
+        /// <summary>
+        /// A story save holds only the story's party: the protagonist and whoever joined through a bond (and wasn't
+        /// lost). Saves from before Sandbox Mode had its own save could have the whole test crew in them, or be sitting
+        /// in the Sandbox; this puts those back where the story left off.
+        /// </summary>
+        static void KeepStoryParty()
+        {
+            if (InSandbox)
+            {
+                CurrentArea = HasSandboxReturn ? SandboxReturnArea : WorldAreas.StartArea;
+                PlayerSpot = null;
+                ArrivedFrom = null;
+                HasReturnPoint = HasSandboxReturn;
+                ReturnPosition = SandboxReturnPosition;
+                ReturnFacing = SandboxReturnFacing;
+            }
+            HasSandboxReturn = false;
+            var keep = new HashSet<string> { StartingMember };
+            foreach (var d in global::Game.World.Bonds.All)
+                if (global::Game.World.Bonds.Joined(d.Character) && !StoryState.Has("lost." + d.Character)) keep.Add(d.Character);
+            bool everyone = Members.Count == 0;   // an old save without a members list meant everyone
+            var drop = new List<string>();
+            foreach (var m in Members) if (!keep.Contains(m)) drop.Add(m);
+            foreach (var m in drop) Leave(m);
+            if (everyone)
+            {
+                foreach (var k in keep) Members.Add(k);
+                for (int i = 0; i < FormationSlots; i++)
+                    if (!string.IsNullOrEmpty(Formation[i]) && !keep.Contains(Formation[i])) Formation[i] = "";
+                PartyOrder.RemoveAll(n => !keep.Contains(n));
+            }
         }
 
         public static MemberProgress ProgressOf(CharacterDefinition member)
@@ -476,7 +510,26 @@ namespace Game.World
             return member.resonances[0];
         }
 
-        public static void SetResonance(Resonance element) { ActiveResonance = element; }
+        public static void SetResonance(Resonance element)
+        {
+            ActiveResonance = element;
+            if (ResonanceChanged != null) ResonanceChanged();
+        }
+
+        /// <summary>After the protagonist switches resonance (her colour, hair and eyes change with it).</summary>
+        public static event System.Action ResonanceChanged;
+
+        /// <summary>The protagonist's sprite is tinted in her resonance colour (white on Basic): hair and eyes.</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void HookTint()
+        {
+            Combat.UnitDefinition.AnimTint = d =>
+            {
+                var member = d as CharacterDefinition;
+                if (member == null || member.name != StoryState.ProtagonistAsset) return null;
+                return ColorOf(member);
+            };
+        }
 
         /// <summary>The Ult card a member brings: their active resonance's, else their ritual.</summary>
         public static CardDefinition UltimateOf(CharacterDefinition member)
@@ -750,6 +803,7 @@ namespace Game.World
             HasReturnPoint = false;
             PlayerSpot = null;
             LastAccessPoint = null;
+            PendingKey = null;
             PendingSpeaker = null;
             PendingMessage = null;
             loaded = false;

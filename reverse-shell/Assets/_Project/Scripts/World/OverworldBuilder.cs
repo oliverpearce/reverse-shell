@@ -187,6 +187,7 @@ namespace Game.World
                 }
             }
             ApplyAtmosphere();
+            WorldPalette.Apply(area != null ? area.Id : null);   // the area's Lospec palette for the world (if chosen)
 
             // Each 'E' gets the area's fight in reading order; beaten ones (and story fights whose flags say so) are gone.
             var fights = Map.FindAll('E');
@@ -247,18 +248,40 @@ namespace Game.World
             culling.Center = () => player != null ? player.transform.position : transform.position;
             culling.Keep = player != null ? player.transform : null;
             RefreshPartyHud();
+            RegisterFaces();
             ChapterOneDirector.OnAreaBuilt(this);
             StoryState.Changed += OnStoryChanged;
             Combat.View.GameSettings.AltArtChanged += OnAltArtChanged;
+            WorldSession.ResonanceChanged += OnAltArtChanged;   // the protagonist's hair and eyes take the new colour
             RefreshObjective();
             StoryDebugPanel.Ensure();
             StartCoroutine(Arrive());
         }
 
+        /// <summary>Dialogue faces (DialogueFaces): the crew, the protagonist under her chosen name and "Thought", and
+        /// every machine in the Bestiary. NPCs register as they spawn.</summary>
+        void RegisterFaces()
+        {
+            foreach (var c in AllCharacters)
+                if (c != null) DialogueFaces.Register(c.DisplayName, c);
+            var lead = AllCharacters.Find(c => c != null && c.name == WorldSession.StartingMember);
+            if (lead != null)
+            {
+                DialogueFaces.Register("Thought", lead);
+                if (!string.IsNullOrEmpty(StoryState.PlayerName)) DialogueFaces.Register(StoryState.PlayerName, lead);
+            }
+            var catalog = EnemyCatalog.Get();
+            if (catalog != null)
+                foreach (var e in catalog.enemies)
+                    if (e != null) DialogueFaces.Register(e.DisplayName, e);
+        }
+
         void OnDestroy()
         {
+            WorldPalette.Off();
             StoryState.Changed -= OnStoryChanged;
             Combat.View.GameSettings.AltArtChanged -= OnAltArtChanged;
+            WorldSession.ResonanceChanged -= OnAltArtChanged;
         }
 
         CharacterSprite leadSprite;
@@ -289,6 +312,8 @@ namespace Game.World
 
         /// <summary>The player's sprite (the Esc menu sits it down on its mat).</summary>
         public CharacterSprite PlayerSprite { get { return player != null ? player.Sprite : null; } }
+        /// <summary>The walking player (the story's scripted moves: the first steps' stumble).</summary>
+        public PlayerController Player { get { return player; } }
 
         /// <summary>True while anything (a conversation, a menu, a fade) has the player's attention.</summary>
         public bool Busy
@@ -735,33 +760,6 @@ namespace Game.World
             ScreenFade.LoadScene(SceneManager.GetActiveScene().name);
         }
 
-        /// <summary>Settings → Enter Sandbox Mode: remember this spot, then go to the Sandbox's start.</summary>
-        public void EnterSandbox()
-        {
-            if (WorldSession.InSandbox || player == null || !BeginTransition()) return;
-            WorldSession.HasSandboxReturn = true;
-            WorldSession.SandboxReturnArea = area.Id;
-            WorldSession.SandboxReturnPosition = player.transform.position;
-            WorldSession.SandboxReturnFacing = player.Sprite.Facing;
-            WorldSession.CurrentArea = WorldAreas.Sandbox;
-            WorldSession.ArrivedFrom = null;
-            WorldSession.HasReturnPoint = false;
-            Reload();
-        }
-
-        /// <summary>Settings → Leave Sandbox Mode: back to the spot you entered from (the city's start if unknown).</summary>
-        public void LeaveSandbox()
-        {
-            if (!WorldSession.InSandbox || !BeginTransition()) return;
-            WorldSession.CurrentArea = WorldSession.HasSandboxReturn ? WorldSession.SandboxReturnArea : WorldAreas.StartArea;
-            WorldSession.ArrivedFrom = null;
-            WorldSession.HasReturnPoint = WorldSession.HasSandboxReturn;
-            WorldSession.ReturnPosition = WorldSession.SandboxReturnPosition;
-            WorldSession.ReturnFacing = WorldSession.SandboxReturnFacing;
-            WorldSession.HasSandboxReturn = false;
-            Reload();
-        }
-
         bool BeginTransition()
         {
             if (transitioning) return false;
@@ -849,6 +847,7 @@ namespace Game.World
                 var npc = look != null
                     ? CharacterSprite.Create(transform, info.Name, look, animatedCharacterScale, pos)
                     : CharacterSprite.Create(transform, info.Name, WorldArt.SingleFrame(sheet, info.Row, info.Col), characterScale, pos, 0.04f);
+                if (look != null) DialogueFaces.Register(info.Name, look);
                 var talk = npc.gameObject.AddComponent<TalkInteractable>();
                 talk.speaker = info.Name;
                 talk.lines = info.Lines;
@@ -918,7 +917,7 @@ namespace Game.World
         public void ResummonEncounters()
         {
             WorldSession.DefeatedEncounters.RemoveWhere(id => id.StartsWith(EncounterPrefix));
-            ReloadHere(LeaderName, StoryText.Text("beacon.sent"), new Color(1f, 0.3f, 0.2f, 0.5f));
+            ReloadHere(StoryText.Speaker("beacon.sent"), StoryText.Text("beacon.sent"), new Color(1f, 0.3f, 0.2f, 0.5f));
         }
 
         /// <summary>Saves, then reloads this area with you standing where you are and a message once it is back.</summary>
@@ -1238,23 +1237,27 @@ namespace Game.World
             WorldSession.UsedItems.Add(WorldSession.ItemKey(area.Id, x, row));
         }
 
-        /// <summary>How the party leader sounds in dialogue: calm and even.</summary>
-        public DialogueVoice LeaderVoice
+        /// <summary>What to say once the area is back (WorldSession.PendingKey / PendingMessage), then cleared. Each line
+        /// keeps its own speaker, with that character's portrait if they're one of the crew; narration has no name.</summary>
+        List<DialogueLine> PendingLines()
         {
-            get
+            var lines = new List<DialogueLine>();
+            if (!string.IsNullOrEmpty(WorldSession.PendingKey)) lines.AddRange(StoryText.Lines(WorldSession.PendingKey, ChapterOneDirector.VoiceFor));
+            if (!string.IsNullOrEmpty(WorldSession.PendingMessage))
             {
-                var lead = Lead;
-                return new DialogueVoice(0.9f, 0.95f, lead != null ? lead.color : DialogueVoice.Default.Accent);
+                string speaker = WorldSession.PendingSpeaker ?? "";
+                lines.Add(new DialogueLine(speaker, WorldSession.PendingMessage, ChapterOneDirector.VoiceFor(speaker)));
             }
-        }
-
-        public Sprite LeaderPortrait
-        {
-            get
+            foreach (var l in lines)
             {
-                var lead = Lead;
-                return Portrait(lead != null ? lead.Anim : null);
+                if (string.IsNullOrEmpty(l.Speaker)) continue;
+                var who = AllCharacters.Find(c => c != null && c.DisplayName == l.Speaker);
+                if (who != null) l.Portrait = Portrait(who.Anim);
             }
+            WorldSession.PendingKey = null;
+            WorldSession.PendingSpeaker = null;
+            WorldSession.PendingMessage = null;
+            return lines;
         }
 
         /// <summary>The front-facing idle frame of an animation set, used as a dialogue portrait.</summary>
@@ -1338,6 +1341,7 @@ namespace Game.World
                 }
                 setup.enemyLevel = def.Level;
                 setup.boss = def.Boss;
+                setup.partyCantFall = def.PartyCantFall;
                 if (setup.enemies.Count > 0) return setup;
                 setup.enemies = new List<EnemyDefinition>(encounter.setup.enemies);
             }
@@ -1367,11 +1371,12 @@ namespace Game.World
             string returnScene = SceneManager.GetActiveScene().name;
             string id = encounter.id;
             string winFlag = encounter.def != null ? encounter.def.WinFlag : null;
-            string winMessage = encounter.def == null ? null
-                : encounter.def.WinKey != null ? StoryText.Text(encounter.def.WinKey) : encounter.def.WinMessage;
+            // After the fight: a story block with its own speakers (narration has no name plate), or a plain message.
+            string winKey = encounter.def != null ? encounter.def.WinKey : null;
+            string winMessage = encounter.def != null && winKey == null ? encounter.def.WinMessage : null;
             string reward = encounter.def != null ? encounter.def.Reward : null;
             bool practice = BattleTutorial.IsPractice(id);   // a tutorial replay: no packs, nothing recorded
-            string leader = LeaderName;
+            if (winKey == null && BattleTutorial.TutorialFor(id) != null && !practice) winKey = "tutorial.erin.done";
             var setup = BuildSetup(encounter);
             // Levels, HP and loadouts for everyone who comes (the backup too).
             var everyone = new List<CharacterDefinition>(setup.party);
@@ -1380,16 +1385,17 @@ namespace Game.World
             Combat.PackRates.ActiveArea = WorldSession.CurrentArea;   // the results screen counts this area's packs
             BattleLauncher.Request(setup, party, WorldSession.LoadoutsFor(everyone), result =>
             {
+                WorldSession.PendingKey = null;
+                WorldSession.PendingSpeaker = null;
+                WorldSession.PendingMessage = null;
                 if (practice && result.Outcome == BattleOutcome.Victory)
                 {
-                    WorldSession.PendingSpeaker = leader;
                     WorldSession.Apply(result.Party);
-                    WorldSession.PendingMessage = StoryText.Text("tutorial.practice.done");
+                    WorldSession.PendingKey = "tutorial.practice.done";
                     SaveGame.Save();
                     ScreenFade.LoadScene(returnScene);
                     return;
                 }
-                WorldSession.PendingSpeaker = leader;
                 // Levels, XP and HP carry over; a defeat sends the party back to regroup at full HP.
                 WorldSession.Apply(result.Party);
                 if (result.Outcome == BattleOutcome.Defeat) WorldSession.RestoreParty();
@@ -1412,10 +1418,11 @@ namespace Game.World
                             string got = GiveItem(reward);
                             winMessage = string.IsNullOrEmpty(winMessage) ? got : winMessage + "{p} " + got;
                         }
+                        WorldSession.PendingKey = winKey;
                         WorldSession.PendingMessage = winMessage;
                         break;
                     case BattleOutcome.Fled:
-                        WorldSession.PendingMessage = StoryText.Text("battle.fled");
+                        WorldSession.PendingKey = "battle.fled";
                         break;
                     default:
                         // A lost fight wakes you at the last Access Point you rested at (or the area's start).
@@ -1425,7 +1432,7 @@ namespace Game.World
                             WorldSession.HasReturnPoint = false;
                             WorldSession.PlayerSpot = null;
                         }
-                        WorldSession.PendingMessage = StoryText.Text("battle.lost");
+                        WorldSession.PendingKey = "battle.lost";
                         break;
                 }
                 SaveGame.Save();
@@ -1454,11 +1461,8 @@ namespace Game.World
             yield return UI.FadeTo(new Color(0f, 0f, 0f, 0f), 0.6f);
             cutscene = false;
 
-            if (!string.IsNullOrEmpty(WorldSession.PendingMessage))
-            {
-                UI.Say(WorldSession.PendingSpeaker ?? "", WorldSession.PendingMessage, LeaderVoice, LeaderPortrait);
-                WorldSession.PendingMessage = null;
-            }
+            var pending = PendingLines();
+            if (pending.Count > 0) UI.Talk(pending, null);
             if (!returning) yield return UI.ShowTitle(areaName, areaSubtitle);
         }
 

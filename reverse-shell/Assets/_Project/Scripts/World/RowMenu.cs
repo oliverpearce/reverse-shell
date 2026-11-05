@@ -35,6 +35,12 @@ namespace Game.World
         const float RowWidth = 1180f, RowHeight = 86f, RowGap = 14f;
         // Tall rows (the save slots): wider and taller, with a wide margin inside so the text breathes.
         const float TallWidth = 1500f, TallHeight = 220f, TallGap = 12f, TallPadX = 48f, TallPadTop = 28f;
+        // A long page (Settings) that wouldn't fit above the help box: shorter rows, starting higher, in two columns when
+        // there are more than CompactPerColumn of them.
+        const float CompactHeight = 66f, CompactGap = 8f, CompactWidth = 760f, CompactColumnGap = 40f, CompactTop = -230f;
+        const int SinglePageRows = 5, CompactPerColumn = 8;
+        bool compact;
+        int perColumn, columns = 1;
 
         RectTransform list;
         Text title, help;
@@ -105,7 +111,11 @@ namespace Game.World
             sliders.Clear();
             nextY = 0f;
             // Pages with tall rows (the save slots) start higher, so they fit above the key hints.
-            list.anchoredPosition = new Vector2(0f, page.Exists(r => r.Detail != null) ? -180f : -280f);
+            bool anyTall = page.Exists(r => r.Detail != null);
+            compact = !anyTall && page.Count > SinglePageRows;
+            columns = compact && page.Count > CompactPerColumn ? 2 : 1;
+            perColumn = Mathf.CeilToInt(page.Count / (float)columns);
+            list.anchoredPosition = new Vector2(0f, anyTall ? -180f : compact ? CompactTop : -280f);
             foreach (var row in page) AddRow(row);
             Select(select);
         }
@@ -123,9 +133,17 @@ namespace Game.World
         {
             int i = rows.Count;
             bool tall = row.Detail != null;
-            float height = tall ? TallHeight : RowHeight, width = tall ? TallWidth : RowWidth;
+            float height = tall ? TallHeight : compact ? CompactHeight : RowHeight;
+            float width = tall ? TallWidth : compact && columns > 1 ? CompactWidth : RowWidth;
+            var spot = new Vector2(0f, -nextY);
+            if (compact)
+            {
+                int column = i / perColumn, line = i % perColumn;
+                float x = columns > 1 ? (column == 0 ? -1f : 1f) * (CompactWidth + CompactColumnGap) / 2f : 0f;
+                spot = new Vector2(x, -line * (CompactHeight + CompactGap));
+            }
             var plate = UIFactory.CreateImage(list, "Row" + i, NierStyle.RowGray, true);
-            plate.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -nextY), new Vector2(width, height));
+            plate.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), spot, new Vector2(width, height));
             nextY += height + (tall ? TallGap : RowGap);
             // The selection marker: a small accent square left of the row (shown on the selected one).
             var marker = NierStyle.Marker(plate.transform);

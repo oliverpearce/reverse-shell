@@ -115,6 +115,29 @@ namespace Combat
         }
     }
 
+    /// <summary>Makes the target weak to an element for a few rounds, so that element's cards Break it (Ashe's
+    /// Absolute Zero: Cryo). Put it before the card's damage and the same hit breaks into the new weakness.</summary>
+    [Serializable]
+    public class AddWeaknessEffect : CardEffect
+    {
+        public Weakness weakness = Weakness.Cryo;
+        [Tooltip("Rounds, this one included (counted down at round end).")]
+        [Min(1)] public int turns = 3;
+
+        public AddWeaknessEffect() { target = EffectTarget.CardTargets; }
+
+        public override void Apply(EffectContext ctx)
+        {
+            foreach (var t in ctx.Resolve(target))
+                ctx.Battle.AddWeakness(t, weakness, turns);
+        }
+
+        public override EffectText Text()
+        {
+            return new EffectText("Make {0} weak to {1} for {2} turns.", TargetPhrase(), BreakRules.Label(weakness), turns.ToString());
+        }
+    }
+
     [Serializable]
     public class GainMoxieEffect : CardEffect
     {

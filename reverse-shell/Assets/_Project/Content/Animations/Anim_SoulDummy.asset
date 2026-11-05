@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ef9a189754547747a87d0b6aa80558c, type: 3}
+  m_Name: Anim_SoulDummy
+  m_EditorClassIdentifier: 
+  frameSize: 64
+  feetPivot: 0.04
+  referenceSize: 0
+  soulCrop:
+    serializedVersion: 2
+    x: 0.25
+    y: 0.02
+    width: 0.5
+    height: 0.62
+  portraitCrop:
+    serializedVersion: 2
+    x: 0.25
+    y: 0.02
+    width: 0.5
+    height: 0.62
+  clips:
+  - name: idle
+    sheet: {fileID: 2800000, guid: 9a3c5f405871422bb6c0ed78db692158, type: 3}
+    fps: 6
+    loop: 1
+    firstFrame: 0
+    frameCount: 0
+  - name: walk
+    sheet: {fileID: 2800000, guid: 1e2af23248c840db86414274cb60708f, type: 3}
+    fps: 15
+    loop: 1
+    firstFrame: 1
+    frameCount: 0
+  - name: slash
+    sheet: {fileID: 2800000, guid: bf28c35780c54c8d9b3a00e864bcfc39, type: 3}
+    fps: 22
+    loop: 0
+    firstFrame: 0
+    frameCount: 0
+  - name: spellcast
+    sheet: {fileID: 2800000, guid: 629ea5ef7d854081aaa368e59e577f29, type: 3}
+    fps: 20
+    loop: 0
+    firstFrame: 0
+    frameCount: 0
+  - name: hurt
+    sheet: {fileID: 2800000, guid: 77d42661e90e43c1be83bf33e991577c, type: 3}
+    fps: 15
+    loop: 0
+    firstFrame: 0
+    frameCount: 0

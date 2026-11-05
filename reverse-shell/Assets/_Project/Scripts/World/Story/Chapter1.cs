@@ -8,7 +8,9 @@ namespace Game.World
     {
         public const string Named = "ch1.named";                 // the opening asked for a name
         public const string Awake = "ch1.awake";                 // woke up beside the procedure pod
-        public const string Binder = "ch1.binder";               // picked up the card binder by the capsule (the Cards book)
+        public const string Reflection = "ch1.reflection";       // saw herself in the puddle: the seams, the Core, her Soul Card
+        public const string Binder = "ch1.binder";               // Erin gave you the card binder (the Cards book), bond rank 2
+        public const string SaidCanRead = "ch1.saidread";        // told Erin you can read (she keeps the language chip till rank 3)
         public const string Memory1 = "ch1.memory.1";            // optional memory fragments
         public const string Memory2 = "ch1.memory.2";
         public const string Memory3 = "ch1.memory.3";
@@ -31,7 +33,7 @@ namespace Game.World
         /// <summary>Every flag in story order (the debug panel lists them).</summary>
         public static readonly string[] All =
         {
-            Named, Awake, Binder, Memory1, Memory2, Memory3, LanguageChip, Scanner, ColoursChip, CollectorMet, CollectorBeaten, Route, Tunnel,
+            Named, Awake, Reflection, Binder, SaidCanRead, Memory1, Memory2, Memory3, LanguageChip, Scanner, ColoursChip, CollectorMet, CollectorBeaten, Route, Tunnel,
             NumbersChip,
             DragonSeen, DragonBeaten, ResonanceArc, ErinLost, Complete,
         };

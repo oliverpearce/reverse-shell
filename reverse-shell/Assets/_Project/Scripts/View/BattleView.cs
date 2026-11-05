@@ -46,7 +46,8 @@ namespace Combat.View
         public bool IsPaused { get { return pause != null && pause.IsOpen; } }
 
         /// <summary>A guided tutorial's gate: (action, card, hand index) -> allowed. Actions: "queue", "move", "drag",
-        /// "go", "undo". Null (every normal fight) = everything allowed.</summary>
+        /// "go", "undo", "detail" (hold a hand card) and "inspect" (hold a unit). Null (every normal fight) = everything
+        /// allowed.</summary>
         public Func<string, CardInstance, int, bool> Allow;
 
         public bool Allowed(string action, CardInstance card = null, int index = -1)
@@ -184,8 +185,25 @@ namespace Combat.View
             HandleTargetKeys();
             if (!playing && Controller.Events.Count > 0) StartCoroutine(PlayEvents());
             hud.SetInteractable(InputEnabled);
-            // The chosen battle speed only while the turn plays out; planning (and the results) run at 1x.
-            if (!IsPaused) Time.timeScale = turnPlaying ? GameSettings.BattleSpeed : 1f;
+            // The chosen battle speed only while the turn plays out; planning (and the results) run at 1x. A hit-stop
+            // freezes the board for a few frames.
+            if (!IsPaused) Time.timeScale = HitStopping ? HitStopScale : turnPlaying ? GameSettings.BattleSpeed : 1f;
+        }
+
+        // ------------------------------------------------------------------ Hit-stop
+        // A blow freezes the board for a moment (real time, shorter at a higher battle speed): a little on each hit, more
+        // on a crit, most on a BREAK. Effects (FxLibrary) keep playing through it.
+        const float HitStopScale = 0.04f;
+        float hitStopEnd;
+
+        bool HitStopping { get { return Time.unscaledTime < hitStopEnd; } }
+
+        /// <summary>Freezes the battle for <paramref name="seconds"/> of real time (at 1x).</summary>
+        public void HitStop(float seconds)
+        {
+            if (IsPaused || seconds <= 0f) return;
+            hitStopEnd = Mathf.Max(hitStopEnd, Time.unscaledTime + seconds / Mathf.Max(1, GameSettings.BattleSpeed));
+            Time.timeScale = HitStopScale;
         }
 
         void SetTurnPlaying(bool on)
@@ -225,15 +243,97 @@ namespace Combat.View
         /// <summary>Long-press on a hand card: open its details (the full text; scroll for upgrades).</summary>
         public void OpenCardDetail(CardView card)
         {
-            if (IsPaused || inspect != null || CardDetailPopup.IsOpen || card == null) return;
+            if (IsPaused || inspect != null || CardDetailPopup.IsOpen || card == null || !Allowed("detail", card.Card)) return;
             CardDetailPopup.Open(root, card.Card.Owner, card.Card.Definition, card.Card.Rank, card.Rect);
         }
+
+        // ------------------------------------------------------------------ Camera (attack push-in, screen shake)
+        // The stage and backdrop zoom about the screen centre and shift so the action stays framed; the shake sits on
+        // top. Inspecting a unit (UnitInspectView) zooms the same layers only while the board is idle, at rest here.
+        float camZoom = 1f;
+        Vector2 camOffset, camShake;
+        Coroutine camRoutine;
+
+        void ApplyCamera()
+        {
+            if (inspect != null) return;
+            if (backdropLayer != null)
+            {
+                backdropLayer.localScale = Vector3.one * camZoom;
+                backdropLayer.anchoredPosition = camOffset;
+            }
+            if (Stage != null)
+            {
+                Stage.localScale = Vector3.one * camZoom;
+                Stage.anchoredPosition = camOffset + camShake;
+            }
+        }
+
+        /// <summary>Pushes the camera in on the midpoint of two units (world points), FF-style: it keeps most of its
+        /// place on screen, drawn a little toward the centre, and never shows the layers' edges. Settings > Battle Zoom off:
+        /// nothing.</summary>
+        public void CameraFocus(Vector3 a, Vector3 b, float zoom, float seconds)
+        {
+            if (!GameSettings.BattleZoom || root == null) return;
+            // where the pair is with the camera at rest
+            Vector3 mid = root.InverseTransformPoint((a + b) * 0.5f);
+            if (camZoom != 0f) mid = new Vector3((mid.x - camOffset.x) / camZoom, (mid.y - camOffset.y) / camZoom, 0f);
+            var aim = new Vector2(mid.x, mid.y) * 0.55f;
+            var offset = aim - zoom * new Vector2(mid.x, mid.y);
+            var room = (zoom - 1f) * root.rect.size / 2f;
+            offset = new Vector2(Mathf.Clamp(offset.x, -room.x, room.x), Mathf.Clamp(offset.y, -room.y, room.y));
+            MoveCamera(zoom, offset, seconds, Tween.OutCubic);
+        }
+
+        /// <summary>Back to the whole stage.</summary>
+        public void CameraReset(float seconds)
+        {
+            if (camZoom == 1f && camOffset == Vector2.zero) return;
+            MoveCamera(1f, Vector2.zero, seconds, Tween.InOutQuad);
+        }
+
+        void MoveCamera(float zoom, Vector2 offset, float seconds, Func<float, float> ease)
+        {
+            if (camRoutine != null) StopCoroutine(camRoutine);
+            camRoutine = StartCoroutine(CameraTo(zoom, offset, seconds, ease));
+        }
+
+        IEnumerator CameraTo(float zoom, Vector2 offset, float seconds, Func<float, float> ease)
+        {
+            float z0 = camZoom;
+            Vector2 o0 = camOffset;
+            yield return Tween.Run(seconds, p =>
+            {
+                camZoom = Mathf.Lerp(z0, zoom, p);
+                camOffset = Vector2.Lerp(o0, offset, p);
+                ApplyCamera();
+            }, ease);
+            camZoom = zoom;
+            camOffset = offset;
+            ApplyCamera();
+            camRoutine = null;
+        }
+
+        /// <summary>Shakes the stage on top of wherever the camera is.</summary>
+        public IEnumerator ShakeStage(float strength, float duration)
+        {
+            yield return Tween.Run(duration, p =>
+            {
+                camShake = UnityEngine.Random.insideUnitCircle * strength * (1f - p);
+                ApplyCamera();
+            }, Tween.Linear);
+            camShake = Vector2.zero;
+            ApplyCamera();
+        }
+
+        /// <summary>A unit's zoomed-in sheet is open (Erin's tutorial waits for it).</summary>
+        public bool Inspecting { get { return inspect != null; } }
 
         /// <summary>Long-press on a unit: zoom in on it and show its sheet (only while the board is idle).</summary>
         public void OpenInspect(UnitView unit)
         {
-            if (IsPaused || inspect != null || playing || Controller.Events.Count > 0) return;
-            inspect =UnitInspectView.Open(root, unit, new[] { backdropLayer, Stage }, new[] { handGroup, hudGroup },
+            if (IsPaused || inspect != null || playing || Controller.Events.Count > 0 || !Allowed("inspect")) return;
+            inspect = UnitInspectView.Open(root, unit, new[] { backdropLayer, Stage }, new[] { handGroup, hudGroup },
                 () => inspect = null);
             pause.transform.SetAsLastSibling();
         }
@@ -470,9 +570,14 @@ namespace Combat.View
                 case StaggeredEvent staggered:
                     var sv = Get(staggered.Unit);
                     if (sv == null) return null;
+                    // The BREAK moment: the board freezes, a gold-white flash, the stage shakes, then the banner.
+                    HitStop(BreakStop);
+                    StartCoroutine(ScreenFlash(new Color(1f, 0.95f, 0.8f, 0.55f), 0.3f));
+                    StartCoroutine(ShakeStage(22f, 0.45f));
                     StartCoroutine(BreakBanner(sv));
                     StartCoroutine(sv.Shake(18f, 0.3f));
-                    return Tween.Wait(0.55f);
+                    FxLibrary.PlayAt(FxLayer, BattleFx.Crit, sv.Center);
+                    return Tween.Wait(0.7f);
                 case WeaknessRevealedEvent weak:
                     var wv = Get(weak.Unit);
                     if (wv != null) SpawnHeadText(wv, UIText.Get("battle.weak", "weak", BreakRules.Label(weak.Weakness)), StaggerGold, UIFactory.TextSize.Large);
@@ -489,8 +594,7 @@ namespace Combat.View
                     return null;
                 case BattleEndedEvent ended:
                     SetTurnPlaying(false);
-                    hud.ShowResult(ended.Victory, bootstrap.Result);
-                    return null;
+                    return EndBeat(ended.Victory);
             }
             return null;
         }
@@ -586,24 +690,28 @@ namespace Combat.View
                 if (caster != null) FxLibrary.PlayAt(FxLayer, BattleFx.UltCharge, caster.Center);
                 var titleLayer = UIFactory.CreateRect("UltTitle", root).Fill();
                 pause.transform.SetAsLastSibling();
-                yield return StartCoroutine(UltTitle.Play(titleLayer, e.Card.Name, color));
+                yield return StartCoroutine(UltTitle.Play(titleLayer, e.Card.Name, color, false, !CardTranslation.On));
                 Destroy(titleLayer.gameObject);
             }
-            else hud.ShowBanner(title, color, 0.5f);
+            // The name reads only with the language chip (runes otherwise); the rank numeral always reads.
+            else if (CardTranslation.On) hud.ShowBanner(title, color, 0.5f);
+            else hud.ShowRuneBanner(e.Card.Name, UIFactory.Roman(e.Card.Rank), color, 0.5f);
             if (caster != null) yield return StartCoroutine(ChannelCard(e.Card, caster, from));
 
             var def = e.Card.Definition;
             var sequence = def.castSequence != null ? def.castSequence : CastSequence.GetDefault(def.kind, e.Card.IsRitual);
             // Body animation: sequences can choose their own with PlayAnimationStep; otherwise attacks slash, the rest cast.
-            if (caster != null && !sequence.steps.Exists(st => st is PlayAnimationStep))
+            if (caster != null && !sequence.steps.Exists(st => st is PlayAnimationStep || st is LungeStep))   // the lunge plays its own slash
             {
                 bool attack = !e.Card.IsRitual && (def.kind == CardKind.Attack || def.kind == CardKind.Debuff);
                 caster.PlayAnimation(attack ? "slash" : "spellcast");
             }
-            yield return StartCoroutine(sequence.Play(new CastContext(this, caster, targets, color)));
+            var context = new CastContext(this, caster, targets, color, e.Card.IsRitual);
+            yield return StartCoroutine(sequence.Play(context));
 
-            // Damage, heals and statuses get their effects (and their own beats) from their events.
-            yield return Tween.Wait(CastPause);
+            // Damage, heals and statuses get their effects (and their own beats) from their events. After a lunge the
+            // blow is landing right now, so the numbers come at once; other casts keep a beat first.
+            if (!context.Struck) yield return Tween.Wait(CastPause);
         }
 
         // Pacing: how long each part of a cast takes (seconds).
@@ -731,7 +839,7 @@ namespace Combat.View
 
             Color color = Color.white;
             int size = 72;
-            string text = e.Amount.ToString();
+            string text = e.Amount.ToString();   // combat always shows the numbers (the numbers chip only hides them on cards)
             if (e.Blocked > 0)
             {
                 // A shield soaked some or all of it: the blocked part in ice blue.
@@ -758,6 +866,7 @@ namespace Combat.View
                 if (ritualHits) FxLibrary.PlayAt(FxLayer, BattleFx.UltHit, tv.Center, BattleFx.UltHitScale);
                 if (e.Crit) FxLibrary.PlayAt(FxLayer, BattleFx.Crit, tv.Center);
             }
+            if (!e.IsTick && e.Amount > 0) HitStop(ritualHits ? UltStop : e.Crit ? CritStop : HitStopTime);
             StartCoroutine(tv.Shake(e.Crit ? 16f : 10f, 0.22f));
             StartCoroutine(tv.Flash(e.IsTick ? new Color(0.7f, 0.4f, 1f) : new Color(1f, 0.35f, 0.35f), 0.2f));
 
@@ -827,6 +936,68 @@ namespace Combat.View
 
         /// <summary>Gold for Break: the BREAK banner, weakness finds and every hit on a Staggered enemy.</summary>
         static readonly Color StaggerGold = new Color(1f, 0.85f, 0.35f);
+
+        // Hit-stop lengths (s, real time at 1x).
+        const float HitStopTime = 0.05f, CritStop = 0.1f, UltStop = 0.09f, BreakStop = 0.16f;
+
+        /// <summary>A full-screen flash over the stage (under the HUD) that fades out.</summary>
+        IEnumerator ScreenFlash(Color color, float seconds)
+        {
+            var flash = UIFactory.CreateImage(FxLayer, "Flash", color);
+            flash.raycastTarget = false;
+            flash.rectTransform.Fill();
+            flash.rectTransform.SetAsFirstSibling();
+            yield return Tween.Run(seconds, p => { if (flash != null) flash.color = new Color(color.r, color.g, color.b, color.a * (1f - p)); },
+                Tween.Linear, true);
+            if (flash != null) Destroy(flash.gameObject);
+        }
+
+        /// <summary>
+        /// The beat between the last blow and the results. A win: the camera settles, VICTORY rings out in gold and the
+        /// party still standing jump for joy. A loss: the board slowly darkens and blurs out of focus before the results.
+        /// </summary>
+        IEnumerator EndBeat(bool victory)
+        {
+            CameraReset(0.3f);
+            if (victory)
+            {
+                yield return Tween.Wait(0.35f);
+                hud.ShowBanner(UIText.Get("battle.banner.victory"), Gold, 0.9f);
+                float delay = 0f;
+                foreach (var pair in unitViews)
+                {
+                    if (pair.Key.Team != Team.Player || !pair.Key.IsAlive || !pair.Value.gameObject.activeInHierarchy) continue;
+                    StartCoroutine(WinPose(pair.Value, delay));
+                    delay += 0.12f;
+                }
+                yield return Tween.Wait(1.5f);
+            }
+            else
+            {
+                var dark = UIFactory.CreateImage(FxLayer, "DefeatFade", new Color(0.03f, 0.02f, 0.04f, 0f));
+                dark.raycastTarget = false;
+                dark.rectTransform.Fill();
+                hud.ShowBanner(UIText.Get("battle.banner.defeat"), new Color(0.75f, 0.7f, 0.8f), 1.2f);
+                yield return Tween.Run(1.6f, p => { if (dark != null) dark.color = new Color(0.03f, 0.02f, 0.04f, 0.6f * p); }, Tween.InOutQuad);
+            }
+            hud.ShowResult(victory, bootstrap.Result);
+        }
+
+        /// <summary>A member's win: a little crouch, two happy hops and a cast-pose flourish.</summary>
+        IEnumerator WinPose(UnitView unit, float delay)
+        {
+            yield return Tween.Wait(delay);
+            var body = unit.Body;
+            if (body == null) yield break;
+            Vector2 home = unit.BodyOrigin;
+            unit.PlayAnimation("spellcast");
+            for (int hop = 0; hop < 2; hop++)
+            {
+                float height = hop == 0 ? 34f : 22f;
+                yield return Tween.Run(0.3f, p => { if (body != null) body.anchoredPosition = home + new Vector2(0f, Mathf.Sin(p * Mathf.PI) * height); }, Tween.Linear);
+            }
+            if (body != null) body.anchoredPosition = home;
+        }
 
         public void SpawnDamageNumber(UnitView unit, string text, Color color, int size)
         {

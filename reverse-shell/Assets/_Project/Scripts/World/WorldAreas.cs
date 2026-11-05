@@ -38,6 +38,8 @@ namespace Game.World
             public string[] Enemies;
             public int Level = Combat.BattleUnit.DefaultEnemyLevel;
             public bool Boss;
+            /// <summary>Nobody in the party can drop below 1 HP in this fight (BattleSetup.partyCantFall).</summary>
+            public bool PartyCantFall;
             public string WinFlag;
             public string[] Requires;
             public string[] Blocks;

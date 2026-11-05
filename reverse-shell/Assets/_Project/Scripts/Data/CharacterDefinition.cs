@@ -26,6 +26,10 @@ namespace Combat
         [Tooltip("Base HP, ATK and DEF grow by this fraction per level after level 1 (0.08 = +8% per level).")]
         [Range(0f, 0.25f)] public float growthPerLevel = 0.08f;
 
+        [Tooltip("Which battle stance this character idles in: 1 = battle_idle (folded arms), 2 = battle_idle2 (weight " +
+                 "shift), 3 = battle_idle3 (ready bounce). 0 = picked from the name. Missing clips fall back to battle_idle.")]
+        [Range(0, 3)] public int battleIdle;
+
         [Header("Character card")]
         [Tooltip("Front of the character card: the full robot.")]
         public Sprite portraitFront;
@@ -49,6 +53,8 @@ namespace Combat
         [Tooltip("Glow in Glow Color instead of the resonance color while no element is channeled (A3).")]
         public bool neutralGlow;
         public Color glowColor = Color.white;
+        [Tooltip("Their Soul card's hover glow (the palette editor's card glow). Clear (alpha 0) = the card colour.")]
+        public Color soulGlow = new Color(0f, 0f, 0f, 0f);
 
         /// <summary>Every incantation this character could put in their deck: the defaults, then the pool.</summary>
         [Header("Resonances (the protagonist)")]

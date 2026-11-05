@@ -32,14 +32,33 @@ CELL = 128
 BASE = os.path.join(HERE, 'reference', 'A3_base')
 
 # folder: hair (dark, light) or None to keep A3's, clothes (dark, light), accent (the trim, in the character's colour)
+# folder: hair (dark, light) ramp or None to keep A3's, clothes ramp, accent (the trim, in the character's colour), all
+# from the character's Lospec palette (palettes/palettes.json); every recoloured pixel snaps to that palette's colours.
+import json
+import palette_data
+PALETTES = palette_data.load()['characters']
+
+
+def _look(name, keep_hair=False):
+    pal = PALETTES[name]
+    hair = ['#' + c for c in pal['hair']]
+    suit = ['#' + c for c in pal['outfit']]
+    return dict(hair=None if keep_hair else (hair[0], hair[-1]), suit=(suit[0], suit[-1]), accent='#' + pal['accent'],
+                hair_ramp=[hx(c) for c in hair], suit_ramp=[hx(c) for c in suit], trim_dark=hx(hair[1]),
+                eyes_ramp=[hx(c) for c in pal['eyes']] if pal.get('eyes') else None)
+
+
 LOOKS = {
-    'A3': dict(hair=None, suit=('#121216', '#4c4c5a'), accent='#e6e8f2'),                    # charcoal, silver-white trim
-    'Ashe': dict(hair=('#22356a', '#dcefff'), suit=('#0c1430', '#3c5482'), accent='#6495ed'),  # Cryo: navy, cornflower
-    'Erin': dict(hair=('#6a2410', '#ffd890'), suit=('#1c120e', '#5c3a2a'), accent='#ff8a3c'),  # Cinder: brown, ember
-    'Lotus': dict(hair=('#24461c', '#dcf4a8'), suit=('#121a0c', '#4a5a30'), accent='#8ee05a'), # Root: olive, green
-    'Zuko': dict(hair=('#4c0810', '#ff8a5c'), suit=('#140608', '#4c141a'), accent='#ff4a2e'),  # Cinder: black-red, vermillion
+    'A3': None,      # filled below (hx is defined further down)
+    'Ashe': None,
+    'Erin': None,
+    'Lotus': None,
+    'Zuko': None,
 }
 SWORD_CLIPS = {'idle_sword', 'walk_sword'}
+# The overworld clips: the A2 study's body wearing the old model's hair (a3_oldhair). Their hair is dressed with the old
+# model's hair rule (hair_only) and their eyes from the palette (a3_portrait.dress); the suit rules are for battle.
+STUDY_CLIPS = {'idle', 'walk', 'walk_s1', 'walk_s2', 'walk_s3'}
 
 # Frames where the blade touches the hair, so shape alone can't split them: the blade's outline, in the cell of a
 # left-facing frame ((clip, frame): [polygon, ...]). Pixels inside stay steel; the rest of the patch counts as hair.
@@ -57,6 +76,28 @@ def inside(pt, poly):
 def hx(s):
     s = s.lstrip('#')
     return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
+
+
+for _name in LOOKS:
+    LOOKS[_name] = _look(_name)   # A3 too: her hair and eyes are AAP-64's greys to white, tinted in game by resonance
+
+
+def set_tint(anim, name='A3'):
+    """Writes the colours the game tints by the protagonist's resonance (SpriteAnimationSet.tintColors: her hair and
+    eye ramps, which only her hair and eyes use) into her Anim asset, before its clip list."""
+    pal = PALETTES[name]
+    cols = []
+    for c in pal['hair'] + (pal.get('eyes') or []):
+        if c not in cols:
+            cols.append(c)
+    anim = re.sub(r'  tintColors:\n(  - .*\n)*', '', anim)
+    block = '  tintColors:\n' + ''.join('  - %s\n' % c for c in cols)
+    return anim.replace('  clips:\n', block + '  clips:\n', 1)
+
+
+def snap(c, colours):
+    """The nearest of the palette's colours (weighted RGB)."""
+    return min(colours, key=lambda q: (q[0] - c[0]) ** 2 * 2 + (q[1] - c[1]) ** 2 * 4 + (q[2] - c[2]) ** 2 * 3)
 
 
 def hsv(c):
@@ -166,7 +207,10 @@ def recolour(sheet, look, sword, clip=''):
     hd, hl = (hx(hair[0]), hx(hair[1])) if hair else (None, None)
     sd, sl = hx(look['suit'][0]), hx(look['suit'][1])
     acc = hx(look['accent'])
-    acc_dark = tuple(int(v * 0.5) for v in acc)
+    acc_dark = look.get('trim_dark') or tuple(int(v * 0.5) for v in acc)
+    hair_pal = look.get('hair_ramp') or []
+    suit_pal = (look.get('suit_ramp') or []) + [acc]
+    trim_pal = [acc_dark, acc]
     out = sheet.copy()
     for row, cy in enumerate(range(0, sheet.height, CELL)):
         mirrored = sheet.height >= 4 * CELL and row in (0, 3)   # up and right are the left-facing frames flipped
@@ -185,21 +229,36 @@ def recolour(sheet, look, sword, clip=''):
                         continue
                     if (x, y) in hair_px:
                         if hd is not None:
-                            q[x, y] = shade(c, hd, hl, 0.13, 1.0) + (c[3],)
+                            q[x, y] = snap(shade(c, hd, hl, 0.13, 1.0), hair_pal) + (c[3],)
                     elif is_suit(c[:3]) and (x, y) not in steel:
                         h, sat, v = hsv(c[:3])
                         if abs(h * 360 - 340) < 2:
                             # the suit's trim (A3's rose seam): the accent colour
-                            q[x, y] = shade(c, acc_dark, acc, 0.3, 0.5) + (c[3],)
+                            q[x, y] = snap(shade(c, acc_dark, acc, 0.3, 0.5), trim_pal) + (c[3],)
                         elif v >= 0.39:
                             # the suit's highlights: half clothes, half accent, so the colour runs through the outfit
                             base = shade(c, sd, sl, 0.13, 0.47)
-                            q[x, y] = tuple((base[i] + acc[i]) // 2 for i in range(3)) + (c[3],)
+                            q[x, y] = snap(tuple((base[i] + acc[i]) // 2 for i in range(3)), suit_pal) + (c[3],)
                         else:
-                            q[x, y] = shade(c, sd, sl, 0.13, 0.47) + (c[3],)
+                            q[x, y] = snap(shade(c, sd, sl, 0.13, 0.47), suit_pal) + (c[3],)
             if mirrored:
                 done = done.transpose(Image.FLIP_LEFT_RIGHT)
             out.paste(done, (cx, cy))
+    return out
+
+
+def hair_only(sheet, look):
+    """Only the old model's yellow-grey hair recoloured (recolour()'s hair rule and palette snap); the rest untouched."""
+    if look.get('hair') is None:
+        return sheet
+    hd, hl = hx(look['hair'][0]), hx(look['hair'][1])
+    out = sheet.copy()
+    p = out.load()
+    for y in range(out.height):
+        for x in range(out.width):
+            c = p[x, y]
+            if c[3] and is_hairish(c[:3]):
+                p[x, y] = snap(shade(c, hd, hl, 0.13, 1.0), look['hair_ramp']) + (c[3],)
     return out
 
 
@@ -222,6 +281,25 @@ def write_meta(template, path):
     open(path + '.meta', 'w', encoding='utf-8', newline='\n').write(meta)
 
 
+# Clips only A3 has (the A2 study portrait, a3_portrait.py): left out of the others' Anim assets.
+A3_ONLY = []   # every ally has their own portrait now (a3_portrait.py)
+
+
+def add_missing_clips(anim, guids):
+    """Adds a clip entry to Anim_A3 for every base sheet it doesn't list yet (e.g. new walk styles), with its fps."""
+    import a3_walks
+    for clip in sorted(guids):
+        if re.search(r'^  - name: %s$' % re.escape(clip), anim, re.M):
+            continue
+        import a3_study
+        fps = (a3_walks.fps(clip) if clip.startswith('walk') and clip != 'walk_sword'
+               else 5 if clip == 'idle' else 5 if clip.startswith('battle_idle') else 10)
+        anim = anim.rstrip('\n') + '\n' + (
+            '  - name: %s\n    sheet: {fileID: 2800000, guid: %s, type: 3}\n    fps: %s\n    loop: 1\n'
+            '    firstFrame: 0\n    frameCount: 0\n') % (clip, guids[clip], fps)
+    return anim
+
+
 def main():
     clips = sorted(f[:-4] for f in os.listdir(BASE) if f.endswith('.png'))
     a3_dir = os.path.join(CHARS, 'A3')
@@ -234,16 +312,26 @@ def main():
         for clip in clips:
             sheet = Image.open(os.path.join(BASE, clip + '.png')).convert('RGBA')
             path = os.path.join(out_dir, clip + '.png')
-            recolour(sheet, look, clip in SWORD_CLIPS, clip).save(path)
+            if clip in STUDY_CLIPS:
+                # the study's body wearing the old model's hair: that hair dressed like the old model's, the eyes
+                # from the palette (a3_portrait.dress), nothing else touched
+                import a3_portrait
+                a3_portrait.dress(hair_only(sheet, look), look).save(path)
+            else:
+                recolour(sheet, look, clip in SWORD_CLIPS, clip).save(path)
             template = os.path.join(a3_dir, clip + '.png.meta')
             write_meta(template if os.path.exists(template) else os.path.join(a3_dir, 'idle.png.meta'), path)
             if folder == 'A3':
                 a3_guids[clip] = meta_guid(path)
         if folder == 'A3':
+            anim_src = set_tint(add_missing_clips(anim_src, a3_guids))
+            open(os.path.join(ANIMS, 'Anim_A3.asset'), 'w', encoding='utf-8', newline='\n').write(anim_src)
             print('A3', len(clips), 'clips (Anim_A3 is the template the others copy)')
             continue
-        # the others: A3's clip list and timings, pointing at their own sheets
+        # the others: A3's clip list and timings, pointing at their own sheets (not A3's own portrait)
         anim = anim_src.replace('m_Name: Anim_A3', 'm_Name: Anim_' + folder)
+        anim = re.sub(r'  tintColors:\n(  - .*\n)*', '', anim)   # only the protagonist is tinted
+        anim = re.sub(r'  - name: (%s)\n(    .*\n)+' % '|'.join(A3_ONLY), '', anim)
         for clip in clips:
             if clip in a3_guids:
                 anim = anim.replace(a3_guids[clip], meta_guid(os.path.join(out_dir, clip + '.png')))

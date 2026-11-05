@@ -23,10 +23,12 @@ and up are mirrored. Every clip has all 4 rows (a one-row sheet would face left 
 No sword in battle: the attack (slash) is unarmed, built from her sword-less poses (crouch, dash, a raised strike with a
 knee), and spellcast is an arm thrust. The sword only appears with Settings > Sword in the overworld (idle_sword,
 walk_sword). ERASE takes out the hilt left in a few frames.
-The sheet has no walk cycle, so the walk is a stroll of her idle frames (stroll_pose()): the legs below the hip split
-down the middle, each sheared about the hip in whole pixels so the feet swing forward and back in turn, the swinging
-foot lifts, and the body bobs 1 px. She is the same sprite and height standing and walking, and her hair keeps swaying.
-walk_sword is the same stroll of idle_sword (sword resting): the overworld uses them when Settings > Sword is on.
+The overworld idle and walks are the A2 study (a3_study.py: its idle loop; a3_walks.py rigs its legs), shrunk to 75%
+like everything here. Battle stays on this sheet: battle_idle (her folded-arms idle) and the attack clips.
+The sheet has no walk cycle. The walks are in a3_walks.py: three styles (walk_s1..walk_s3, Esc > Settings > Walk), a
+thigh/shin leg rig on the idle frames; walk is the default style.
+walk_sword is still a stroll of idle_sword (stroll_pose(): legs sheared about the hip), for Settings > Sword.
+The menus' and cards' portrait (the A2 study) is a3_portrait.py, run at the end.
 Output: uncoloured base sheets in reference/A3_base/; alt_recolour.py then dresses every ally (A3 included) from them.
 Needs Pillow (the Windows "py -3.9" install has it).
 """
@@ -35,6 +37,9 @@ import os
 import sys
 
 from PIL import Image, ImageDraw
+
+import a3_study
+import a3_walks
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
@@ -125,17 +130,24 @@ def _stroll(frames):
 
 CLIPS = {
     # overworld and menus: no sword
-    'idle': [16, 95, 82, 64, 79, 63],                       # arms folded, hair swaying (ordered for the smoothest loop)
-    'walk': _stroll([16, 95, 82, 64, 79, 63, 16, 95]),       # the idle body (hair still swaying), legs stepping
+    # arms folded, hair swaying (ordered for the smoothest loop), on the study's legs (a3_hybrid)
+    # the A2 study's body standing still, wearing the old model's hair and its 6 drawn sway frames (a3_oldhair), at 75%
+    'idle': [('oldhair', k) for k in range(len(a3_walks.a3_oldhair.HAIR_FRAMES))],
+    'battle_idle': [16, 95, 82, 64, 79, 63],                 # battle keeps the sheet's body (its attacks are drawn on it)
+    # two more battle idles (CharacterDefinition.battleIdle): the same folded-arms stance as battle_idle, so the whole
+    # crew looks like A3, but each breathes in its own rhythm (breathe_pose: the upper body sinks over still legs)
+    'battle_idle2': [('breathe', f, d) for f, d in zip([63, 79, 64, 82, 95, 16], (0, 1, 1, 1, 0, 0))],   # the sway backwards, slow breath
+    'battle_idle3': [('breathe', f, d) for f, d in zip([64, 79, 63, 16, 95, 82], (1, 2, 1, 0, 0, 1))],   # from mid-sway, deeper breath
     'walk_sword': _stroll([6, 7, 8, 57, 58, 59, 127, 148]),  # sword resting, legs stepping (Settings > Sword)
     'idle_sword': [6, 7, 8, 57, 58, 59, 127, 148],          # sword resting on the ground (Settings > Sword)
-    'sit': [16, 87],                                        # drops into a crouch (held)
-    'read': [16, 63, 64],                                   # arms folded (held)
+    # sit / read (the Esc menu kneel, the Cards book): none on the study model; the game sinks the standing frame
     # battle: no sword (battle uses idle for its stance)
     'slash': [16, 87, 3, 74, 125, 66, 105, 16],             # unarmed: crouch, dash in, overhead strike + knee, recover
     'spellcast': [16, 47, 92, 83, 92, 47, 16],              # arm thrust out, held, back
     'hurt': [75, 77, 83, 92, 47],                           # recoil
 }
+# The walks (a3_walks.py): walk_s1..walk_s5 for Esc > Settings > Walk Style, and walk = the default style.
+CLIPS.update(a3_walks.clips())
 
 
 def upright(atlas, fid):
@@ -216,6 +228,15 @@ def frame(atlas, entry):
         _, fid, step = entry
         im, fx, fy = upright(atlas, fid)
         im, fx, fy = stroll_pose(im, step), fx + MARGIN, fy + MARGIN
+    elif isinstance(entry, tuple) and entry[0] == 'rig':
+        im, fx, fy = a3_walks.pose(atlas, entry, upright)
+    elif isinstance(entry, tuple) and entry[0] == 'study':
+        im, fx, fy = a3_walks.study_frame(entry[1])
+    elif isinstance(entry, tuple) and entry[0] == 'oldhair':
+        im, fx, fy = a3_walks.overworld_frame(atlas, upright, entry[1])
+    elif isinstance(entry, tuple) and entry[0] == 'breathe':
+        im, fx, fy = upright(atlas, entry[1])
+        im = breathe_pose(im, entry[2])
     else:
         im, fx, fy = upright(atlas, entry)
     im = shrink(im)
@@ -224,6 +245,27 @@ def frame(atlas, entry):
     # paste() clips anything that sticks out of the cell (nothing does at CELL 128)
     cell.paste(im, (CELL // 2 - fx, CELL - FEET_ROW - fy), im)
     return cell
+
+
+def breathe_pose(im, dy):
+    """A standing frame breathing: everything above the waist (the top 55% of the figure) sinks dy source px, the
+    rows it uncovers filled from the waist row, the legs untouched."""
+    if dy <= 0:
+        return im
+    box = im.getbbox()
+    if box is None:
+        return im
+    waist = box[1] + int((box[3] - box[1]) * 0.55)
+    out = im.copy()
+    top = im.crop((0, 0, im.width, waist))
+    clear = Image.new('RGBA', (im.width, waist), (0, 0, 0, 0))
+    out.paste(clear, (0, 0))
+    out.paste(top, (0, dy))
+    # the waist row stretches over the gap, so the body stays joined
+    row = im.crop((0, waist - 1, im.width, waist))
+    for y in range(waist - 1, waist + dy):
+        out.paste(row, (0, y), row)
+    return out
 
 
 def _span(i, n):
@@ -281,8 +323,75 @@ def _runs(p, w, y):
 
 
 
+MAX_TEXTURE = 2048   # the sheets' import limit (.meta maxTextureSize): Unity shrinks anything bigger and frames slice wrong
+
+
+def check_size(sheet, name):
+    if max(sheet.size) > MAX_TEXTURE:
+        raise ValueError('%s is %dx%d: over the %d px import limit (fewer frames, or raise maxTextureSize in its .meta)'
+                         % (name, sheet.width, sheet.height, MAX_TEXTURE))
+
+
+# The overworld clips (walking the world, under buildings and trees): sturdier legs and an unbroken outline, so the
+# figure reads at the overworld's small size and the behind-scenery outline (Silhouette.shader) is one solid line.
+# Battle, the menus' portrait and the Soul cards keep the art as drawn.
+OVERWORLD = {'idle', 'walk', 'walk_s1', 'walk_s2', 'walk_s3', 'idle_sword', 'walk_sword'}
+LEG_SHARE = 0.42   # the bottom share of the figure that is legs (the study: hip at row 48 of 84)
+
+
+def _outline_colour(p, w, h):
+    """The figure's own outline: the most common colour among its edge pixels (opaque, next to an empty one)."""
+    counts = {}
+    for y in range(h):
+        for x in range(w):
+            c = p[x, y]
+            if c[3] <= 100:
+                continue
+            if any(not (0 <= x + dx < w and 0 <= y + dy < h) or p[x + dx, y + dy][3] <= 100
+                   for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                counts[c[:3]] = counts.get(c[:3], 0) + 1
+    return max(counts, key=counts.get) if counts else (26, 14, 19)
+
+
+def sturdy(cell):
+    """Thicker legs (each leg run grows 1 px on its outer side, in its own edge colour), then a 1 px outline all the way
+    round the figure in its outline colour."""
+    out = cell.copy()
+    p = out.load()
+    w, h = out.size
+    bbox = out.getbbox()
+    if bbox is None:
+        return out
+    x0, y0, x1, y1 = bbox
+    centre = (x0 + x1) / 2.0
+    legs_from = y1 - int(round((y1 - y0) * LEG_SHARE))
+    src = cell.load()
+    for y in range(legs_from, y1):
+        runs = _runs(src, w, y)
+        for s, e in runs:
+            mid = (s + e) / 2.0
+            grow_left = mid <= centre or len(runs) == 1
+            grow_right = mid >= centre or len(runs) == 1
+            if grow_left and s - 1 >= 0 and src[s - 1, y][3] <= 100:
+                p[s - 1, y] = src[s, y]
+            if grow_right and e < w and src[e, y][3] <= 100:
+                p[e, y] = src[e - 1, y]
+    ink = _outline_colour(p, w, h) + (255,)
+    solid = [[p[x, y][3] > 100 for x in range(w)] for y in range(h)]
+    for y in range(h):
+        for x in range(w):
+            if solid[y][x]:
+                continue
+            if any(0 <= x + dx < w and 0 <= y + dy < h and solid[y + dy][x + dx]
+                   for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                p[x, y] = ink
+    return out
+
+
 def build_clip(atlas, name):
     cells = [frame(atlas, i) for i in CLIPS[name]]
+    if name in OVERWORLD:
+        cells = [sturdy(c) for c in cells]
     sheet = Image.new('RGBA', (CELL * len(cells), CELL * 4), (0, 0, 0, 0))
     for c, cell in enumerate(cells):
         flipped = cell.transpose(Image.FLIP_LEFT_RIGHT)
@@ -317,11 +426,14 @@ def main(argv):
     os.makedirs(OUT, exist_ok=True)
     for name in CLIPS:
         sheet = build_clip(atlas, name)
+        check_size(sheet, name)
         sheet.save(os.path.join(OUT, name + '.png'))
         print('%-10s %2d frames  %dx%d' % (name, len(CLIPS[name]), sheet.width, sheet.height))
     sys.path.insert(0, HERE)
     import alt_recolour   # every ally's sheets (A3 included) from these
     alt_recolour.main()
+    import a3_portrait    # the menus' and cards' portrait (A3 only)
+    a3_portrait.build()
 
 
 if __name__ == '__main__':

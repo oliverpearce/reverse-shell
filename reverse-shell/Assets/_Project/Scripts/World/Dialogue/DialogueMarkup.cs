@@ -33,6 +33,10 @@ namespace Game.World
         public string Text;
         public DialogueVoice Voice = DialogueVoice.Default;
         public Sprite Portrait;
+        /// <summary>The speaker's animated face (CardArt.FaceFrames), filled in by DialogueBox from DialogueFaces when the
+        /// line has none. Takes the place of <see cref="Portrait"/>.</summary>
+        public Sprite[] Face;
+        public float FaceFps = 6f;
 
         public DialogueLine(string speaker, string text, DialogueVoice voice, Sprite portrait = null)
         {

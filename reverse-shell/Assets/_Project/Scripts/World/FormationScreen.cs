@@ -305,7 +305,7 @@ namespace Game.World
                 bool selected = i == slot && !inStrip;
                 // The backup slot only opens once all three fighting slots are filled; until then it's greyed out.
                 bool closedBackup = i == WorldSession.BackupSlot && member == null && !WorldSession.BackupAllowed;
-                var rt = UIFactory.CreateRect("Slot" + i, page).Place(center, center, SlotPosition(i) + (i == slot ? new Vector2(0f, 24f) : Vector2.zero), size);
+                var rt = UIFactory.CreateRect("Slot" + i, page).Place(center, center, SlotPosition(i), size);   // every slot the same size and height; the gold frame marks the selection
                 var hit = rt.gameObject.AddComponent<Image>();
                 hit.color = new Color(0f, 0f, 0f, 0f);
                 slotRects.Add(rt);
@@ -332,6 +332,7 @@ namespace Game.World
                     face.sprite = art;
                     face.rectTransform.Fill();
                     if (art != null) UltShine.Add(rt, art, CardArt.HandPixel * SlotScale);
+                    SoulGlow.AddStatic(rt, SoulGlow.ColorOf(member));   // each member's card glows in their colour
                     var plate = InkStyle.Panel(rt, "Plate", new Color(0.05f, 0.045f, 0.04f, 0.88f));
                     plate.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(size.x, 92f));
                     var name = InkStyle.Title(plate.rectTransform, "Name", member.DisplayName, 32, InkStyle.Paper, TextAnchor.UpperCenter);
@@ -393,6 +394,7 @@ namespace Game.World
                 var face = UIFactory.CreateImage(rt, "Art", art != null ? Color.white : member.color, true);
                 face.sprite = art;
                 face.rectTransform.Fill();
+                SoulGlow.AddStatic(rt, SoulGlow.ColorOf(member));
                 int at = Array.IndexOf(WorldSession.Formation, member.name);
                 if (at >= 0)
                 {
@@ -533,14 +535,14 @@ namespace Game.World
             if (dragSource == null) dragSource = source.gameObject.AddComponent<CanvasGroup>();
             dragSource.alpha = 0.35f;
 
-            // The card lifted off the table: its art, a little smaller and tilted, following the pointer.
+            // The card lifted off the table: its art, tilted, following the pointer.
             var art = CardArt.Ult(WorldSession.UltimateOf(member), member);
             var img = UIFactory.CreateImage(page, "Ghost", art != null ? new Color(1f, 1f, 1f, 0.92f) : member.color);
             img.sprite = art;
             img.raycastTarget = false;
             ghost = img.rectTransform;
             var center = new Vector2(0.5f, 0.5f);
-            ghost.Place(center, center, Vector2.zero, CardView.Size * SlotScale * 0.85f);
+            ghost.Place(center, center, Vector2.zero, CardView.Size * SlotScale);   // the same size as the cards it lands on
             ghost.localRotation = Quaternion.Euler(0f, 0f, 6f);
             DragTo(e);
         }

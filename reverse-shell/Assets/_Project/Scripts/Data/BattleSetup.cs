@@ -26,5 +26,7 @@ namespace Combat
         [Range(1, 99)] public int enemyLevel = BattleUnit.DefaultEnemyLevel;
         [Tooltip("Boss: 3x HP, 1.25x ATK, a bigger sprite and a BOSS tag.")]
         public bool boss;
+        [Tooltip("Nobody on the player's side can drop below 1 HP (the Collector, Chapter One's first real fight).")]
+        public bool partyCantFall;
     }
 }

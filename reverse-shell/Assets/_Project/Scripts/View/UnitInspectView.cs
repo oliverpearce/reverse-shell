@@ -139,6 +139,7 @@ namespace Combat.View
             y = Health(sheet, unit, y + 18f);
             y = BreakInfo(sheet, unit, unitView, y + 16f);
             y = StatusRow(sheet, unitView, y + 12f);
+            y = SoulBound(sheet, unit, y + 10f);
             y = UltPoints(sheet, unit, unitView.MoxieCap, y + 14f);
             y = Stats(sheet, unit, y + 22f);
             Cards(sheet, unit, y + 40f);
@@ -249,6 +250,16 @@ namespace Combat.View
             layout.childForceExpandHeight = false;
             foreach (var s in statuses) StatusChip.Create(row, s, size);
             return y + size + 6f;
+        }
+
+        /// <summary>The Soul Dummy's gimmick (EnemyDefinition.soulOnly): only a Soul Card can finish it.</summary>
+        static float SoulBound(RectTransform sheet, BattleUnit unit, float y)
+        {
+            if (!BattleController.SoulOnly(unit)) return y;
+            var note = UIFactory.CreateText(sheet, "SoulBound", UIText.Get("inspect.soul_bound"), 28, new Color(0.77f, 0.69f, 1f), TextAnchor.MiddleLeft);
+            note.raycastTarget = false;
+            note.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(92f, -y), new Vector2(SheetW - 92f, 36f));
+            return y + 40f;
         }
 
         /// <summary>"ULT" and a row of Ult point pips (lit = earned), for units that have an Ult card.</summary>

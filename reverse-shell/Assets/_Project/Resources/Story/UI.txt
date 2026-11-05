@@ -49,7 +49,7 @@ item.core = CORE
 title.name = REVERSE SHELL
 title.subtitle = Demo
 # Bottom-right. Raise it with every build you hand out.
-title.version = Demo v0.2
+title.version = Demo v1.0
 title.keys = {gold}↑ ↓ ← →{/c}  Select      {gold}Enter{/c}  Confirm      {gold}Esc / P{/c}  Back
 
 title.continue = Continue
@@ -66,7 +66,12 @@ title.card_index = Cards
 title.overwrite = Overwrite slot {slot}?
 title.overwrite.yes = Yes, start a new game
 
-title.credits.text = <size=40>Credits</size>\n\nMade by {gold}Oliver Pearce{/c}.\n\n{gold}Icons{/c}   Raven Fantasy Icons by Clockwork Raven Studios\n{gold}Character sprites{/c}   Fantasy Knight by aamatniekss\n{gold}Effects{/c}   Super Pixel Effects Gigapack by Will Tice / unTied Games\n{gold}Font{/c}   monogram by datagoblin\n{gold}Card packs{/c}   Free Card Packs by argametina\n{gold}Card back{/c}   Major Arcana Tarot Cards by Stars in a Box (stars-in-a-box.itch.io)\n{gold}Nature models{/c}   Stylized Nature MegaKit by Quaternius (CC0)\n{gold}Office PC{/c}   Retro PC (CC0)\n\nThank you for playing!
+# The thank-you screen after the end card. thanks.feedback_url: your Google Form (or any) link; "none" points
+# players to the itch.io comments instead. {url} = that link
+thanks.feedback_url = none
+thanks.feedback = Tell me what you thought!\n{gold}{url}{/c}
+thanks.feedback.none = Tell me what you thought in the comments on the itch.io page!\nEvery bug report and idea helps.
+title.credits.text = <size=40>Credits</size>\n\nMade by {gold}Oliver Pearce{/c}.\n\n{gold}Icons{/c}   Raven Fantasy Icons by Clockwork Raven Studios\n{gold}Party sprites{/c}   A2 from Last Cloudia (NieR:Automata collab), (c) Aidis Inc. / Square Enix. Fan use, not affiliated\n{gold}Machines and people{/c}   Pixel RPG Prototype Characters by Snoblin; Tech Dungeon Roguelite by Trevor Pupkin\n{gold}Party colours{/c}   Lospec palettes: AAP-64, Rosy 42, Endesga 64, Cornsole2, Taffy 16, Fantasy 24\n{gold}Effects{/c}   Super Pixel Effects Gigapack by Will Tice / unTied Games\n{gold}Font{/c}   monogram by datagoblin\n{gold}Card packs{/c}   Free Card Packs by argametina\n{gold}Nature models{/c}   Stylized Nature MegaKit by Quaternius (CC0)\n{gold}Office PC{/c}   Retro PC (CC0)\n\nThank you for playing!
 
 # ------------------------------------------------------------------ Settings (title, Esc menu and battle pause menu)
 
@@ -94,10 +99,23 @@ settings.graphics.help = Fast: no glow or colour filter and fewer leaves, so the
 # {value} = settings.on / settings.off (overworld only: A3 always has her sword in battle)
 settings.sword = Sword:  {value}
 settings.sword.help = Show A3 carrying her sword while exploring. She always draws it in battle.
+settings.battle_zoom = Battle Zoom:  {value}
+settings.battle_zoom.help = The camera pushes in on the attacker and their target during attacks.
+# How fast dialogue types out. {value} = one of the four speeds below
+settings.text_speed = Text Speed:  {value}
+settings.text_speed.slow = Slow
+settings.text_speed.normal = Normal
+settings.text_speed.fast = Fast
+settings.text_speed.instant = Instant
+settings.text_speed.help = How fast dialogue types out. Hold Space, Enter or F to skip through lines you have already read.
+settings.auto_advance = Auto-Advance:  {value}
+settings.auto_advance.help = Dialogue moves on by itself a moment after each line has finished.
 
 # {value} = settings.on / settings.off
-settings.alt_art = Alt Art:  {value}
-settings.alt_art.help = Party members wear A3's look in their own colours: in the world, in battle, in menus and on their cards.
+settings.alt_art = Machine Look:  {value}
+settings.alt_art.snoblin = Snoblin
+settings.alt_art.tech = Tech Dungeon
+settings.alt_art.help = How the machines and the people you meet are drawn: Snoblin's little prototypes, or Tech Dungeon's gunners. Changes right away.
 
 # Esc > Settings, once you have met Erin: her battle tutorial again
 pause.practice_erin = Practice with Erin
@@ -139,12 +157,12 @@ pause.save.overwrite = Overwrite slot {slot}?
 pause.save.overwrite.yes = Yes, save over it
 # Flashes on the Save card. {slot} = the slot number
 pause.saved = SAVED {slot}
+# The ending's Hold to Skip (top right, or hold Esc)
+ending.skip = Hold to Skip
+# The Save card in Sandbox Mode (it has its own save, apart from the story slots)
+pause.saved.sandbox = SAVED (SANDBOX)
 
 pause.settings.title = SETTINGS
-pause.sandbox.enter = Enter Sandbox Mode
-pause.sandbox.enter.help = Go to the Sandbox: practice fights with any enemy level, and the whole test crew. Leave Sandbox Mode (here) brings you back to where you are now.
-pause.sandbox.leave = Leave Sandbox Mode
-pause.sandbox.leave.help = Go back to exactly where you were before you entered the Sandbox.
 
 pause.quit.title = QUIT
 pause.quit.sure = Are you sure?
@@ -298,8 +316,11 @@ battle.weak = WEAK: {weak}
 # Banners across the middle. {n} = the turn number, {name} = a unit's name
 battle.banner.turn = Turn {n}
 battle.banner.end_of_turn = End of Turn
-battle.banner.ult_ready = {name}'s Soul Card is primed!
+battle.banner.ult_ready = {name}'s soul resonates
 battle.banner.steps_in = {name} steps in!
+# The beat before the results screen
+battle.banner.victory = VICTORY
+battle.banner.defeat = Defeated...
 
 # Cards
 card.ult = Ult
@@ -344,6 +365,8 @@ inspect.break = Break
 inspect.staggered = STAGGERED
 inspect.weak = WEAK
 inspect.weak_none = No weaknesses
+# The tutorial's Dummy Robot (EnemyDefinition.soulOnly)
+inspect.soul_bound = Soul-bound: only a Soul Card can finish it
 
 # The profile posters
 poster.target = TARGET PROFILE
@@ -545,6 +568,10 @@ pack.name = CARD PACK
 pack.hint.open = Click (or Enter) to tear it open
 # The bottom-right button while a pack opens: click = skip to the next card (not a Soul card), hold (it fills) = skip all
 pack.skip = Skip
+# The opening (office PC): hold it (or Esc) to skip straight to waking up in the city
+prologue.skip_intro = Hold to Skip Intro
+# Right after waking in the city: how to move (it goes once you do)
+awakening.move_hint = {gold}WASD{/c} or {gold}Arrow keys{/c}  to move
 # Under a pulled card: it gained a star / it was already at the top level, so it became a blank card
 pack.level_up = Level up!
 pack.blank = Maxed: +1 Blank

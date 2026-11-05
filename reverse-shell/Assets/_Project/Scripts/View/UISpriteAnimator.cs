@@ -29,6 +29,28 @@ namespace Combat.View
         /// <summary>Animate on unscaled time (for menus shown while the game is paused).</summary>
         public bool UnscaledTime;
 
+        /// <summary>Playback speed (1 = the clip's fps). <see cref="Desync"/> nudges it per unit.</summary>
+        public float Speed = 1f;
+
+        /// <summary>Idle loops start at a random point (and come back from one-shots at one), so a row of units
+        /// doesn't breathe in lockstep.</summary>
+        public bool RandomPhase;
+
+        /// <summary>Breaks lockstep: random idle phase and a small speed jitter (+/- <paramref name="jitter"/>).</summary>
+        public void Desync(float jitter = 0.08f)
+        {
+            RandomPhase = true;
+            Speed = UnityEngine.Random.Range(1f - jitter, 1f + jitter);
+            if (clip != null && clip.loop && frames != null && frames.Length > 1) time = RandomTime(clip, frames.Length);
+        }
+
+        /// <summary>A start time somewhere in one loop of the clip.</summary>
+        public static float RandomTime(SpriteAnimationClip c, int frameCount)
+        {
+            if (c == null || c.fps <= 0f || frameCount <= 1) return 0f;
+            return UnityEngine.Random.Range(0f, frameCount / c.fps);
+        }
+
         public void Init(SpriteAnimationSet animationSet, Facing face, params Image[] images)
         {
             set = animationSet;
@@ -59,18 +81,18 @@ namespace Combat.View
             clip = c;
             frames = f;
             Current = clipName;
-            time = 0f;
+            time = RandomPhase && c.loop && clipName == IdleClip ? RandomTime(c, f.Length) : 0f;
             holdLast = holdLastFrame;
             finished = false;
             onComplete = completed;
-            Apply(0);
+            Apply(Mathf.Clamp(Mathf.FloorToInt(time * Mathf.Max(0.01f, c.fps)), 0, f.Length - 1));
             return true;
         }
 
         void Update()
         {
             if (frames == null || finished) return;
-            time += UnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
+            time += (UnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime) * Speed;
             int index = Mathf.FloorToInt(time * Mathf.Max(0.01f, clip.fps));
 
             if (index >= frames.Length)

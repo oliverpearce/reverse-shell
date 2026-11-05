@@ -36,6 +36,9 @@ namespace Game.World
 
         const float TypeSpeed = 42f;   // characters per second
 
+        /// <summary>Set by the screenshot run (ShotTour): the name prompt takes this as soon as it's showing.</summary>
+        public static string AutoName;
+
         // The monitor's phosphor.
         static readonly Color Phosphor = new Color(0.86f, 1f, 0.9f);
         static readonly Color PhosphorDim = new Color(0.7f, 0.88f, 0.8f, 0.8f);
@@ -83,6 +86,8 @@ namespace Game.World
 
         void Update()
         {
+            UpdateSkip();
+            if (skippingAll) return;
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
                 advance = true;
             if (UIKeys.Back && canSkip) skip = true;
@@ -147,6 +152,7 @@ namespace Game.World
             hint.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 24f), new Vector2(900f, 40f));
             hint.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.6f);
             hint.gameObject.SetActive(false);
+            BuildSkip();
             yield return Login();
             yield return Recording1();
             yield return Failure();
@@ -300,6 +306,7 @@ namespace Game.World
             while (chosen == null)
             {
                 if (!field.isFocused) field.ActivateInputField();
+                if (AutoName != null) chosen = AutoName;   // the screenshot run (ShotTour) types it
                 yield return null;
             }
             Destroy(field.gameObject);
@@ -679,6 +686,85 @@ namespace Game.World
                 confirmed(name.Length == 0 ? "A3" : name);
             });
             return field;
+        }
+
+        // ------------------------------------------------------------------ Skip Intro
+        // Bottom right, like the card packs' Skip: an ink plate that fills with gold while it's held (the mouse, or Esc).
+        // Full: the whole opening is skipped and you wake in the city (named A3, or what's typed in the name box so far).
+        // Faint until the mouse is over it or it's being held. A tap of Esc still only skips the recording.
+        RectTransform skipPlate, skipFill;
+        CanvasGroup skipGroup;
+        float skipHeld;
+        bool mouseOnSkip, mouseOverSkip, skippingAll;
+        const float SkipHoldSeconds = 0.6f, SkipIdleAlpha = 0.25f;
+
+        void BuildSkip()
+        {
+            var plate = InkStyle.Panel(root, "SkipIntro", InkStyle.InkPanel, true);
+            skipPlate = plate.rectTransform;
+            skipGroup = plate.gameObject.AddComponent<CanvasGroup>();
+            skipGroup.alpha = SkipIdleAlpha;
+            var corner = new Vector2(1f, 0f);
+            skipPlate.Place(corner, corner, new Vector2(-60f, 60f), new Vector2(480f, HudView.GoSize.y));
+            InkStyle.Frame(skipPlate, InkStyle.Rule, 2f);
+            var fill = UIFactory.CreateImage(skipPlate, "Fill", UIFactory.WithAlpha(InkStyle.Gold, 0.6f));
+            fill.raycastTarget = false;
+            skipFill = fill.rectTransform;
+            skipFill.anchorMin = Vector2.zero;
+            skipFill.anchorMax = new Vector2(0f, 1f);
+            skipFill.offsetMin = skipFill.offsetMax = Vector2.zero;
+            var label = InkStyle.Title(skipPlate, "Label", UIText.Get("prologue.skip_intro"), UIFactory.TextSize.Large, InkStyle.Paper, TextAnchor.MiddleCenter);
+            label.raycastTarget = false;
+            label.rectTransform.Fill(8f);
+
+            var trigger = plate.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            void On(UnityEngine.EventSystems.EventTriggerType type, Action act)
+            {
+                var entry = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = type };
+                entry.callback.AddListener(_ => act());
+                trigger.triggers.Add(entry);
+            }
+            On(UnityEngine.EventSystems.EventTriggerType.PointerDown, () => mouseOnSkip = true);
+            On(UnityEngine.EventSystems.EventTriggerType.PointerUp, () => mouseOnSkip = false);
+            On(UnityEngine.EventSystems.EventTriggerType.PointerEnter, () => mouseOverSkip = true);
+            On(UnityEngine.EventSystems.EventTriggerType.PointerExit, () => { mouseOverSkip = false; mouseOnSkip = false; });
+        }
+
+        void UpdateSkip()
+        {
+            if (skipPlate == null || skippingAll) return;
+            skipPlate.SetAsLastSibling();   // over the pages the opening adds as it goes
+            bool held = mouseOnSkip || Input.GetKey(KeyCode.Escape);
+            skipHeld = held ? skipHeld + Time.unscaledDeltaTime : 0f;
+            skipFill.anchorMax = new Vector2(Mathf.Clamp01(skipHeld / SkipHoldSeconds), 1f);
+            float alpha = mouseOverSkip || skipHeld > 0f ? 1f : SkipIdleAlpha;
+            skipGroup.alpha = Mathf.MoveTowards(skipGroup.alpha, alpha, 6f * Time.unscaledDeltaTime);
+            if (skipHeld >= SkipHoldSeconds) SkipAll();
+        }
+
+        /// <summary>Ends the opening now: keeps (or gives) the name, cuts to black, and hands over to the city.</summary>
+        void SkipAll()
+        {
+            if (skippingAll) return;
+            skippingAll = true;
+            StopAllCoroutines();
+            if (!StoryState.Has(Chapter1.Named))
+            {
+                var box = GetComponentInChildren<InputField>();
+                string typed = box != null ? (box.text ?? "").Trim() : "";
+                StoryState.SetName(typed.Length > 0 ? typed : "A3");
+                StoryState.Set(Chapter1.Named);
+                SaveGame.Save();
+            }
+            if (black != null)
+            {
+                black.rectTransform.SetAsLastSibling();
+                black.color = Color.black;
+            }
+            var then = done;
+            done = null;
+            Destroy(gameObject);
+            if (then != null) then();
         }
 
         // ------------------------------------------------------------------ Helpers

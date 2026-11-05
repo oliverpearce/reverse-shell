@@ -10,6 +10,11 @@
 //   Rim        _RimColor lights the edges that turn away from the camera (glassy ice trees); black = off.
 //   Shade      _ShadeColor tints what the sun doesn't reach (the shadow band fully, the mid band half way, and the
 //              ambient light), so pale frosted trees shade into light blue instead of washing out; white = off.
+//   Palette    when an area has a world palette (WorldPalette.cs: globals _PalOn, _Pal[], _PalCount, _PalDither), the
+//              finished colour (fog included) snaps to its nearest palette colour, optionally through a 4x4 ordered
+//              dither, so the whole world lands on the chosen Lospec palette. Only the base pass snaps (extra lights
+//              add on top); sprites, UI and other shaders are untouched. Fog is applied here (nofog + finalcolor) so
+//              the snap happens after it.
 // Materials are made at runtime by NatureKit / WorldArt; web builds keep the shader through WebBuildSetup's list.
 Shader "Reverse Shell/WorldToon"
 {
@@ -37,7 +42,8 @@ Shader "Reverse Shell/WorldToon"
         LOD 200
 
         CGPROGRAM
-        #pragma surface surf Toon vertex:vert alphatest:_Cutoff addshadow fullforwardshadows
+        #pragma surface surf Toon vertex:vert finalcolor:final nofog alphatest:_Cutoff addshadow fullforwardshadows
+        #pragma multi_compile_fog
         #pragma target 3.0
 
         sampler2D _MainTex;
@@ -45,6 +51,10 @@ Shader "Reverse Shell/WorldToon"
         half _Wind, _Wrap, _VertexShade, _ShadeLow, _ShadeMid, _ShadeHigh;
         half4 _EmissionColor, _RimColor, _ShadeColor;
         half _RimPower;
+        // the world palette (WorldPalette.cs), global
+        float4 _Pal[64];
+        float _PalCount, _PalOn, _PalDither;
+        static const float kBayer[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
 
         struct Input
         {
@@ -52,10 +62,14 @@ Shader "Reverse Shell/WorldToon"
             float4 color : COLOR;
             float3 viewDir;
             float3 worldNormal;
+            float4 screenPos;
+            float fogZ;
         };
 
-        void vert(inout appdata_full v)
+        void vert(inout appdata_full v, out Input data)
         {
+            UNITY_INITIALIZE_OUTPUT(Input, data);
+            data.fogZ = UnityObjectToClipPos(v.vertex).z;
             if (_Wind <= 0) return;
             float3 world = mul(unity_ObjectToWorld, v.vertex).xyz;
             float3 origin = mul(unity_ObjectToWorld, float4(0, 0, 0, 1)).xyz;
@@ -89,6 +103,44 @@ Shader "Reverse Shell/WorldToon"
             // Glass: the edges turning away from the camera catch the light (stepped, to stay pixel-crisp).
             half rim = pow(1.0 - saturate(abs(dot(normalize(IN.viewDir), o.Normal))), _RimPower);
             o.Emission += _RimColor.rgb * (rim > 0.45 ? 1.0 : (rim > 0.2 ? 0.45 : 0.0));
+        }
+
+        // The nearest world palette colour (weighted RGB, like the art tools' snap).
+        half3 Snap(half3 c)
+        {
+            half3 best = c;
+            float bestD = 1e9;
+            for (int i = 0; i < 64; i++)
+            {
+                if (i >= (int)_PalCount) break;
+                float3 d = c - _Pal[i].rgb;
+                float dist = d.r * d.r * 2 + d.g * d.g * 4 + d.b * d.b * 3;
+                if (dist < bestD) { bestD = dist; best = _Pal[i].rgb; }
+            }
+            return best;
+        }
+
+        void final(Input IN, SurfaceOutput o, inout fixed4 color)
+        {
+            // fog, as Unity would (nofog above), so the palette snap comes after it
+            #if defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2)
+                UNITY_CALC_FOG_FACTOR(IN.fogZ);
+                #ifdef UNITY_PASS_FORWARDADD
+                    color.rgb = lerp(fixed3(0, 0, 0), color.rgb, saturate(unityFogFactor));
+                #else
+                    color.rgb = lerp(unity_FogColor.rgb, color.rgb, saturate(unityFogFactor));
+                #endif
+            #endif
+            #ifndef UNITY_PASS_FORWARDADD
+            if (_PalOn > 0.5 && _PalCount > 0)
+            {
+                // 4x4 Bayer threshold per screen pixel (the PixelCamera's pixels), scaled by the area's dither amount
+                float2 px = floor(IN.screenPos.xy / max(IN.screenPos.w, 1e-5) * _ScreenParams.xy);
+                int2 m = int2(fmod(px, 4.0));
+                float thr = (kBayer[m.y * 4 + m.x] + 0.5) / 16.0 - 0.5;
+                color.rgb = Snap(saturate(color.rgb + thr * _PalDither * 0.15));
+            }
+            #endif
         }
         ENDCG
     }

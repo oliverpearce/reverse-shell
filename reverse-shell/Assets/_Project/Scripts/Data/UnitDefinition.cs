@@ -34,8 +34,22 @@ namespace Combat
         /// Everything that draws a unit (battle, overworld, menus, Soul cards) reads this.</summary>
         public SpriteAnimationSet Anim
         {
-            get { return altAnimations != null && Combat.View.GameSettings.AltArt ? altAnimations : animations; }
+            get
+            {
+                var set = altAnimations != null && Combat.View.GameSettings.AltArt ? altAnimations : animations;
+                if (set != null) set = set.Current;   // the machines' Snoblin / Tech Dungeon looks
+                if (set != null && AnimTint != null && set.tintColors != null && set.tintColors.Count > 0)
+                {
+                    var t = AnimTint(this);
+                    if (t.HasValue) return set.Tinted(t.Value);
+                }
+                return set;
+            }
         }
+
+        /// <summary>The colour a unit's sprite is tinted in (its set's tintColors), or null for none. The world sets it:
+        /// the protagonist's hair and eyes take her active resonance's colour.</summary>
+        public static System.Func<UnitDefinition, Color?> AnimTint;
 
         public string DisplayName
         {

@@ -80,7 +80,8 @@ namespace Game.World
         /// <summary>The full-art Ult cards (Resources/Cards) a desk's face-up card is picked from.</summary>
         static readonly string[] FaceUpCards =
         {
-            "Cards/Ult_Char_A3", "Cards/Ult_Char_Ashe", "Cards/Ult_Char_Erin", "Cards/Ult_Char_Zuko", "Cards/Ult_Card_A3_Thunderheart",
+            "Cards/Ult_Char_A3", "Cards/Ult_Char_Ashe", "Cards/Ult_Char_Erin", "Cards/Ult_Char_Lotus", "Cards/Ult_Char_Zuko",
+            "Cards/Ult_Card_A3_Thunderheart",
         };
         static readonly Dictionary<string, Material> cardMaterials = new Dictionary<string, Material>();
 

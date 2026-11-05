@@ -13,6 +13,8 @@ namespace Game.World
     ///   [key]                      starts a block
     ///   Speaker | text             one dialogue box spoken by Speaker
     ///   text                       one box of narration (no speaker)
+    ///   Thought | text             the protagonist's inner voice: no name plate, soft blue-grey text (so the scene reads
+    ///                              the same whoever leads the party)
     /// {name} becomes the protagonist's name; a few lines take other fill-ins (e.g. {item}), passed to
     /// <see cref="Text(string, string[])"/>. Long lines are split into boxes automatically (DialoguePager), so a whole
     /// paragraph can go on one line. A missing key shows "[missing: key]" in game so it's easy to spot.
@@ -45,11 +47,20 @@ namespace Game.World
             return result;
         }
 
-        /// <summary>The block's lines as dialogue, each with the voice <paramref name="voiceFor"/> picks for its speaker.</summary>
+        /// <summary>The protagonist's inner voice ("Thought | text"): shown with no speaker, in <see cref="ThoughtColor"/>.</summary>
+        public const string Thought = "Thought";
+        public const string ThoughtColor = "#AEB9D4";
+
+        /// <summary>The block's lines as dialogue, each with the voice <paramref name="voiceFor"/> picks for its speaker.
+        /// Thought lines have no speaker (the narrator's voice) and are tinted.</summary>
         public static List<DialogueLine> Lines(string key, Func<string, DialogueVoice> voiceFor)
         {
             var list = new List<DialogueLine>();
-            foreach (var e in Get(key)) list.Add(new DialogueLine(e.Speaker, e.Text, voiceFor(e.Speaker)));
+            foreach (var e in Get(key))
+            {
+                if (e.Speaker == Thought) list.Add(new DialogueLine("", "{c=" + ThoughtColor + "}" + e.Text + "{/c}", voiceFor("")));
+                else list.Add(new DialogueLine(e.Speaker, e.Text, voiceFor(e.Speaker)));
+            }
             return list;
         }
 

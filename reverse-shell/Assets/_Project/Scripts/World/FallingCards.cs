@@ -8,7 +8,7 @@ namespace Game.World
 {
     /// <summary>
     /// The title screen's background: Soul Cards (every full-art Ult card in Resources/Cards, Ult_*.png, each tinted a
-    /// colour from <see cref="Tints"/> and keeping its shine) drifting down the screen at a few sizes and speeds, gently
+    /// colour from <see cref="Tints"/> and keeping its shine) drifting down the screen, all one size, at a few speeds, gently
     /// swaying and turning, dimmed so the menu stays readable. Four pixel sparkle effects play over them (brighter than
     /// the dimmed cards):
     ///   Twinkle  a four-point star that blooms and fades at a random spot on a card, riding along with it
@@ -26,7 +26,7 @@ namespace Game.World
 
         /// <summary>With Graphics: Fast, glitter and trail sparkles come this many times less often (each is a UI object).</summary>
         static float Sparse { get { return GameSettings.FastGraphics ? 3f : 1f; } }
-        static readonly float[] Scales = { 0.6f, 0.8f, 1f };   // 3x, 4x, 5x card pixels
+        static readonly float[] Scales = { 0.8f };   // one size for every card (4x card pixels); depth comes from speed and fade
 
         /// <summary>The Soul Cards' colours (each card is tinted part-way toward one).</summary>
         static readonly Color[] Tints =
@@ -161,8 +161,7 @@ namespace Game.World
                 UltShine.Add(rt, art, CardArt.HandPixel * s);
             }
             foreach (var g in rt.GetComponentsInChildren<Graphic>()) g.raycastTarget = false;
-            // Smaller cards are further away: slower and further back.
-            rt.SetSiblingIndex(s < 0.7f ? 0 : rt.GetSiblingIndex());
+            rt.SetSiblingIndex(rt.GetSiblingIndex());
 
             var size = AreaSize();
             float x = Random.Range(-size.x / 2f + 80f, size.x / 2f - 80f);

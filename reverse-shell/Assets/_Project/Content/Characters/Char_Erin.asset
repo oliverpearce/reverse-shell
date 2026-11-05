@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Char_Erin
   m_EditorClassIdentifier: 
   displayName: Erin
-  color: {r: 1.0, g: 0.62, b: 0.3, a: 1}
+  color: {r: 1.000000, g: 0.537255, b: 0.200000, a: 1}
   portrait: {fileID: 0}
   animations: {fileID: 11400000, guid: 5fa495ea52555a8c90ba8c78b5452ec1, type: 2}
   altAnimations: {fileID: 0}
@@ -31,7 +31,7 @@ MonoBehaviour:
     critDamage: 1.5
   archetype: Hacker
   incantations:
-  - {fileID: 11400000, guid: 51ef784f69379404890b49e46b0eaf65, type: 2}
+  - {fileID: 11400000, guid: d6351ae5281e16e4c83367aa0eeff58b, type: 2}
   - {fileID: 11400000, guid: 49f519c2f1eff36479c38b92cc4258a1, type: 2}
   cardPool:
   - {fileID: 11400000, guid: f811bae2077e8364886d9dd17cf15b70, type: 2}
@@ -40,6 +40,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 49f519c2f1eff36479c38b92cc4258a1, type: 2}
   - {fileID: 11400000, guid: f811bae2077e8364886d9dd17cf15b70, type: 2}
   growthPerLevel: 0.08
+  battleIdle: 3
   portraitFront: {fileID: 21300000, guid: cbdae4d572faa0c448ff7b1f35e33de4, type: 3}
   portraitInternals: {fileID: 21300000, guid: b902a940a36fac34488aaa0f11c00bd4, type: 3}
   portraitGlow: {fileID: 21300000, guid: e7b23ffa41912e54c90e27bf2c83e9b4, type: 3}

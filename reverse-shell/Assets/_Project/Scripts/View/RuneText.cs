@@ -9,7 +9,8 @@ namespace Combat.View
     /// Card names on cards that aren't zoomed in: written in runes (the Standard Galactic Alphabet, the enchanting-table
     /// look) instead of small text, so a small card's plate reads as decoration and the real name shows when zoomed in.
     /// The runes are our own 5 px tall pixel glyphs (one per letter, drawn below), cut into sprites once, point filtered.
-    /// The letters are hashed first (<see cref="Scramble"/>): same length, but the runes can't be read back.
+    /// Each rune is its own letter (<see cref="Letters"/>), exactly like the enchanting table: the runes translate with
+    /// any Standard Galactic Alphabet chart.
     /// </summary>
     public static class RuneText
     {
@@ -62,7 +63,7 @@ namespace Combat.View
             Load();
             var letters = new List<int>();   // glyph index, or -1 for a space
             int total = 0;
-            foreach (char raw in Scramble(text))
+            foreach (char raw in Letters(text))
             {
                 if (raw == ' ') { letters.Add(-1); total += SpaceWidth; continue; }
                 int k = raw - 'a';
@@ -92,31 +93,20 @@ namespace Combat.View
         }
 
         /// <summary>
-        /// The letters the runes are drawn from: each letter of a word is swapped for one picked by a hash of the whole
-        /// word and the letter's place in it. Same length (spaces and other characters stay), the same word always
-        /// gives the same runes, but they can't be decoded letter by letter. Lower case.
+        /// The letters the runes are drawn from: the text itself, lower case, one rune per letter (a = ᔑ, b = ʖ, ...), so
+        /// "Strike" in runes reads s-t-r-i-k-e to anyone with an enchanting-table (SGA) chart. Letters with accents lose
+        /// them; digits and punctuation have no rune and are left out where the runes are drawn.
         /// </summary>
-        public static string Scramble(string text)
+        public static string Letters(string text)
         {
-            var chars = (text ?? "").ToLowerInvariant().ToCharArray();
-            int start = 0;
-            for (int i = 0; i <= chars.Length; i++)
+            var plain = (text ?? "").Normalize(System.Text.NormalizationForm.FormD);
+            var sb = new System.Text.StringBuilder(plain.Length);
+            foreach (char c in plain)
             {
-                if (i < chars.Length && chars[i] >= 'a' && chars[i] <= 'z') continue;
-                unchecked
-                {
-                    uint h = 2166136261u;   // FNV-1a over the word
-                    for (int j = start; j < i; j++) h = (h ^ chars[j]) * 16777619u;
-                    for (int j = start; j < i; j++)
-                    {
-                        h = (h ^ (uint)(j - start + 1)) * 16777619u;
-                        h ^= h >> 13;
-                        chars[j] = (char)('a' + h % 26u);
-                    }
-                }
-                start = i + 1;
+                if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.NonSpacingMark) continue;
+                sb.Append(char.ToLowerInvariant(c));
             }
-            return new string(chars);
+            return sb.ToString();
         }
 
         /// <summary>The height of a capital letter in <paramref name="font"/> at <paramref name="size"/> (canvas units).</summary>
@@ -218,7 +208,7 @@ namespace Combat.View
                 else
                 {
                     piece = UIFactory.CreateRect("Word", area);
-                    w = WordGlyphs(piece, Scramble(word.Text), word.Color, px);
+                    w = WordGlyphs(piece, Letters(word.Text), word.Color, px);
                     if (w <= 0f) { Object.Destroy(piece.gameObject); continue; }
                     piece.sizeDelta = new Vector2(w, Rows * px);
                 }

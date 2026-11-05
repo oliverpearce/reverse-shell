@@ -66,7 +66,7 @@ namespace Game.World
         {
             if (line == null) return;
             bool revealing = !FullyRevealed;
-            clock += Time.unscaledDeltaTime;
+            clock += Time.unscaledDeltaTime * Combat.View.GameSettings.TextSpeedScale;   // Settings > Text Speed
             while (RevealedCount < revealAt.Length && clock >= revealAt[RevealedCount]) RevealedCount++;
             if (revealing || animatedGlyphs) graphic.SetVerticesDirty();
         }
