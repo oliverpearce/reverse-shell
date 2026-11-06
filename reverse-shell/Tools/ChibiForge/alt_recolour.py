@@ -56,9 +56,10 @@ LOOKS = {
     'Zuko': None,
 }
 SWORD_CLIPS = {'idle_sword', 'walk_sword'}
-# The overworld clips: the A2 study's body wearing the old model's hair (a3_oldhair). Their hair is dressed with the old
-# model's hair rule (hair_only) and their eyes from the palette (a3_portrait.dress); the suit rules are for battle.
-STUDY_CLIPS = {'idle', 'walk', 'walk_s1', 'walk_s2', 'walk_s3'}
+# Every clip is now the A2 study's body wearing the old model's hair (a3_oldhair), battle included: the hair is dressed
+# with the old model's hair rule (hair_only) and the eyes from the palette (a3_portrait.dress). recolour() and its suit
+# rules were for the Last Cloudia sheet's body, which is no longer used (kept for reference).
+STUDY_CLIPS = None   # None = every clip
 
 # Frames where the blade touches the hair, so shape alone can't split them: the blade's outline, in the cell of a
 # left-facing frame ((clip, frame): [polygon, ...]). Pixels inside stay steel; the rest of the patch counts as hair.
@@ -312,7 +313,7 @@ def main():
         for clip in clips:
             sheet = Image.open(os.path.join(BASE, clip + '.png')).convert('RGBA')
             path = os.path.join(out_dir, clip + '.png')
-            if clip in STUDY_CLIPS:
+            if STUDY_CLIPS is None or clip in STUDY_CLIPS:
                 # the study's body wearing the old model's hair: that hair dressed like the old model's, the eyes
                 # from the palette (a3_portrait.dress), nothing else touched
                 import a3_portrait

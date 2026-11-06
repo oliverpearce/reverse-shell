@@ -1145,7 +1145,7 @@ def hurt_frame(spec, i):
 
 def build_sheets(name):
     if name == 'A3':
-        # A3: cut from her packed sprite sheet (reference/A3_sheet.png), not drawn here. a3_model needs Pillow.
+        # A3: the A2 study body wearing the old hair (a3_model.py, reference/A3_hair.png), not drawn here. Needs Pillow.
         try:
             import a3_model
         except ImportError as e:

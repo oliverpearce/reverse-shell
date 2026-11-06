@@ -33,22 +33,13 @@
       .rule::before, .rule::after { content: ""; position: absolute; top: -4px; width: 10px; height: 10px;
                background: var(--gold); transform: rotate(45deg); }
       .rule::before { left: -14px; } .rule::after { right: -14px; }
-      .tagline { font-size: clamp(18px, 2.6vw, 30px); color: var(--paper-dim); margin-bottom: 34px; text-align: center; padding: 0 16px; }
+      .tagline { font-size: clamp(18px, 2.6vw, 30px); color: var(--paper-dim); margin-bottom: 34px; text-align: center;
+                 padding: 0 16px; max-width: 760px; line-height: 1.25; }
       .bar { width: min(520px, 70vw); height: 14px; border: 2px solid var(--gold); padding: 3px; box-sizing: content-box; }
       .fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--gold) 0%, var(--gold-bright) 100%);
               transition: width 0.25s ease; }
-      .status { margin-top: 14px; font-size: clamp(16px, 2.2vw, 26px); color: var(--paper); min-height: 1.2em; }
-      .status .pct { color: var(--gold-bright); }
-      .hint { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; font-size: clamp(14px, 1.8vw, 22px);
-              color: var(--paper-dim); padding: 0 16px; }
-      .error { color: #ff8a7a; }
-
-      #fullscreen {
-        position: absolute; right: 10px; bottom: 10px; z-index: 3; font-family: "monogram", monospace; font-size: 22px;
-        color: var(--paper); background: rgba(11, 10, 9, 0.7); border: 2px solid var(--rule); padding: 2px 10px;
-        cursor: pointer; display: none;
-      }
-      #fullscreen:hover { color: var(--gold-bright); border-color: var(--gold); }
+      .status { margin-top: 14px; font-size: clamp(16px, 2.2vw, 26px); color: #ff8a7a; min-height: 1.2em;
+                text-align: center; padding: 0 16px; }
     </style>
     <script src="%UNITY_WEBGL_LOADER_URL%"></script>
   </head>
@@ -59,38 +50,30 @@
     <div id="loader">
       <div class="title">REVERSE SHELL</div>
       <div class="rule"></div>
-      <div class="tagline">Wake in the ruins. Merge cards. Break the machines.</div>
+      <div class="tagline">Sunlight through a broken roof. Wind in the grass that grew over the road. Somewhere in the
+        green, a machine is still keeping watch.</div>
       <div class="bar"><div class="fill" id="fill"></div></div>
-      <div class="status" id="status">Waking up... <span class="pct">0%</span></div>
-      <div class="hint">Best in Chrome or Firefox, fullscreen. Esc or P pauses.</div>
+      <div class="status" id="status"></div>
     </div>
-    <button id="fullscreen" title="Fullscreen">[ ] Fullscreen</button>
     <script>
-      var lines = ["Waking up...", "Booting the Core...", "Shuffling the deck...", "Growing the moss...", "Almost there..."];
       var fill = document.getElementById("fill");
       var status = document.getElementById("status");
       var loader = document.getElementById("loader");
-      var fullscreen = document.getElementById("fullscreen");
 
       function progress(instance, value) {
         if (!instance.Module) return;
-        var pct = Math.round(value * 100);
-        fill.style.width = pct + "%";
-        var line = lines[Math.min(lines.length - 1, Math.floor(value * lines.length))];
-        status.innerHTML = line + ' <span class="pct">' + pct + "%</span>";
+        fill.style.width = Math.round(value * 100) + "%";
         if (value >= 1) {
-          status.textContent = "Starting...";
           // The first frame draws a moment after the download finishes.
-          setTimeout(function () { loader.classList.add("done"); fullscreen.style.display = "block"; }, 700);
+          setTimeout(function () { loader.classList.add("done"); }, 700);
         }
       }
 
       var unityInstance = UnityLoader.instantiate("unityContainer", "%UNITY_WEBGL_BUILD_URL%", { onProgress: progress });
-      fullscreen.onclick = function () { unityInstance.SetFullscreen(1); };
 
       window.addEventListener("error", function () {
         if (loader.classList.contains("done")) return;
-        status.innerHTML = '<span class="error">Something went wrong loading the game. Try reloading the page, or another browser.</span>';
+        status.textContent = "Something went wrong loading the game. Try reloading the page, or another browser.";
       });
     </script>
   </body>

@@ -2,6 +2,8 @@
 // the scenery already drawn (ZTest Greater): only the pixels something covers pass. There the outline is drawn just
 // outside the figure (empty pixels next to a solid one), so it's one unbroken line all the way round however thin a limb
 // is, with a faint fill inside so the hidden shape still reads.
+// The depth test runs as if the sprite stood _DepthBias world units nearer the camera (slid along the camera ray, so
+// nothing moves on screen): the ground her feet stand on no longer counts as covering them, only real scenery in front.
 // Used by PlayerSilhouette on a copy of the player's sprite.
 Shader "Reverse Shell/Silhouette"
 {
@@ -10,6 +12,7 @@ Shader "Reverse Shell/Silhouette"
         [PerRendererData] _MainTex ("Sprite", 2D) = "white" {}
         _Color ("Outline", Color) = (1, 0.9, 0.55, 1)
         _Fill ("Fill strength", Range(0, 1)) = 0.18
+        _DepthBias ("Depth bias toward the camera (world units)", Float) = 0.35
     }
     SubShader
     {
@@ -29,6 +32,7 @@ Shader "Reverse Shell/Silhouette"
             float4 _MainTex_TexelSize;
             fixed4 _Color;
             half _Fill;
+            float _DepthBias;
 
             struct appdata { float4 vertex : POSITION; float2 uv : TEXCOORD0; };
             struct v2f { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };
@@ -36,7 +40,10 @@ Shader "Reverse Shell/Silhouette"
             v2f vert(appdata v)
             {
                 v2f o;
-                o.pos = UnityObjectToClipPos(v.vertex);
+                float3 world = mul(unity_ObjectToWorld, v.vertex).xyz;
+                // toward the camera along its ray (perspective) or its forward axis (orthographic)
+                float3 toCam = unity_OrthoParams.w > 0.5 ? UNITY_MATRIX_V[2].xyz : normalize(_WorldSpaceCameraPos - world);
+                o.pos = mul(UNITY_MATRIX_VP, float4(world + toCam * _DepthBias, 1.0));
                 o.uv = v.uv;
                 return o;
             }

@@ -9,7 +9,7 @@ demo on itch.io includes them. A fresh clone opens and compiles, but those sprit
 
 | Asset | Used for | Author | Licence | In this repo? |
 |---|---|---|---|---|
-| A2 unit sheet from *Last Cloudia* (NieR:Automata collab) | The party's sprites (A3, and Erin, Ashe, Lotus and Zuko as recolours), Soul cards, Ult art | (c) Aidis Inc. / Square Enix | Not licensed. Used in a free fan game only, not affiliated | **No** |
+| A2 pixel-art study (artist unknown) and the hair from A2's *Last Cloudia* unit sheet (NieR:Automata collab) | The party's sprites (A3, and Erin, Ashe, Lotus and Zuko as recolours): the study's body, reworked (thicker legs, posed battle clips), wearing the Last Cloudia hair. Soul cards and Ult art use the study | (c) Aidis Inc. / Square Enix | Not licensed. Used in a free fan game only, not affiliated | **No** |
 | A2 pixel-art study | A3's menu portrait and overworld legs | Artist not yet identified | Unknown | **No** |
 | Pixel RPG Prototype Characters | The machines and NPCs (Settings → Machine Look: Snoblin, the default) | [Snoblin](https://snoblin.itch.io/pixel-rpg-free-npc) | Free and commercial use, may edit; no redistribution | **No** |
 | Tech Dungeon Roguelite (DEMO) | The machines and NPCs (Machine Look: Tech Dungeon), the gunner recoloured | [Trevor Pupkin](https://trevor-pupkin.itch.io/tech-dungeon-roguelite) | Free and commercial use, may modify; no redistribution (the author counts a public repo as redistribution) | **No** |

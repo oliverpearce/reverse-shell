@@ -122,6 +122,14 @@ namespace Game.World
                 if (file.name != "UI") Parse(file.text, blocks);   // UI.txt is the menus' words (UIText), not story
         }
 
+        static bool IsKey(string s)
+        {
+            if (s.Length == 0) return false;
+            foreach (char c in s)
+                if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-')) return false;
+            return true;
+        }
+
         /// <summary>Parses the script format into blocks (public for tests).</summary>
         public static void Parse(string text, Dictionary<string, List<Entry>> into)
         {
@@ -130,7 +138,8 @@ namespace Game.World
             {
                 var line = raw.Trim();
                 if (line.Length == 0 || line.StartsWith("#")) continue;
-                if (line.StartsWith("[") && line.EndsWith("]"))
+                // A label is [lowercase.key] with no spaces; a bracketed line like "[ELECTRIC RESONANCE]" is text.
+                if (line.StartsWith("[") && line.EndsWith("]") && IsKey(line.Substring(1, line.Length - 2)))
                 {
                     current = new List<Entry>();
                     into[line.Substring(1, line.Length - 2).Trim()] = current;

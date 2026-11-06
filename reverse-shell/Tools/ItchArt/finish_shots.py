@@ -73,7 +73,7 @@ ALT_TARGETS = {
     'combat-battle': [(SHOTS, '09-machine-look-tech-dungeon.png'), (README, '09-machine-look-tech-dungeon.png')],
 }
 
-# The README pictures the GitHub release carries (README.md links them from releases/download/demo-v1.0/).
+# The README pictures the GitHub release carries (README.md links them from releases/download/readme-images/).
 RELEASE = os.path.join(REPO, 'builds', 'release-assets')
 
 
@@ -88,7 +88,7 @@ def main():
 def release():
     import re
     readme = open(os.path.join(REPO, 'README.md'), encoding='utf-8').read()
-    names = sorted(set(re.findall(r'releases/download/demo-v1\.0/([\w.-]+)', readme)))
+    names = sorted(set(re.findall(r'releases/download/(?:demo-v1\.0|readme-images)/([\w.-]+)', readme)))
     os.makedirs(RELEASE, exist_ok=True)
     for n in names:
         src = os.path.join(README, n)

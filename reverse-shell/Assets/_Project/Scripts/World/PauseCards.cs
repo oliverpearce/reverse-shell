@@ -778,12 +778,7 @@ namespace Game.World
                     Action = () => { GameSettings.ToggleGraphics(); ShowSettings(2); },
                     Help = GameSettings.GraphicsHelp,
                 },
-                new RowMenu.Row
-                {
-                    Label = GameSettings.OverworldSwordLabel,
-                    Action = () => { GameSettings.ToggleOverworldSword(); ShowSettings(3); },
-                    Help = GameSettings.OverworldSwordHelp,
-                },
+                // (Settings > Sword is gone: the redrawn party has no sword, so idle_sword / walk_sword are the plain clips.)
                 new RowMenu.Row
                 {
                     Label = GameSettings.SfxLabel, Action = () => { }, Help = GameSettings.SfxHelp,
@@ -802,10 +797,10 @@ namespace Game.World
                 },
             };
             // Machine Look: the machines and NPCs in Snoblin's or Tech Dungeon's sprites (GameSettings.AltArt).
-            rows.Insert(4, new RowMenu.Row
+            rows.Insert(3, new RowMenu.Row
             {
                 Label = GameSettings.AltArtLabel,
-                Action = () => { GameSettings.ToggleAltArt(); ShowSettings(4); },
+                Action = () => { GameSettings.ToggleAltArt(); ShowSettings(3); },
                 Help = GameSettings.AltArtHelp,
             });
             // The camera's push-in on attacks.

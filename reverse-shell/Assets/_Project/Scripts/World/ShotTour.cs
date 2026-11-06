@@ -449,6 +449,9 @@ namespace Game.World
             var hand = c.State.Hand.Snapshot();
             var storm = new CardInstance(def, ashe, 1);
             hand.Insert(0, storm);
+            // A second one (another rank, so it never merges) stays in the middle of the hand, so the shot shows the
+            // card itself as well as the cast.
+            hand.Insert(Mathf.Min(4, hand.Count), new CardInstance(def, ashe, 2));
             c.SetHand(hand);
             yield return Until(() => view.Idle, 10f, "the new hand");
             c.QueueCard(storm);

@@ -1,7 +1,8 @@
 # Character sprites
 
-**A3 is not original art.** It is cut from the Last Cloudia unit sheet for A2 (NieR:Automata collab), (c) Aidis /
-Square Enix, by `Tools/ChibiForge/a3_model.py`. See `A3/CREDITS.md`.
+**A3 is not original art.** Her body is an A2 pixel-art study (artist unknown), reworked; her hair is from the Last
+Cloudia unit sheet for A2 (NieR:Automata collab), (c) Aidis / Square Enix. Built by `Tools/ChibiForge/a3_model.py`.
+See `A3/CREDITS.md`.
 
 Every other folder here (Ashe, RustSentry, ScrapStalker, NoodleVendor, Courier, Drifter; Erin, Lotus, Zuko and Alt_Ashe are recolours of A3 by Tools/ChibiForge/alt_recolour.py) is **original pixel
 art**, drawn in code by `Tools/ChibiForge/chibi_forge.py` (no third-party assets, no license strings):

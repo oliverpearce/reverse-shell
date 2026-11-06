@@ -791,24 +791,41 @@ ABSOLUTE_ZERO = [
     '.......bb.......',
 ]
 
-# Leng Storm: the character for cold, 冷 (the two ice strokes of 冫 beside 令), icy blue with a white top edge.
+# Leng Storm: the character for cold, 冷, in brush calligraphy (the Ma Shan Zheng font, SIL OFL 1.1), baked to a
+# 32 x 32 drawing so building needs no font: white top edges, pale above and blue below, deep blue on the shaded sides.
 LENG = [
-    '................',
-    '..........w.....',
-    '.w.......lbl....',
-    '..b.....lb.bl...',
-    '..b....lb...bl..',
-    '......lb.....bl.',
-    '.....bb.......bb',
-    '.........wl.....',
-    '........lbbbl...',
-    '................',
-    '......llllllb...',
-    '.........b..b...',
-    '...d.....b..b...',
-    '..d......b.bb...',
-    '.d.......b......',
-    '.........b......',
+    '................................',
+    '................................',
+    '................ww..............',
+    '...............wllw.............',
+    '...............llld.............',
+    '...............lld..............',
+    '..............wlld..............',
+    '..............llld..............',
+    '.....www.....wllllww............',
+    '.....lllww..wllddlllw...........',
+    '.....dllld..lld..dlllw..........',
+    '......dlld.wld....dlllww........',
+    '.......dd.wlld.....dllllww......',
+    '........lwldd.wwww..dlllllww....',
+    '.......wlld....lllw..dllllllww..',
+    '......wlld.....dlld...ddlllldd..',
+    '.....wbdd.......bd......dddd....',
+    '....wbd.........bbwwwww.........',
+    '...wbd......wwwwbbbbbbbw........',
+    '..wbbd....wwbbdddddbbbbd........',
+    '.wbbd....wbbdd.....bbbd.........',
+    '.bbbd.....dd......wbbbd.........',
+    '.dbbd............wbbbd..........',
+    '..ddd........wwwwbbdd...........',
+    '.............dbbbbd.............',
+    '..............dbbbd.............',
+    '...............bbbbw............',
+    '...............dbbbd............',
+    '................dbbd............',
+    '.................ddd............',
+    '................................',
+    '................................',
 ]
 
 
@@ -817,7 +834,13 @@ def icon_absolute_zero():
 
 
 def icon_leng_storm():
-    return from16(LENG)
+    c = Canvas(CELL, CELL)
+    for y, row in enumerate(LENG):
+        for x, ch in enumerate(row):
+            if ch in ICE:
+                c.put(x, y, ICE[ch])
+    c.outline()
+    return c
 
 
 CH1_ICONS = [

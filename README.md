@@ -189,7 +189,7 @@ The full list is in **Settings → Tutorials**.
 
 Made by **Oliver Pearce**. A free, non-commercial fan game inspired by *Reverse: 1999* (not affiliated with Bluepoch).
 
-- **Party sprites:** A2 from *Last Cloudia* (NieR:Automata collab), © Aidis Inc. / Square Enix. Fan use, not affiliated
+- **Party sprites:** built on an A2 (*NieR:Automata*) pixel-art study; the hair is from *Last Cloudia*, © Aidis Inc. / Square Enix. Fan use, not affiliated
   (not included in this repo)
 - **Machines and NPCs:** [Pixel RPG Prototype Characters](https://snoblin.itch.io/pixel-rpg-free-npc) by Snoblin and
   [Tech Dungeon Roguelite](https://trevor-pupkin.itch.io/tech-dungeon-roguelite) by Trevor Pupkin (switch in Settings →

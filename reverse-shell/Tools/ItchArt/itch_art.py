@@ -30,7 +30,9 @@ FONT = os.path.join(ROOT, 'Assets', '_Project', 'Resources', 'Fonts', 'monogram-
 # finish_shots.py's cleaned copies (*.clean.png) of a screenshot run: --run <name> (default run10)
 _RUN = sys.argv[sys.argv.index('--run') + 1] if '--run' in sys.argv[:-1] else 'run10'
 SHOTS = os.path.join(REPO, 'itch', 'screenshots', 'new', _RUN)
-BACKGROUND = 'combat-card-merge'   # every piece sits on the battle with the merged card in hand
+BACKGROUND = 'combat-card-merge'
+BANNER_BACKGROUND = '02-overgrown-forest'
+BANNER_CROP = (1060, 250, 1920, 594)   # the road right of A3, 2.5:1   # every piece sits on the battle with the merged card in hand
 PREVIEW = os.path.join(REPO, 'itch', 'art_preview')
 OLD = os.path.join(REPO, 'itch', 'art_old')
 
@@ -119,17 +121,21 @@ def soft_shadow(size, box, radius=10, alpha=150):
 
 def banner():
     W, H = 960, 240
-    # The battle with the merged card on the right: the party, the enemies and the top of the hand (the merged card).
+    # The right side: the overgrown forest road (right of where A3 stood in the shot, so no old sprite shows), with the
+    # crew drawn from the current sprite sheets in a V: A3 in front, Erin/Ashe and Lotus/Zuko behind her.
     out = Image.new('RGB', (W, H), INK)
-    # The crop is placed so the units (source x ~340-1400, centre ~870) sit centred in the clear part of the banner
-    # (x 420-960, right of the fade).
-    scale = 0.34
-    units_cx, clear_cx = 870, 690
-    left = int(units_cx - (clear_cx - (W - 600)) / scale)
-    top = 300
-    box = (left, top, left + int(600 / scale), top + int(H / scale))
-    battle = shot(BACKGROUND).crop(box).resize((600, 240), Image.LANCZOS)
-    out.paste(darken(battle, 0.85), (W - 600, 0))
+    road = shot(BANNER_BACKGROUND).crop(BANNER_CROP).resize((600, 240), Image.LANCZOS)
+    road = darken(road, 0.72).convert('RGBA')
+    ox = W - 600
+    spots = [('Lotus', -196, 196), ('Zuko', 196, 196), ('Erin', -98, 212), ('Ashe', 98, 212), ('A3', 0, 228)]
+    cx = 700 - ox                      # centre of the clear part of the banner (right of the fade)
+    for name, dx, feet in spots:
+        sprite = idle(name, 3)
+        x = cx + dx - sprite.width // 2
+        sh = soft_shadow(road.size, (cx + dx - 34, feet - 7, cx + dx + 34, feet + 6), 4, 170)
+        road.paste((0, 0, 0, 255), (0, 0), sh)
+        road.alpha_composite(sprite, (x, feet - sprite.height))
+    out.paste(road.convert('RGB'), (ox, 0))
     # The title panel on the left: the card back, tiled, fading into the battle.
     panel = card_back_tile(W, H, 2, 0.55)
     fade = Image.new('L', (W, H), 0)

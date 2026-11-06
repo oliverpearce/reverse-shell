@@ -66,6 +66,8 @@ reverse-shell/[Cc]rashes/
 
 # Planning and internal documents stay on this computer (the repo is a code backup)
 design/
+# Editable .aseprite copies of every sprite, card and tile, plus previews for the artist (made from private art)
+pixel-art/
 LEVEL_EDITOR_GUIDE.html
 itch/
 

@@ -36,15 +36,16 @@ MARGIN = 10
 _study = {}
 
 
-def overworld_frame(atlas, upright, k):
+def overworld_frame(k):
     """(image, foot x, foot y): the study standing still, wearing the old model's hair (sway frame k of
-    a3_oldhair.HAIR_FRAMES), cached. The overworld idle and every walk step are drawn from these."""
+    a3_oldhair.hair_frames()), cached. Every clip (overworld and battle) is drawn from these."""
     k %= len(a3_oldhair.HAIR_FRAMES)
     key = ('old', k)
     if key not in _study:
         base, fx, fy = study_frame(0)
-        sheet, _, _ = upright(atlas, a3_oldhair.HAIR_FRAMES[k])
-        merged = a3_oldhair.wear(base, sheet)
+        if 'hair' not in _study:
+            _study['hair'] = a3_oldhair.hair_frames()
+        merged = a3_oldhair.wear(base, _study['hair'][k])
         # Below the hip the legs stay exactly the study's (the rig cuts them by shape, so nothing may change them): the
         # merged frame only shows where the study had hair or nothing, and there only the old hair itself (no outline).
         m, b = merged.load(), base.load()
@@ -114,11 +115,20 @@ def fps(clip):
     return STYLES[n]['fps']
 
 
-def pose(atlas, entry, upright):
+def pose(entry):
     """(image, foot x, foot y) for a rig entry, before a3_model shrinks it."""
     _, k, style, step = entry
-    im, fx, fy = overworld_frame(atlas, upright, k)
+    im, fx, fy = overworld_frame(k)
     return rig(im, fx, fy, STYLES[style], step)
+
+
+def hold(k, legs, lean=0, head=(0, 0), lift=0):
+    """(image, foot x, foot y): a fixed pose for the battle clips. legs = (thigh A, bend A, thigh B, bend B) in degrees
+    (thigh + = knee forward, she faces left; bend + = shin swung back); lean = px the top of the body leans forward
+    (- = back); lift = px the whole body rises off the ground (a hop or a kick)."""
+    im, fx, fy = overworld_frame(k)
+    st = dict(lean=lean, fixed=({'A': legs[:2], 'B': legs[2:]}, -lift, head))
+    return rig(im, fx, fy, st, 0)
 
 
 # ----------------------------------------------------------------------------------------------------------- the rig
@@ -162,6 +172,8 @@ def _rot(x, y, cx, cy, deg):
 
 def _pose(st, step):
     """Per leg (thigh deg, knee bend deg), the bob (px down) and the head's (dx, dy) for this step."""
+    if 'fixed' in st:
+        return st['fixed']
     n = st['steps']
     if 'curve' in st:
         cv = st['curve']
@@ -259,7 +271,6 @@ if __name__ == '__main__':
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import a3_model as m
     from PIL import ImageDraw
-    atlas = Image.open(m.SHEET).convert('RGBA')
     out_path = sys.argv[sys.argv.index('--preview') + 1]
     cl = clips()
     names = ['walk_s%d' % n for n in STYLES]
@@ -269,7 +280,7 @@ if __name__ == '__main__':
     d = ImageDraw.Draw(sheet)
     for r, name in enumerate(names):
         for c, e in enumerate(cl[name]):
-            cell = m.frame(atlas, e).crop((40, 68, 88, 116)).resize((cw * scale, cw * scale), Image.NEAREST)
+            cell = m.frame(e).crop((40, 68, 88, 116)).resize((cw * scale, cw * scale), Image.NEAREST)
             sheet.alpha_composite(cell, (c * cw * scale, r * cw * scale))
         d.text((4, r * cw * scale + 2), '%s %s' % (name, STYLES[int(name[-1])]['name']), fill=(255, 255, 0, 255))
     sheet.save(out_path)

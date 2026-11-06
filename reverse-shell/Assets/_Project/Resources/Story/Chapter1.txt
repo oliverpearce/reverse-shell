@@ -18,12 +18,12 @@
 
 [prologue.recording]
 Everyone has someone they would give anything to keep.
-A parent. A child. A friend who always knew what to say.
+A parent. A child. A friend who was always there for them.
 For most of history, we could only hold on to them for a little while.
-Reverse Shell changes that.
-Your mind is carefully recorded onto a Soul Card, then given a new body built to outlast anything this world can do.
+[Reverse Shell] changes that.
+Your mind is carefully etched into a Soul Card, then given a new body built to outlast anything this world can do.
 No more cold. No more hunger. No more goodbyes.
-The procedure is safe, certified and permanent.
+The procedure is safe, certified, and permanent.
 
 [prologue.tagline]
 Reverse Shell. Live once. Live on.
@@ -32,7 +32,7 @@ Reverse Shell. Live once. Live on.
 Please remain still while your Soul Card is prepared.
 
 [prologue.name]
-Welcome.
+Welcome to the Reverse Shell Process Center (RSPC)
 
 [prologue.name.question]
 Please enter your name.
@@ -46,28 +46,29 @@ Thank you, {name}, for choosing us!
 [awakening]
 {slow}...{/slow}
 Thought | Light.{p} Too much of it.
-Grass where a floor should be. A capsule beside you, its lid cracked open to the sky.
-On its side, a small red light blinks the same words over and over.{p} {red}TRANSFER INCOMPLETE{/c}
+Grass where a floor once covered. An empty capsule beside you, its contents exposed to the sky.
+On its side, a small red light blinks the same words over and over…
+{p} {red}TRANSFER INCOMPLETE{/c}
 Thought | {slow}Where...{/slow}{p} Where is everyone?
 
 # Erin's first talk ends with "find me": she flickers out (ChapterOneDirector.TalkToErin).
 [erin.vanished]
-Thought | ...Erin?
-The spot where she stood is empty. Only the hum of the pod is left.
+Thought | ...Erin?!
+I guess I have to go find her…
 
 # Bond rank 2, after the binder: before she joins you.
 [erin.goggles]
-Erin | Oh, and those goggles over there? Grab them.{p} Not that I care. You just clearly need help seeing things.
+Erin | Oh! You see those goggles over there? Grab them!{p} Not that I care. You just clearly need help seeing things.
 
 # The language chip, from Erin: at rank 2 if you said you can't read, else after the Collector (rank 3).
 [erin.chip]
-Erin | Here. Hold out your hand. {p}...Don't make it weird.
-She drops a chip no bigger than a fingernail into your palm, its core glowing green. It warms in your hand.
+Erin | Here, hold out your hand. {p}...Don't make it weird.
+She drops a chip no bigger than a fingernail into your palm, its core glowing green.
 Core | {gray}LANGUAGE PACK FOUND. INSTALLING...{/c}
 {gold}You got the language chip.{/c}{p} The runes on your cards read as words now.
 
 [pod]
-The capsule's light still blinks.{p} {red}TRANSFER INCOMPLETE{/c}
+The capsule's light still blinks.{p} {shake}{red}TRANSFER INCOMPLETE{/c}{/shake}
 
 # ------------------------------------------------------------------ The reflection (DRAFT)
 # Right after waking: a hint to move, then her first steps carry on a moment on their own and stop at a puddle. Then
@@ -108,13 +109,13 @@ Thought | Someone put me in here.{p} {slow}I need to know who.{/slow}
 # ------------------------------------------------------------------ Memory fragments
 
 [memory.1]
-Memory Fragment | A hand on your shoulder.{p} Someone close says {slow}it'll be like falling asleep{/slow}.{p} You can't see their face.
+Memory Fragment | A hand on your shoulder.{p} You hear a gruff voice say: {wave}{slow}it'll be like falling asleep{/slow}{/wave}.{p} You can't see their face.
 
 [memory.2]
-Memory Fragment | This street, but crowded. Rain.{p} You are holding an umbrella over someone shorter than you,{p} and a poster across the road says {gold}EVERLASTING{/c}.
+Memory Fragment | A familiar street, but much more crowded. Rain.{p} You are holding an umbrella over someone shorter than you,{p} and a poster across the road says {p} {wave}{gold}EVERLASTING{/c}{/wave}.
 
 [memory.3]
-Memory Fragment | A form on a bright screen. A box to sign.{p} Your hand hovers over it{p=0.5}... and the memory ends there.
+Memory Fragment | Server racks line the wall, and a bright screen momentarily blinds you. A place to enter your {p}name?{p=0.5}... and the memory ends there.
 
 [memory.after]
 Thought | ...Whose memory was that?
@@ -125,13 +126,13 @@ Thought | ...Whose memory was that?
 Record | A notice, sun-faded: {gray}"Residents: the cooling stations close at the end of the month. Conversion appointments are still open. Please don't wait."{/c}
 
 [record.city.5]
-Record | A poster of a smiling family under a clear sky.{p} {gold}"Be there for every birthday. Reverse Shell. EVERLASTING."{/c}{p} Someone has scratched a small question mark after the last word.
+Record | A poster of a smiling family under a clear sky.{p} {gold}"Be there for every birthday. Reverse Shell. {wave}EVERLASTING."{/c}{/wave}{p} Someone has scratched the word so it is barely recognizable.
 
 [record.city.6]
-Record | A plaque under a dead tree.{p} {gray}"Planted for those who went ahead. We'll catch up."{/c}{p} Moss has filled in every letter.
+Record | A plaque under a dead tree.{p} {gray}"Planted for those who went ahead. We'll meet you soon..."{/c}{p} Moss has filled in nearly every letter.
 
 [record.city.7]
-Record | A clinic terminal, still awake.{p} {gray}"Scanner unit checked out for field harvest. Guardian-class residue reported near the south line. Do not engage alone."{/c}{p} The logo beside it has been scratched away.
+Record | A clinic terminal, still awake.{p} {gray}"Scanner unit checked out for field harvest. Guardian-class residue reported near the south line.{/c} {red}Do not engage."{/c}{p} The logo has been scratched away.
 
 [record.tunnel.4]
 Record | A maintenance log on the wall.{p} {gray}"Line closed. Something down here keeps pulling the power to itself. We sealed the wall and let it keep the lights on."{/c}
@@ -158,30 +159,30 @@ Core | {gray}NUMERIC PACK FOUND. INSTALLING...{/c}
 [scanner.pickup]
 A small visor lies in the broken glass. When you lift it, it hums,{p} and thin lines settle over everything you look at.
 Scanner | {gray}LINK ESTABLISHED. TRACE, MATERIAL AND STRUCTURE MODES READY.{/c}
-{gold}You got the optical scanner.{/c}{p} Press {gold}Q{/c} to scan your surroundings.
+{gold}You got the optical scanner.{/c}{p} Press {gold}Q{/c} to {shake}scan{/shake} your surroundings.
 
 [scan.jammed]
-Scanner | {gray}STRUCTURE: WEAK POINT{p=0.3}... SIGNAL JAMMED.{/c}{p} Something nearby is drowning the readout.
+Scanner | {gray}STRUCTURE: WEAK POINT{p=0.3}... {wave}SIGNAL JAMMED.{/wave}{/c}{p} Something nearby is drowning the readout.
 
 [scan.trace]
-Scanner | {gray}TRACE: DISCHARGE RESIDUE. GUARDIAN CLASS.{/c}{p} The marks lead along the south street.
+Scanner | {gray}TRACE: DISCHARGE RESIDUE.{/c} {red}GUARDIAN CLASS.{/c}{p} The marks lead along the south street.
 
 [scan.none.hint]
-Scanner | {gray}NO TRACE IN RANGE.{/c}{p} The residue it found at the clinic pointed south.
+Scanner | {gray}NO TRACE IN RANGE.{/c}{p} The residue it found at the clinic pointed {gold}south{/c}.
 
 [scan.none]
 Scanner | {gray}NO TRACE IN RANGE.{/c}
 
 [route.open]
 Scanner | {gray}STRUCTURE: WEAK POINT. HOLLOW BEHIND. TRACE CONTINUES BELOW.{/c}
-You press where the lines meet.{p} The wall gives{p=0.4}... and cold air breathes up from somewhere underneath.
+You press where the lines meet…{p} the wall gives{p}... and cold air breathes up from somewhere underneath.
 
 # ------------------------------------------------------------------ The Collector
 
 [collector.intro]
-Footsteps on the rubble behind you. Unhurried.
-Collector | Stop there.{p} That scanner isn't yours.
-Collector | No registry tag either.{p} {slow}Where did you even come from?{/slow}
+You hear rhythmic footsteps coming from the rubble behind you, and a {wave}bruh{/wave} approaches
+Collector | Give that back.{p} That {gold}scanner{/c} isn't yours.
+Collector | No registry tag either…{p=0.5} {slow}Where did you even come from?{/slow}
 
 [collector.question]
 Collector | Well?
@@ -189,10 +190,10 @@ Collector | Well?
 # The two answers the player can pick (one per line, in order).
 [collector.options]
 It found me.
-Who are you?
+And you are…?
 
 [collector.answer.1]
-Collector | Then it found the wrong hands.{p} Give it back and walk away.
+Collector | Then it simply found the wrong hands.{p}
 
 [collector.answer.2]
 Collector | Someone who needs it more than you do.{p} People are counting on what it finds.
@@ -214,7 +215,7 @@ Erin | So I'm coming with you. Try to keep up.
 [collector.win]
 The Collector drops to one knee{p=0.4}... and laughs, quietly.
 {gray}"Keep it, then. It'll lead you somewhere you won't like."{/c}
-A grapple line hisses, and they're gone over the rooftops.
+A grapple line hisses, and they disappear through a back alley.
 
 # ------------------------------------------------------------------ The guardian
 
@@ -225,7 +226,7 @@ Something uncoils at the back of the hall.{p} {shake}Light runs down its spine l
 It has no face to read.{p} It only stands between you and the small glowing card behind it.
 
 [guardian.again]
-The guardian lifts its head again. {shake}The hum rises.{/shake}
+The guardian lifts its head again. {shake} The hum rises.{/shake}
 
 [guardian.win]
 {slow}The guardian folds down onto the stone.{/slow}
@@ -235,24 +236,24 @@ Behind it, something small is still glowing.
 # ------------------------------------------------------------------ The Soul Card and the ending
 
 [pedestal.empty]
-The pedestal is empty now. It is still faintly warm.
+The pedestal is empty, yet still warm to the touch.
 
 [pedestal.blocked]
 The guardian's hum fills the hall. You can't reach the card while it stands.
 
 [absorb]
 Scanner | {gray}SOUL CARD. STATUS: BLANK. STATUS: {slow}WAITING.{/slow}{/c}
-The card is warm. You lift it{p=0.4}... and it slips out of your fingers{p} into them. Into your chest, where your Core turns.
+The card is warm. You lift it{p=0.4}... and it slips out of your fingers{p} into your chest, where your Core reacts.
 {shake}Static{/shake} runs through every joint,{p} then settles, like a breath you didn't know you were holding.
 
 # The banner after the absorption: first line is the title, second the subtitle.
 [absorb.banner]
-ELECTRIC RESONANCE
-Unlocked. Switch it any time outside battle: Esc, then Units.
+[ELECTRIC RESONANCE]
+Unlocked. Switch it from the {gold}escape menu{/c}.
 
 # After the banner: the Core the card bound with.
 [absorb.core]
-The cracks in your Core have sealed over with a faint blue light.
+The cracks in your Core have sealed over with a {blue}faint blue light.{/c}
 {gold}Your Fragmented Core is now the Resonant Core.{/c}{p} {gray}+10% damage while Arc.{/c}
 
 # ------------------------------------------------------------------ The ending: the Collector's trap (DRAFT)
@@ -317,16 +318,16 @@ Collector | All that noise, and nothing inside.
 
 # The end card: title, subtitle, thank-you line, the Sandbox Mode line, then the hint at the bottom.
 [endcard]
-End of Chapter One
-The Overgrown City
-Thank you for playing the Reverse Shell demo.
-That's it for now, but please explore Sandbox Mode!  (from the title screen)
-Enter  continue exploring
+End of Chapter One!
+The Ruined City
+Thank you for playing the [Reverse Shell] demo!
+That's it for now, but please explore Sandbox and Pack Modes! (from the title screen)
+Enter continue exploring
 
 # The thank-you screen after the end card: title, the Chapter Two heading, the teaser, then the hint at the
 # bottom. The feedback line in the middle comes from UI.txt (thanks.feedback_url).
 [thanks]
 Thanks for playing!
 Next: Chapter Two, the Corrupted Conservatory
-A garden that never stopped growing. Machines and vines have grown into one, and at its heart the Bloom Engine still guards the Root Soul Card.
-Enter  continue
+A garden that never stopped growing. Machines and vines have grown into one, and at its heart, the Bloom Engine still guards the Root Soul Card.
+Enter continue

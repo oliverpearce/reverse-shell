@@ -12,6 +12,7 @@ alt_recolour then dresses it like the old model (the yellow-grey hair ramp -> ea
 Needs Pillow (py -3.9).
 """
 import colorsys
+import os
 
 from PIL import Image
 
@@ -22,6 +23,7 @@ STUDY_CROWN = 18                          # the study's first hair row
 SHEET_HEAD_ROWS = 13                      # the sheet's head (for lining the faces up)
 STUDY_HEAD = (25, 34)                     # the study's face rows
 OUTLINE = (17, 0, 0)                      # the sheet's outline colour
+HAIR_PNG = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reference', 'A3_hair.png')
 
 
 def is_sheet_hair(c):
@@ -35,11 +37,11 @@ def _face_mid(p, w, rows, is_hair):
     return sum(xs) / float(len(xs)) if xs else w / 2.0
 
 
-def wear(study, sheet):
-    """The study frame (64 x 84, a3_portrait coordinates) with the sheet frame's hair."""
-    out = study.copy()
-    q = out.load()
-    w, h = out.size
+def hair_layer(study, sheet):
+    """The sheet frame's hair lined up on the study (64 x 84, a3_portrait coordinates): its hair pixels plus the dark
+    strand lines and outline touching them. hair.png keeps the six of these, so the sheet itself is no longer needed."""
+    q = study.load()
+    w, h = study.size
     study_hair = set(a3_portrait.STUDY_HAIR)
     p = sheet.load()
     sw, sh = sheet.size
@@ -47,6 +49,39 @@ def wear(study, sheet):
     dy = STUDY_CROWN - min(y for y in range(sh) for x in range(sw) if p[x, y][3] > 100 and is_sheet_hair(p[x, y][:3]))
     dx = int(round(_face_mid(q, w, STUDY_HEAD, lambda c: c in study_hair)
                    - _face_mid(p, sw, (0, SHEET_HEAD_ROWS), is_sheet_hair)))
+    layer = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    o = layer.load()
+    for y in range(sh):
+        for x in range(sw):
+            c = p[x, y]
+            if c[3] <= 100:
+                continue
+            if not is_sheet_hair(c[:3]):
+                if sum(c[:3]) > 200 or not any(
+                        0 <= x + ax < sw and 0 <= y + ay < sh and p[x + ax, y + ay][3] > 100
+                        and is_sheet_hair(p[x + ax, y + ay][:3]) for ax, ay in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                    continue
+            X, Y = x + dx, y + dy
+            if 0 <= X < w and 0 <= Y < h:
+                o[X, Y] = c
+    return layer
+
+
+def hair_frames():
+    """The six hair layers (hair_layer) from reference/A3_hair.png, in HAIR_FRAMES order."""
+    strip = Image.open(HAIR_PNG).convert('RGBA')
+    n = len(HAIR_FRAMES)
+    fw = strip.width // n
+    return [strip.crop((k * fw, 0, (k + 1) * fw, strip.height)) for k in range(n)]
+
+
+def wear(study, layer):
+    """The study frame (64 x 84, a3_portrait coordinates) wearing a hair layer (hair_frames)."""
+    out = study.copy()
+    q = out.load()
+    w, h = out.size
+    study_hair = set(a3_portrait.STUDY_HAIR)
+    p = layer.load()
     # 1) lift the study's hair off; patch body pixels it covered (body on both sides in the row), else clear
     holes = [(x, y) for y in range(h) for x in range(w) if q[x, y][3] and q[x, y][:3] in study_hair]
     for x, y in holes:
@@ -56,30 +91,15 @@ def wear(study, sheet):
         right = next((q[i, y] for i in range(x + 1, w) if q[i, y][3] and (i, y) not in holes), None)
         if left and right:
             q[x, y] = left
-    # 2) the sheet's hair, with an outline where it meets the background
-    hair = {}
-    for y in range(sh):
-        for x in range(sw):
-            c = p[x, y]
-            if c[3] > 100 and is_sheet_hair(c[:3]):
-                X, Y = x + dx, y + dy
-                if 0 <= X < w and 0 <= Y < h:
-                    hair[(X, Y)] = c
+    # 2) the hair
+    hair = {(x, y): p[x, y] for y in range(h) for x in range(w) if p[x, y][3] > 100 and is_sheet_hair(p[x, y][:3])}
     for (X, Y), c in hair.items():
         q[X, Y] = c
-    # 3) the sheet's own dark strand lines and outline (dark pixels touching its hair), only into empty spots, so they
-    #    never cover the study's face
-    for y in range(sh):
-        for x in range(sw):
-            c = p[x, y]
-            if c[3] <= 100 or is_sheet_hair(c[:3]) or sum(c[:3]) > 200:
-                continue
-            if not any(0 <= x + ax < sw and 0 <= y + ay < sh and p[x + ax, y + ay][3] > 100 and is_sheet_hair(p[x + ax, y + ay][:3])
-                       for ax, ay in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-                continue
-            X, Y = x + dx, y + dy
-            if 0 <= X < w and 0 <= Y < h and q[X, Y][3] == 0:
-                q[X, Y] = c
+    # 3) its dark strand lines and outline, only into empty spots, so they never cover the study's face
+    for y in range(h):
+        for x in range(w):
+            if p[x, y][3] > 100 and (x, y) not in hair and q[x, y][3] == 0:
+                q[x, y] = p[x, y]
     # 3b) where the study's hair was lifted off and the old hair doesn't reach, but there's body or hair on both sides of
     #     the row: hair seen behind her (the old hair's darkest shade), not a see-through gap
     dark = min((c for c in hair.values()), key=lambda c: sum(c[:3])) if hair else OUTLINE + (255,)
@@ -123,20 +143,14 @@ def wear(study, sheet):
 
 
 if __name__ == '__main__':
-    import os
     import sys
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import a3_model as m
-    atlas = Image.open(m.SHEET).convert('RGBA')
     base = a3_portrait.cut(a3_portrait.native())
     out_path = sys.argv[sys.argv.index('--preview') + 1]
     sc = 6
-    sheet = Image.new('RGBA', (64 * sc * 8, 84 * sc), (60, 60, 70, 255))
-    old, _, _ = m.upright(atlas, 16)
-    sheet.alpha_composite(old.resize((old.width * sc, old.height * sc), Image.NEAREST), (0, (84 - 52 - 13) * sc))
-    sheet.alpha_composite(base.resize((64 * sc, 84 * sc), Image.NEAREST), (64 * sc, 0))
-    for i, fid in enumerate(HAIR_FRAMES):
-        sf, _, _ = m.upright(atlas, fid)
-        sheet.alpha_composite(wear(base, sf).resize((64 * sc, 84 * sc), Image.NEAREST), ((i + 2) * 64 * sc, 0))
+    layers = hair_frames()
+    sheet = Image.new('RGBA', (64 * sc * (len(layers) + 1), 84 * sc), (60, 60, 70, 255))
+    sheet.alpha_composite(base.resize((64 * sc, 84 * sc), Image.NEAREST), (0, 0))
+    for i, layer in enumerate(layers):
+        sheet.alpha_composite(wear(base, layer).resize((64 * sc, 84 * sc), Image.NEAREST), ((i + 1) * 64 * sc, 0))
     sheet.save(out_path)
     print('preview:', out_path)

@@ -15,39 +15,39 @@
 Explore the ruins.
 
 [objective.scanner]
-Try the scanner (Q).
+Find the lost scanner (Q).
 
 [objective.collector]
-Deal with the Collector.
+Beat up the Collector.
 
 [objective.scan]
-Scan the ruins (Q) for where the trace leads.
+Scan and find where the trace leads.
 
 [objective.route]
-Follow the trace through the opened wall.
+Follow the trace through the wall.
 
 [objective.tunnel]
-Follow the trace deeper underground.
+Follow the trace deeper.
 
 [objective.guardian]
-Defeat the guardian.
+Defeat the Guardian.
 
 [objective.card]
-Take the Soul Card from the pedestal.
+Take the Soul Card.
 
 [objective.leave]
 Something else carries your signal. Leave the chamber.
 
 [objective.complete]
-Chapter One complete. The city is yours to wander.
+Chapter One FINISHED!!!!. The city is yours to wander.
 
 # ------------------------------------------------------------------ After a fight (said by the party leader)
 
 [battle.fled]
-Withdrawing.{p} It's still out there... {gray}we come back ready.{/c}
+Withdrawing {shake}for now…{/shake} {p}{gray}we come back ready.{/c}
 
 [battle.lost]
-{shake}...{/shake}Systems back online.{p} The Access Point pulled us back and patched us up.
+{shake}...{/shake}Systems back online.{p} {gold}The Access Point{/c} pulled us back and patched us up.
 
 # ------------------------------------------------------------------ Access Points
 
@@ -56,16 +56,16 @@ Access Point | {cyan}SYSTEM RESTORED.{/c}{p} Party HP: {wave}full{/wave}. Progre
 
 # Added when resting brings beaten machines back to the area.
 [access.respawn]
-{gray}Somewhere in the ruins, machines are powering back up.{/c}
+{gray}Somewhere in the ruins, machines are{/c} {red}powering back up.{/c}
 
 # ------------------------------------------------------------------ Items: chests and story rewards
 # Fill-ins: {item} the Part's name, {desc} what it does.
 
 [item.found]
-{gold}You got the {item}.{/c}{p} {gray}{desc}{/c}{p} Fit it in Units (Esc, then Units).
+{gold}You got the {item}.{/c}{p} {gray}{desc}{/c}{p} Use it in the {gold}Units tab{/c}.
 
 [chest.empty]
-The chest is empty.
+The chest is {wave}empty.{/wave}
 
 # ------------------------------------------------------------------ Summon Beacon (Sandbox)
 # Fill-in for beacon.ask: {count} ("1 machine" / "3 machines").
@@ -74,14 +74,14 @@ The chest is empty.
 Summon Beacon | {gray}No signal to send.{/c}{p} Every machine in the area is still active.
 
 [beacon.ask]
-Summon Beacon | {red}WARNING:{/c} broadcasting will reactivate {shake}{count}{/shake} in this area.{p} Send the signal?
+Summon Beacon | {red}WARNING:{/c} Broadcasting will reactivate {shake}{count}{/shake} in this area.{p} Send the signal?
 
 [beacon.options]
 Resummon
 Cancel
 
 [beacon.sent]
-{red}Signal sent.{/c}{p} Something is {shake}stirring{/shake} in the plaza again.
+{red}Signal sent.{/c}{p} Mechanical whirring can be heard {shake}rising{/shake} from the plaza.
 
 # ------------------------------------------------------------------ The Sandbox
 # Fill-in for sandbox.joins: {who} ("Ashe, Erin, Lotus and Zuko").

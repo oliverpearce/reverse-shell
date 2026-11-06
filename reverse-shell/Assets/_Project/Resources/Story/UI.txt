@@ -71,7 +71,7 @@ title.overwrite.yes = Yes, start a new game
 thanks.feedback_url = none
 thanks.feedback = Tell me what you thought!\n{gold}{url}{/c}
 thanks.feedback.none = Tell me what you thought in the comments on the itch.io page!\nEvery bug report and idea helps.
-title.credits.text = <size=40>Credits</size>\n\nMade by {gold}Oliver Pearce{/c}.\n\n{gold}Icons{/c}   Raven Fantasy Icons by Clockwork Raven Studios\n{gold}Party sprites{/c}   A2 from Last Cloudia (NieR:Automata collab), (c) Aidis Inc. / Square Enix. Fan use, not affiliated\n{gold}Machines and people{/c}   Pixel RPG Prototype Characters by Snoblin; Tech Dungeon Roguelite by Trevor Pupkin\n{gold}Party colours{/c}   Lospec palettes: AAP-64, Rosy 42, Endesga 64, Cornsole2, Taffy 16, Fantasy 24\n{gold}Effects{/c}   Super Pixel Effects Gigapack by Will Tice / unTied Games\n{gold}Font{/c}   monogram by datagoblin\n{gold}Card packs{/c}   Free Card Packs by argametina\n{gold}Nature models{/c}   Stylized Nature MegaKit by Quaternius (CC0)\n{gold}Office PC{/c}   Retro PC (CC0)\n\nThank you for playing!
+title.credits.text = <size=40>Credits</size>\n\nMade by {gold}Oliver Pearce{/c}.\n\n{gold}Icons{/c}   Raven Fantasy Icons by Clockwork Raven Studios\n{gold}Party sprites{/c}   built on an A2 (NieR:Automata) pixel-art study; hair from Last Cloudia, (c) Aidis Inc. / Square Enix. Fan use, not affiliated\n{gold}Machines and people{/c}   Pixel RPG Prototype Characters by Snoblin; Tech Dungeon Roguelite by Trevor Pupkin\n{gold}Party colours{/c}   Lospec palettes: AAP-64, Rosy 42, Endesga 64, Cornsole2, Taffy 16, Fantasy 24\n{gold}Effects{/c}   Super Pixel Effects Gigapack by Will Tice / unTied Games\n{gold}Font{/c}   monogram by datagoblin\n{gold}Card packs{/c}   Free Card Packs by argametina\n{gold}Nature models{/c}   Stylized Nature MegaKit by Quaternius (CC0)\n{gold}Office PC{/c}   Retro PC (CC0)\n\nThank you for playing!
 
 # ------------------------------------------------------------------ Settings (title, Esc menu and battle pause menu)
 
@@ -268,7 +268,7 @@ count.machines = {n} machines
 
 # ------------------------------------------------------------------ The opening recording
 
-prologue.tag = A PUBLIC INFORMATION RECORDING
+prologue.tag = A PUBLIC RSPC RECORDING
 prologue.rec = • REC
 prologue.hint = Enter  next      Esc / P  skip
 prologue.hint.next = Enter  next
