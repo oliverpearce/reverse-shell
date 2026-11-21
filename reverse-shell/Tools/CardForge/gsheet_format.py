@@ -60,11 +60,12 @@ DOES = {
     'interrupt': 'Interrupt their move',
     'interrupt attack': 'Interrupt an attack',
     'cleanse': 'Cleanse debuffs',
-    'ult': 'Gain Ult points',
+    'ult': 'Gain SP',
     'ap': 'Gain AP next turn',
     'raise': 'Raise a status chance',
 }
 DOES_BACK = {v: k for k, v in DOES.items()}
+DOES_BACK['Gain Ult points'] = 'ult'  # sheets exported before the rename to SP
 
 # effect target -> plain words (the Who chip)
 WHO = {
@@ -117,7 +118,7 @@ HELP = [
     ('When', "Always (Rank I) = the card's own abilities. Added at Rank II / III = extra abilities when merged."),
     ('Does', 'What happens. Deal damage, Heal, Shield and Counter-attack use Strength; Give a status uses Status.'),
     ('Strength / amount', "Deal damage / Heal / Shield / Counter-attack: % of the card's power. The biggest one on a "
-                          'card is its full power; 50 next to a 100 = half as strong. Ult points / AP: how many. '
+                          'card is its full power; 50 next to a 100 = half as strong. SP / AP: how many. '
                           'Raise a status chance: how many % points.'),
     ('Status', 'Give a status / Raise a status chance: which one.'),
     ('Who', "Who this ability hits. The card's target = whoever the card aims at."),

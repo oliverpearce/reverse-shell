@@ -44,8 +44,8 @@ namespace Combat
         /// <summary>Bonus to damage dealt by ritual (ultimate) cards.</summary>
         RitualMight,
         HealingBonus,
-        /// <summary>Ult points (Moxie) a unit starts every battle with (Flat, whole points).</summary>
-        StartingMoxie
+        /// <summary>SP (SP) a unit starts every battle with (Flat, whole points).</summary>
+        StartingSoulPoints
     }
 
     public enum ModifierKind { Flat, Percent }

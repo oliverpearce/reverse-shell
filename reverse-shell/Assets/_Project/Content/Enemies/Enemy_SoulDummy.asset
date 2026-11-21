@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01c7f95fb3fdedb42b6544a2cc432e43, type: 3}
   m_Name: Enemy_SoulDummy
   m_EditorClassIdentifier: 
-  displayName: Dummy Robot
+  displayName: Scrap Hound
   color: {r: 0.79, g: 0.61, b: 0.39, a: 1}
   portrait: {fileID: 0}
   animations: {fileID: 11400000, guid: 0658375394eb0054e841e736f08bfe1c, type: 2}
@@ -29,6 +29,8 @@ MonoBehaviour:
     specialDefense: 100
     critRate: 0.1
     critDamage: 1.5
+  soulPointsToUlt: 5
+  ultPower: 1
   skills:
   - card: {fileID: 11400000, guid: 4e1d34b5dd203614aa931a34228edc19, type: 2}
     rank: 1
@@ -37,7 +39,7 @@ MonoBehaviour:
   breakPoints: 3
   weaknesses: 1
   soulOnly: 1
-  ritual: {fileID: 0}
-  innate: {fileID: 0}
-  innateLevels: 3
-  innateWeight: 1
+  ritual: {fileID: 11400000, guid: 095e1a488e4794e47ba29150de3fcc7c, type: 2}
+  innate: {fileID: 11400000, guid: 5c25022f0a674a945816c7f2e84c79b5, type: 2}
+  innateLevels: 0
+  innateWeight: 0.5

@@ -67,12 +67,12 @@ namespace Combat
 
     public static class EnemyAI
     {
-        /// <summary>The enemy's move this round: its Ult when its Ult points are full, else a weighted random skill.</summary>
-        public static CardInstance ChooseIntent(BattleUnit enemy, System.Random rng, int moxieCap)
+        /// <summary>The enemy's move this round: its Ult when its SP are full, else a weighted random skill.</summary>
+        public static CardInstance ChooseIntent(BattleUnit enemy, System.Random rng, int soulPointCap)
         {
             var def = enemy.Enemy;
             if (def == null) return null;
-            if (def.ritual != null && enemy.Moxie >= moxieCap) return new CardInstance(def.ritual, enemy, 1);
+            if (def.ritual != null && enemy.SoulPoints >= soulPointCap) return new CardInstance(def.ritual, enemy, 1);
 
             // The skills plus the innate card, weighted.
             var moves = new List<EnemySkill>(def.skills);

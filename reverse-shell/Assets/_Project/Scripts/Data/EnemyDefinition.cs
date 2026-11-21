@@ -24,7 +24,7 @@ namespace Combat
                  "does. Erin's tutorial dummy.")]
         public bool soulOnly;
 
-        [Tooltip("Ult: replaces the round's skill once the enemy's Ult points are full (it gains them by acting, like the party). " +
+        [Tooltip("Ult: replaces the round's skill once the enemy's SP are full (1 SP per move; set the cost above). " +
                  "It's the Soul form of the innate card below.")]
         public CardDefinition ritual;
 

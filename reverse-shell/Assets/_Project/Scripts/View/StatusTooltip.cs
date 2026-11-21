@@ -155,7 +155,7 @@ namespace Combat.View
             string sign = v >= 0f ? "+" : "-";
             v = Mathf.Abs(v);
             bool percent = m.kind == ModifierKind.Percent || IsFraction(m.stat);
-            if (m.stat == StatType.StartingMoxie) percent = false;
+            if (m.stat == StatType.StartingSoulPoints) percent = false;
             return sign + (percent ? Pct(v) : Mathf.RoundToInt(v).ToString());
         }
 
@@ -191,7 +191,7 @@ namespace Combat.View
                 case StatType.IncantationMight: return UIText.Get("stat.name.card_dmg");
                 case StatType.RitualMight: return UIText.Get("stat.name.ult_dmg");
                 case StatType.HealingBonus: return UIText.Get("stat.name.healing");
-                case StatType.StartingMoxie: return UIText.Get("stat.name.starting_ult");
+                case StatType.StartingSoulPoints: return UIText.Get("stat.name.starting_ult");
             }
             return stat.ToString();
         }

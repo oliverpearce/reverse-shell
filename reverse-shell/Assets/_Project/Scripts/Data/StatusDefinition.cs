@@ -26,6 +26,11 @@ namespace Combat
         public float healPerRoundPercentMaxHP;
         [Tooltip("Share of the source's ATK lost at round end, per stack (Burn: 0.15 = 15%).")]
         public float damagePerRoundSourceATK;
+        [Tooltip("A non-Ult card that applies this costs its user this share of their max HP each use (0.05 = 5%). " +
+                 "It never takes them below 1 HP.")]
+        [Range(0f, 1f)] public float castCostPercentMaxHP;
+        [Tooltip("Whoever applied this heals this share of the damage it deals each round (0.5 = half).")]
+        [Range(0f, 1f)] public float lifesteal;
         [Tooltip("Unit skips its actions while this is active.")]
         public bool preventsAction;
         [Tooltip("Shield, Counter and Cover are run by the battle rules; the card effect that gives it sets its numbers.")]

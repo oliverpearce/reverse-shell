@@ -8,9 +8,10 @@ namespace Game.World
     {
         public const string Named = "ch1.named";                 // the opening asked for a name
         public const string Awake = "ch1.awake";                 // woke up beside the procedure pod
-        public const string Reflection = "ch1.reflection";       // saw herself in the puddle: the seams, the Core, her Soul Card
+        public const string Reflection = "ch1.reflection";       // saw herself in the cracked mirror: the seams, the Core, her Soul Card
+        public const string FirstFightDue = "ch1.firstfight.due"; // the hound showed up (fought or skipped): Erin's rank 1 and goodbye are still to come
         public const string Binder = "ch1.binder";               // Erin gave you the card binder (the Cards book), bond rank 2
-        public const string SaidCanRead = "ch1.saidread";        // told Erin you can read (she keeps the language chip till rank 3)
+        public const string SaidCanRead = "ch1.saidread";        // told Erin you can read when you met her (she keeps the language chip till rank 3)
         public const string Memory1 = "ch1.memory.1";            // optional memory fragments
         public const string Memory2 = "ch1.memory.2";
         public const string Memory3 = "ch1.memory.3";
@@ -20,6 +21,8 @@ namespace Game.World
         public const string ColoursChip = "ch1.chip.colours";    // picked up the colours chip (card text colours), in the city
         public const string CollectorMet = "ch1.collector.met";  // the Collector stopped you
         public const string CollectorBeaten = "ch1.collector.beaten";
+        public const string CollectorEnchant = "ch1.enchant.collector"; // took the enchant the Collector dropped
+        public const string ChipInChest = "ch1.chip.inchest";    // met the Collector after the Ult Chip moved to the Buried Hall chest
         public const string Route = "ch1.route";                 // the scanner opened the hidden route
         public const string Tunnel = "ch1.tunnel";               // entered the buried tunnel
         public const string DragonSeen = "ch1.dragon.seen";      // saw the guardian
@@ -33,7 +36,7 @@ namespace Game.World
         /// <summary>Every flag in story order (the debug panel lists them).</summary>
         public static readonly string[] All =
         {
-            Named, Awake, Reflection, Binder, SaidCanRead, Memory1, Memory2, Memory3, LanguageChip, Scanner, ColoursChip, CollectorMet, CollectorBeaten, Route, Tunnel,
+            Named, Awake, Reflection, FirstFightDue, Binder, SaidCanRead, Memory1, Memory2, Memory3, LanguageChip, Scanner, ColoursChip, CollectorMet, CollectorBeaten, CollectorEnchant, Route, Tunnel,
             NumbersChip,
             DragonSeen, DragonBeaten, ResonanceArc, ErinLost, Complete,
         };

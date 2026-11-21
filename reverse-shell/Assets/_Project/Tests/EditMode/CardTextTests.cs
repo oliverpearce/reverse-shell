@@ -80,7 +80,7 @@ namespace Combat.Tests
             var text = CardText.AllRanks(card);
 
             StringAssert.Contains("for 100% of ATK", text);
-            StringAssert.Contains("III only: Self gains 1 Ult.", text);
+            StringAssert.Contains("III only: Self gains 1 SP.", text);
         }
 
         [Test]

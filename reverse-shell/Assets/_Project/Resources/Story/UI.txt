@@ -38,7 +38,7 @@ stat.name.dmg_taken = DMG taken
 stat.name.card_dmg = Card DMG
 stat.name.ult_dmg = Ult DMG
 stat.name.healing = Healing
-stat.name.starting_ult = Starting Ult
+stat.name.starting_ult = Starting SP
 
 # The two kinds of item slot
 item.chip = CHIP
@@ -120,6 +120,16 @@ settings.alt_art.help = How the machines and the people you meet are drawn: Snob
 # Esc > Settings, once you have met Erin: her battle tutorial again
 pause.practice_erin = Practice with Erin
 pause.practice_erin.help = Replay Erin's battle tutorial: tap, merge, Break, finish. No rewards.
+# The battle tutorial's word over what to do next
+tutorial.point.hold = Hold
+tutorial.point.tap = Tap
+tutorial.point.drag = Drag
+tutorial.point.go = Press Go
+tutorial.point.enchant = Enchant
+# A mini-boss's reward: choose one enchant ({effect} = what it does)
+enchant.title = Choose an Enchant
+enchant.hint = {gold}← →{/c} or hover  Choose      {gold}Enter{/c} / click  Take it
+enchant.when = Whenever the enchanted card is used, {effect}.
 
 # Bonds (talk with a companion; at rank 3 they give you their Soul Card and join). {n} = the rank, {name} = who
 bond.rank_up = BOND RANK UP
@@ -134,7 +144,7 @@ settings.music = Music
 settings.music.help = How loud the music is. Drag the slider, or use Left / Right.
 
 settings.tutorials = Tutorials
-settings.tutorials.help = Every key, and the battle tutorials: turns and AP, merging, Ult, Break and more.
+settings.tutorials.help = Every key, and the battle tutorials: turns and AP, merging, SP, Ult, Break and more.
 
 # ------------------------------------------------------------------ Esc menu (the cards on the mat)
 
@@ -358,7 +368,7 @@ status.burn = Lose {pct} of the burner's ATK each turn
 
 # Holding a unit (its sheet)
 inspect.hint = Click anywhere to return to battle
-inspect.ult = ULT
+inspect.ult = SP
 inspect.ready = READY
 # An enemy's Break value (exact numbers here; the battle shows only the grey bar), and its weaknesses ("?" until found)
 inspect.break = Break
@@ -557,7 +567,7 @@ arcana.moon = Moon
 arcana.star = Star
 arcana.sun.effect = the user heals {pct}% of their max HP
 arcana.moon.effect = the user gets DEF Up for {turns} turn
-arcana.star.effect = the user gains {n} Ult point
+arcana.star.effect = the user gains {n} SP
 
 # Zoomed cards
 card.hint.tilt = Drag to tilt     Click outside or Esc to close

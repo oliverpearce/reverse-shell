@@ -148,14 +148,14 @@ namespace Combat
         public override void Apply(EffectContext ctx)
         {
             foreach (var t in ctx.Resolve(target))
-                ctx.Battle.AddMoxie(t, amount);
+                ctx.Battle.AddSoulPoints(t, amount);
         }
 
         public override EffectText Text()
         {
             string who = TargetPhrase();
             who = who.Length > 0 ? char.ToUpper(who[0]) + who.Substring(1) : who;
-            return new EffectText("{0} gains {1} Ult.", who, amount.ToString());
+            return new EffectText("{0} gains {1} SP.", who, amount.ToString());
         }
     }
 

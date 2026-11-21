@@ -7,8 +7,9 @@ using UnityEngine;
 namespace Game.World
 {
     /// <summary>
-    /// Erin's battle tutorial: right after her rank-2 scene (she coaches from the side; she hasn't joined yet), and
-    /// Settings > Tutorials > Practice with Erin once you've met her. The target is the Dummy Robot (Enemy_SoulDummy, the red sprite)
+    /// Erin's battle tutorial: offered when you first talk to her, before her rank-1 scene (she coaches from the side; she
+    /// hasn't joined yet), skippable at any point (Hold to Skip), and Settings > Tutorials > Practice with Erin after that. The target is a Scrap Hound with a Soul Card
+    /// wired into it (Enemy_SoulDummy, the red sprite)
     /// (EnemyDefinition.soulOnly: other hits leave it at 1 HP, only a Soul Card finishes it). Erin talks you through
     /// the steps and only the step's action is allowed:
     ///   1. hold a card to read its info (her line depends on whether you told her you can read)
@@ -16,7 +17,7 @@ namespace Game.World
     ///   3. tap a Physical card (1 AP)
     ///   4. spend 1 AP moving a card next to its match, so they merge into Rank II
     ///   5. play the Rank II card: its Break damage empties the dummy's Break value (BREAK, Staggered)
-    ///   6. the BREAK banner; then the Ult: the lead's Ult points fill, their Soul Card comes into the hand, play it
+    ///   6. the BREAK banner; then the Ult: the lead's SP fill, their Soul Card comes into the hand, play it
     /// Pressing Go is a step of its own whenever the AP runs out. The hands are set (each round the tutorial deals the
     /// cards the step needs), and the dummy starts with exactly enough Break for steps 3 + 5, so it always works out;
     /// the Break and Stagger rules themselves are the normal ones. Erin's words: [tutorial.*] in Resources/Story/Bonds.txt.
@@ -26,10 +27,10 @@ namespace Game.World
         public const string Id = "erin";
         const string StoryFight = "tutorial.erin", PracticeFight = "tutorial.erin.practice";
 
-        /// <summary>The tutorial's target: the Dummy Robot at level 1.</summary>
+        /// <summary>The tutorial's target: the Soul-bound Scrap Hound at level 1. Nobody can fall in your first fight.</summary>
         public static readonly WorldAreas.EncounterDef Fight = new WorldAreas.EncounterDef
         {
-            Enemies = new[] { "Enemy_SoulDummy" }, Level = 1,
+            Enemies = new[] { "Enemy_SoulDummy" }, Level = 1, PartyCantFall = true,
         };
 
         /// <summary>Erin's line for the card-info step: you told her you can read (and have no chip) = she teases you;
@@ -42,10 +43,10 @@ namespace Game.World
             return "tutorial.erin.info";
         }
 
-        /// <summary>Starts the guided fight (story: right after Erin joins; otherwise a practice replay).</summary>
+        /// <summary>Starts the guided fight (story: the ambush, with no pre-fight screen; otherwise a practice replay).</summary>
         public static void Start(OverworldBuilder b, bool story)
         {
-            b.StartStoryFight(Fight, story ? StoryFight : PracticeFight);
+            b.StartStoryFight(Fight, story ? StoryFight : PracticeFight, story);
         }
 
         /// <summary>Which tutorial an encounter runs (its id ends with the fight's name), or null.</summary>
@@ -61,9 +62,16 @@ namespace Game.World
             return !string.IsNullOrEmpty(encounterId) && encounterId.EndsWith("/" + PracticeFight);
         }
 
-        /// <summary>Settings > Tutorials offers the practice fight once you've met Erin.</summary>
-        /// <summary>Once you've met Erin: her first talk, or the Collector fight she joined you for.</summary>
-        public static bool PracticeUnlocked { get { return StoryState.Has("bond.erin.1") || StoryState.Has(Chapter1.CollectorBeaten); } }
+        /// <summary>Settings > Tutorials offers the practice fight once the first fight is over (or, on an older save,
+        /// after her first talk or the Collector fight she joined you for).</summary>
+        public static bool PracticeUnlocked
+        {
+            get
+            {
+                return !StoryState.Has(Chapter1.FirstFightDue)
+                       && (StoryState.Has("bond.erin.1") || StoryState.Has(Chapter1.CollectorBeaten));
+            }
+        }
 
         [RuntimeInitializeOnLoadMethod]
         static void Hook()
@@ -96,20 +104,27 @@ namespace Game.World
         CardInstance target, partner;   // the card the step is about (and, for the merge, its match)
         bool broken;
         Sprite portrait;
+        BattleBootstrap bootstrap;
+        TutorialHighlight pointer;
 
         public void Begin(BattleBootstrap boot, BattleView battleView)
         {
             view = battleView;
+            bootstrap = boot;
             c = boot.Controller;
             box = DialogueBox.Create(view.Root);
             box.BaseY = 330f;   // above the hand
             view.Allow = Gate;
             view.EventPlayed += OnEventPlayed;
+            pointer = TutorialHighlight.Create(view.Root);
+            BuildSkip();
             StartCoroutine(Run());
         }
 
         void OnDestroy()
         {
+            if (pointer != null) Destroy(pointer.gameObject);
+            if (skipPlate != null) Destroy(skipPlate.gameObject);
             if (view != null)
             {
                 view.EventPlayed -= OnEventPlayed;
@@ -119,9 +134,117 @@ namespace Game.World
 
         void Update()
         {
+            UpdateSkip();
+            if (skipped) return;
             if (box != null && box.IsOpen && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)
-                || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0)))
+                || Input.GetKeyDown(KeyCode.Space) || (Input.GetMouseButtonDown(0) && !mouseOverSkip)))
                 box.Advance();
+        }
+
+        void LateUpdate() { PointAtStep(); }
+
+        // ------------------------------------------------------------------ the pointer
+
+        /// <summary>Once Erin stops talking, a gold frame around what the step wants (and its word).</summary>
+        void PointAtStep()
+        {
+            if (pointer == null) return;
+            bool busy = !view.Idle || view.IsPaused || view.Inspecting || CardDetailPopup.IsOpen || (box != null && box.IsOpen);
+            if (busy) { pointer.Hide(); return; }
+            switch (step)
+            {
+                case Step.Info:
+                    pointer.Show(CardRect(target), null, UIText.Get("tutorial.point.hold"));
+                    break;
+                case Step.Zoom:
+                    var unit = view.UnitViewOf(enemy);
+                    pointer.Show(unit != null ? unit.Body : null, null, UIText.Get("tutorial.point.hold"));
+                    break;
+                case Step.Tap:
+                case Step.Cast:
+                case Step.Ult:
+                    pointer.Show(CardRect(target), null, UIText.Get("tutorial.point.tap"));
+                    break;
+                case Step.Move:
+                    pointer.Show(CardRect(target), CardRect(partner), UIText.Get("tutorial.point.drag"));
+                    break;
+                case Step.Go:
+                    pointer.Show(view.GoRect, null, UIText.Get("tutorial.point.go"));
+                    break;
+                default:
+                    pointer.Hide();
+                    break;
+            }
+        }
+
+        RectTransform CardRect(CardInstance card)
+        {
+            var v = card != null ? view.ViewOf(card) : null;
+            return v != null ? v.Rect : null;
+        }
+
+        // ------------------------------------------------------------------ Hold to Skip
+        // Under the pause and speed buttons: an ink plate that fills while held (the mouse, or Backspace, since Esc pauses).
+        // Full: leave the fight, no rewards. The story then goes on to Erin's rank 1 scene.
+
+        const float SkipHoldSeconds = 0.6f, SkipIdleAlpha = 0.45f;
+        RectTransform skipPlate, skipFill;
+        CanvasGroup skipGroup;
+        float skipHeld;
+        bool mouseOnSkip, mouseOverSkip, skipped;
+
+        void BuildSkip()
+        {
+            var plate = InkStyle.Panel(view.Root, "TutorialSkip", InkStyle.InkPanel, true);
+            skipPlate = plate.rectTransform;
+            skipGroup = plate.gameObject.AddComponent<CanvasGroup>();
+            skipGroup.alpha = SkipIdleAlpha;
+            var corner = new Vector2(1f, 1f);
+            skipPlate.Place(corner, corner, new Vector2(-24f, -140f), new Vector2(360f, 72f));
+            InkStyle.Frame(skipPlate, InkStyle.Rule, 2f);
+            var fill = UIFactory.CreateImage(skipPlate, "Fill", UIFactory.WithAlpha(InkStyle.Gold, 0.6f));
+            fill.raycastTarget = false;
+            skipFill = fill.rectTransform;
+            skipFill.anchorMin = Vector2.zero;
+            skipFill.anchorMax = new Vector2(0f, 1f);
+            skipFill.offsetMin = skipFill.offsetMax = Vector2.zero;
+            var label = InkStyle.Title(skipPlate, "Label", UIText.Get("ending.skip"), UIFactory.TextSize.Large, InkStyle.Paper, TextAnchor.MiddleCenter);
+            label.raycastTarget = false;
+            label.rectTransform.Fill(6f);
+            var trigger = plate.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            void On(UnityEngine.EventSystems.EventTriggerType type, System.Action act)
+            {
+                var entry = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = type };
+                entry.callback.AddListener(_ => act());
+                trigger.triggers.Add(entry);
+            }
+            On(UnityEngine.EventSystems.EventTriggerType.PointerDown, () => mouseOnSkip = true);
+            On(UnityEngine.EventSystems.EventTriggerType.PointerUp, () => mouseOnSkip = false);
+            On(UnityEngine.EventSystems.EventTriggerType.PointerEnter, () => mouseOverSkip = true);
+            On(UnityEngine.EventSystems.EventTriggerType.PointerExit, () => { mouseOverSkip = false; mouseOnSkip = false; });
+        }
+
+        void UpdateSkip()
+        {
+            if (skipPlate == null || skipped || step == Step.Free) return;
+            bool show = !c.IsOver && !view.IsPaused && !view.Inspecting && !CardDetailPopup.IsOpen;
+            if (skipPlate.gameObject.activeSelf != show) skipPlate.gameObject.SetActive(show);
+            if (!show)
+            {
+                skipHeld = 0f;
+                mouseOnSkip = mouseOverSkip = false;
+                return;
+            }
+            skipPlate.SetAsLastSibling();
+            bool held = mouseOnSkip || Input.GetKey(KeyCode.Backspace);
+            skipHeld = held ? skipHeld + Time.unscaledDeltaTime : 0f;
+            skipFill.anchorMax = new Vector2(Mathf.Clamp01(skipHeld / SkipHoldSeconds), 1f);
+            float alpha = mouseOverSkip || skipHeld > 0f ? 1f : SkipIdleAlpha;
+            skipGroup.alpha = Mathf.MoveTowards(skipGroup.alpha, alpha, 6f * Time.unscaledDeltaTime);
+            if (skipHeld < SkipHoldSeconds) return;
+            skipped = true;
+            Release();
+            bootstrap.Leave();
         }
 
         // ------------------------------------------------------------------ the steps
@@ -354,7 +477,7 @@ namespace Game.World
             Enter(Step.Go);
         }
 
-        /// <summary>After BREAK: fill the Ult points, so the Soul Card comes into the hand, and point at it.</summary>
+        /// <summary>After BREAK: fill the SP, so the Soul Card comes into the hand, and point at it.</summary>
         IEnumerator TeachUlt()
         {
             yield return Say("tutorial.erin.4");
@@ -418,6 +541,8 @@ namespace Game.World
         void Release()
         {
             step = Step.Free;
+            if (pointer != null) pointer.Hide();
+            if (skipPlate != null) skipPlate.gameObject.SetActive(false);
             if (view != null)
             {
                 Highlight();

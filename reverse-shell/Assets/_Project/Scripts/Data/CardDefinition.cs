@@ -15,7 +15,7 @@ namespace Combat
         public string displayName;
         public CardKind kind;
         public TargetMode targetMode;
-        [Tooltip("Ritual (ultimate) cards never merge and cost all Moxie.")]
+        [Tooltip("Ritual (ultimate) cards never merge and cost all SP.")]
         public bool isRitual;
         [Tooltip("Power level, 1 (weakest) to 20 (strongest): party abilities 3-6, enemy abilities 5-10, Soul / Ult " +
                  "cards 10-15 (15 = A3). Merges, copy upgrades and bosses add to it in a fight (CardLevels).")]

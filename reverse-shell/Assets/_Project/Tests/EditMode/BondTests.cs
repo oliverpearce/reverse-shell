@@ -70,7 +70,79 @@ namespace Combat.Tests
             foreach (var scene in Bonds.Erin.Scenes)
                 foreach (int points in scene.OptionPoints)
                     Assert.AreEqual(Bonds.PointsPerRank, points, "she can't wait around for hangouts");
-            Assert.AreEqual(2, Bonds.Erin.Scenes[1].OptionPoints.Length, "rank 2 asks yes / no: can you read and write?");
+            Assert.AreEqual(3, Bonds.Erin.Scenes[0].OptionPoints.Length, "rank 1 ends on her question");
+            Assert.AreEqual(Bonds.PointsPerRank, Bonds.Erin.Scenes[1].PointsIfNoQuestion, "rank 2 asks nothing but still completes the rank");
+        }
+
+        [Test]
+        public void Opening_ResumesAtTheBeatYouLeft()
+        {
+            Assert.AreEqual(ChapterOneDirector.OpeningBeat.None, ChapterOneDirector.NextOpeningBeat(), "not awake yet");
+            StoryState.Set(Chapter1.Awake);
+            Assert.AreEqual(ChapterOneDirector.OpeningBeat.Mirror, ChapterOneDirector.NextOpeningBeat());
+            StoryState.Set(Chapter1.Reflection);
+            Assert.AreEqual(ChapterOneDirector.OpeningBeat.None, ChapterOneDirector.NextOpeningBeat(), "free to walk: Erin waits to be talked to");
+            StoryState.Set(Chapter1.FirstFightDue);
+            Assert.AreEqual(ChapterOneDirector.OpeningBeat.AfterTutorial, ChapterOneDirector.NextOpeningBeat(), "won, skipped or quit: rank 1 is next");
+            StoryState.Set("bond.erin.1");
+            Assert.IsFalse(BattleTutorial.PracticeUnlocked, "no practice replay until her goodbye is over");
+            StoryState.Flags.Remove(Chapter1.FirstFightDue);
+            Assert.AreEqual(ChapterOneDirector.OpeningBeat.None, ChapterOneDirector.NextOpeningBeat());
+            Assert.IsTrue(BattleTutorial.PracticeUnlocked);
+        }
+
+        [Test]
+        public void Opening_OlderSavesPastItAreLeftAlone()
+        {
+            StoryState.Set(Chapter1.Awake);
+            StoryState.Set(Chapter1.Scanner);
+            Assert.AreEqual(ChapterOneDirector.OpeningBeat.None, ChapterOneDirector.NextOpeningBeat(), "already out exploring");
+        }
+
+        [Test]
+        public void Opening_HasItsLines()
+        {
+            foreach (var key in new[] { "erin.meet", "erin.read.ask", "erin.read.options", "erin.read.answer.1", "erin.read.answer.2",
+                         "erin.ambush", "tutorial.offer", "tutorial.offer.options", "tutorial.skip", "reflection.notice" })
+                Assert.IsTrue(StoryText.Has(key), key);
+        }
+
+        [Test]
+        public void Enchants_CollectorRewardLinesAndCaps()
+        {
+            foreach (var key in new[] { "erin.enchant.drop", "erin.enchant.use", "erin.enchant.done", "erin.enchant.later", "enchant.drop.alone" })
+                Assert.IsTrue(StoryText.Has(key), key);
+            Assert.IsFalse(PackRates.Current.enchantsInPacks, "story packs don't give enchants");
+            Assert.AreEqual(3, EnchantReward.Available().Count, "a fresh save chooses from all three");
+            for (int i = 0; i < PackRates.Current.maxPerBinding; i++) CardCollection.AddFound(CardBinding.Sun);
+            CollectionAssert.DoesNotContain(EnchantReward.Available(), CardBinding.Sun, "at its cap it isn't offered");
+        }
+
+        [Test]
+        public void SoulPoints_NeededAreSetPerCharacter()
+        {
+            var ult = TestFactory.Card("Ult", 2f, true);
+            var hero = TestFactory.Character("Hero", Resonance.Basic, 100f, ult, TestFactory.Card("Strike"));
+            Assert.AreEqual(5, hero.soulPointsToUlt, "the default");
+            hero.soulPointsToUlt = 3;
+            var e = TestFactory.Enemy("Target", hp: 5000, resonance: Resonance.Basic,
+                skills: new EnemySkill { card = TestFactory.Card("Poke", 0.1f), weight = 1f });
+            var battle = new BattleController(new[] { hero }, new[] { e }, CombatConfig.Default, 7);
+            battle.StartBattle();
+            var unit = battle.State.Party[0];
+            Assert.AreEqual(3, unit.SoulPointCapIn(CombatConfig.Default));
+            battle.AddSoulPoints(unit, 10);
+            Assert.AreEqual(3, unit.SoulPoints, "stops at their own cap");
+            Assert.IsTrue(battle.State.Hand.Cards.Any(c => c.IsRitual && c.Owner == unit), "full at 3: the Ult joins the hand");
+        }
+
+        [Test]
+        public void UltPower_ScalesTheUlt()
+        {
+            var hero = TestFactory.Character("Hero", Resonance.Basic, 100f, null, TestFactory.Card("Strike"));
+            float normal = new BattleUnit(hero, Team.Player).GetStat(StatType.RitualMight);
+            hero.ultPower = 1.5f;
+            Assert.AreEqual(normal + 0.5f, new BattleUnit(hero, Team.Player).GetStat(StatType.RitualMight), 0.0001f);
         }
 
         [Test]
@@ -194,7 +266,7 @@ namespace Combat.Tests
             Assert.IsFalse(battle.State.Hand.Cards.Any(c => c.IsRitual), "no Soul Card at the start");
             battle.FillUlt(hero);
             var soul = battle.State.Hand.Cards.FirstOrDefault(c => c.IsRitual && c.Owner == hero);
-            Assert.IsNotNull(soul, "the tutorial's Ult step: full Ult points put the Soul Card in the hand");
+            Assert.IsNotNull(soul, "the tutorial's Ult step: full SP put the Soul Card in the hand");
             Assert.IsTrue(battle.QueueCard(soul));
             battle.EndPlanning();
             Assert.IsTrue(battle.IsOver, "the Soul Card finishes the dummy");

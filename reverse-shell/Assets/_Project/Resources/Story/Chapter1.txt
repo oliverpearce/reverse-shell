@@ -51,7 +51,7 @@ On its side, a small red light blinks the same words over and over…
 {p} {red}TRANSFER INCOMPLETE{/c}
 Thought | {slow}Where...{/slow}{p} Where is everyone?
 
-# Erin's first talk ends with "find me": she flickers out (ChapterOneDirector.TalkToErin).
+# After her rank 1 scene ("find me") she flickers out (ChapterOneDirector.ErinRankOne).
 [erin.vanished]
 Thought | ...Erin?!
 I guess I have to go find her…
@@ -60,7 +60,7 @@ I guess I have to go find her…
 [erin.goggles]
 Erin | Oh! You see those goggles over there? Grab them!{p} Not that I care. You just clearly need help seeing things.
 
-# The language chip, from Erin: at rank 2 if you said you can't read, else after the Collector (rank 3).
+# The language chip, from Erin: when you meet her if you said you can't read, else after the Collector (rank 3).
 [erin.chip]
 Erin | Here, hold out your hand. {p}...Don't make it weird.
 She drops a chip no bigger than a fingernail into your palm, its core glowing green.
@@ -71,28 +71,30 @@ Core | {gray}LANGUAGE PACK FOUND. INSTALLING...{/c}
 The capsule's light still blinks.{p} {shake}{red}TRANSFER INCOMPLETE{/c}{/shake}
 
 # ------------------------------------------------------------------ The reflection (DRAFT)
-# Right after waking: a hint to move, then her first steps carry on a moment on their own and stop at a puddle. Then
-# full-screen panels: her reflection; a glitch, then seams on her skin and a plate over her chest opening on the cracked
-# Fragmented Core; her hand touching it; her Soul Card rising out of it, its picture flickering to static.
+# Right after waking, before you can move: she sees a cracked mirror beside the capsule. Then full-screen panels: her
+# reflection; a glitch, then seams on her skin and a plate over her chest opening on the cracked
+# Fragmented Core; she touches it in the mirror and it flares; her Soul Card rises out of it, its picture flickering to
+# static. Then you get control.
 
-# She has just stumbled to a stop.
+# She has just woken, still beside the capsule.
 [reflection.notice]
-Your legs carry you further than you meant to go.{p} You stop.
-Water, at your feet.{p} Rain, left in a crack in the road.
+Something catches the light beside the capsule.
+A mirror,{p} cracked from corner to corner, still bolted to what's left of the wall.
 
-# Looking down at her reflection.
+# Looking into the mirror.
 [reflection.look]
 Thought | {slow}That's...{/slow}{p} me?
 A girl looks back. White hair. Tired eyes.
 
 # After the glitch: seams on her skin, the chest plate open on the cracked Core.
 [reflection.seams]
-The water shivers{p=0.4}... and when it settles, the girl has seams.
+The glass shivers{p=0.4}... and when it settles, the girl has seams.
 Lines where skin should be smooth.{p} A plate in her chest slides open, and something inside it glows, cracked straight through.
 Thought | {shake}No.{/shake}{p} {slow}That's not...{/slow}
 
-# Close on the Core, before she touches it.
+# Still in the mirror: she reaches for the Core, and it flares when she touches it.
 [reflection.touch]
+You raise a hand to your chest.{p} In the glass, the girl does the same.
 Thought | It's warm.
 
 # Her Soul Card has risen out of the Core: it glows, but the picture keeps dropping to static.

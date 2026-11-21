@@ -8,7 +8,7 @@ namespace Combat.View
 {
     /// <summary>
     /// A battlefield unit: animated pixel sprite (or placeholder), HP, an enemy's grey Break bar under it (no numbers:
-    /// those and the weaknesses are in the inspect screen), Ult pips, statuses, and the enemy intent card.
+    /// those and the weaknesses are in the inspect screen), SP pips, statuses, and the enemy intent card.
     /// A red lock-on reticle marks the targeted enemy and a white ring marks the unit under the cursor
     /// (mouse or arrow keys). Full details live in the inspect screen (hold, or Space).
     /// </summary>
@@ -62,7 +62,7 @@ namespace Combat.View
         /// <summary>Latest statuses / intent shown (event-time values, used by the inspect screen).</summary>
         public List<StatusSnapshot> Statuses { get; private set; }
         public CardInstance Intent { get; private set; }
-        public int MoxieCap { get; private set; }
+        public int SoulPointCap { get; private set; }
         /// <summary>Latest Break value shown (event-time, for the inspect screen); MaxBreak 0 = can't be broken.</summary>
         public int BreakValue { get; private set; }
         public int MaxBreak { get; private set; }
@@ -83,7 +83,7 @@ namespace Combat.View
         UISpriteAnimator animator;
         RectTransform hpBar;
         RectTransform statusRow;
-        readonly List<Image> moxiePips = new List<Image>();
+        readonly List<Image> soulPips = new List<Image>();
         Coroutine hpRoutine, breakRoutine, pressRoutine;
         bool longPressed;
 
@@ -93,23 +93,23 @@ namespace Combat.View
         static Material additiveUI;
         static Sprite shadowSprite;
 
-        public static UnitView Create(Transform parent, BattleUnit unit, BattleView view, int moxieCap)
+        public static UnitView Create(Transform parent, BattleUnit unit, BattleView view, int soulPointCap)
         {
             var rt = UIFactory.CreateRect(unit.Name, parent);
             rt.sizeDelta = new Vector2(Width, Height);
             var uv = rt.gameObject.AddComponent<UnitView>();
-            uv.Build(unit, view, moxieCap);
+            uv.Build(unit, view, soulPointCap);
             return uv;
         }
 
-        void Build(BattleUnit unit, BattleView battleView, int moxieCap)
+        void Build(BattleUnit unit, BattleView battleView, int soulPointCap)
         {
             Unit = unit;
             view = battleView;
             Rect = (RectTransform)transform;
             group = gameObject.AddComponent<CanvasGroup>();
             Statuses = new List<StatusSnapshot>();
-            MoxieCap = moxieCap;
+            SoulPointCap = soulPointCap;
 
             // Transparent hit area so the whole unit is clickable / hoverable.
             var hit = gameObject.AddComponent<Image>();
@@ -150,7 +150,7 @@ namespace Combat.View
             if (unit.Team == Team.Enemy)
                 lockOn = TargetReticle.CreateLock(Body, reticleAnchor, reticlePos, 156f);
 
-            // A slim nameplate: the HP bar and Ult pips (and small status icons). The name only shows on hover.
+            // A slim nameplate: the HP bar and SP pips (and small status icons). The name only shows on hover.
             nameText = InkStyle.Title(transform, "Name", def.DisplayName, 34, InkStyle.Paper, TextAnchor.MiddleCenter).BestFit(18, 34);
             // Above the head (for enemies, above the floating intent card).
             float nameY = unit.Team == Team.Enemy ? intentY + IntentSize / 2f + 24f : 18f;
@@ -181,19 +181,20 @@ namespace Combat.View
                 below = BreakHeight + 4f;
             }
 
-            // Ult points right under the HP bar (enemies with an Ult show theirs too).
+            // SP right under the HP bar (enemies with an Ult show theirs too).
             if (unit.Team == Team.Player || (unit.Enemy != null && unit.Enemy.ritual != null))
             {
                 // Big pips (no backing): solid dark when empty, gold when earned, orange and pulsing when the Ult is ready.
-                const float pipSize = 32f, gap = 4f;
-                float rowW = moxieCap * pipSize + (moxieCap - 1) * gap;
+                const float gap = 4f;
+                float pipSize = Mathf.Min(32f, (190f - (soulPointCap - 1) * gap) / Mathf.Max(1, soulPointCap));   // a long row shrinks to fit
+                float rowW = soulPointCap * pipSize + (soulPointCap - 1) * gap;
                 var row = UIFactory.CreateRect("Ult", transform).Place(top, top, new Vector2(0f, -318f - below), new Vector2(rowW, pipSize));
-                for (int i = 0; i < moxieCap; i++)
+                for (int i = 0; i < soulPointCap; i++)
                 {
                     var pip = UIFactory.CreateImage(row, "Pip" + i, Color.white);
                     pip.sprite = CardIcons.PipEmpty;
                     pip.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(i * (pipSize + gap), 0f), new Vector2(pipSize, pipSize));
-                    moxiePips.Add(pip);
+                    soulPips.Add(pip);
                 }
             }
 
@@ -208,7 +209,7 @@ namespace Combat.View
 
             SetHP(unit.HP, unit.MaxHP, true);
             SetBreak(unit.Break, unit.MaxBreak, unit.Staggered, true);
-            SetMoxie(unit.Moxie, moxieCap);
+            SetSoulPoints(unit.SoulPoints, soulPointCap);
             SetIntent(null);
         }
 
@@ -300,7 +301,7 @@ namespace Combat.View
             {
                 float p = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f);
                 var c = Color.Lerp(PipReady, new Color(1f, 0.92f, 0.6f), p);
-                foreach (var pip in moxiePips)
+                foreach (var pip in soulPips)
                 {
                     pip.color = c;
                     pip.transform.localScale = Vector3.one * (1f + 0.12f * p);
@@ -446,22 +447,22 @@ namespace Combat.View
         bool ultReady;
         static readonly Color PipReady = new Color(1f, 0.55f, 0.2f), PipEmptyColor = new Color(0.42f, 0.4f, 0.46f);
 
-        public void SetMoxie(int value, int cap)
+        public void SetSoulPoints(int value, int cap)
         {
             ultReady = value >= cap && cap > 0;
-            for (int i = 0; i < moxiePips.Count; i++)
+            for (int i = 0; i < soulPips.Count; i++)
             {
                 bool on = i < value;
-                if (CardIcons.PipFull != null) moxiePips[i].sprite = on ? CardIcons.PipFull : CardIcons.PipEmpty;
-                moxiePips[i].color = on ? (ultReady ? PipReady : Gold) : PipEmptyColor;
-                moxiePips[i].transform.localScale = Vector3.one;
+                if (CardIcons.PipFull != null) soulPips[i].sprite = on ? CardIcons.PipFull : CardIcons.PipEmpty;
+                soulPips[i].color = on ? (ultReady ? PipReady : Gold) : PipEmptyColor;
+                soulPips[i].transform.localScale = Vector3.one;
             }
         }
 
-        public IEnumerator PunchMoxie()
+        public IEnumerator PunchSoulPoints()
         {
             var routines = new List<Coroutine>();
-            foreach (var pip in moxiePips) routines.Add(StartCoroutine(Tween.Punch(pip.transform, 0.35f, 0.2f)));
+            foreach (var pip in soulPips) routines.Add(StartCoroutine(Tween.Punch(pip.transform, 0.35f, 0.2f)));
             foreach (var r in routines) yield return r;
         }
 

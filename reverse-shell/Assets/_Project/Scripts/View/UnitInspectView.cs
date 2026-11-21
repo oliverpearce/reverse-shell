@@ -10,7 +10,7 @@ namespace Combat.View
     /// the HUD and hand fade out; the unit stays on its own side (party left, enemies right) and the sheet fills the
     /// open side: a header tab with the element orb, the name and level, HP, an enemy's Break value (exact numbers) and
     /// weaknesses ("?" until found), stats as thin label / value strips in two columns, and the cards in a hairline
-    /// bracket. No effects, Ult points or posters. Esc / clicking anywhere closes.
+    /// bracket. No effects, SP or posters. Esc / clicking anywhere closes.
     /// </summary>
     public class UnitInspectView : MonoBehaviour
     {
@@ -140,7 +140,7 @@ namespace Combat.View
             y = BreakInfo(sheet, unit, unitView, y + 16f);
             y = StatusRow(sheet, unitView, y + 12f);
             y = SoulBound(sheet, unit, y + 10f);
-            y = UltPoints(sheet, unit, unitView.MoxieCap, y + 14f);
+            y = UltPoints(sheet, unit, unitView.SoulPointCap, y + 14f);
             y = Stats(sheet, unit, y + 22f);
             Cards(sheet, unit, y + 40f);
 
@@ -262,7 +262,7 @@ namespace Combat.View
             return y + 40f;
         }
 
-        /// <summary>"ULT" and a row of Ult point pips (lit = earned), for units that have an Ult card.</summary>
+        /// <summary>"ULT" and a row of SP pips (lit = earned), for units that have an Ult card.</summary>
         static float UltPoints(RectTransform sheet, BattleUnit unit, int cap, float y)
         {
             bool hasUlt = unit.Ultimate != null;
@@ -271,11 +271,12 @@ namespace Combat.View
             var label = UIFactory.CreateText(sheet, "Ult", UIText.Get("inspect.ult"), 28, Muted, TextAnchor.MiddleLeft);
             label.raycastTarget = false;
             label.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(90f, 36f));
-            const float pip = 34f, gap = 8f;
-            bool full = unit.Moxie >= cap;
+            const float gap = 8f;
+            float pip = Mathf.Min(34f, (340f - (cap - 1) * gap) / cap);   // a long row shrinks to fit
+            bool full = unit.SoulPoints >= cap;
             for (int i = 0; i < cap; i++)
             {
-                bool on = i < unit.Moxie;
+                bool on = i < unit.SoulPoints;
                 var img = UIFactory.CreateImage(sheet, "UltPip" + i, Color.white);
                 img.raycastTarget = false;
                 img.sprite = on && CardIcons.PipFull != null ? CardIcons.PipFull : CardIcons.PipEmpty;

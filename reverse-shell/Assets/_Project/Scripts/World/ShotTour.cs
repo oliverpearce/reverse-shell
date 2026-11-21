@@ -192,21 +192,13 @@ namespace Game.World
                 yield return null;
             }
             if (!shot) Note("no capsule line");
-            yield return Until(() => OpenDialogue() == null, 40f, "the awakening to end");
-            yield return new WaitForSecondsRealtime(1.5f);
-            yield return Shoot("story-awakening-room");
         }
 
-        /// <summary>The reflection, right where the awakening left off: the puddle, the chest plate open on the Core, and
-        /// her Soul Card risen out of it (the move hint is cleared first so it isn't in the shots).</summary>
+        /// <summary>The reflection, which follows the awakening by itself: the mirror, the chest plate open on the Core,
+        /// her Soul Card risen out of it, then the room with Erin waiting.</summary>
         IEnumerator Reflection()
         {
-            var world = FindObjectOfType<OverworldBuilder>();
-            if (world == null) { Note("no world for the reflection"); yield break; }
-            var hint = GameObject.Find("MoveHint");
-            if (hint != null) Destroy(hint);
-            ChapterOneDirector.ReplayReflection(world);
-            yield return Until(() => GameObject.Find("Puddle") != null, 20f, "the puddle");
+            yield return Until(() => GameObject.Find("Mirror") != null, 60f, "the mirror");
             yield return new WaitForSecondsRealtime(2.4f);   // up out of black, the first line typing
             yield return Shoot("story-reflection");
             yield return Until(() => GameObject.Find("PlateL") != null, 90f, "the chest plate");
@@ -216,7 +208,10 @@ namespace Game.World
             yield return new WaitForSecondsRealtime(1.5f);
             yield return Shoot("story-reflection-card");
             yield return Until(() => FindObjectOfType<ReflectionSequence>() == null, 90f, "the reflection to end");
-            yield return new WaitForSecondsRealtime(1f);
+            var moveHint = GameObject.Find("MoveHint");
+            if (moveHint != null) Destroy(moveHint);
+            yield return new WaitForSecondsRealtime(1.5f);
+            yield return Shoot("story-awakening-room");
         }
 
         /// <summary>The ending, in the dragon's hall by the pedestal: the cage of light among the server racks, then
@@ -257,7 +252,7 @@ namespace Game.World
         /// Ashe along for the screenshots, so her Leng Storm can be shown).</summary>
         IEnumerator City()
         {
-            foreach (var flag in new[] { Chapter1.Named, Chapter1.Awake, Chapter1.Scanner, Chapter1.Binder, Chapter1.CollectorMet, Chapter1.CollectorBeaten })
+            foreach (var flag in new[] { Chapter1.Named, Chapter1.Awake, Chapter1.Scanner, Chapter1.Binder, Chapter1.CollectorMet, Chapter1.CollectorBeaten, Chapter1.CollectorEnchant })
                 StoryState.Set(flag);
             for (int rank = 1; rank <= Bonds.SoulRank; rank++) StoryState.Set("bond." + Bonds.Erin.Id + "." + rank);
             WorldSession.Bonds[Bonds.Erin.Character] = new WorldSession.BondProgress { Rank = Bonds.SoulRank };

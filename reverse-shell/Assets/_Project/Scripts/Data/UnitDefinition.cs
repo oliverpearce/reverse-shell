@@ -23,6 +23,12 @@ namespace Combat
         public DamageType damageType;
         public Stats stats = new Stats();
 
+        [Header("Soul Points and Ult")]
+        [Tooltip("SP this unit needs for its Ult. It gains 1 for each card it uses (and each merge, for the party).")]
+        [Min(1)] public int soulPointsToUlt = 5;
+        [Tooltip("How strong its Ult is: 1 = normal, 1.5 = 50% stronger, 0.8 = 20% weaker (damage, healing and shields).")]
+        [Min(0f)] public float ultPower = 1f;
+
         /// <summary>
         /// Runtime names that replace an asset's display name, keyed by asset name (the protagonist's chosen name
         /// replaces "A3"). Never saved into the asset.

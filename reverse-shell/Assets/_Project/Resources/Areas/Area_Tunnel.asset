@@ -41,7 +41,7 @@ MonoBehaviour:
 
     HHHH======:===X=:=====...HHHHHHHHHHH.....JHH
 
-    HHHH====r=============...HHHHHHHHHHH......HH
+    HHHH====r=============...HHHHHHHHHHH.....cHH
 
     HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
@@ -77,4 +77,5 @@ MonoBehaviour:
     WinKey: 
     Reward: 
   npcs: []
-  chests: []
+  chests:
+  - Part_UltChip

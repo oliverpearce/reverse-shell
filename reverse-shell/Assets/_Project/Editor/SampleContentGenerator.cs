@@ -89,6 +89,8 @@ namespace Combat.EditorTools
                 StackRule.AddStacks, 3, "Lose 3% max HP per stack at round end.", 0.03f, 0f);
             if (Fresh(poison))
             {
+                poison.castCostPercentMaxHP = 0.05f;
+                poison.lifesteal = 0.5f;
                 poison.verb = "poison"; // card text: "deal 120% ATK damage and poison 1 enemy (x1, 2 turns)"
                 EditorUtility.SetDirty(poison);
             }
@@ -216,10 +218,10 @@ namespace Combat.EditorTools
             // ---------------------------------------------------------------- Parts (internal slots on the character card)
             var parts = new List<PartDefinition>
             {
-                // The Collector's: the only Part found in Chapter One. Cores never drop: the protagonist's own Core
+                // In the Buried Hall's chest: the only Part found in Chapter One. Cores never drop: the protagonist's own Core
                 // binds with the Soul Card, so nothing replaces it.
-                Part("Part_UltChip", "Ult Chip", PartSlot.Chip, new Color(1f, 0.82f, 0.4f), "Start every battle with 2 Ult points.",
-                    new StatModifier(StatType.StartingMoxie, ModifierKind.Flat, 2f)),
+                Part("Part_UltChip", "Ult Chip", PartSlot.Chip, new Color(1f, 0.82f, 0.4f), "Start every battle with 2 SP.",
+                    new StatModifier(StatType.StartingSoulPoints, ModifierKind.Flat, 2f)),
                 Part("Part_PatchCache", "Patch Cache", PartSlot.Chip, new Color(0.45f, 0.95f, 0.65f), "+12% healing.",
                     new StatModifier(StatType.HealingBonus, ModifierKind.Flat, 0.12f)),
             };
@@ -459,18 +461,18 @@ namespace Combat.EditorTools
             var storm = Card("Card_Enemy_StormHeart", "Storm Heart", CardKind.Attack, TargetMode.AllEnemies, true, null,
                 new CardEffect[] { new DamageEffect { multiplier = 1.8f, hits = 3 } });
             var dragon = Enemy("Enemy_ElectricDragon", "Electric Dragon", new Color(0.45f, 0.75f, 1f), Resonance.Arc, DamageType.Special,
-                2700, 170f, 150f, 160f, red, new EnemySkill { card = breath, weight = 1.5f }, new EnemySkill { card = tail, weight = 1.5f },
+                2700, 145f, 150f, 160f, red, new EnemySkill { card = breath, weight = 1.5f }, new EnemySkill { card = tail, weight = 1.5f },
                 new EnemySkill { card = coil, weight = 1f });
             if (Fresh(dragon))
             {
                 dragon.ritual = storm;
                 dragon.xpReward = 300;
             }
-            // The Dummy Robot: Erin's tutorial target, on the red Rust Sentry sprite. Only a Soul Card can finish it.
+            // The Soul-bound Scrap Hound: Erin's tutorial target, on the red Rust Sentry sprite. Only a Soul Card can finish it.
             // (Tools/ChibiForge/soul_dummy.py's stitched dummy art is kept in Art/Characters/SoulDummy, unused.)
             var poke = Card("Card_Enemy_Poke", "Poke", CardKind.Attack, TargetMode.SingleEnemy, false, null,
                 new CardEffect[] { new DamageEffect { multiplier = 0.25f } });
-            var dummy = Enemy("Enemy_SoulDummy", "Dummy Robot", new Color(0.78f, 0.36f, 0.3f), Resonance.Basic, DamageType.Physical,
+            var dummy = Enemy("Enemy_SoulDummy", "Scrap Hound", new Color(0.78f, 0.36f, 0.3f), Resonance.Basic, DamageType.Physical,
                 3000, 120f, 100f, 100f, red, new EnemySkill { card = poke, weight = 1f });
             if (Fresh(dummy))
             {

@@ -26,10 +26,47 @@ You talk about nothing much. It helps more than it should.
 [bond.erin.max]
 Erin | You don't have to keep checking on me, you know.{p} ...Not that I mind.
 
-# Rank 1: you wake; she's been here a long time. (DRAFT)
-[bond.erin.1]
+# Your first talk, when you walk up to her in the pod room. She asks if you can read: "Yes" (option 1) and she keeps the
+# language chip until after the Collector; "No" (option 2) and she gives it now. (DRAFT)
+[erin.meet]
 Erin | Oh! You're awake. You're actually— {p}I mean-finally. Took you long enough.
-Erin | I'm Erin. I've been stuck here a while. {wave}Long enough to stop counting.{/wave}
+Erin | I'm Erin.
+
+[erin.read.ask]
+Erin | You were out for so long, I thought there wasn't sentience in your model...{p} Can you even read and write?
+
+[erin.read.options]
+Yes.
+...No.
+
+[erin.read.answer.1]
+Erin | {wave}Wow.{/wave} Okay, genius.{p} Then you won't be needing my little gift.
+
+[erin.read.answer.2]
+Erin | Figured. Lucky for you, I came prepared.{p} Not for you. I just had a spare.
+
+# A Scrap Hound shows up, then she offers her battle tutorial (the last line asks; the answers are tutorial.offer.options).
+[erin.ambush]
+A low metal growl comes from behind the capsule.
+Erin | {shake}Move!{/shake} Scrap Hound!{p} ...And someone wired a Soul Card into its chest, of all things.
+
+[tutorial.offer]
+Erin | You've never done this, have you? Want me to walk you through it?
+
+[tutorial.offer.options]
+Show me.
+I know how.
+
+# "I know how": she deals with the hound herself, then rank 1.
+[tutorial.skip]
+Erin | Oh, {wave}sure{/wave} you do. Fine, I'll handle it.
+A burst of embers, and the hound drops in pieces.
+Erin | ...You're welcome.
+
+# Rank 1: right after the tutorial (or after you skip it); she's been here a long time. Then she flickers out. (DRAFT)
+[bond.erin.1]
+Erin | So. That's one less hound.
+Erin | I've been stuck here a while. {wave}Long enough to stop counting.{/wave}
 
 [bond.erin.1.ask]
 Erin | Waiting for someone. {red}Anyone.{/red} {p}Don't look at me like that. Is that strange?
@@ -37,7 +74,7 @@ Erin | Waiting for someone. {red}Anyone.{/red} {p}Don't look at me like that. Is
 [bond.erin.1.options]
 Not strange.
 I'd have left.
-Who are you?
+Why wait?
 
 [bond.erin.1.answer.1]
 Erin | {wave}Huh.{/wave} ...Okay. Good. Not that I needed you to say it.
@@ -48,30 +85,16 @@ Erin | Ha. Maybe I should have. Then you'd have woken up alone, and serves you r
 Erin | Listen. I can't stay here.{p} Find me {gold}past the clinic gate.{/gold} {wave}Don't take forever.{/wave}
 
 [bond.erin.1.answer.3]
-Erin | I just told you. Erin.{p} Were you even listening?
+Erin | Because somebody had to be there when you woke up.{p} ...Not that it had to be me.
 Erin | Listen. I can't stay here.{p} Find me {gold}past the clinic gate.{/gold} {wave}Don't take forever.{/wave}
 
-# Rank 2: you find her by the goggles, near the clinic gate. She gives you the card binder, then asks if you can read:
-# "Yes" (option 1) and she keeps the language chip until after the Collector; "No" (option 2) and she gives it now.
-# She waits there while you face the Collector alone; she joins after it and then offers her battle tutorial. (DRAFT)
+# Rank 2: you find her by the goggles, near the clinic gate. She gives you the card binder (no question: it still
+# completes the rank). She waits there while you face the Collector alone; she joins after it. (DRAFT)
 [bond.erin.2]
 Erin | There you are. Took you long enough.
 Erin | Here. Take it before I change my mind.
 She hands you a small leather binder, its cover worn soft. A gold strap holds it shut.
 {gold}Card Binder{/c} obtained.{p} Open it from the {gold}Esc menu.{/c}
-
-[bond.erin.2.ask]
-Erin | Well. You took so long to find me; I thought there wasn’t sentience in your model...{p} Can you even read and write?
-
-[bond.erin.2.options]
-Yes.
-...No.
-
-[bond.erin.2.answer.1]
-Erin | {wave}Wow.{/wave} Okay, genius.{p} Then you won't be needing my little gift.
-
-[bond.erin.2.answer.2]
-Erin | Figured. Lucky for you, I came prepared.{p} Not for you. I just had a spare.
 
 # Only if someone joins at a rank below their Soul Card (Erin joins at rank 3 now, with her Soul Card).
 [bond.erin.join]
@@ -162,25 +185,35 @@ She hands you a small leather binder, its cover worn soft. A gold strap holds it
 Erin | If you ever want a refresher on fighting, it's all in {gold}Esc{/c}, then {gold}Settings{/c}: {gold}Practice with Erin{/c} and the {gold}Tutorials{/c}.
 Erin | ...Not that you need it. You picked it up fast.{p} Annoyingly fast.
 
+# The Collector's drop, after her scenes that follow the fight. (DRAFT)
+[erin.enchant.drop]
+Erin | Hey. He dropped something on his way out.
+Three small cards lie in the rubble, each one humming.
+Erin | Enchants. Stick one on a card and it does a little extra every time you use that card.
+Erin | Only one of them's still any good once you touch it, so choose.
+
+# Then the Cards book opens on A3's plain Strike.
+[erin.enchant.use]
+Erin | Now put it on something. Your plain {gold}Strike{/c} is a good start, you'll use it constantly.
+Erin | It's the one I've marked. Go on.
+
+[erin.enchant.done]
+Erin | There. Every time you use Strike now, you get that bonus too.
+Erin | When you find another, it's in {gold}Esc{/c}, {gold}Cards{/c}, then {gold}Special{/c}. Select it and press {gold}Use{/c}.
+
+# They closed the book without using it.
+[erin.enchant.later]
+Erin | Saving it? Fine. It's in {gold}Esc{/c}, {gold}Cards{/c}, then {gold}Special{/c}. Select it and press {gold}Use{/c}.
+
+# A save that's past Erin's loss: no one to explain it.
+[enchant.drop.alone]
+Three small cards lie among the things the Collector left behind, each one humming.
+
 # Losing Erin at the end of Chapter One is now the ending in Chapter1.txt (the [ending.*] blocks).
 
 # ------------------------------------------------------------------ Erin's battle tutorial
 
-# After her rank-2 scene: "want a quick rundown?" (the last line asks; the answers are tutorial.offer.options).
-# She hasn't joined you yet: she coaches from the side.
-# Right after Erin joins you (back from the Collector): fighting together.
-[tutorial.offer]
-Erin | That fight was ugly, by the way. You won, but it was {wave}ugly{/wave}.
-Erin | See that old robot over there? A dummy robot, for practice. Someone wired a Soul Card into its chest, of all things.
-Erin | Want a quick rundown on fighting as a pair, before you embarrass us both? I'll go easy on you.
-
-[tutorial.offer.options]
-Show me.
-I know how.
-
-[tutorial.skip]
-Erin | Oh, {wave}sure{/wave} you do. Don't come crying to me.
-
+# Offered when you first talk to her, before rank 1. She hasn't joined you yet: she coaches from the side.
 [tutorial.erin.intro]
 Erin | Okay, listen up, because I'm only saying this once. Fighting is all about the cards.
 Erin | AP stands for {gold}Action Points{/c}. Each AP is a square at the top of the screen.
@@ -204,9 +237,9 @@ Erin | I've heard there are other chips out there. One for numbers, one for colo
 [tutorial.erin.info]
 Erin | See? Holding a card shows you everything on it: what it does, how hard it hits.
 
-# Step: hold the dummy robot to zoom in.
+# Step: hold the hound to zoom in.
 [tutorial.erin.zoom]
-Erin | Now {gold}hold{/c} the dummy robot. Same thing: press and keep pressing.
+Erin | Now {gold}hold{/c} the hound. Same thing: press and keep pressing.
 
 [tutorial.erin.zoom.after]
 Erin | That's its sheet. What it's weak to, and that grey bar under its health: its {gold}Break{/c}.
@@ -229,16 +262,17 @@ Erin | You're out of AP. Press Go and watch the cards play out.
 Erin | Now cast the Rank II card. Merged cards hit harder, and their Break power is bigger too. That grey bar? Empty it.
 
 [tutorial.erin.go_break]
-Erin | That's it. Press Go, and hit that guard!
+Erin | That's it. Press Go, and hit that hound!
 
 # Step 4: BREAK.
 [tutorial.erin.4]
 Erin | {shake}BREAK!{/shake} It's stunned and loses its turn, and every hit on it does extra damage while it's down.
 Erin | But it's still standing, isn't it? Told you. Soul-bound.
 
-# Step 5: the Ult. The lead's Ult points fill and their Soul Card comes into the hand.
+# Step 5: the Ult. The lead's SP fills and their Soul Card comes into the hand.
 [tutorial.erin.ult]
-Erin | Your Ult points are full, so your {gold}Soul Card{/c} just showed up in your hand. That's your Ult.
+Erin | Every card you use and every merge gives its owner {gold}1 SP{/c}: Soul Points.
+Erin | I topped yours off, so your {gold}Soul Card{/c} just showed up in your hand. That's your Ult.
 Erin | It's the only thing that can finish a Soul-bound enemy. {gold}Play it!{/c}
 
 [tutorial.erin.go_ult]

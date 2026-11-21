@@ -29,6 +29,8 @@ MonoBehaviour:
     specialDefense: 130
     critRate: 0.1
     critDamage: 1.5
+  soulPointsToUlt: 4
+  ultPower: 1.2
   skills:
   - card: {fileID: 11400000, guid: fd2f2d387a12ce942805253be76790c5, type: 2}
     rank: 1

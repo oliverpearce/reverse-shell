@@ -101,8 +101,12 @@ namespace Combat
         {
             var data = card.GetRank(rank);
             if (data == null) return "";
-            if (!string.IsNullOrEmpty(data.description)) return Capitalized(data.description);
-            var sentences = Sentences(data).Select(t => t.Format()).ToArray();
+            if (!string.IsNullOrEmpty(data.description))
+            {
+                var cost = HpCostSentence(card, data);
+                return Capitalized(cost != null ? data.description + " " + cost.Format() : data.description);
+            }
+            var sentences = Sentences(card, data).Select(t => t.Format()).ToArray();
             return WithTargets(card, string.Join(" ", sentences));
         }
 
@@ -114,6 +118,21 @@ namespace Combat
         public static List<EffectText> Sentences(CardRank data)
         {
             return data.effects.Where(e => e != null).Select(e => e.Text()).ToList();
+        }
+
+        /// <summary>The rank's sentences, then what it costs in HP (Poison cards).</summary>
+        static List<EffectText> Sentences(CardDefinition card, CardRank data)
+        {
+            var list = Sentences(data);
+            var cost = HpCostSentence(card, data);
+            if (cost != null) list.Add(cost);
+            return list;
+        }
+
+        static EffectText HpCostSentence(CardDefinition card, CardRank data)
+        {
+            float share = CardLevels.HpCostShare(card, data);
+            return share > 0f ? new EffectText("Costs {0} max HP.", UnityEngine.Mathf.RoundToInt(share * 100f) + "%") : null;
         }
 
         /// <summary>
@@ -137,7 +156,7 @@ namespace Combat
             for (int r = 1; r <= ranks; r++)
             {
                 var data = card.GetRank(r);
-                var texts = data != null ? Sentences(data) : new List<EffectText>();
+                var texts = data != null ? Sentences(card, data) : new List<EffectText>();
                 perRank.Add(texts);
                 longest = System.Math.Max(longest, texts.Count);
             }

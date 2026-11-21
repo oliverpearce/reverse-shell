@@ -26,10 +26,10 @@ namespace Game.World
             new Beat("1  Awake in the city", WorldAreas.City, Chapter1.Named, Chapter1.Awake),
             new Beat("2  Scanner picked up", WorldAreas.City, Chapter1.Named, Chapter1.Awake, Chapter1.Scanner),
             new Beat("3  Collector beaten", WorldAreas.City, Chapter1.Named, Chapter1.Awake, Chapter1.Scanner, Chapter1.CollectorMet, Chapter1.CollectorBeaten),
-            new Beat("4  Hidden route open", WorldAreas.City, Chapter1.Named, Chapter1.Awake, Chapter1.Scanner, Chapter1.CollectorMet, Chapter1.CollectorBeaten, Chapter1.Route),
-            new Beat("5  In the tunnel", WorldAreas.Tunnel, Chapter1.Named, Chapter1.Awake, Chapter1.Scanner, Chapter1.CollectorMet, Chapter1.CollectorBeaten, Chapter1.Route, Chapter1.Tunnel),
-            new Beat("6  Dragon's chamber", WorldAreas.Chamber, Chapter1.Named, Chapter1.Awake, Chapter1.Scanner, Chapter1.CollectorMet, Chapter1.CollectorBeaten, Chapter1.Route, Chapter1.Tunnel),
-            new Beat("7  Dragon beaten", WorldAreas.Chamber, Chapter1.Named, Chapter1.Awake, Chapter1.Scanner, Chapter1.CollectorMet, Chapter1.CollectorBeaten, Chapter1.Route, Chapter1.Tunnel, Chapter1.DragonSeen, Chapter1.DragonBeaten),
+            new Beat("4  Hidden route open", WorldAreas.City, Chapter1.Named, Chapter1.Awake, Chapter1.Scanner, Chapter1.CollectorMet, Chapter1.CollectorBeaten, Chapter1.CollectorEnchant, Chapter1.Route),
+            new Beat("5  In the tunnel", WorldAreas.Tunnel, Chapter1.Named, Chapter1.Awake, Chapter1.Scanner, Chapter1.CollectorMet, Chapter1.CollectorBeaten, Chapter1.CollectorEnchant, Chapter1.Route, Chapter1.Tunnel),
+            new Beat("6  Dragon's chamber", WorldAreas.Chamber, Chapter1.Named, Chapter1.Awake, Chapter1.Scanner, Chapter1.CollectorMet, Chapter1.CollectorBeaten, Chapter1.CollectorEnchant, Chapter1.Route, Chapter1.Tunnel),
+            new Beat("7  Dragon beaten", WorldAreas.Chamber, Chapter1.Named, Chapter1.Awake, Chapter1.Scanner, Chapter1.CollectorMet, Chapter1.CollectorBeaten, Chapter1.CollectorEnchant, Chapter1.Route, Chapter1.Tunnel, Chapter1.DragonSeen, Chapter1.DragonBeaten),
         };
 
         public static void Ensure()

@@ -15,6 +15,12 @@ namespace Combat.EditorTools
     {
         const float Spacing = 2f;
 
+        /// <summary>A type's name in the Inspector (GainMoxieEffect keeps its class name: card assets store it).</summary>
+        static string Nice(string typeName)
+        {
+            return typeName == "GainMoxieEffect" ? "Gain SP" : ObjectNames.NicifyVariableName(typeName);
+        }
+
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             if (property.propertyType != SerializedPropertyType.ManagedReference)
@@ -31,7 +37,7 @@ namespace Combat.EditorTools
             var foldRect = new Rect(header.x, header.y, EditorGUIUtility.labelWidth, line);
             var buttonRect = new Rect(header.x + EditorGUIUtility.labelWidth, header.y, header.width - EditorGUIUtility.labelWidth, line);
             bool hasChildren = HasVisibleChildren(property);
-            var foldLabel = new GUIContent(typeName != null ? ObjectNames.NicifyVariableName(typeName) : label.text);
+            var foldLabel = new GUIContent(typeName != null ? Nice(typeName) : label.text);
             if (hasChildren) property.isExpanded = EditorGUI.Foldout(foldRect, property.isExpanded, foldLabel, true);
             else EditorGUI.LabelField(foldRect, foldLabel);
 
@@ -111,7 +117,7 @@ namespace Combat.EditorTools
                             && t.GetConstructor(Type.EmptyTypes) != null)
                 .OrderBy(t => t.Name);
             foreach (var type in types)
-                menu.AddItem(new GUIContent(ObjectNames.NicifyVariableName(type.Name)), false, () => Assign(serializedObject, path, type));
+                menu.AddItem(new GUIContent(Nice(type.Name)), false, () => Assign(serializedObject, path, type));
             menu.ShowAsContext();
         }
 

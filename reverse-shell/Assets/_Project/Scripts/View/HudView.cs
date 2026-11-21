@@ -24,6 +24,8 @@ namespace Combat.View
 
         public RectTransform QueueRow { get; private set; }
 
+        public RectTransform GoRect { get { return goButton != null ? (RectTransform)goButton.transform : null; } }
+
         /// <summary>One queue slot, the strip's inner padding and the gap between slots.</summary>
         static readonly Vector2 ChipSize = new Vector2(120f, 84f);
         const float QueuePad = 8f, QueueGap = 10f, MaxQueueWidth = 760f;

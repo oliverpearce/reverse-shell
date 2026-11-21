@@ -351,8 +351,9 @@ namespace Game.World
             SpawnWarpPad(cell, destination);
         }
 
-        /// <summary>A scripted fight with no map machine (the Collector): the pre-fight screen, then the battle.</summary>
-        public void StartStoryFight(WorldAreas.EncounterDef def, string id)
+        /// <summary>A scripted fight with no map machine (the Collector): the pre-fight screen, then the battle.
+        /// <paramref name="ambush"/> skips that screen (the opening's tutorial, which can't be backed out of).</summary>
+        public void StartStoryFight(WorldAreas.EncounterDef def, string id, bool ambush = false)
         {
             var go = new GameObject("StoryFight_" + id);
             go.transform.SetParent(transform, false);
@@ -362,7 +363,8 @@ namespace Game.World
             encounter.id = SceneManager.GetActiveScene().name + "/" + area.Id + "/" + id;
             encounter.displayName = DisplayNameFor(def);
             encounter.setup = encounterSetup;
-            StartEncounter(encounter);
+            if (ambush && encounter.setup != null && !transitioning) StartCoroutine(BattleTransition(encounter));
+            else StartEncounter(encounter);
         }
 
         static string DisplayNameFor(WorldAreas.EncounterDef def)
@@ -1422,7 +1424,9 @@ namespace Game.World
                         WorldSession.PendingMessage = winMessage;
                         break;
                     case BattleOutcome.Fled:
-                        WorldSession.PendingKey = "battle.fled";
+                        // Skipping a tutorial isn't running away: no line, and no damage carried out of it.
+                        if (BattleTutorial.TutorialFor(id) != null) WorldSession.RestoreParty();
+                        else WorldSession.PendingKey = "battle.fled";
                         break;
                     default:
                         // A lost fight wakes you at the last Access Point you rested at (or the area's start).

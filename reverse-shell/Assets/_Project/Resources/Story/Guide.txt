@@ -71,16 +71,16 @@ Merges happen by themselves when cards are drawn or played.
 
 {gold}Drag{/c} a card to line one up ({gold}1 AP{/c}). Playing the card in between is free.
 
-Each merge: {gold}+1 Ult{/c} for its owner.
+Each merge: {gold}+1 SP{/c} for its owner.
 
-[battle] Ult
-Each fighter has {gold}5 Ult pips{/c} under their HP bar.
+[battle] SP and Ult
+Each fighter has {gold}SP pips{/c} (Soul Points) under their HP bar, usually {gold}5{/c}.
 
 {gold}+1{/c} per card of theirs played, {gold}+1{/c} per merge.
 
 Full pips: their {gold}Ult card{/c} joins your hand ({gold}1 AP{/c}).
 
-Ult resets after every battle. Enemies have Ult too.
+SP resets after every battle. Enemies have SP too.
 
 [battle] Targets
 {gold}Click an enemy{/c} to target it (the red lock-on). Single-target cards hit your target.
@@ -112,6 +112,13 @@ The icons under a unit are its {gold}statuses{/c}.
 The corner number is the total of all stacks.
 
 {gold}Hover{/c} one for its name, what it does and the turns left.
+
+[battle] Poison
+Cards that poison cost their user {gold}5% max HP{/c} each use. It never drops them below 1 HP, and Ults are free.
+
+Poison ticks at the end of each round, and whoever applied it heals {gold}half{/c} of that damage.
+
+Enemies play by the same rules.
 
 [battle] Inspect
 {gold}Hold{/c} a unit (or ring it and press {gold}Space{/c}) to see its HP, Break, weaknesses, stats and cards.

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Combat
 {
@@ -9,10 +10,13 @@ namespace Combat
         [Min(1)] public int handSize = 7;
         [Min(1)] public int actionPointsPerRound = 3;
 
-        [Header("Moxie")]
-        [Min(1)] public int moxieCap = 5;
-        public int moxiePerCast = 1;
-        public int moxiePerMerge = 1;
+        [Header("Soul Points (SP)")]
+        [Tooltip("Fallback only: every character and enemy sets its own Soul Points To Ult on its asset.")]
+        [FormerlySerializedAs("moxieCap"), Min(1)] public int soulPointCap = 5;
+        [Tooltip("SP a unit gains for each card of theirs that's used.")]
+        [FormerlySerializedAs("moxiePerCast")] public int soulPointsPerCast = 1;
+        [Tooltip("SP a card's owner gains for each merge.")]
+        [FormerlySerializedAs("moxiePerMerge")] public int soulPointsPerMerge = 1;
 
         [Header("Damage")]
         [Tooltip("Mitigation = DEF / (DEF + defenseScale).")]

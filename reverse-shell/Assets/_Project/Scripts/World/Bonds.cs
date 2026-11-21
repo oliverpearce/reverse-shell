@@ -31,6 +31,8 @@ namespace Game.World
             public string Requires;
             /// <summary>Points for each answer, in the .options order.</summary>
             public int[] OptionPoints = { 3, 2, 1 };
+            /// <summary>Points for a scene that asks nothing.</summary>
+            public int PointsIfNoQuestion = 1;
             /// <summary>Runs after the scene's answer (its index, -1 if it asks nothing), before the points: gifts and
             /// story beats (Erin hands over the binder and the language chip).</summary>
             public Func<OverworldBuilder, int, IEnumerator> OnDone;
@@ -58,8 +60,8 @@ namespace Game.World
             // rank 2 her scenes find you, ChapterOneDirector.ErinCatchesUp). The scenes' gifts are set by the director.
             Scenes = new[]
             {
-                new Scene { Requires = Chapter1.Awake, OptionPoints = new[] { 3, 3, 3 } },   // the pod room; she vanishes
-                new Scene { Requires = Chapter1.Awake, OptionPoints = new[] { 3, 3 } },      // by the goggles: the binder, the tutorial
+                new Scene { Requires = Chapter1.Awake, OptionPoints = new[] { 3, 3, 3 } },   // the pod room, after her tutorial; she vanishes
+                new Scene { Requires = Chapter1.Awake, OptionPoints = new int[0], PointsIfNoQuestion = PointsPerRank },   // by the goggles: the binder
                 new Scene { Requires = Chapter1.CollectorBeaten, OptionPoints = new[] { 3, 3, 3 } }, // rank 3: joins, Soul Card
                 new Scene { Requires = Chapter1.Tunnel, OptionPoints = new[] { 3, 3, 3 } },
                 new Scene { Requires = Chapter1.DragonSeen, OptionPoints = new[] { 3, 3, 3 } },
@@ -148,7 +150,7 @@ namespace Game.World
                 }
                 if (d.Scenes[before].OnDone != null) yield return d.Scenes[before].OnDone(b, answer);
                 var pts = d.Scenes[before].OptionPoints;
-                gained = answer >= 0 && answer < pts.Length ? pts[answer] : 1;
+                gained = answer >= 0 && answer < pts.Length ? pts[answer] : d.Scenes[before].PointsIfNoQuestion;
                 StoryState.Set(SeenFlag(d, before + 1));
             }
             else if (next == Next.Hangout)

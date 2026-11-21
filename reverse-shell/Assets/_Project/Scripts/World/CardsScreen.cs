@@ -214,6 +214,38 @@ namespace Game.World
             Show(whenClosed);
         }
 
+        /// <summary>The enchant lesson: the book opens with only <paramref name="card"/> to pick; choosing it puts
+        /// <paramref name="kind"/> on it and closes the book. Esc closes it with the enchant kept for later.</summary>
+        public void OpenEnchantLesson(CardBinding kind, CardDefinition card, System.Action whenClosed)
+        {
+            pickFrom = new List<CardDefinition> { card };
+            pickMember = null;
+            pickCurrent = null;
+            pickCanRemove = false;
+            useReturn = false;
+            enchantLesson = true;
+            onPick = c =>
+            {
+                if (CardCollection.Bind(c, kind)) SaveGame.Save();
+            };
+            Show(whenClosed);
+            titleText.text = UIText.Get("cards.title.use", "name", ArcanaCards.Name(kind));
+            keysText.text = UIText.Get("cards.keys.use");
+            keysText.FitOneLine(1360f);
+        }
+
+        bool enchantLesson;
+
+        /// <summary>The book is open and still (a tutorial can point at a card).</summary>
+        public bool Settled { get { return IsOpen && !opening && !closing && !book.Busy; } }
+
+        /// <summary>Where an ability card is on the open book, or null.</summary>
+        public RectTransform RectOf(CardDefinition card)
+        {
+            var e = shown.Find(x => x.Kind == EntryKind.Ability && x.Card == card);
+            return e != null ? e.Rect : null;
+        }
+
         bool Picking { get { return pickFrom != null; } }
         /// <summary>Picking a unit's Alt card with the deck check: every ability card shows, the others greyed.</summary>
         bool DeckPicking { get { return Picking && pickMember != null; } }
@@ -324,6 +356,12 @@ namespace Game.World
             openedFrame = LastToggleFrame = Time.frameCount;
             opening = true;
             LoadSort();
+            if (enchantLesson)
+            {
+                enchantLesson = false;
+                resonanceFilter = 0;   // saved filters must not hide the lesson's card
+                kindFilter = 0;
+            }
             if (Picking && SpecialShown) kindFilter = 0;   // the picker only holds ability cards
             Rebuild(0);
             // The collection: the character opens a book and the book UI rises out of it. The title's modes: the

@@ -20,7 +20,7 @@ namespace Combat
                  "\"Starter\" tag; the protagonist's two basic Basic cards).")]
         public List<CardDefinition> starterCards = new List<CardDefinition>();
 
-        [Tooltip("Ultimate card, spawned into the hand when Moxie reaches the cap.")]
+        [Tooltip("Ultimate card, spawned into the hand when SP reaches the cap.")]
         public CardDefinition ritual;
 
         [Tooltip("Base HP, ATK and DEF grow by this fraction per level after level 1 (0.08 = +8% per level).")]

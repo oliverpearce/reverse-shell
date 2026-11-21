@@ -72,7 +72,7 @@ namespace Combat
         public BattleUnit Replaces;
     }
 
-    public class MoxieChangedEvent : BattleEvent
+    public class SoulPointsChangedEvent : BattleEvent
     {
         public BattleUnit Unit;
         public int Value;

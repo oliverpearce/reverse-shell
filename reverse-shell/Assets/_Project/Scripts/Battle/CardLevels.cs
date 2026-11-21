@@ -72,6 +72,20 @@ namespace Combat
             return effect.duration + Config.turnsPerMerge * Mathf.Max(0, card.Rank - 1);
         }
 
+        /// <summary>The share of max HP this rank costs its user: the highest cost among the statuses it applies (Poison).
+        /// Ults have already been paid for with SP, so they're free.</summary>
+        public static float HpCostShare(CardDefinition card, CardRank rank)
+        {
+            if (card == null || rank == null || card.isRitual) return 0f;
+            float cost = 0f;
+            foreach (var e in rank.effects)
+            {
+                var apply = e as ApplyStatusEffect;
+                if (apply != null && apply.status != null) cost = Mathf.Max(cost, apply.status.castCostPercentMaxHP);
+            }
+            return cost;
+        }
+
         /// <summary>The main hit's multiple of ATK at a level (0.25 x level by default).</summary>
         public static float Power(int level)
         {

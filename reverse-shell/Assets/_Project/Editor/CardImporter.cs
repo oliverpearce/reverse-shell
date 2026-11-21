@@ -191,7 +191,7 @@ namespace Combat.EditorTools
                 case "ap": e = new ModifyAPEffect { amount = f.amount }; break;
                 default: throw new Exception("CardImporter: unknown effect '" + f.type + "'");
             }
-            // A heal / Ult point / cleanse with no target of its own follows the card's target (their defaults differ).
+            // A heal / SP / cleanse with no target of its own follows the card's target (their defaults differ).
             e.target = Target(f.target);
             return e;
         }

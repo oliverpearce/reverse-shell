@@ -13,7 +13,14 @@ namespace Combat
         public readonly List<StatusInstance> Statuses = new List<StatusInstance>();
 
         public int HP;
-        public int Moxie;
+        public int SoulPoints;
+
+        /// <summary>SP needed for the Ult: the unit's own (the combat config's if it has no definition).</summary>
+        public int SoulPointCapIn(CombatConfig config)
+        {
+            return Definition != null ? Mathf.Max(1, Definition.soulPointsToUlt) : config.soulPointCap;
+        }
+
         /// <summary>Party members scale their base stats with level; enemies stay at their definition's stats.</summary>
         public int Level { get; private set; }
         /// <summary>Enemy only: the card it will use this round.</summary>
@@ -201,7 +208,8 @@ namespace Combat
                     else percent += mod.value;
                 }
             }
-            if (stat == StatType.RitualMight) flat += UltPowerBonus;   // Soul levels
+            if (stat == StatType.RitualMight)   // Soul levels, and the unit's own Ult Power (1 = no change)
+                flat += UltPowerBonus + Definition.ultPower - 1f;
             float baseValue = Definition.stats.Get(stat);
             var character = Character;
             if (character != null && Leveling.Grows(stat)) baseValue *= Leveling.StatScale(Level, character.growthPerLevel);

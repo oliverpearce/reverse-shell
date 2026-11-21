@@ -24,11 +24,13 @@ MonoBehaviour:
   damageType: 1
   stats:
     maxHP: 2700
-    attack: 170
+    attack: 145
     physicalDefense: 150
     specialDefense: 160
     critRate: 0.1
     critDamage: 1.5
+  soulPointsToUlt: 4
+  ultPower: 1
   skills:
   - card: {fileID: 11400000, guid: 63cc80e021af9a04f9fc8f35ea51a362, type: 2}
     rank: 1

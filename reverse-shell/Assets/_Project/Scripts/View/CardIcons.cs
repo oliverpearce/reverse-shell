@@ -6,7 +6,7 @@ namespace Combat.View
     /// The icon atlas, Resources/UI/CardIcons.png (built by Tools/IconForge/card_icons.py, mostly from the user's picks
     /// in Clockwork Raven's "Raven Fantasy Icons"; keep the layout in sync). Seven card types (Attack, Debuff, Buff,
     /// Counter, Heal, Ultimate, Defense) as white masks, in their own colors and as small intent cards in three ranks (cream I,
-    /// silver II, gold III); UI bits (the empty unit-type diamond, Ult pips, a star, a filled diamond, a card back);
+    /// silver II, gold III); UI bits (the empty unit-type diamond, SP pips, a star, a filled diamond, a card back);
     /// element orbs; Part / status icons; and the button icons (Go, close, pause). Sprites are cut from the atlas once
     /// and cached.
     /// </summary>

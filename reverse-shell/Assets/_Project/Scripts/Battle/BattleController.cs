@@ -139,9 +139,9 @@ namespace Combat
         {
             if (State.Phase != BattlePhase.NotStarted) return;
             Emit(new BattleStartedEvent());
-            // Parts like the Ult Chip start a member with some Ult points already.
-            foreach (var unit in State.Party) GiveStartingMoxie(unit);
-            foreach (var unit in State.Backup) GiveStartingMoxie(unit);
+            // Parts like the Ult Chip start a member with some SP already.
+            foreach (var unit in State.Party) GiveStartingSoulPoints(unit);
+            foreach (var unit in State.Backup) GiveStartingSoulPoints(unit);
             EnsureSelectedEnemy();
             StartRound();
         }
@@ -162,7 +162,7 @@ namespace Combat
                 card.Target = State.SelectedEnemy;
             State.Queue.Add(card);
             State.ActionPoints--;
-            if (card.IsRitual) SetMoxie(card.Owner, 0);
+            if (card.IsRitual) SetSoulPoints(card.Owner, 0);
 
             Emit(new CardQueuedEvent { Card = card, HandAfter = State.Hand.Snapshot(), QueueAfter = new List<CardInstance>(State.Queue) });
             EmitActionPoints();
@@ -205,7 +205,7 @@ namespace Combat
             Emit(new HandRestoredEvent { HandAfter = State.Hand.Snapshot(), QueueAfter = new List<CardInstance>(State.Queue) });
             EmitActionPoints();
             for (int i = 0; i < State.Party.Count; i++)
-                SetMoxie(State.Party[i], snap.Moxie[i]);
+                SetSoulPoints(State.Party[i], snap.SoulPoints[i]);
             return true;
         }
 
@@ -245,7 +245,7 @@ namespace Combat
                 }
 
                 Cast(caster, card);
-                if (!card.IsRitual && !IsOver) AddMoxie(caster, Config.moxiePerCast);
+                if (!card.IsRitual && !IsOver) AddSoulPoints(caster, Config.soulPointsPerCast);
             }
             State.Queue.Clear();
 
@@ -609,10 +609,10 @@ namespace Combat
             EmitStatuses(target);
         }
 
-        public void AddMoxie(BattleUnit unit, int amount)
+        public void AddSoulPoints(BattleUnit unit, int amount)
         {
-            if (unit.Team != Team.Player || !unit.IsAlive || amount == 0) return;
-            SetMoxie(unit, unit.Moxie + amount);
+            if (!unit.IsAlive || amount == 0) return;
+            SetSoulPoints(unit, unit.SoulPoints + amount);
             TrySpawnRitual(unit);
         }
 
@@ -655,7 +655,7 @@ namespace Combat
                     enemy.Break = enemy.MaxBreak;
                     EmitBreak(enemy);
                 }
-                enemy.Intent = EnemyAI.ChooseIntent(enemy, State.Rng, Config.moxieCap);
+                enemy.Intent = EnemyAI.ChooseIntent(enemy, State.Rng, enemy.SoulPointCapIn(Config));
                 Emit(new IntentChosenEvent { Unit = enemy, Intent = enemy.Intent });
             }
 
@@ -684,21 +684,21 @@ namespace Combat
             while ((merge = State.Hand.TryMergeOnce()) != null)
             {
                 Emit(new CardsMergedEvent { Merge = merge, HandAfter = State.Hand.Snapshot() });
-                AddMoxie(merge.Result.Owner, Config.moxiePerMerge);
+                AddSoulPoints(merge.Result.Owner, Config.soulPointsPerMerge);
             }
         }
 
-        void GiveStartingMoxie(BattleUnit unit)
+        void GiveStartingSoulPoints(BattleUnit unit)
         {
-            int start = Mathf.Clamp(Mathf.RoundToInt(unit.GetStat(StatType.StartingMoxie)), 0, Config.moxieCap);
-            if (start > unit.Moxie) SetMoxie(unit, start);
+            int start = Mathf.Clamp(Mathf.RoundToInt(unit.GetStat(StatType.StartingSoulPoints)), 0, unit.SoulPointCapIn(Config));
+            if (start > unit.SoulPoints) SetSoulPoints(unit, start);
         }
 
         void TrySpawnRitual(BattleUnit unit)
         {
             var character = unit.Character;
             if (character == null || unit.Ultimate == null || !unit.IsAlive) return;
-            if (unit.Moxie < Config.moxieCap) return;
+            if (unit.SoulPoints < unit.SoulPointCapIn(Config)) return;
             if (State.Hand.HasRitualFor(unit) || State.Queue.Exists(c => c.IsRitual && c.Owner == unit)) return;
 
             var card = new CardInstance(unit.Ultimate, unit, 1);
@@ -721,6 +721,7 @@ namespace Combat
 
             var rank = card.RankData;
             if (rank == null) return;
+            PayHpCost(caster, CardLevels.HpCostShare(card.Definition, rank));
             var ctx = new EffectContext(this, caster, card, targets);
             foreach (var effect in rank.effects)
             {
@@ -732,8 +733,18 @@ namespace Combat
                 ApplyBinding(caster, caster.BindingOf(card.Definition));
         }
 
+        /// <summary>A Poison card's price: a share of the user's max HP, never below 1 HP (shields don't soak it).</summary>
+        void PayHpCost(BattleUnit caster, float share)
+        {
+            if (share <= 0f) return;
+            int cost = Mathf.Min(Mathf.Max(1, Mathf.RoundToInt(caster.MaxHP * share)), caster.HP - 1);
+            if (cost <= 0) return;
+            caster.HP -= cost;
+            Emit(new DamageEvent { Source = caster, Target = caster, Amount = cost, IsTick = true, HPAfter = caster.HP, MaxHP = caster.MaxHP });
+        }
+
         /// <summary>A bound Major Arcana's bonus for the card's user, after the card itself (amounts in PackRates):
-        /// Sun heals a share of max HP, Moon gives DEF Up, Star gives Ult points.</summary>
+        /// Sun heals a share of max HP, Moon gives DEF Up, Star gives SP.</summary>
         void ApplyBinding(BattleUnit caster, CardBinding binding)
         {
             var rates = PackRates.Current;
@@ -746,7 +757,7 @@ namespace Combat
                     ApplyStatus(caster, caster, rates.moonStatus, rates.moonTurns, 1);
                     break;
                 case CardBinding.Star:
-                    AddMoxie(caster, rates.starUlt);
+                    AddSoulPoints(caster, rates.starUlt);
                     break;
             }
         }
@@ -767,8 +778,8 @@ namespace Combat
                 if (IsOver) return;
                 if (enemy.Enemy != null && enemy.Enemy.ritual != null && enemy.IsAlive)
                 {
-                    if (intent.IsRitual) SetMoxie(enemy, 0);
-                    else AddMoxie(enemy, Config.moxiePerCast);
+                    if (intent.IsRitual) SetSoulPoints(enemy, 0);
+                    else AddSoulPoints(enemy, Config.soulPointsPerCast);
                 }
             }
         }
@@ -813,8 +824,12 @@ namespace Combat
                     if (def.damagePerRoundPercentMaxHP > 0f && unit.IsAlive)
                     {
                         int dmg = Mathf.Max(1, Mathf.RoundToInt(unit.MaxHP * def.damagePerRoundPercentMaxHP * status.Stacks * stagger));
+                        int hpBefore = unit.HP;
                         ApplyDamage(status.Source, unit, dmg, false, unit.Staggered, true, tick: def);
                         if (IsOver) return;
+                        // Lifesteal (Poison): whoever applied it heals a share of what it really took.
+                        if (def.lifesteal > 0f && status.Source != null && status.Source.HP < status.Source.MaxHP)
+                            Heal(status.Source, status.Source, Mathf.RoundToInt((hpBefore - unit.HP) * def.lifesteal));
                     }
                     if (def.damagePerRoundSourceATK > 0f && unit.IsAlive && status.Source != null)
                     {
@@ -887,7 +902,7 @@ namespace Combat
 
             if (unit.Team == Team.Player)
             {
-                SetMoxie(unit, 0);
+                SetSoulPoints(unit, 0);
                 int removed = State.Hand.RemoveAllOwnedBy(unit) + State.Queue.RemoveAll(c => c.Owner == unit);
                 if (removed > 0)
                     Emit(new HandRestoredEvent { HandAfter = State.Hand.Snapshot(), QueueAfter = new List<CardInstance>(State.Queue) });
@@ -939,21 +954,21 @@ namespace Combat
             return unit != null && unit.Enemy != null && unit.Enemy.soulOnly;
         }
 
-        /// <summary>Fills a member's Ult points and deals their Soul Card into the hand (Erin's tutorial, the Ult lesson).</summary>
+        /// <summary>Fills a member's SP and deals their Soul Card into the hand (Erin's tutorial, the Ult lesson).</summary>
         public void FillUlt(BattleUnit unit)
         {
             if (unit == null || !unit.IsAlive) return;
-            SetMoxie(unit, Config.moxieCap);
+            SetSoulPoints(unit, unit.SoulPointCapIn(Config));
             TrySpawnRitual(unit);
         }
 
-        void SetMoxie(BattleUnit unit, int value)
+        void SetSoulPoints(BattleUnit unit, int value)
         {
-            value = Mathf.Clamp(value, 0, Config.moxieCap);
-            if (value == unit.Moxie) return;
-            int delta = value - unit.Moxie;
-            unit.Moxie = value;
-            Emit(new MoxieChangedEvent { Unit = unit, Value = value, Delta = delta });
+            value = Mathf.Clamp(value, 0, unit.SoulPointCapIn(Config));
+            if (value == unit.SoulPoints) return;
+            int delta = value - unit.SoulPoints;
+            unit.SoulPoints = value;
+            Emit(new SoulPointsChangedEvent { Unit = unit, Value = value, Delta = delta });
         }
 
         void PushUndo()
@@ -964,7 +979,7 @@ namespace Combat
                 Queue = new List<CardInstance>(State.Queue),
                 ActionPoints = State.ActionPoints,
                 Moves = State.MovesThisRound,
-                Moxie = State.Party.ConvertAll(p => p.Moxie)
+                SoulPoints = State.Party.ConvertAll(p => p.SoulPoints)
             });
         }
 
@@ -995,7 +1010,7 @@ namespace Combat
             public List<CardInstance> Queue;
             public int ActionPoints;
             public int Moves;
-            public List<int> Moxie;
+            public List<int> SoulPoints;
         }
     }
 }

@@ -22,6 +22,8 @@ MonoBehaviour:
   modifiers: []
   damagePerRoundPercentMaxHP: 0.03
   healPerRoundPercentMaxHP: 0
+  castCostPercentMaxHP: 0.05
+  lifesteal: 0.5
   preventsAction: 0
-  description: Lose 3% max HP per level at round end.
+  description: Lose 3% max HP per level at round end. Whoever applied it heals half of that.
   verb: poison

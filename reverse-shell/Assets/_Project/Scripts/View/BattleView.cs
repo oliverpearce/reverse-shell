@@ -65,6 +65,12 @@ namespace Combat.View
 
         public CardView ViewOf(CardInstance card) { return hand != null ? hand.Get(card) : null; }
 
+        /// <summary>A unit's view (a tutorial points at it).</summary>
+        public UnitView UnitViewOf(BattleUnit unit) { return Get(unit); }
+
+        /// <summary>The Go button (a tutorial points at it).</summary>
+        public RectTransform GoRect { get { return hud != null ? hud.GoRect : null; } }
+
         /// <summary>A guided tutorial's starting state for an enemy (its HP and Break value), shown at once. Only a
         /// tutorial calls this, before the first turn; the Break and Stagger rules themselves are untouched.</summary>
         public void SetUpEnemy(BattleUnit enemy, int hp, int breakValue)
@@ -128,11 +134,10 @@ namespace Combat.View
             Stage.offsetMin = Stage.offsetMax = Vector2.zero;
             Stage.pivot = new Vector2(0.5f, street);
             var state = controller.State;
-            int cap = state.Config.moxieCap;
             for (int i = 0; i < state.Party.Count; i++)
-                AddUnit(state.Party[i], new Vector2(PartyCenterX + (i - (state.Party.Count - 1) / 2f) * UnitSpacing, StageY), cap);
+                AddUnit(state.Party[i], new Vector2(PartyCenterX + (i - (state.Party.Count - 1) / 2f) * UnitSpacing, StageY));
             for (int i = 0; i < state.Enemies.Count; i++)
-                AddUnit(state.Enemies[i], new Vector2(EnemyCenterX + (i - (state.Enemies.Count - 1) / 2f) * UnitSpacing, StageY), cap);
+                AddUnit(state.Enemies[i], new Vector2(EnemyCenterX + (i - (state.Enemies.Count - 1) / 2f) * UnitSpacing, StageY));
 
             var handRect = UIFactory.CreateRect("Hand", root).Place(new Vector2(0.5f, 0f), center, new Vector2(-60f, 178f), Vector2.zero);
             hand = handRect.gameObject.AddComponent<HandView>();
@@ -151,9 +156,9 @@ namespace Combat.View
             pause = PauseMenu.Create(root, this);
         }
 
-        void AddUnit(BattleUnit unit, Vector2 position, int moxieCap)
+        void AddUnit(BattleUnit unit, Vector2 position)
         {
-            var uv = UnitView.Create(Stage, unit, this, moxieCap);
+            var uv = UnitView.Create(Stage, unit, this, unit.SoulPointCapIn(Controller.State.Config));
             uv.Rect.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), position, new Vector2(UnitView.Width, UnitView.Height));
             unitViews[unit] = uv;
         }
@@ -543,8 +548,8 @@ namespace Combat.View
                     return null;
                 case UnitEnteredEvent entered:
                     return PlayUnitEntered(entered);
-                case MoxieChangedEvent moxie:
-                    return PlayMoxie(moxie);
+                case SoulPointsChangedEvent soulPoints:
+                    return PlaySoulPoints(soulPoints);
                 case IntentChosenEvent intent:
                     var iv = Get(intent.Unit);
                     if (iv != null) iv.SetIntent(intent.Intent);
@@ -655,12 +660,12 @@ namespace Combat.View
             hud.SetQueue(e.QueueAfter);
         }
 
-        IEnumerator PlayMoxie(MoxieChangedEvent e)
+        IEnumerator PlaySoulPoints(SoulPointsChangedEvent e)
         {
             var uv = Get(e.Unit);
             if (uv == null) yield break;
-            uv.SetMoxie(e.Value, Controller.State.Config.moxieCap);
-            if (e.Delta > 0) StartCoroutine(uv.PunchMoxie());
+            uv.SetSoulPoints(e.Value, uv.SoulPointCap);
+            if (e.Delta > 0) StartCoroutine(uv.PunchSoulPoints());
         }
 
         IEnumerator PlayCast(CardCastEvent e)
@@ -809,7 +814,7 @@ namespace Combat.View
             Vector2 spot = gone != null ? gone.Rect.anchoredPosition : new Vector2(PartyCenterX, StageY);
             yield return Tween.Wait(0.4f);
             if (gone != null) gone.gameObject.SetActive(false);
-            AddUnit(e.Unit, spot, Controller.State.Config.moxieCap);
+            AddUnit(e.Unit, spot);
             var uv = Get(e.Unit);
             var group = uv.gameObject.AddComponent<CanvasGroup>();
             group.alpha = 0f;

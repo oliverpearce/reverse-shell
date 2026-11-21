@@ -150,9 +150,9 @@ namespace Combat.Tests
             var plain = new BattleController(new[] { hero }, new[] { dummy }, CombatConfig.Default, 3);
             plain.StartBattle();
             var chipped = new BattleController(new[] { hero }, new[] { dummy }, CombatConfig.Default, 3);
-            chipped.State.Party[0].Parts.Add(Part("Part_UltChip", PartSlot.Chip, new StatModifier(StatType.StartingMoxie, ModifierKind.Flat, 2f)));
+            chipped.State.Party[0].Parts.Add(Part("Part_UltChip", PartSlot.Chip, new StatModifier(StatType.StartingSoulPoints, ModifierKind.Flat, 2f)));
             chipped.StartBattle();
-            Assert.AreEqual(Mathf.Min(CombatConfig.Default.moxieCap, plain.State.Party[0].Moxie + 2), chipped.State.Party[0].Moxie);
+            Assert.AreEqual(Mathf.Min(CombatConfig.Default.soulPointCap, plain.State.Party[0].SoulPoints + 2), chipped.State.Party[0].SoulPoints);
         }
 
         [Test]

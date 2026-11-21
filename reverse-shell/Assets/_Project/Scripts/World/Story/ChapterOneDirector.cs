@@ -26,7 +26,6 @@ namespace Game.World
         public static readonly WorldAreas.EncounterDef CollectorFight = new WorldAreas.EncounterDef
         {
             Enemies = new[] { "Enemy_Collector" }, Level = 7, WinFlag = Chapter1.CollectorBeaten, WinKey = "collector.win",
-            Reward = "Part_UltChip",
             PartyCantFall = true,   // your first real fight: nobody drops below 1 HP
         };
 
@@ -64,9 +63,26 @@ namespace Game.World
             if (b.Area.Id != WorldAreas.City) return null;
             if (!StoryState.Has(Chapter1.Named)) return ToOffice(b);   // a save from before the office opening
             if (!StoryState.Has(Chapter1.Awake)) return Awakening(b);
-            // Quit before the reflection (it saves at the end): the first steps again.
-            if (!StoryState.Has(Chapter1.Reflection) && !StoryState.Has(Chapter1.Scanner)) return FirstStepsAgain(b);
-            return null;
+            // Quit before the mirror ended, or back from Erin's tutorial (won, skipped or quit).
+            switch (NextOpeningBeat())
+            {
+                case OpeningBeat.Mirror: return OpeningAgain(b);
+                case OpeningBeat.AfterTutorial: return AfterTutorial(b);
+                default: return null;
+            }
+        }
+
+        /// <summary>What's left of the opening on arrival: the mirror, or Erin's rank 1 scene after her tutorial.</summary>
+        public enum OpeningBeat { None, Mirror, AfterTutorial }
+
+        /// <summary>The next opening beat, from the flags alone. Saves from before this opening never have
+        /// <see cref="Chapter1.FirstFightDue"/>, so anyone already past Erin's first talk just carries on.</summary>
+        public static OpeningBeat NextOpeningBeat()
+        {
+            if (!InStory || !StoryState.Has(Chapter1.Awake)) return OpeningBeat.None;
+            if (StoryState.Has(Chapter1.FirstFightDue)) return OpeningBeat.AfterTutorial;
+            if (StoryState.Has(Chapter1.Scanner) || StoryState.Has(Chapter1.CollectorBeaten)) return OpeningBeat.None;
+            return StoryState.Has(Chapter1.Reflection) ? OpeningBeat.None : OpeningBeat.Mirror;
         }
 
         /// <summary>The opening, at the office desk just north of the start square: the login (your name), the
@@ -114,57 +130,144 @@ namespace Game.World
             yield return new WaitForSeconds(0.8f);
             yield return b.UI.FadeTo(new Color(0f, 0f, 0f, 0f), 2.6f);
             yield return Talk(b, Script("awakening"));
-            StoryState.Set(Chapter1.Awake);   // Erin waits in the pod room (SpawnErin)
+            StoryState.Set(Chapter1.Awake);
             SaveGame.Save();
-            yield return FirstSteps(b);
+            yield return PlayOpening(b);
         }
 
         /// <summary>
-        /// Right after waking: a hint to move (WASD / arrow keys) that goes once you do. Her first steps carry on a
-        /// moment on their own, unsteady, and stop at a puddle; then the reflection (<see cref="ReflectionSequence"/>):
-        /// she sees she's a machine, her cracked Core, and her Soul Card. Then the area's title and you're free.
+        /// Right after waking: the cracked mirror (<see cref="ReflectionSequence"/>), where she sees she's a machine, her
+        /// cracked Core and her Soul Card. Then you have control. Erin waits in the room until you talk to her.
         /// </summary>
-        static IEnumerator FirstSteps(OverworldBuilder b)
+        static IEnumerator PlayOpening(OverworldBuilder b)
         {
-            if (StoryState.Has(Chapter1.Reflection))
+            b.SetCutscene(true);
+            if (NextOpeningBeat() == OpeningBeat.Mirror)
             {
-                b.SetCutscene(false);
-                yield return b.UI.ShowTitle(b.Area.Name, b.Area.Subtitle);
-                yield break;
+                b.UI.SetFade(new Color(0f, 0f, 0f, 0f));
+                yield return Talk(b, Script("reflection.notice"));
+                var self = b.AllCharacters.Find(c => c != null && c.name == WorldSession.StartingMember);
+                bool over = false;
+                ReflectionSequence.Play(b, self, () => over = true);
+                while (!over) yield return null;
+                StoryState.Set(Chapter1.Reflection);
+                SaveGame.Save();
             }
             b.SetCutscene(false);
             var hint = MoveHint((RectTransform)b.UI.transform, UIText.Get("awakening.move_hint"));
-            var start = b.PlayerPosition;
-            while ((b.PlayerPosition - start).sqrMagnitude < 0.09f) yield return null;
-            b.StartCoroutine(FadeOut(hint));
-
-            // She keeps going a moment on her own, unsteady, slowing to a stop.
-            b.SetCutscene(true);
-            var player = b.Player;
-            if (player != null)
-            {
-                player.Drift(player.LastInput, 0.9f);
-                while (player.Drifting) yield return null;
-            }
-            yield return new WaitForSeconds(0.45f);
-            if (b.PlayerSprite != null) b.PlayerSprite.SetFacing(CharacterSprite.Down);   // looking down
-            yield return Talk(b, Script("reflection.notice"));
-
-            var self = b.AllCharacters.Find(c => c != null && c.name == WorldSession.StartingMember);
-            bool over = false;
-            ReflectionSequence.Play(b, self, () => over = true);
-            while (!over) yield return null;
-            StoryState.Set(Chapter1.Reflection);
-            SaveGame.Save();
-            b.SetCutscene(false);
+            b.StartCoroutine(HideHintOnMove(b, hint));
             yield return b.UI.ShowTitle(b.Area.Name, b.Area.Subtitle);
         }
 
-        static IEnumerator FirstStepsAgain(OverworldBuilder b)
+        static IEnumerator HideHintOnMove(OverworldBuilder b, CanvasGroup hint)
+        {
+            var start = b.PlayerPosition;
+            while ((b.PlayerPosition - start).sqrMagnitude < 0.09f) yield return null;
+            yield return FadeOut(hint);
+        }
+
+        static IEnumerator OpeningAgain(OverworldBuilder b)
+        {
+            yield return FadeInWorld(b);
+            yield return PlayOpening(b);
+        }
+
+        /// <summary>Back from black with the player held, for a beat that resumes on arrival.</summary>
+        static IEnumerator FadeInWorld(OverworldBuilder b)
         {
             b.SetCutscene(true);
+            b.UI.SetFade(Color.black);
             yield return new WaitForSeconds(0.5f);
-            yield return FirstSteps(b);
+            yield return b.UI.FadeTo(new Color(0f, 0f, 0f, 0f), 0.6f);
+        }
+
+        /// <summary>Your first talk with Erin: who she is, "can you even read?", then a Scrap Hound shows up and she offers
+        /// to walk you through the fight. Show me starts the tutorial; I know how goes straight to rank 1. The flag is saved
+        /// first, so however the fight ends (or if you quit) rank 1 is what comes next.</summary>
+        static IEnumerator ErinPreFight(OverworldBuilder b)
+        {
+            b.SetCutscene(true);
+            yield return Talk(b, ErinLines("erin.meet"));
+            if (!StoryState.Has(Chapter1.SaidCanRead) && !StoryState.Has(Chapter1.LanguageChip))
+            {
+                int read = -1;
+                yield return ErinAsks(b, "erin.read.ask", "erin.read.options", i => read = i);
+                yield return Talk(b, ErinLines("erin.read.answer." + (read + 1)));
+                if (read == 0) StoryState.Set(Chapter1.SaidCanRead);
+                else yield return GiveChip(b);
+            }
+            yield return Talk(b, ErinLines("erin.ambush"));
+            int offer = -1;
+            yield return ErinAsks(b, "tutorial.offer", "tutorial.offer.options", i => offer = i);
+            StoryState.Set(Chapter1.FirstFightDue);
+            SaveGame.Save();
+            if (offer == 0)
+            {
+                b.SetCutscene(false);
+                BattleTutorial.Start(b, true);
+                yield break;
+            }
+            yield return Talk(b, ErinLines("tutorial.skip"));
+            yield return ErinRankOne(b);
+        }
+
+        /// <summary>A block's lines, its last line asked with the choices in <paramref name="optionsKey"/>.</summary>
+        static IEnumerator ErinAsks(OverworldBuilder b, string key, string optionsKey, System.Action<int> picked)
+        {
+            var ask = ErinLines(key);
+            if (ask.Count > 1) yield return Talk(b, ask.GetRange(0, ask.Count - 1));
+            int answer = -1;
+            b.UI.Dialogue.Ask(ask[ask.Count - 1], StoryText.Texts(optionsKey), i => answer = i);
+            while (answer < 0) yield return null;
+            picked(answer);
+        }
+
+        /// <summary>Back from her tutorial (won, skipped or quit): her line if you won, then rank 1.</summary>
+        static IEnumerator AfterTutorial(OverworldBuilder b)
+        {
+            bool won = WorldSession.PendingKey == "tutorial.erin.done";
+            ClearPendingLines();
+            yield return FadeInWorld(b);
+            if (won) yield return Talk(b, ErinLines("tutorial.erin.done"));
+            yield return ErinRankOne(b);
+        }
+
+        /// <summary>Bond rank 1, then "find me": she flickers out and waits by the goggles.</summary>
+        static IEnumerator ErinRankOne(OverworldBuilder b)
+        {
+            if (!Bonds.Seen(Bonds.Erin, 1)) yield return Bonds.Play(b, Bonds.Erin, VoiceFor);
+            b.SetCutscene(true);
+            if (podRoomErin != null) yield return Vanish(podRoomErin);
+            yield return Talk(b, Script("erin.vanished"));
+            StoryState.Flags.Remove(Chapter1.FirstFightDue);
+            SaveGame.Save();
+            SpawnErinByGoggles(b);
+            b.SetCutscene(false);
+        }
+
+        /// <summary>The fight's result line is played here instead, with Erin's portrait.</summary>
+        static void ClearPendingLines()
+        {
+            WorldSession.PendingKey = null;
+            WorldSession.PendingSpeaker = null;
+            WorldSession.PendingMessage = null;
+        }
+
+        /// <summary>A script block with Erin's portrait on her lines.</summary>
+        static List<DialogueLine> ErinLines(string key)
+        {
+            var lines = Script(key);
+            var erin = ErinDefinition();
+            var portrait = erin != null ? OverworldBuilder.PortraitOf(erin.Anim) : null;
+            foreach (var l in lines) if (l.Speaker == "Erin") l.Portrait = portrait;
+            return lines;
+        }
+
+        static CharacterDefinition ErinDefinition()
+        {
+            foreach (var d in Resources.FindObjectsOfTypeAll<CharacterDefinition>())
+                if (d.name == Bonds.Erin.Character) return d;
+            return null;
         }
 
         /// <summary>The "how to move" hint: an ink plate low on the screen that fades in and waits.</summary>
@@ -201,6 +304,7 @@ namespace Game.World
         {
             var map = b.Map;
             var id = b.Area.Id;
+            offeringEnchant = false;   // a fresh scene: any earlier offer ended with it
             if (id == WorldAreas.Tunnel && !StoryState.Has(Chapter1.Tunnel))
             {
                 StoryState.Set(Chapter1.Tunnel);
@@ -268,28 +372,34 @@ namespace Game.World
         }
 
         // Erin's bond in Chapter One:
-        //   rank 1  the pod room. She talks, tells you to find her, and vanishes.
+        //   first talk  the pod room, when you walk up to her. "Can you even read and write?" ("No" gets the language chip
+        //           now, "Yes" after the Collector), a Scrap Hound shows up and she offers her tutorial (BattleTutorial).
+        //   rank 1  right after that fight (or after you skip it). She says "find me" and vanishes.
         //   rank 2  by the goggles (the optical scanner, O), near the Collector's gate. She gives you the card binder and
-        //           asks if you can even read and write: "No" gets the language chip now, "Yes" after the Collector. She
-        //           tells you to grab the goggles and offers her battle tutorial (she coaches; she hasn't joined). She
-        //           waits by the goggles while you face the Collector alone.
+        //           waits there while you face the Collector alone.
         //   rank 3  back from beating the Collector she finds you: you fight well enough to be worth following. She joins
         //           (Bonds.Erin.JoinRank = the Soul rank), gives her Soul Card, and the chip if you said you could read.
 
         /// <summary>Erin waits in the room you wake in (3 squares right of the pod, 1 up) for your first talk.</summary>
         static void SpawnErin(OverworldBuilder b, Vector2Int pod)
         {
-            if (!InStory || Bonds.Seen(Bonds.Erin, 1) || StoryState.Has(Chapter1.ErinLost)
+            podRoomErin = null;
+            bool firstFightLeft = StoryState.Has(Chapter1.FirstFightDue);
+            if (!InStory || (Bonds.Seen(Bonds.Erin, 1) && !firstFightLeft) || StoryState.Has(Chapter1.ErinLost)
                 || WorldSession.Members.Contains(Bonds.Erin.Character)) return;
             var npc = SpawnErinAt(b, new Vector2Int(pod.x + 3, pod.y - 1), 1);   // facing the pod
+            podRoomErin = npc;
             if (npc != null) Prop(b, npc, w => w.StartCoroutine(TalkToErin(w, npc)));
         }
+
+        /// <summary>Erin in the pod room, while she's there (the opening's goodbye makes her vanish).</summary>
+        static GameObject podRoomErin;
 
         /// <summary>After the pod room she waits by the goggles (a free square beside the O tile) until she joins: after the
         /// Collector her rank-3 scene finds you (or plays right after her rank-2 talk, if you beat him first).</summary>
         static void SpawnErinByGoggles(OverworldBuilder b)
         {
-            if (!InStory || !Bonds.Seen(Bonds.Erin, 1) || Bonds.Joined(Bonds.Erin.Character)
+            if (!InStory || !Bonds.Seen(Bonds.Erin, 1) || StoryState.Has(Chapter1.FirstFightDue) || Bonds.Joined(Bonds.Erin.Character)
                 || WorldSession.Members.Contains(Bonds.Erin.Character) || StoryState.Has(Chapter1.ErinLost)) return;
             var tries = new[] { new Vector2Int(-1, 0), new Vector2Int(1, 0), new Vector2Int(0, 1), new Vector2Int(-1, 1),
                                 new Vector2Int(1, 1), new Vector2Int(0, -1), new Vector2Int(-2, 0), new Vector2Int(2, 0) };
@@ -315,29 +425,26 @@ namespace Game.World
 
         static IEnumerator TalkToErin(OverworldBuilder b, GameObject npc)
         {
-            bool firstTalk = !Bonds.Seen(Bonds.Erin, 1);
-            bool binderTalk = Bonds.Seen(Bonds.Erin, 1) && !Bonds.Seen(Bonds.Erin, 2);
+            if (StoryState.Has(Chapter1.FirstFightDue)) yield break;   // rank 1 is already on its way
+            if (!Bonds.Seen(Bonds.Erin, 1))
+            {
+                yield return ErinPreFight(b);
+                yield break;
+            }
+            bool binderTalk = !Bonds.Seen(Bonds.Erin, 2);
             bool joinedBefore = Bonds.Joined(Bonds.Erin.Character);
             yield return Bonds.Play(b, Bonds.Erin, VoiceFor);
             // Rank 2 done and the Collector already beaten: her rank-3 scene (she joins) follows straight on.
             if (binderTalk && Bonds.Seen(Bonds.Erin, 2) && Bonds.WhatsNext(Bonds.Erin) == Bonds.Next.Scene)
                 yield return Bonds.Play(b, Bonds.Erin, VoiceFor);
-            // She just joined: her battle tutorial (after the whole scene, so the rank-up is saved before the fight loads).
             if (!joinedBefore && Bonds.Joined(Bonds.Erin.Character))
             {
                 if (npc != null) npc.SetActive(false);   // she walks with you now
-                yield return OfferTutorialRoutine(b);
                 yield break;
             }
             if (binderTalk && Bonds.Seen(Bonds.Erin, 2)) yield break;   // she waits here while you face the Collector
             if (npc == null) yield break;
-            if (firstTalk && Bonds.Seen(Bonds.Erin, 1))
-            {
-                // "Find me." Then she flickers out, and the spot is empty.
-                yield return Vanish(npc);
-                yield return Talk(b, Script("erin.vanished"));
-            }
-            else if (Bonds.Joined(Bonds.Erin.Character))
+            if (Bonds.Joined(Bonds.Erin.Character))
             {
                 npc.SetActive(false);   // she walks with you now
                 b.StartCoroutine(ErinCatchesUp(b));   // the goggles already in hand: her Soul Card scene follows
@@ -356,18 +463,15 @@ namespace Game.World
             npc.SetActive(false);
         }
 
-        /// <summary>Rank 2: the card binder (its words are in the scene), and the language chip now if you said you can't
-        /// read (the second answer). "Yes" is remembered: the tutorial teases you about it.</summary>
+        /// <summary>Rank 2: the card binder (its words are in the scene), then she points you at the goggles.</summary>
         static IEnumerator ErinGivesBinder(OverworldBuilder b, int answer)
         {
             StoryState.Set(Chapter1.Binder);
-            if (answer == 0) StoryState.Set(Chapter1.SaidCanRead);
-            if (answer == 1) yield return GiveChip(b);
             yield return Talk(b, Script("erin.goggles"));
             SaveGame.Save();
         }
 
-        /// <summary>Rank 3 (after the Collector): the language chip, if she held on to it at rank 2.</summary>
+        /// <summary>Rank 3 (after the Collector): the language chip, if you told her you could read.</summary>
         static IEnumerator ErinGivesChipLate(OverworldBuilder b, int answer)
         {
             if (!StoryState.Has(Chapter1.LanguageChip)) yield return GiveChip(b);
@@ -384,7 +488,76 @@ namespace Game.World
         /// has unlocked, she pulls you aside.</summary>
         static IEnumerator ErinCatchesUp(OverworldBuilder b)
         {
-            if (!InStory || StoryState.Has(Chapter1.ErinLost)) yield break;
+            yield return ErinScenesWaiting(b);
+            yield return OfferCollectorEnchant(b);
+        }
+
+        static bool offeringEnchant;
+
+        /// <summary>
+        /// The Collector's drop, once Erin's scenes after the fight are done: choose Sun, Moon or Star, then she walks you
+        /// through putting it on A3's plain Strike in the real Cards book (Esc keeps it for later). A save from before
+        /// this reward already has the Ult Chip, so the Buried Hall chest that holds it now counts as opened.
+        /// </summary>
+        static IEnumerator OfferCollectorEnchant(OverworldBuilder b)
+        {
+            if (!InStory || !StoryState.Has(Chapter1.CollectorBeaten) || StoryState.Has(Chapter1.CollectorEnchant)
+                || StoryState.Has(Chapter1.FirstFightDue) || offeringEnchant) yield break;
+            offeringEnchant = true;
+            yield return new WaitForSeconds(1.2f);
+            while (b.Busy) yield return null;
+            b.SetCutscene(true);
+            if (!StoryState.Has(Chapter1.ChipInChest)) StoryState.Set("chest.tunnel.0");
+
+            bool erinHere = !StoryState.Has(Chapter1.ErinLost);
+            var choices = EnchantReward.Available();
+            if (choices.Count > 0)
+            {
+                yield return Talk(b, erinHere ? ErinLines("erin.enchant.drop") : Script("enchant.drop.alone"));
+                var kind = CardBinding.None;
+                EnchantReward.Show((RectTransform)b.UI.transform, choices, k => kind = k);
+                while (kind == CardBinding.None) yield return null;
+                CardCollection.AddFound(kind);
+                CardCollection.MarkNew(CardCollection.ArcanaKey(kind));
+                StoryState.Set(Chapter1.CollectorEnchant);
+                SaveGame.Save();
+                if (erinHere && StoryState.Has(Chapter1.Binder)) yield return EnchantLesson(b, kind);
+            }
+            else
+            {
+                StoryState.Set(Chapter1.CollectorEnchant);
+                SaveGame.Save();
+            }
+            offeringEnchant = false;
+            b.SetCutscene(false);
+        }
+
+        /// <summary>Erin's lesson: the Cards book opens on A3's plain Strike, framed in gold; picking it enchants it.</summary>
+        static IEnumerator EnchantLesson(OverworldBuilder b, CardBinding kind)
+        {
+            var self = b.AllCharacters.Find(c => c != null && c.name == WorldSession.StartingMember);
+            var strike = self != null ? self.starterCards.Find(c => c != null && c.name == "Card_Physical_Strike") : null;
+            var book = b.Items != null ? b.Items.Cards : null;
+            if (strike == null || book == null) yield break;
+            yield return Talk(b, ErinLines("erin.enchant.use"));
+            bool closed = false;
+            book.OpenEnchantLesson(kind, strike, () => closed = true);
+            var pointer = TutorialHighlight.Create((RectTransform)b.UI.transform);
+            while (!closed)
+            {
+                var rect = book.Settled ? book.RectOf(strike) : null;
+                if (rect != null) pointer.Show(rect, null, UIText.Get("tutorial.point.enchant"));
+                else pointer.Hide();
+                yield return null;
+            }
+            Object.Destroy(pointer.gameObject);
+            if (b.PlayerSprite != null) b.PlayerSprite.ClearPose();
+            yield return Talk(b, ErinLines(CardCollection.BindingOf(strike) == kind ? "erin.enchant.done" : "erin.enchant.later"));
+        }
+
+        static IEnumerator ErinScenesWaiting(OverworldBuilder b)
+        {
+            if (!InStory || StoryState.Has(Chapter1.ErinLost) || StoryState.Has(Chapter1.FirstFightDue)) yield break;
             if (!Bonds.Seen(Bonds.Erin, 1))
             {
                 // Never talked to her before the Collector (bond 0): she fought beside you anyway, so afterwards she
@@ -403,8 +576,6 @@ namespace Game.World
             for (int i = 0; i < 2 && !Bonds.Joined(Bonds.Erin.Character) && Bonds.WhatsNext(Bonds.Erin) == Bonds.Next.Scene; i++)
                 yield return Bonds.Play(b, Bonds.Erin, VoiceFor);
             if (joinedBefore && Bonds.WhatsNext(Bonds.Erin) == Bonds.Next.Scene) yield return Bonds.Play(b, Bonds.Erin, VoiceFor);
-            // Back from the Collector she joins, then offers her battle tutorial (fighting together).
-            if (!joinedBefore && Bonds.Joined(Bonds.Erin.Character)) yield return OfferTutorialRoutine(b);
         }
 
         /// <summary>After the Collector, for a player who never talked to Erin before the fight: the card binder
@@ -421,23 +592,6 @@ namespace Game.World
             yield return Talk(b, Script("erin.catchup.tutorial"));
             SaveGame.Save();
             b.SetCutscene(false);
-        }
-
-        /// <summary>After her rank-2 scene: her battle tutorial (Yes), or straight on (I know how).</summary>
-        static IEnumerator OfferTutorialRoutine(OverworldBuilder b)
-        {
-            b.SetCutscene(true);
-            int answer = -1;
-            var ask = Script("tutorial.offer");
-            if (ask.Count > 1) yield return Talk(b, ask.GetRange(0, ask.Count - 1));
-            if (ask.Count > 0)
-            {
-                b.UI.Dialogue.Ask(ask[ask.Count - 1], StoryText.Texts("tutorial.offer.options"), i => answer = i);
-                while (answer < 0) yield return null;
-            }
-            b.SetCutscene(false);
-            if (answer == 0) BattleTutorial.Start(b, true);
-            else yield return Talk(b, Script("tutorial.skip"));
         }
 
         static void Prop(OverworldBuilder b, GameObject go, System.Action<OverworldBuilder> interact)
@@ -585,6 +739,7 @@ namespace Game.World
                 StoryState.Set(Chapter1.CollectorMet);
                 SaveGame.Save();
             }
+            StoryState.Set(Chapter1.ChipInChest);   // this Collector fight drops an enchant; the Ult Chip is in the Buried Hall
             // Erin steps in: you're interesting and she's bored, so she's coming with you (she fights beside you).
             if (!WorldSession.Members.Contains(Bonds.Erin.Character) && !StoryState.Has(Chapter1.ErinLost))
             {
@@ -677,7 +832,7 @@ namespace Game.World
             b.SetCutscene(false);
         }
 
-        /// <summary>Debug: the reflection (the puddle, the Core, her Soul Card) again, here and now.</summary>
+        /// <summary>Debug: the reflection (the mirror, the Core, her Soul Card) again, here and now.</summary>
         public static void ReplayReflection(OverworldBuilder b)
         {
             b.SetCutscene(true);

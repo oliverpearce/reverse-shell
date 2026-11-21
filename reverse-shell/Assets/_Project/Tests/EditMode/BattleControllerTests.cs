@@ -173,13 +173,13 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void Merges_GrantMoxie()
+        public void Merges_GrantSoulPoints()
         {
             var battle = Start();
             int merges = battle.Events.OfType<CardsMergedEvent>().Count();
-            int expected = System.Math.Min(merges * CombatConfig.Default.moxiePerMerge, CombatConfig.Default.moxieCap);
+            int expected = System.Math.Min(merges * CombatConfig.Default.soulPointsPerMerge, CombatConfig.Default.soulPointCap);
 
-            Assert.AreEqual(expected, battle.State.Party[0].Moxie);
+            Assert.AreEqual(expected, battle.State.Party[0].SoulPoints);
         }
 
         [Test]
@@ -198,22 +198,22 @@ namespace Combat.Tests
         }
 
         [Test]
-        public void MoxieCap_SpawnsRitual_AndQueueingItResetsMoxie()
+        public void SoulPointCap_SpawnsRitual_AndQueueingItResetsSoulPoints()
         {
             var battle = Start();
             var unit = battle.State.Party[0];
 
-            battle.AddMoxie(unit, CombatConfig.Default.moxieCap);
+            battle.AddSoulPoints(unit, CombatConfig.Default.soulPointCap);
             var ritual = battle.State.Hand.Cards.FirstOrDefault(c => c.IsRitual);
 
             Assert.IsNotNull(ritual);
             battle.Events.Clear();
             Assert.IsTrue(battle.QueueCard(ritual));
 
-            // Moxie resets to 0; any merges caused by the ritual leaving the hand add back on top.
+            // SP resets to 0; any merges caused by the ritual leaving the hand add back on top.
             int mergesAfter = battle.Events.OfType<CardsMergedEvent>().Count();
-            Assert.AreEqual(mergesAfter * CombatConfig.Default.moxiePerMerge, unit.Moxie);
-            Assert.Less(unit.Moxie, CombatConfig.Default.moxieCap);
+            Assert.AreEqual(mergesAfter * CombatConfig.Default.soulPointsPerMerge, unit.SoulPoints);
+            Assert.Less(unit.SoulPoints, CombatConfig.Default.soulPointCap);
         }
 
         [Test]

@@ -12,16 +12,16 @@
 
 ## Rules
 - Each round the hand fills to 7 rank-I incantations, drawn from the party.
-- Two adjacent copies of the same card at the same rank merge into the next rank (max III), and each merge gives the owner +1 Moxie.
-- Playing an incantation gives the owner +1 Moxie.
-- At 5 Moxie the owner's **Ritual** card appears in the hand. Queuing it spends all their Moxie.
+- Two adjacent copies of the same card at the same rank merge into the next rank (max III), and each merge gives the owner +1 SP.
+- Playing an incantation gives the owner +1 SP.
+- At 5 SP the owner's **Ritual** card appears in the hand. Queuing it spends all their SP.
 - After your cards resolve, enemies use the intent they showed at the start of the round. Then status durations tick down.
 - **Afflatus:** Beast > Plant > Star > Mineral > Beast, and Spirit and Intellect beat each other. Advantage gives +30% damage and +15% crit (set in `CombatConfig`).
 
 ## Making content (no code)
 | Want | Do |
 |---|---|
-| New card | **Create > Combat > Card**. For each rank, click *Choose type* on an effect slot and pick an effect (Damage, Heal, Apply Status, Gain Moxie, Modify AP). |
+| New card | **Create > Combat > Card**. For each rank, click *Choose type* on an effect slot and pick an effect (Damage, Heal, Apply Status, Gain SP, Modify AP). |
 | New character | **Create > Combat > Character**. Give it 2 incantations and a ritual, then add it to a **Battle Setup**'s party. |
 | New enemy | **Create > Combat > Enemy**. Its skills are weighted cards that the AI picks from. |
 | Buff / debuff | **Create > Combat > Status**: stat modifiers per stack, DoT/HoT, stun (`preventsAction`). |

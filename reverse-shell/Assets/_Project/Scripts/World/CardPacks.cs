@@ -159,6 +159,8 @@ namespace Game.World
 
         static Pull RollRare(List<Pull> already, System.Random rng)
         {
+            // In the story, enchants are mini-boss rewards; Pack Mode's sets still include them.
+            if (!CardCollection.InSession && !PackRates.Current.enchantsInPacks) return null;
             var open = new List<CardBinding>();
             foreach (var kind in Arcana)
             {

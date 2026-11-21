@@ -74,6 +74,8 @@ namespace Combat
         [Header("Bindings (Sun, Moon, Star)")]
         [Tooltip("Off: no Use / Bind, no binding text, and bindings do nothing in battle. Sun / Moon / Star are still collected.")]
         public bool bindingOn = true;
+        [Tooltip("Sun, Moon and Star can come from story card packs. Off: only mini-bosses drop them (Pack Mode still has them).")]
+        public bool enchantsInPacks = false;
         [Tooltip("The most of each binding kind you can ever own.")]
         [Min(0)] public int maxPerBinding = 2;
         [Tooltip("Sun: the card's user heals this share of their max HP (0.05 = 5%).")]
@@ -82,7 +84,7 @@ namespace Combat
         public StatusDefinition moonStatus;
         [Tooltip("Moon: how many turns it lasts.")]
         [Min(1)] public int moonTurns = 1;
-        [Tooltip("Star: Ult points the card's user gains.")]
+        [Tooltip("Star: SP the card's user gains.")]
         [Min(0)] public int starUlt = 1;
 
         [Header("Decks")]
