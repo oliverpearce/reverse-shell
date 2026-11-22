@@ -132,6 +132,12 @@ namespace Combat
         public BattleUnit Unit;
     }
 
+    /// <summary>The bonus phase: this party member Staggered an enemy and may now play one of their cards for free.</summary>
+    public class BonusTurnEvent : BattleEvent
+    {
+        public BattleUnit Unit;
+    }
+
     /// <summary>A hit showed the player one of an enemy's weaknesses for the first time.</summary>
     public class WeaknessRevealedEvent : BattleEvent
     {

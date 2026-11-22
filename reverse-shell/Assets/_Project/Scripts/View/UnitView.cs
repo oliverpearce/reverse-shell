@@ -77,7 +77,9 @@ namespace Combat.View
         BattleView view;
         CanvasGroup group;
         Image portrait, sprite, flash, intentIcon, intentGlyph;
-        SlantBar hpFill, breakFill, breakBack;
+        SlantBar hpFill, breakFill, breakBack, breakGhost, breakKeep;
+        Text breakTag;
+        bool breakPreviewing, breakPreviewStagger;
         Text nameText;   // shown on hover only
         Reticle lockOn, focusRing, targetPreview;
         UISpriteAnimator animator;
@@ -178,6 +180,15 @@ namespace Combat.View
                 var breakBar = UIFactory.CreateRect("BreakBar", transform).Place(top, top, new Vector2(0f, -318f), new Vector2(186f, BreakHeight));
                 breakBack = SlantBar.Create(breakBar, "Back", PanelDark, HpSlant * BreakHeight / 14f, 2f);
                 breakFill = SlantBar.Create(breakBar, "Fill", BreakGrey, HpSlant * BreakHeight / 14f);
+                // The estimate: the ghost blinks over the part a planned attack would take; "keep" redraws what's left.
+                breakGhost = SlantBar.Create(breakBar, "Ghost", Color.white, HpSlant * BreakHeight / 14f);
+                breakKeep = SlantBar.Create(breakBar, "Keep", BreakGrey, HpSlant * BreakHeight / 14f);
+                breakTag = UIFactory.CreateText(breakBar, "Estimate", "", UIFactory.TextSize.Small, Color.white, TextAnchor.MiddleLeft, FontStyle.Bold);
+                breakTag.raycastTarget = false;
+                breakTag.horizontalOverflow = HorizontalWrapMode.Overflow;
+                breakTag.rectTransform.Place(new Vector2(1f, 0.5f), new Vector2(0f, 0.5f), new Vector2(8f, 0f), new Vector2(84f, 30f));
+                breakTag.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
+                ClearBreakPreview();
                 below = BreakHeight + 4f;
             }
 
@@ -297,6 +308,13 @@ namespace Combat.View
         {
             if (intentIcon != null && intentIcon.gameObject.activeSelf) // gentle bob, in whole pixels
                 intentIcon.rectTransform.anchoredPosition = new Vector2(0f, intentY + Mathf.Round(Mathf.Sin(Time.time * 2.5f) * 1.5f) * 2f);
+            if (breakPreviewing)   // the Break estimate blinks (gold when it would Stagger)
+            {
+                float blink = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 7f);
+                var ghostColor = breakPreviewStagger ? Gold : Color.white;
+                ghostColor.a = Mathf.Lerp(0.3f, 1f, blink);
+                breakGhost.color = ghostColor;
+            }
             if (ultReady)   // a full Ult bar pulses bright
             {
                 float p = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f);
@@ -423,6 +441,37 @@ namespace Combat.View
                 return;
             }
             breakRoutine = StartCoroutine(staggered && !wasStaggered ? BreakFlash() : Tween.Run(0.25f, Lerp(breakFill.Fill, target)));
+        }
+
+        /// <summary>Shows a planned attack on the Break bar: the part it would take blinks, gold with a BREAK tag if it
+        /// would Stagger, and a "?" when a planned card has no found weakness here.</summary>
+        public void SetBreakPreview(int now, int after, int max, bool unknown)
+        {
+            if (breakFill == null || max <= 0) return;
+            bool stagger = after <= 0;
+            bool chunk = after < now;
+            breakPreviewing = chunk;
+            breakPreviewStagger = stagger;
+            breakGhost.gameObject.SetActive(chunk);
+            breakKeep.gameObject.SetActive(chunk);
+            if (chunk)
+            {
+                breakGhost.Fill = Mathf.Clamp01((float)now / max);
+                breakKeep.Fill = Mathf.Clamp01((float)after / max);
+            }
+            string tag = stagger ? UIText.Get("battle.break") : unknown ? "?" : "";
+            breakTag.text = stagger && unknown ? tag + " ?" : tag;
+            breakTag.color = stagger ? Gold : Color.white;
+            breakTag.gameObject.SetActive(tag.Length > 0);
+        }
+
+        public void ClearBreakPreview()
+        {
+            if (breakFill == null) return;
+            breakPreviewing = false;
+            breakGhost.gameObject.SetActive(false);
+            breakKeep.gameObject.SetActive(false);
+            breakTag.gameObject.SetActive(false);
         }
 
         System.Action<float> Lerp(float from, float to)

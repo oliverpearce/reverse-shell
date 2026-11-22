@@ -77,7 +77,7 @@ namespace Combat
 
     public enum Team { Player, Enemy }
 
-    public enum BattlePhase { NotStarted, Planning, Resolving, Victory, Defeat }
+    public enum BattlePhase { NotStarted, Planning, Resolving, Victory, Defeat, Bonus }
 
     public enum StackRule
     {

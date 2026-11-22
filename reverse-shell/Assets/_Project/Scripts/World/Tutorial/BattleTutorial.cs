@@ -112,6 +112,7 @@ namespace Game.World
             view = battleView;
             bootstrap = boot;
             c = boot.Controller;
+            c.BonusActionsOn = false;   // the steps are scripted round by round
             box = DialogueBox.Create(view.Root);
             box.BaseY = 330f;   // above the hand
             view.Allow = Gate;

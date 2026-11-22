@@ -340,6 +340,7 @@ namespace Game.World
             var view = FindObjectOfType<BattleView>();
             if (view == null) yield break;
             var c = view.Controller;
+            c.BonusActionsOn = false;   // the tour's turns run straight through
             yield return Until(() => view.Idle && c.State.Phase == BattlePhase.Planning && !ScreenFade.Busy, 30f, "planning");
             yield return new WaitForSecondsRealtime(1.5f);
             yield return Shoot("combat-battle");

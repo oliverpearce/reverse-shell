@@ -135,6 +135,12 @@ namespace Combat.View
             resultPanel.transform.SetAsLastSibling();
         }
 
+        /// <summary>The Go button's word (Skip during a bonus action).</summary>
+        public void SetGoLabel(string label)
+        {
+            foreach (var text in goButton.GetComponentsInChildren<Text>(true)) text.text = label;
+        }
+
         public void SetInteractable(bool interactable)
         {
             if (goButton.interactable != interactable) goButton.interactable = interactable;

@@ -77,6 +77,17 @@ namespace Combat
         }
     }
 
+    /// <summary>What the player can see of a planned attack on one enemy's Break value. Only found weaknesses (and ones a
+    /// card added) count; <see cref="Unknown"/> means a planned card has no found weakness here, whether or not it would
+    /// really work, so the estimate never gives a weakness away.</summary>
+    public class BreakEstimate
+    {
+        public BattleUnit Unit;
+        public int After;
+        public bool Unknown;
+        public bool WouldStagger { get { return After <= 0; } }
+    }
+
     /// <summary>
     /// The weaknesses the player has found, per enemy asset (bible v0.8: discovered by experimentation, recorded in the
     /// bestiary). The overworld hooks <see cref="Lookup"/> and <see cref="Store"/> up to the save's story flags; without

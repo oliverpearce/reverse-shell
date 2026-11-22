@@ -84,13 +84,15 @@ namespace Combat.View
                 v.SetHP(enemy.HP, enemy.MaxHP, true);
                 v.SetBreak(enemy.Break, enemy.MaxBreak, enemy.Staggered, true);
             }
+            RefreshBreakPreview();
         }
 
         public bool InputEnabled
         {
             get
             {
-                return !playing && Controller.Events.Count == 0 && Controller.State.Phase == BattlePhase.Planning
+                var phase = Controller.State.Phase;
+                return !playing && Controller.Events.Count == 0 && (phase == BattlePhase.Planning || phase == BattlePhase.Bonus)
                        && !IsPaused && inspect == null && !CardDetailPopup.IsOpen;
             }
         }
@@ -117,6 +119,7 @@ namespace Combat.View
         {
             bootstrap = boot;
             Controller = controller;
+            Controller.BonusActionsOn = true;
             root = (RectTransform)transform;
             var center = new Vector2(0.5f, 0.5f);
 
@@ -347,7 +350,23 @@ namespace Combat.View
 
         public void OnCardClicked(CardInstance card)
         {
-            if (InputEnabled && Allowed("queue", card)) Controller.QueueCard(card);
+            if (!InputEnabled || !Allowed("queue", card)) return;
+            if (Controller.State.Phase != BattlePhase.Bonus)
+            {
+                Controller.QueueCard(card);
+                return;
+            }
+            if (!Controller.CanPlayBonus(card)) return;
+            EndBonusPrompt();
+            Controller.PlayBonusCard(card);
+            SetTurnPlaying(true);
+        }
+
+        /// <summary>Back to the normal hand and Go button after a bonus action's choice.</summary>
+        void EndBonusPrompt()
+        {
+            hand.SetBonusOwner(null);
+            hud.SetGoLabel(UIText.Get("battle.go"));
         }
 
         public bool RequestMove(CardInstance card, int toIndex)
@@ -372,12 +391,35 @@ namespace Combat.View
                 var uv = Get(unit);
                 if (uv != null) uv.SetTargetPreview(true);
             }
+            breakHover = card;
+            RefreshBreakPreview();
         }
 
         public void ClearTargetPreview()
         {
             foreach (var uv in unitViews.Values)
                 if (uv != null) uv.SetTargetPreview(false);
+            breakHover = null;
+            RefreshBreakPreview();
+        }
+
+        CardInstance breakHover;
+
+        /// <summary>The Break estimate on the enemies' bars: the queued cards plus the hovered one, while the board is
+        /// idle and the player is choosing (during a bonus action, only that member's cards count as hovered).</summary>
+        void RefreshBreakPreview()
+        {
+            if (Controller == null) return;
+            foreach (var pair in unitViews)
+                if (pair.Key.Team == Team.Enemy && pair.Value != null) pair.Value.ClearBreakPreview();
+            var phase = Controller.State.Phase;
+            if (playing || Controller.Events.Count > 0 || (phase != BattlePhase.Planning && phase != BattlePhase.Bonus)) return;
+            var hovered = phase == BattlePhase.Bonus && !Controller.CanPlayBonus(breakHover) ? null : breakHover;
+            foreach (var estimate in Controller.PreviewBreak(hovered))
+            {
+                var uv = Get(estimate.Unit);
+                if (uv != null) uv.SetBreakPreview(estimate.Unit.Break, estimate.After, estimate.Unit.MaxBreak, estimate.Unknown);
+            }
         }
 
         // ------------------------------------------------------------------ Focus (white ring) and keyboard targeting
@@ -451,7 +493,13 @@ namespace Combat.View
         public void OnGo()
         {
             if (!InputEnabled || !Allowed("go")) return;
-            Controller.EndPlanning();
+            // During a bonus action this button is Skip.
+            if (Controller.State.Phase == BattlePhase.Bonus)
+            {
+                EndBonusPrompt();
+                Controller.SkipBonus();
+            }
+            else Controller.EndPlanning();
             SetTurnPlaying(true);
         }
 
@@ -491,6 +539,7 @@ namespace Combat.View
                 }
             }
             playing = false;
+            RefreshBreakPreview();
         }
 
         /// <summary>Runs one event's animation, logging any error instead of letting it stop the event playback (a
@@ -528,6 +577,14 @@ namespace Combat.View
                     hud.ShowBanner(UIText.Get("battle.banner.turn", "n", round.Round.ToString()), Gold, 0.4f);
                     hud.Log("-- Turn " + round.Round + " --");
                     return Tween.Wait(0.35f);
+                case BonusTurnEvent bonus:
+                    SetTurnPlaying(false);
+                    CameraReset(0.25f);
+                    hand.SetBonusOwner(bonus.Unit);
+                    hud.SetGoLabel(UIText.Get("battle.skip"));
+                    hud.ShowBanner(UIText.Get("battle.banner.bonus", "name", bonus.Unit.Name), Gold, 0.8f);
+                    hud.Log(UIText.Get("battle.banner.bonus", "name", bonus.Unit.Name));
+                    return Tween.Wait(0.4f);
                 case CardDrawnEvent drawn:
                     return PlayDraw(drawn);
                 case CardsMergedEvent merged:

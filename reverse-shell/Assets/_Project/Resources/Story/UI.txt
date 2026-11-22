@@ -326,6 +326,8 @@ battle.weak = WEAK: {weak}
 # Banners across the middle. {n} = the turn number, {name} = a unit's name
 battle.banner.turn = Turn {n}
 battle.banner.end_of_turn = End of Turn
+battle.banner.bonus = Bonus Action: {name}
+battle.skip = Skip
 battle.banner.ult_ready = {name}'s soul resonates
 battle.banner.steps_in = {name} steps in!
 # The beat before the results screen

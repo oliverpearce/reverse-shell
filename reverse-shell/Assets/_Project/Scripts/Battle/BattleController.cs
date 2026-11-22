@@ -9,7 +9,8 @@ namespace Combat
     /// <see cref="Events"/> for a view (or a test) to consume.
     ///
     /// Round flow: StartRound (AP refill, enemy intents, draw + merge) -> Planning (player queues /
-    /// moves cards) -> EndPlanning (queued cards resolve, enemies act, statuses tick) -> StartRound...
+    /// moves cards) -> EndPlanning (queued cards resolve, enemies act) -> Bonus (whoever Staggered an enemy plays one
+    /// free card, when <see cref="BonusActionsOn"/>) -> statuses tick -> StartRound...
     /// </summary>
     public class BattleController
     {
@@ -250,8 +251,140 @@ namespace Combat
             State.Queue.Clear();
 
             if (!IsOver) EnemyTurn();
-            if (!IsOver) EndRound();
+            if (!IsOver) NextBonusTurn();
+        }
+
+        // ------------------------------------------------------------------ Bonus phase
+
+        /// <summary>Staggering an enemy earns a free card at the end of the round. The battle screen turns this on; a
+        /// scripted fight (the tutorial, the screenshot tour) leaves it off so its turns run straight through.</summary>
+        public bool BonusActionsOn;
+
+        readonly List<BattleUnit> bonusActors = new List<BattleUnit>();
+
+        /// <summary>Whose bonus action it is (null outside the bonus phase).</summary>
+        public BattleUnit BonusActor
+        {
+            get { return State.Phase == BattlePhase.Bonus && bonusActors.Count > 0 ? bonusActors[0] : null; }
+        }
+
+        public bool CanPlayBonus(CardInstance card)
+        {
+            return card != null && BonusActor != null && card.Owner == BonusActor && State.Hand.IndexOf(card) >= 0;
+        }
+
+        /// <summary>Plays one of the bonus actor's cards from the hand at once, for no AP.</summary>
+        public bool PlayBonusCard(CardInstance card)
+        {
+            if (!CanPlayBonus(card)) return false;
+            var caster = card.Owner;
+            bonusActors.RemoveAt(0);
+            State.Hand.RemoveAt(State.Hand.IndexOf(card));
+            if (card.Definition.targetMode == TargetMode.SingleEnemy && State.SelectedEnemy != null && State.SelectedEnemy.IsAlive)
+                card.Target = State.SelectedEnemy;
+            if (card.IsRitual) SetSoulPoints(caster, 0);
+
+            Emit(new CardQueuedEvent { Card = card, HandAfter = State.Hand.Snapshot(), QueueAfter = new List<CardInstance>(State.Queue) });
+            ResolveMerges();
+            Cast(caster, card);
+            if (!card.IsRitual && !IsOver) AddSoulPoints(caster, Config.soulPointsPerCast);
+            if (!IsOver) NextBonusTurn();
+            return true;
+        }
+
+        /// <summary>The bonus actor passes on their free card.</summary>
+        public void SkipBonus()
+        {
+            if (BonusActor == null) return;
+            bonusActors.RemoveAt(0);
+            NextBonusTurn();
+        }
+
+        /// <summary>Hands the bonus phase to the next member who can still act; with nobody left, the round ends.</summary>
+        void NextBonusTurn()
+        {
+            while (bonusActors.Count > 0)
+            {
+                var unit = bonusActors[0];
+                if (unit.IsAlive && !unit.IsStunned && State.Hand.Snapshot().Exists(c => c.Owner == unit))
+                {
+                    State.Phase = BattlePhase.Bonus;
+                    Emit(new BonusTurnEvent { Unit = unit });
+                    return;
+                }
+                bonusActors.RemoveAt(0);
+            }
+            State.Phase = BattlePhase.Resolving;
+            EndRound();
             if (!IsOver) StartRound();
+        }
+
+        /// <summary>One bonus action per member per round; a Stagger during the bonus phase earns nothing (no chains).</summary>
+        void EarnBonusAction(BattleUnit source)
+        {
+            if (!BonusActionsOn || State.Phase == BattlePhase.Bonus || source.Team != Team.Player) return;
+            if (!bonusActors.Contains(source)) bonusActors.Add(source);
+        }
+
+        // ------------------------------------------------------------------ Break estimate
+
+        /// <summary>
+        /// What the queued cards, plus <paramref name="hovered"/> if given, would do to each enemy's Break value, going by
+        /// the weaknesses the player can see. Never touches the RNG or the battle.
+        /// </summary>
+        public List<BreakEstimate> PreviewBreak(CardInstance hovered)
+        {
+            var estimates = new List<BreakEstimate>();
+            foreach (var card in State.Queue) AddBreakEstimate(estimates, card);
+            if (hovered != null) AddBreakEstimate(estimates, hovered);
+            return estimates;
+        }
+
+        void AddBreakEstimate(List<BreakEstimate> into, CardInstance card)
+        {
+            int amount = BreakRules.Value(card);
+            if (amount <= 0 || card.Owner == null) return;
+            foreach (var target in BreakHitTargets(card))
+            {
+                if (!target.Breakable || target.Staggered) continue;
+                var estimate = into.Find(e => e.Unit == target);
+                if (estimate == null)
+                {
+                    estimate = new BreakEstimate { Unit = target, After = target.Break };
+                    into.Add(estimate);
+                }
+                var visible = WeaknessBook.Known(target.Enemy);
+                if (target.ExtraWeaknessTurns > 0) visible |= target.ExtraWeaknesses;
+                if ((BreakRules.HitsOf(card.Definition) & visible) != Weakness.None)
+                    estimate.After = Mathf.Max(0, estimate.After - amount);
+                else estimate.Unknown = true;
+            }
+        }
+
+        /// <summary>The enemies a card's damage effects would land on (a random pick counts every candidate).</summary>
+        List<BattleUnit> BreakHitTargets(CardInstance card)
+        {
+            var result = new List<BattleUnit>();
+            var rank = card.RankData;
+            if (rank == null || rank.effects == null) return result;
+            var allies = State.AlliesOf(card.Owner).FindAll(u => u.IsAlive);
+            var foes = State.OpponentsOf(card.Owner).FindAll(u => u.IsAlive);
+            foreach (var effect in rank.effects)
+            {
+                if (!(effect is DamageEffect)) continue;
+                var mode = effect.target == EffectTarget.CardTargets ? card.Definition.targetMode : ToMode(effect.target);
+                List<BattleUnit> picked;
+                if (mode == TargetMode.RandomEnemy) picked = foes;
+                else if (mode == TargetMode.SingleEnemy && effect.target == EffectTarget.CardTargets && card.Target != null && card.Target.IsAlive)
+                    picked = new List<BattleUnit> { card.Target };
+                else picked = SelectTargetsNoRandom(card.Owner, mode, allies, foes);
+                foreach (var unit in picked)
+                {
+                    var hit = CoveredBy(card.Owner, unit);
+                    if (hit.Team != card.Owner.Team && !result.Contains(hit)) result.Add(hit);
+                }
+            }
+            return result;
         }
 
         // ------------------------------------------------------------------ Effect API
@@ -424,7 +557,11 @@ namespace Combat
             int amount = BreakRules.Value(card);
             if (amount <= 0) return;
             target.Break = Mathf.Max(0, target.Break - amount);
-            if (target.Break == 0) Stagger(target);
+            if (target.Break == 0)
+            {
+                Stagger(target);
+                EarnBonusAction(source);
+            }
             else EmitBreak(target);
         }
 

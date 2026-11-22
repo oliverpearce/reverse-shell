@@ -93,8 +93,31 @@ namespace Combat.View
             if (preview != null) Destroy(preview.gameObject);
             preview = null;
             if (View != null) View.ClearTargetPreview();
-            if (previewOwner != null && previewOwner.Group != null) previewOwner.Group.alpha = 1f;
+            if (previewOwner != null && previewOwner.Group != null) previewOwner.Group.alpha = RestAlpha(previewOwner.Card);
             previewOwner = null;
+        }
+
+        // ------------------------------------------------------------------ Bonus action
+
+        const float BonusDimAlpha = 0.35f;
+        BattleUnit bonusOwner;
+
+        float RestAlpha(CardInstance card)
+        {
+            return bonusOwner != null && card.Owner != bonusOwner ? BonusDimAlpha : 1f;
+        }
+
+        /// <summary>During a bonus action only this member's cards stay lit (null: the whole hand again).</summary>
+        public void SetBonusOwner(BattleUnit owner)
+        {
+            bonusOwner = owner;
+            ApplyBonusDim();
+        }
+
+        void ApplyBonusDim()
+        {
+            foreach (var cv in views.Values)
+                if (cv != null && cv != previewOwner && cv.Group != null) cv.Group.alpha = RestAlpha(cv.Card);
         }
 
         /// <summary>The hand's usable strip in this rect's local x: from the left edge to just before the Go button.</summary>
